@@ -4,7 +4,7 @@
 
 Build documentation/showcase apps for TypeScript libraries.
 
-tsshowcase reads a host repository (the repository that uses it) and collects its host information: the project information, the documentation files (`README`, `CONTRIBUTE`, `LICENSE`, ...) and an index of its code files. For now, `tsshowcase check` collects and checks it. The showcase application that presents it (a React/FluentUI SPA with a page per documentation file, and a light/dark toggle) is written, but serving and building it, with `tsshowcase serve` and `tsshowcase build`, are still to come.
+tsshowcase reads a host repository (the repository that uses it) and collects its host information: the project information, the documentation files (`README`, `CONTRIBUTE`, `LICENSE`, ...) and an index of its code files. `tsshowcase check` collects and checks it, and `tsshowcase serve` previews the showcase application that presents it: a React/FluentUI SPA with the project information, a page per documentation file, and a light/dark toggle. Building it into static files, with `tsshowcase build`, is still to come.
 
 ---
 
@@ -17,6 +17,7 @@ Jump to section:
   - [Documentation files](#documentation-files)
   - [Stack adapters](#stack-adapters)
   - [`tsshowcase check`](#tsshowcase-check)
+  - [`tsshowcase serve`](#tsshowcase-serve)
   - [API](#api)
 - [Development](#development)
 - [Contributing](#contributing)
@@ -126,6 +127,26 @@ The host information has this shape (types `HostInformation`, `ProjectInformatio
 
 Documentation files have a `kind` of `readme`, `contribute`, `license`, or `other` for the files the `documentation` patterns add. Paths are POSIX-style and relative to the host repository's root, and both lists are sorted by path.
 
+## `tsshowcase serve`
+
+Serves the showcase application of the host repository in the current directory (or the one `--root` names), for previewing it while writing its documentation:
+
+```sh
+$ npx tsshowcase serve [--root <dir>] [--port <port>]
+```
+
+- It checks the host repository first, as `tsshowcase check` does, writing the issues to `stderr`. If the check fails, it exits with `1` without serving.
+- It then serves the showcase application with Vite's dev server on `--port` (default: `5173`, or the next free port), writing its URL to `stdout`, until you stop it with Ctrl+C.
+- It watches the host repository, skipping the files the `ignore` patterns skip. After any change it checks the host repository again, and reloads the page when the project information or a documentation file changed. A failed check writes its issues and keeps showing the last good data. Changes to `tsshowcase.json` apply without a restart.
+
+The showcase application has a page per documentation file, its address in the URL's hash (e.g. `#/docs/guide.md`), and a home page with the project information and the root `README`. `.md` files are rendered as GitHub-flavoured Markdown, with syntax-highlighted code blocks and the same heading ids as on GitHub; other documentation files are shown as plain text. In Markdown:
+
+- relative links to documentation files (or to folders whose `README` is one) open their page; other relative links (e.g. to code files) are shown as plain text;
+- relative images are shown as their alt text, as images aren't collected yet; absolute image URLs work;
+- raw HTML tags are left out, keeping the Markdown between them.
+
+Each run keeps Vite's cache in a fresh folder in the system's temporary folder, and removes it on exit; starting takes a few seconds while Vite prepares the dependencies.
+
 ## API
 
 Everything the command line does is also exported:
@@ -162,7 +183,7 @@ console.log(getStackAdapterNames(), project, errors);
 
 - `npm run build` - cleans `dist/` (`npm run clean`), then compiles `src/` into it, emitting declarations, and copies the showcase application's `src/app/index.html` to `dist/app/` (`npm run copy-app`). Also run on `prepare`, so a local `npm install` builds too.
 - `npm run dev` - the same, in watch mode (restart it after changing `src/app/index.html`).
-- `npm start` - runs the built command line, `dist/cli/bin.js`; pass it arguments after `--`, e.g. `npm start -- check --root test/fixtures/minimal`.
+- `npm start` - runs the built command line, `dist/cli/bin.js`; pass it arguments after `--`, e.g. `npm start -- check --root test/fixtures/minimal`. To preview the showcase application while working on it, serve a host repository with `npm start -- serve --root <host>` while `npm run dev` recompiles `src/app/` into `dist/app/`, and reload the page after a change. `npm run build` empties `dist/` first, so restart `serve` after it.
 - `npm test` - runs every `test:*` script.
   - `npm run test:unit` - a single Vitest invocation that executes test files, runs their runtime expectations, and type checks them, reporting type errors as test failures. Tests run against the fixture host repositories in `test/fixtures/`; the showcase application's tests render it to HTML with `react-dom/server`.
 - `npm run ci` - runs every `ci:*` script: build, ESLint, Prettier and the tests. This is what GitHub Actions runs on every pull request targeting, and every push to, `master` or `develop`, against Node 22 and 24. It also runs on `prepublishOnly`, so `npm publish` refuses to publish a failing build.

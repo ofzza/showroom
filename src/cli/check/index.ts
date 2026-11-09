@@ -8,6 +8,7 @@ import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { getStackAdapter, getStackAdapterNames } from '../../adapters/stack/index.js';
 import { readConfiguration, CONFIGURATION_FILE_NAME } from '../../configuration/index.js';
 import type { DocumentationFile, DocumentationKind, HostInformation, ProjectInformation } from '../../host/index.js';
+import { createIgnoreMatcher } from './internal/index.js';
 
 // #region Types
 
@@ -143,7 +144,7 @@ export async function check(root: string): Promise<CheckResult> {
   }
 
   // Walk the host repository
-  const ignored = ignore().add([...adapter.ignore, ...(configuration.ignore ?? [])]);
+  const ignored = createIgnoreMatcher(adapter, configuration);
   const files = await _walk(root, '', ignored);
 
   // Collect the code file index

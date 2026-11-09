@@ -83,5 +83,37 @@ describe('cli', () => {
       expect(code).toBe(1);
       expect(stderr).toMatch(/^Unknown option '--out'/);
     });
+
+    it('Lists the serve command and --port in the help', () => {
+      expect(USAGE).toMatch(/^ {2}serve {4}/m);
+      expect(USAGE).toMatch(/^ {2}--port <port> /m);
+    });
+
+    it('Fails on an invalid port, before serving', async () => {
+      for (const port of ['0', '65536', 'abc', '80.5', '-1']) {
+        const { code, stdout, stderr } = await _run(['serve', `--port=${port}`]);
+        expect(code).toBe(1);
+        expect(stdout).toBe('');
+        expect(stderr).toBe(`Invalid port: ${port}\n\n${USAGE}`);
+      }
+    });
+
+    it('Fails on --port with check', async () => {
+      const { code, stderr } = await _run(['check', '--port', '8080', '--root', _fixture('minimal')]);
+      expect(code).toBe(1);
+      expect(stderr).toBe(`--port only applies to serve\n\n${USAGE}`);
+    });
+  });
+
+  describe('serve', () => {
+    // Only how main() hands over to serve: its unit tests never start the dev server (see AGENTS.md › Testing), so this runs serve where its first check
+    // fails, before it starts anything.
+
+    it('Exits with 1, writing the issues to stderr, when the first check fails', async () => {
+      const { code, stdout, stderr } = await _run(['serve', '--root', _fixture('unknown-stack'), '--port', '8080']);
+      expect(code).toBe(1);
+      expect(stdout).toBe('');
+      expect(stderr).toBe('error: tsshowcase.json: Unknown stack "cobol"; the stack adapters are: typescript\n');
+    });
   });
 });

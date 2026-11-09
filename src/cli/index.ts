@@ -4,7 +4,8 @@
 
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { check, type CheckIssue } from './check/index.js';
+import { check } from './check/index.js';
+import { formatIssues } from './check/internal/index.js';
 
 export * from './check/index.js';
 
@@ -18,10 +19,13 @@ export const USAGE = `Usage: tsshowcase <command> [options]
 Commands:
   check    Checks the host repository, writing every issue to stderr and, if the
            check passes, the collected host information (JSON) to stdout
+  serve    Serves the showcase application for previewing, reloading it when the
+           host repository's documentation changes; stop it with Ctrl+C
 
 Options:
-  --root <dir>  Root of the host repository (default: the current directory)
-  --help        Shows this help
+  --root <dir>   Root of the host repository (default: the current directory)
+  --port <port>  Port to serve on (serve only; default: 5173, or the next free one)
+  --help         Shows this help
 `;
 
 /**
@@ -63,16 +67,42 @@ export async function main(args: string[], output: CliOutput = _processOutput())
     return 0;
   }
   const [command, ...rest] = positionals;
-  if (command !== 'check' || rest.length) {
+  if (!(command === 'check' || command === 'serve') || rest.length) {
     output.stderr(`${command ? `Unknown command: ${[command, ...rest].join(' ')}` : 'No command given'}\n\n${USAGE}`);
+    return 1;
+  }
+  const root = resolve(values.root ?? '.');
+
+  // Serve the showcase application; Vite is only loaded here
+  if (command === 'serve') {
+    const port = values.port === undefined ? undefined : _parsePort(values.port);
+    if (port === null) {
+      output.stderr(`Invalid port: ${values.port}\n\n${USAGE}`);
+      return 1;
+    }
+    const { serve } = await import('./serve/index.js');
+    return serve({ root, port, output });
+  }
+  if (values.port !== undefined) {
+    output.stderr(`--port only applies to serve\n\n${USAGE}`);
     return 1;
   }
 
   // Run the check
-  const result = await check(resolve(values.root ?? '.'));
-  for (const issue of result.issues) output.stderr(`${_formatIssue(issue)}\n`);
+  const result = await check(root);
+  output.stderr(formatIssues(result.issues));
   if (result.host) output.stdout(`${JSON.stringify(result.host, null, 2)}\n`);
   return result.passed ? 0 : 1;
+}
+
+/**
+ * Parses the value of `--port`
+ * @param value Value given
+ * @returns The port, or null if the value isn't a whole number from 1 to 65535
+ */
+function _parsePort(value: string): number | null {
+  const port = Number(value);
+  return /^\d+$/.test(value) && port >= 1 && port <= 65535 ? port : null;
 }
 
 /**
@@ -84,17 +114,8 @@ function _parse(args: string[]) {
   return parseArgs({
     args,
     allowPositionals: true,
-    options: { root: { type: 'string' }, help: { type: 'boolean' } },
+    options: { root: { type: 'string' }, port: { type: 'string' }, help: { type: 'boolean' } },
   });
-}
-
-/**
- * Formats a check issue as one line of output
- * @param issue Issue to format
- * @returns The formatted line, without a line break
- */
-function _formatIssue(issue: CheckIssue): string {
-  return `${issue.severity}: ${issue.path ? `${issue.path}: ` : ''}${issue.message}`;
 }
 
 /**

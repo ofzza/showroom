@@ -2,9 +2,9 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: S2.1 Showcase application is implemented and committed; S2.2 Serve command (S2 steps 3 and 4) is next. S3 Build command is not planned yet.
+- **Stage:** planning: S1 and S2 (S2.1, S2.2) are implemented and committed; S3 Build command is not planned yet.
 - **Working on:** nothing in progress.
-- **Next step:** implement S2.2 Serve command (`./.workflow/PLAN.md` › S2, steps 3 and 4), then hold its checkpoint, including the user's check of the showcase application in a browser.
+- **Next step:** plan S3 Build command (`./.workflow/PLAN.md` › S3, starting from its open points).
 
 ## Open questions
 
@@ -43,3 +43,5 @@
 - 2026-11-09: `review-s2-plan/` and `questions-s2-plan/` working files deleted with the user's yes; the user chose to implement S2.1 next, in a fresh session.
 - 2026-11-09: S2.1 Showcase application implemented: `npm run ci` green (226 tests); not yet checked in a browser (needs S2.2's Vite setup).
 - 2026-11-09: S2.1 checkpoint: approved and committed (option chosen: "Approve and commit"); raw HTML tags dropped ("Drop tags", recorded in A6), Glossary term "Shown host information" added ("Add it"), implementation choices 3a–3g confirmed ("All OK").
+- 2026-11-09: S2.2 Serve command implemented: `npm run ci` green (280 tests); trial runs on a fixture copy and a copy of `../tsstd` served, reloaded and cleaned up as planned.
+- 2026-11-09: S2.2 checkpoint: approved and committed (option chosen: "Approve and commit"); the user's browser check passed ("All work"), implementation choices a–f confirmed ("All OK"). S2 Showcase application is done.
