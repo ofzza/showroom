@@ -2,9 +2,9 @@
 
 ## Next session: start here
 
-- **Stage:** planning: S1 Host scanning is implemented and approved; S2 Showcase application and S3 Build command are not planned yet.
+- **Stage:** planning: S1 is implemented; S2 Showcase application is approved (child segments S2.1 and S2.2); S3 Build command is not planned yet.
 - **Working on:** nothing in progress.
-- **Next step:** plan S2 and S3 (they can be planned in parallel), starting with their open points in `./.workflow/PLAN.md`.
+- **Next step:** the user chooses between implementing S2.1 Showcase application and planning S3. `./.workflow/.temp/review-s2-plan/` and `questions-s2-plan/` await the user's confirmation before deletion.
 
 ## Open questions
 
@@ -12,6 +12,7 @@
 
 ## Waiting on me
 
+- Confirmation that `./.workflow/.temp/review-s2-plan/` and `questions-s2-plan/` can be deleted (their results are in the plan, the specification and `CONTRIBUTE.md`).
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 
 ## Running
@@ -34,3 +35,9 @@
 - 2026-11-09: S1 Host scanning approved (user: "I approve S1, and we can commit it"), to be implemented before S2 and S3 are planned.
 - 2026-11-09: S1 Host scanning implemented: `npm run ci` green (104 tests); smoke-tested on copies of `../tsstd` and `../tsschema`.
 - 2026-11-09: S1 checkpoint: approved and committed (option chosen: "Approve and commit"), with implementation choices 1–4 confirmed ("All four OK").
+- 2026-11-09: S2 planning started (the user chose S2 before S3). Choices A1–A14 settled: no code file index page (D12), `tsshowcase serve` moved into S2 (D4 updated), syntax highlighting added as a must-have (D12), React/FluentUI as ordinary `dependencies`. Specification updated accordingly.
+- 2026-11-09: S2 choices A15–A18 settled: install size accepted, generated Vite project and `cacheDir` in the OS temp folder, `serve` watching the whole host through the ignore matcher, `serve` unit-tested without starting a server.
+- 2026-11-09: Go-ahead for a zero-context review of the S2 plan segment (2 agents).
+- 2026-11-09: S2 zero-context review run (2 agents): 0 blockers; triaged into 7 questions, 22 fixes, 2 later, 1 skip. Stray-write check clean.
+- 2026-11-09: S2 review triage answered (options chosen: "Package root + mkdtemp", "Both yes", "rehype-highlight", "All as recommended"); applied as A16 (changed), A2, A13 (changed), A19–A26, two S3 open points, and Glossary entries.
+- 2026-11-09: S2 Showcase application approved (option chosen: "Approve and commit"); specification pitfalls 4, 5 and 7 updated.
