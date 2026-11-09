@@ -28,7 +28,7 @@ Order: S1 first. S2 and S3 both depend only on S1's data structure, so once it's
 
 ### S1 Host scanning
 
-Approved 2026-11-09.
+Approved 2026-11-09. Implemented and approved 2026-11-09.
 
 #### Goals
 

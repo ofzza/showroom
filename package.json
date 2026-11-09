@@ -1,7 +1,7 @@
 {
   "name": "@ofzza/tsshowcase",
   "version": "0.1.0",
-  "description": "Enforce and build documentation/showcase apps for TypeScript libraries.",
+  "description": "Build documentation/showcase apps for TypeScript libraries.",
   "keywords": [
     "typescript",
     "cli",
@@ -21,6 +21,9 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "tsshowcase": "dist/cli/bin.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -37,7 +40,7 @@
     "prebuild": "npm run clean",
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch",
-    "start": "node dist/index.js",
+    "start": "node dist/cli/bin.js",
     "ci": "npm-run-all ci:*",
     "ci:build": "tsc -p tsconfig.build.json",
     "ci:eslint": "eslint src",
@@ -63,5 +66,8 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.43.0",
     "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "ignore": "^7.0.14"
   }
 }

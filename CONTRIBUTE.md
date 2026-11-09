@@ -28,11 +28,20 @@ Before committing or requesting a merge, make sure `npm run ci` passes locally (
 
 ```
 src/
-  index.ts          Entry point and public API
-  index.test.ts     Tests, colocated with the code they test
+  index.ts              Entry point and public API
+  index.test.ts         Tests, colocated with the code they test
+  host/                 Host information types
+  configuration/        Reading and validating tsshowcase.json
+  adapters/stack/       The StackAdapter interface and the built-in stack adapters
+    typescript/         The TypeScript stack adapter
+  cli/                  The tsshowcase command line (bin.ts is its executable entry point)
+    check/              check(): collecting the host information from a host repository
+test/fixtures/          Fixture host repositories the tests run against
 ```
 
 Every module lives in `src/`, as an `index.ts` + `index.test.ts` pair, and is re-exported from `src/index.ts`.
+
+`tsshowcase check` (and `check()`) reads the host repository's `tsshowcase.json`, picks the stack adapter it names, has it read the project information, then walks the host repository once, skipping ignored files, to collect the documentation files and the code file index. Each list of patterns (`ignore`, `code`, `documentation`) works like a `.gitignore` file, matched by the `ignore` package: the built-in patterns (for documentation), then the stack adapter's, then the configuration's.
 
 ### Glossary
 

@@ -16,7 +16,7 @@ How to release a new version of this package to NPM. Releases are cut from `deve
 
 ### Consumer smoke test
 
-Install the packed tarball into a throwaway project, and check that its types resolve under both `nodenext` and `bundler` module resolution, and that it imports at runtime:
+Install the packed tarball into a throwaway project, and check that its types resolve under both `nodenext` and `bundler` module resolution, that it imports at runtime, and that its `tsshowcase` command line (the `bin` in `package.json`) runs:
 
 ```sh
 $ npm pack --pack-destination /tmp/<package>-smoke
@@ -24,12 +24,13 @@ $ cd /tmp/<package>-smoke
 $ npm init -y && npm pkg set type=module
 $ npm install ./<package>-<version>.tgz typescript
 $ cat > smoke.ts <<'TS'
-import { hello } from '<package>';
-export const greeting: string = hello();
+import { check, type CheckResult } from '<package>';
+export const result: Promise<CheckResult> = check('.');
 TS
 $ npx tsc --noEmit --strict --module nodenext --moduleResolution nodenext smoke.ts
 $ npx tsc --noEmit --strict --module esnext --moduleResolution bundler smoke.ts
 $ node -e "import('<package>').then(() => console.log('ok'))"
+$ npx tsshowcase --help
 ```
 
 ## Packaging and publishing

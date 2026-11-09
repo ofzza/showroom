@@ -2,9 +2,9 @@
 
 ## Next session: start here
 
-- **Stage:** implementation of S1 Host scanning (approved); S2 and S3 not planned yet.
-- **Working on:** implementing S1 (`./.workflow/PLAN.md` › S1).
-- **Next step:** implement S1's steps, then its checkpoint; then plan S2 and S3.
+- **Stage:** planning: S1 Host scanning is implemented and approved; S2 Showcase application and S3 Build command are not planned yet.
+- **Working on:** nothing in progress.
+- **Next step:** plan S2 and S3 (they can be planned in parallel), starting with their open points in `./.workflow/PLAN.md`.
 
 ## Open questions
 
@@ -32,3 +32,5 @@
 - 2026-11-09: Pitfall 7 spike run: Vite, React and FluentUI work as tsshowcase's own dependencies for local, `npx` and global installs; install size 432 MB. Conclusions written into S3.
 - 2026-11-09: Specification updated to match S1 (D1, D5, D8, D10, must-haves 2–4), at the user's request ("Update the spec").
 - 2026-11-09: S1 Host scanning approved (user: "I approve S1, and we can commit it"), to be implemented before S2 and S3 are planned.
+- 2026-11-09: S1 Host scanning implemented: `npm run ci` green (104 tests); smoke-tested on copies of `../tsstd` and `../tsschema`.
+- 2026-11-09: S1 checkpoint: approved and committed (option chosen: "Approve and commit"), with implementation choices 1–4 confirmed ("All four OK").

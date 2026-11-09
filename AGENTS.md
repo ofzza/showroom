@@ -32,11 +32,12 @@ Any code sample added to `README.md` must be verified against `tsc` before it is
 
 ## Project
 
-`@ofzza/tsshowcase`: enforce and build documentation/showcase apps for TypeScript libraries. It is MIT licensed, built from `src/` to `dist/`, and published to NPM as `@ofzza/tsshowcase` (source: [github.com/ofzza/tsshowcase](https://github.com/ofzza/tsshowcase)).
+`@ofzza/tsshowcase`: build documentation/showcase apps for TypeScript libraries. A CLI (`tsshowcase`, the `bin` in `package.json`) and a library. It is MIT licensed, built from `src/` to `dist/`, and published to NPM as `@ofzza/tsshowcase` (source: [github.com/ofzza/tsshowcase](https://github.com/ofzza/tsshowcase)).
 
 Template: ts from ofzza/.templates @ develop@35c447a
 
 - **ESM only** (`"type": "module"`). The entry point is the `exports` map (`.` → `types: ./dist/index.d.ts`, `default: ./dist/index.js`, plus `./package.json`). `main` and `types` mirror it for older tooling.
+- **The `tsshowcase` command line** is `bin: { tsshowcase: dist/cli/bin.js }`, built from `src/cli/bin.ts`, which keeps its `#!/usr/bin/env node` line through `tsc`.
 - **Only `dist/` is published** (`files: ["dist"]`; npm adds `README.md`, `LICENSE.md` and `package.json` itself). The package also sets `sideEffects: false`, and `publishConfig.access: public` because scoped packages otherwise publish as restricted.
 - Toolchain last verified against: Node 24, TypeScript 5.9, Vitest 5.0, ESLint 10, Prettier 3.8.
 
@@ -53,7 +54,15 @@ The commit rules are in [WORKFLOW.custom.md](./WORKFLOW.custom.md) › "Commits"
 ```
 src/
   index.ts                 Entry point and public API; re-exports every module (`export * from './<module>/index.js';`)
-  index.test.ts            Tests, colocated
+  index.test.ts            Tests, colocated (one beside every index.ts)
+  host/                    Host information types: project information, documentation files, code file index
+  configuration/           Reading and validating the host repository's tsshowcase.json
+  adapters/stack/          StackAdapter interface and the registry of built-in stack adapters
+    typescript/            The TypeScript stack adapter (package.json; TS/JS code)
+  cli/                     Command line: main(), argument parsing, output
+    bin.ts                 Executable entry point (the package's bin); never imported, so it has no test
+    check/                 check(): walks a host repository and collects its host information and issues
+test/fixtures/             Fixture host repositories the tests run against; outside src/, so never built, linted or published
 tsconfig.json              Type checking config. Includes all .ts/.tsx (tests too), emits nothing
 tsconfig.build.json        Build config. Extends tsconfig.json, emits to dist/ with declarations, EXCLUDES test files (*.test / *.spec / *.test-d / *.spec-d)
 vite.config.ts             Two Vitest projects: unit, and debug (only with VITEST_DEBUG=1)
@@ -76,7 +85,7 @@ Each new module gets its own directory under `src/`, holding an `index.ts` + `in
 - `npm run clean`: deletes `dist/` (cross-platform, via `node -e`).
 - `npm run build`: runs `tsc -p tsconfig.build.json`, compiling `src/` to `dist/` with declarations. `prebuild` runs `clean` first, so renamed or removed modules never leave stale output behind to be published.
 - `npm run dev`: the same in watch mode.
-- `npm start`: runs the built entry point, `node dist/index.js`.
+- `npm start`: runs the built command line, `node dist/cli/bin.js`. Pass arguments after `--`, e.g. `npm start -- check --root test/fixtures/minimal`.
 - `npm test`: runs every `test:*` script.
   - `npm run test:unit`: `vitest run --project unit`, a single invocation that both executes the tests and type checks them.
 - `npm run ci`: runs every `ci:*` script (`ci:build`, `ci:eslint`, `ci:prettier`, `ci:test-unit`). This is what GitHub Actions runs.
@@ -108,6 +117,8 @@ Vitest, with `describe`/`it`/`expect` imported explicitly (`globals` is not enab
   It is **only defined when `VITEST_DEBUG=1` is set**, so an unfiltered run (plain `vitest`, "Debug ALL Test Files", or a tool that runs every project it finds) does not run every test a second time. "Debug Current Test File" sets the variable through its `env`. From a terminal, set it yourself, e.g. `$ VITEST_DEBUG=1 npx vitest run --project debug src/index.test.ts`. Without it, `--project debug` fails with "No projects were found". There is deliberately no npm script for this: setting a variable inline is not portable to Windows, and a `test:debug` script would join `npm test`.
 
   `.gitignore` excludes `*.debug.test.{js,jsx,ts,tsx}`. Those files also match the `unit` glob, so scratch debug tests run locally but are never committed.
+
+**Fixture host repositories** live in `test/fixtures/<name>/`, one per area under test (the defaults, file name variants, duplicates, configured patterns, and one per error). Tests reach them with `fileURLToPath(new URL('<relative path to test/fixtures>/<name>', import.meta.url))`, and never write to them or create temporary folders. Being outside `src/`, they are neither type checked, linted, formatted by `ci:prettier`, built nor published. See [Gotchas and known issues](#gotchas-and-known-issues) for what they can't contain.
 
 **`.tsx` / `.jsx` files are supported, but JSX in them is not configured.** They are collected, linted, type checked and built like any other file. An actual JSX element, though, fails at runtime (Vite's default transform imports `react/jsx-dev-runtime`) and under `tsc` (no `jsx` compiler option), until the project adds a framework and configures both.
 
@@ -144,7 +155,9 @@ After adding or changing type-level assertions, sanity-check them: break one del
 - **`@types/node` is pinned to the lowest supported Node major** (currently `^22`), so type checking cannot silently rely on APIs newer than the CI matrix floor. `.github/dependabot.yml` ignores its semver-major updates for this reason, so bump it by hand together with the matrix.
 - **`@eslint/js` must be a direct devDependency.** `eslint.config.js` imports it, and since ESLint 10 `eslint` no longer pulls it in transitively.
 - **`tsconfig.build.json` excludes test files**, so `npm run build` never reports a type error in a test, and never emits one to `dist/`. Its `exclude` lists each test suffix (`.test`, `.spec`, `.test-d`, `.spec-d`) for both `.ts` and `.tsx`, as tsconfig globs have no `{a,b}` braces. A new test naming convention must be added there, or its files ship in the package. Use `npm test` (the `unit` project type checks them) or `tsc --noEmit -p tsconfig.json`.
-- **`src/index.ts` only prints when run directly.** It compares `import.meta.url` against `process.argv[1]`, so importing it (from tests, or as a dependency) has no side effect, which keeps `sideEffects: false` truthful.
+- **Only `src/cli/bin.ts` has side effects** (it runs the command line on import), which is why nothing imports it, and why `sideEffects: false` stays truthful: every other module, `src/index.ts` included, only declares.
+- **Fixtures can't hold `node_modules`, `dist` or `coverage` folders.** `.gitignore` ignores them at any depth, so they would never be committed. Tests of those default ignore patterns check the TypeScript stack adapter's list instead (see `src/adapters/stack/typescript/index.test.ts`), and fixtures exercise ignoring with other folder names (e.g. `vendor/`).
+- **Fixture file names must differ by more than case within a folder**, or they collide on case-insensitive file systems (Windows, macOS). The case-insensitive matching is tested across folders (`test/fixtures/names/`).
 - `.gitignore` ignores `.vscode/` but re-includes `settings.json`, `tasks.json`, `launch.json` and `extensions.json`. Any other `.vscode/` file must be re-included there before it can be committed.
 - **`*.gitignore.*` files and `*.gitignore/` directories are local-only** (e.g. `TODO.gitignore.md`), a convention for keeping scratch files next to the code. `.gitignore` ignores them, so never commit them. They are for your own local notes: an agent's working files still go under `./.workflow/.temp/<topic>/` (see [WORKFLOW.md](./WORKFLOW.md) › "Working files").
 
@@ -160,7 +173,11 @@ After adding or changing type-level assertions, sanity-check them: break one del
 
 Everything public is re-exported from `src/index.ts`:
 
-- `hello(name?: string): string` (`src/index.ts`): gets a greeting for the given name, defaulting to `'World'`.
+- `check(root): Promise<CheckResult>` (`src/cli/check/`): checks a host repository and collects its host information. Also `BUILT_IN_DOCUMENTATION`, and the types `CheckResult`, `CheckIssue`, `CheckIssueSeverity`.
+- `main(args, output?): Promise<number>` (`src/cli/`): runs the command line, resolving to its exit code. Also `USAGE`, and the type `CliOutput`.
+- `readConfiguration(root)`, `validateConfiguration(value)` (`src/configuration/`): read and validate `tsshowcase.json`. Also `CONFIGURATION_FILE_NAME`, `DEFAULT_OUT_DIR`, and the types `Configuration`, `ConfigurationResult`.
+- `getStackAdapter(name)`, `getStackAdapterNames()` (`src/adapters/stack/`): look up the built-in stack adapters. Also the type `StackAdapter`, and `TypeScriptStackAdapter` (`src/adapters/stack/typescript/`).
+- Types `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind` (`src/host/`): the host information.
 
 ---
 
