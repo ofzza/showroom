@@ -45,3 +45,4 @@
 - 2026-11-09: S2.1 checkpoint: approved and committed (option chosen: "Approve and commit"); raw HTML tags dropped ("Drop tags", recorded in A6), Glossary term "Shown host information" added ("Add it"), implementation choices 3a–3g confirmed ("All OK").
 - 2026-11-09: S2.2 Serve command implemented: `npm run ci` green (280 tests); trial runs on a fixture copy and a copy of `../tsstd` served, reloaded and cleaned up as planned.
 - 2026-11-09: S2.2 checkpoint: approved and committed (option chosen: "Approve and commit"); the user's browser check passed ("All work"), implementation choices a–f confirmed ("All OK"). S2 Showcase application is done.
+- 2026-11-09: Fast path: navigation labels README / CONTRIBUTING / LICENSE for the home page and the root's contribute and license files, listed first (A8 changed; options chosen: "Fast path", "Always README", "Fixed first").

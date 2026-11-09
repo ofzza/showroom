@@ -17,19 +17,34 @@ function _file(path: string, kind: DocumentationFile['kind'] = 'other'): Documen
 }
 
 describe('app/navigation', () => {
-  // Tests getNavigationItems() on hand-made lists of documentation files.
+  // Tests getNavigationItems() on hand-made lists of documentation files, sorted by path as check() sorts them.
 
-  it('Lists Home, then every other documentation file by its full path, in order', () => {
-    const documentation = [_file('CONTRIBUTE.md', 'contribute'), _file('README.md', 'readme'), _file('docs/README.md', 'readme'), _file('docs/guide.md')];
+  it('Lists README, CONTRIBUTING and LICENSE first, then every other documentation file by its full path, in order', () => {
+    const documentation = [
+      _file('CONTRIBUTE.md', 'contribute'),
+      _file('README.md', 'readme'),
+      _file('api.md'),
+      _file('docs/README.md', 'readme'),
+      _file('docs/guide.md'),
+      _file('licence.txt', 'license'),
+    ];
     expect(getNavigationItems(documentation)).toEqual([
-      { label: 'Home', href: '#/' },
-      { label: 'CONTRIBUTE.md', href: '#/CONTRIBUTE.md', path: 'CONTRIBUTE.md' },
+      { label: 'README', href: '#/' },
+      { label: 'CONTRIBUTING', href: '#/CONTRIBUTE.md', path: 'CONTRIBUTE.md' },
+      { label: 'LICENSE', href: '#/licence.txt', path: 'licence.txt' },
+      { label: 'api.md', href: '#/api.md', path: 'api.md' },
       { label: 'docs/README.md', href: '#/docs/README.md', path: 'docs/README.md' },
       { label: 'docs/guide.md', href: '#/docs/guide.md', path: 'docs/guide.md' },
     ]);
   });
 
-  it('Lists only Home without documentation files', () => {
-    expect(getNavigationItems([])).toEqual([{ label: 'Home', href: '#/' }]);
+  it('Labels only the root contribute and license files, by kind', () => {
+    // The documentation patterns can add a file of a built-in kind elsewhere (e.g. `docs/LICENSE.md` in test/fixtures/minimal); it keeps its path
+    const documentation = [_file('LICENSE', 'license'), _file('docs/CONTRIBUTING.md', 'contribute'), _file('docs/LICENSE.md', 'license')];
+    expect(getNavigationItems(documentation).map((item) => item.label)).toEqual(['README', 'LICENSE', 'docs/CONTRIBUTING.md', 'docs/LICENSE.md']);
+  });
+
+  it('Labels the home page README even without a root README', () => {
+    expect(getNavigationItems([])).toEqual([{ label: 'README', href: '#/' }]);
   });
 });

@@ -44,12 +44,12 @@ describe('app', () => {
     expect(html).toMatch(/<h1 [^>]*>my-library<\/h1>/);
     expect(html).toContain('<h1 id="welcome">Welcome</h1>');
     expect(html).toMatch(/<a [^>]*href="#\/docs\/guide.md"[^>]*>guide<\/a>/);
-    expect(html).toMatch(/<a [^>]*aria-current="page"[^>]*>Home<\/a>|<a [^>]*href="#\/"[^>]*aria-current="page"[^>]*>/);
+    expect(html).toMatch(/<a [^>]*aria-current="page"[^>]*>README<\/a>|<a [^>]*href="#\/"[^>]*aria-current="page"[^>]*>/);
   });
 
-  it('Lists Home and every documentation file other than the root README in the navigation', () => {
+  it('Lists README (the home page), LICENSE, then every other documentation file in the navigation', () => {
     const navigation = _render().match(/<nav [^>]*>.*<\/nav>/s)?.[0] ?? '';
-    expect([...navigation.matchAll(/<a [^>]*>([^<]*)<\/a>/g)].map((match) => match[1])).toEqual(['Home', 'LICENSE', 'docs/guide.md']);
+    expect([...navigation.matchAll(/<a [^>]*>([^<]*)<\/a>/g)].map((match) => match[1])).toEqual(['README', 'LICENSE', 'docs/guide.md']);
   });
 
   it("Shows a documentation file's page", () => {

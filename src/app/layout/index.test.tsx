@@ -19,7 +19,7 @@ import { Layout } from './index.js';
  */
 function _render(project: ProjectInformation, current?: string, theme: ThemeName = 'light'): string {
   const navigation: NavigationItem[] = [
-    { label: 'Home', href: '#/' },
+    { label: 'README', href: '#/' },
     { label: 'docs/guide.md', href: '#/docs/guide.md', path: 'docs/guide.md' },
   ];
   return renderToString(
@@ -39,7 +39,7 @@ describe('app/layout', () => {
   it('Shows the project name and version, the theme toggle, the navigation and the page', () => {
     const html = _render({ name: 'my-library', version: '1.2.3' });
     expect(html).toMatch(/<header[^>]*>.*my-library.*1\.2\.3.*Dark theme.*<\/header>/s);
-    expect(html).toMatch(/<nav aria-label="Documentation">.*href="#\/"[^>]*>Home<\/a>.*href="#\/docs\/guide.md"[^>]*>docs\/guide.md<\/a>.*<\/nav>/s);
+    expect(html).toMatch(/<nav aria-label="Documentation">.*href="#\/"[^>]*>README<\/a>.*href="#\/docs\/guide.md"[^>]*>docs\/guide.md<\/a>.*<\/nav>/s);
     expect(html).toMatch(/<main[^>]*><p>The page<\/p><\/main>/);
   });
 

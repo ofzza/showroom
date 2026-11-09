@@ -1,0 +1,4 @@
+{
+  "stack": "typescript",
+  "ignore": [".workflow/*", "test/*"]
+}
