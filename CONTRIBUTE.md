@@ -38,9 +38,13 @@ Every module lives in `src/`, as an `index.ts` + `index.test.ts` pair, and is re
 
 Terms used across code, comments and documentation. Use them as defined here. A new concept is added to this list in the change that introduces it (an agent proposes it first, see [WORKFLOW.md](./WORKFLOW.md) › "Glossary").
 
-| Term  | Meaning |
-| ----- | ------- |
-| _TBD_ | _TBD_   |
+| Term                 | Meaning                                                                                                                                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Host repository      | The repository that uses tsshowcase, and that the showcase application presents.                                                                                                                                 |
+| Showcase application | The static React/FluentUI SPA that tsshowcase builds for a host repository.                                                                                                                                      |
+| Stack adapter        | An implementation of the common interface for one kind of host repository (language or framework). It supplies the project information and which files count as code, and later the showcases.                   |
+| SCM adapter          | An adapter for the service where the host repository's code is kept (GitHub, GitLab, Bitbucket, …), used to link to, read or show the host repository's files from there. SCM stands for source code management. |
+| Showcase             | A demoable, renderable, possibly editable code example, embedded in the showcase application.                                                                                                                    |
 
 <!-- <@ofzza/repo-skill:contribute> Managed by the repo skill: this tag marks where its Workflow section starts. -->
 
