@@ -4,7 +4,7 @@
 
 Build documentation/showcase apps for TypeScript libraries.
 
-tsshowcase reads a host repository (the repository that uses it) and collects its host information: the project information, the documentation files (`README`, `CONTRIBUTE`, `LICENSE`, ...) and an index of its code files. Building a showcase application from it is still to come; for now, `tsshowcase check` collects and checks it.
+tsshowcase reads a host repository (the repository that uses it) and collects its host information: the project information, the documentation files (`README`, `CONTRIBUTE`, `LICENSE`, ...) and an index of its code files. For now, `tsshowcase check` collects and checks it. The showcase application that presents it (a React/FluentUI SPA with a page per documentation file, and a light/dark toggle) is written, but serving and building it, with `tsshowcase serve` and `tsshowcase build`, are still to come.
 
 ---
 
@@ -160,11 +160,11 @@ console.log(getStackAdapterNames(), project, errors);
 
 # Development
 
-- `npm run build` - cleans `dist/` (`npm run clean`), then compiles `src/` into it, emitting declarations. Also run on `prepare`, so a local `npm install` builds too.
-- `npm run dev` - the same, in watch mode.
+- `npm run build` - cleans `dist/` (`npm run clean`), then compiles `src/` into it, emitting declarations, and copies the showcase application's `src/app/index.html` to `dist/app/` (`npm run copy-app`). Also run on `prepare`, so a local `npm install` builds too.
+- `npm run dev` - the same, in watch mode (restart it after changing `src/app/index.html`).
 - `npm start` - runs the built command line, `dist/cli/bin.js`; pass it arguments after `--`, e.g. `npm start -- check --root test/fixtures/minimal`.
 - `npm test` - runs every `test:*` script.
-  - `npm run test:unit` - a single Vitest invocation that executes test files, runs their runtime expectations, and type checks them, reporting type errors as test failures. Tests run against the fixture host repositories in `test/fixtures/`.
+  - `npm run test:unit` - a single Vitest invocation that executes test files, runs their runtime expectations, and type checks them, reporting type errors as test failures. Tests run against the fixture host repositories in `test/fixtures/`; the showcase application's tests render it to HTML with `react-dom/server`.
 - `npm run ci` - runs every `ci:*` script: build, ESLint, Prettier and the tests. This is what GitHub Actions runs on every pull request targeting, and every push to, `master` or `develop`, against Node 22 and 24. It also runs on `prepublishOnly`, so `npm publish` refuses to publish a failing build.
 
 # Contributing

@@ -39,7 +39,7 @@ Template: ts from ofzza/.templates @ develop@35c447a
 - **ESM only** (`"type": "module"`). The entry point is the `exports` map (`.` → `types: ./dist/index.d.ts`, `default: ./dist/index.js`, plus `./package.json`). `main` and `types` mirror it for older tooling.
 - **The `tsshowcase` command line** is `bin: { tsshowcase: dist/cli/bin.js }`, built from `src/cli/bin.ts`, which keeps its `#!/usr/bin/env node` line through `tsc`.
 - **Only `dist/` is published** (`files: ["dist"]`; npm adds `README.md`, `LICENSE.md` and `package.json` itself). The package also sets `sideEffects: false`, and `publishConfig.access: public` because scoped packages otherwise publish as restricted.
-- Toolchain last verified against: Node 24, TypeScript 5.9, Vitest 5.0, ESLint 10, Prettier 3.8.
+- Toolchain last verified against: Node 24, TypeScript 5.9, Vitest 5.0, ESLint 10, Prettier 3.8, React 19.3, FluentUI 9.75.
 
 ## Branching
 
@@ -62,6 +62,18 @@ src/
   cli/                     Command line: main(), argument parsing, output
     bin.ts                 Executable entry point (the package's bin); never imported, so it has no test
     check/                 check(): walks a host repository and collects its host information and issues
+  app/                     The showcase application (browser code, compiled to dist/app/, never re-exported): App, mount()
+    index.html             Its static page, copied to dist/app/ by `npm run build`
+    main.ts                Its entry point (loaded by index.html): mounts App with the virtual module's data; never imported, so it has no test
+    virtual.d.ts           Type of the `virtual:tsshowcase-host` module the Vite plugin serves
+    host/                  The shown host information type, and helpers finding documentation files
+    routing/               The hash router: parsing, formatting and resolving routes, useHash()
+    links/                 Link resolution in Markdown
+    navigation/            The navigation items
+    theme/                 The light/dark theme, and keeping the toggle's choice
+    markdown/              Markdown rendering: links, images, heading ids, highlighted code blocks
+    pages/                 The home, documentation and not-found pages
+    layout/                The header, the navigation drawer and the page
 test/fixtures/             Fixture host repositories the tests run against; outside src/, so never built, linted or published
 tsconfig.json              Type checking config. Includes all .ts/.tsx (tests too), emits nothing
 tsconfig.build.json        Build config. Extends tsconfig.json, emits to dist/ with declarations, EXCLUDES test files (*.test / *.spec / *.test-d / *.spec-d)
@@ -78,13 +90,14 @@ CONTRIBUTE.md              Contributor guide: reporting issues, workflow, branch
 PUBLISH.md                 Pre-publish checklist and release steps
 ```
 
-Each new module gets its own directory under `src/`, holding an `index.ts` + `index.test.ts` pair, and is re-exported from `src/index.ts`.
+Each new module gets its own directory under `src/`, holding an `index.ts` + `index.test.ts` pair, and is re-exported from `src/index.ts`. The exception is `src/app/`: its modules (`index.ts(x)` + `index.test.ts(x)` pairs too) are only imported by the showcase application, never re-exported.
 
 ## Commands
 
 - `npm run clean`: deletes `dist/` (cross-platform, via `node -e`).
-- `npm run build`: runs `tsc -p tsconfig.build.json`, compiling `src/` to `dist/` with declarations. `prebuild` runs `clean` first, so renamed or removed modules never leave stale output behind to be published.
-- `npm run dev`: the same in watch mode.
+- `npm run build`: runs `tsc -p tsconfig.build.json`, compiling `src/` to `dist/` with declarations, then `copy-app`. `prebuild` runs `clean` first, so renamed or removed modules never leave stale output behind to be published.
+- `npm run dev`: `copy-app`, then the compilation in watch mode (a change to `src/app/index.html` needs a restart).
+- `npm run copy-app`: copies `src/app/index.html`, which `tsc` doesn't emit, to `dist/app/`. `ci:build` only compiles, and doesn't run it.
 - `npm start`: runs the built command line, `node dist/cli/bin.js`. Pass arguments after `--`, e.g. `npm start -- check --root test/fixtures/minimal`.
 - `npm test`: runs every `test:*` script.
   - `npm run test:unit`: `vitest run --project unit`, a single invocation that both executes the tests and type checks them.
@@ -120,7 +133,9 @@ Vitest, with `describe`/`it`/`expect` imported explicitly (`globals` is not enab
 
 **Fixture host repositories** live in `test/fixtures/<name>/`, one per area under test (the defaults, file name variants, duplicates, configured patterns, and one per error). Tests reach them with `fileURLToPath(new URL('<relative path to test/fixtures>/<name>', import.meta.url))`, and never write to them or create temporary folders. Being outside `src/`, they are neither type checked, linted, formatted by `ci:prettier`, built nor published. See [Gotchas and known issues](#gotchas-and-known-issues) for what they can't contain.
 
-**`.tsx` / `.jsx` files are supported, but JSX in them is not configured.** They are collected, linted, type checked and built like any other file. An actual JSX element, though, fails at runtime (Vite's default transform imports `react/jsx-dev-runtime`) and under `tsc` (no `jsx` compiler option), until the project adds a framework and configures both.
+**JSX is configured for React.** `tsconfig.json` sets `jsx: react-jsx`, so `.tsx` files are type checked and built by `tsc` like any other file, and Vitest's default transform runs them through React's JSX runtime. ESLint checks them with `eslint-plugin-react-hooks`'s recommended rules.
+
+**The showcase application is tested by rendering it on the server**, with `react-dom/server`'s `renderToString`, and asserting on the HTML: there is no DOM in the tests (no `jsdom`), so effects never run, and `mount()` is never called. Wrap what is rendered in FluentUI's `SSRProvider` (otherwise FluentUI warns on `stderr`), and strip the `<!-- -->` comments React puts between adjacent text nodes before matching text. `App` takes the route and the theme as props for this. Anything that touches `window` or `document` has to be guarded or inside an effect, or the render throws; `getInitialTheme()` is tested with a stubbed `window` (`vi.stubGlobal`).
 
 After adding or changing type-level assertions, sanity-check them: break one deliberately, confirm the run fails, then revert. Vitest prints an "experimental" warning for typecheck, which is expected.
 
@@ -155,7 +170,10 @@ After adding or changing type-level assertions, sanity-check them: break one del
 - **`@types/node` is pinned to the lowest supported Node major** (currently `^22`), so type checking cannot silently rely on APIs newer than the CI matrix floor. `.github/dependabot.yml` ignores its semver-major updates for this reason, so bump it by hand together with the matrix.
 - **`@eslint/js` must be a direct devDependency.** `eslint.config.js` imports it, and since ESLint 10 `eslint` no longer pulls it in transitively.
 - **`tsconfig.build.json` excludes test files**, so `npm run build` never reports a type error in a test, and never emits one to `dist/`. Its `exclude` lists each test suffix (`.test`, `.spec`, `.test-d`, `.spec-d`) for both `.ts` and `.tsx`, as tsconfig globs have no `{a,b}` braces. A new test naming convention must be added there, or its files ship in the package. Use `npm test` (the `unit` project type checks them) or `tsc --noEmit -p tsconfig.json`.
-- **Only `src/cli/bin.ts` has side effects** (it runs the command line on import), which is why nothing imports it, and why `sideEffects: false` stays truthful: every other module, `src/index.ts` included, only declares.
+- **Only `src/cli/bin.ts` and `src/app/main.ts` have side effects** (they run the command line, and mount the showcase application, on import), which is why nothing imports them, and why `sideEffects: false` stays truthful: every other module, `src/index.ts` included, only declares.
+- **`sideEffects: false` also applies to the bundled showcase application**, so the app never relies on an import that is only there for its side effects: no CSS imports (styles are Griffel's `makeStyles`, with FluentUI tokens), no polyfills.
+- **`types: ["node"]` applies to the showcase application's browser code too**, so Node globals (`process`, `Buffer`, …) type check in `src/app/` although they don't exist in the browser. Don't use them there. The DOM types come from TypeScript's default `lib`.
+- **`src/app/` is browser code, not part of the library's API.** It is compiled to `dist/app/` (and so published) for Vite to bundle, but never re-exported from `src/index.ts`, and it never imports Node modules. It may import types from the rest of `src/` (e.g. `src/host/`).
 - **Fixtures can't hold `node_modules`, `dist` or `coverage` folders.** `.gitignore` ignores them at any depth, so they would never be committed. Tests of those default ignore patterns check the TypeScript stack adapter's list instead (see `src/adapters/stack/typescript/index.test.ts`), and fixtures exercise ignoring with other folder names (e.g. `vendor/`).
 - **Fixture file names must differ by more than case within a folder**, or they collide on case-insensitive file systems (Windows, macOS). The case-insensitive matching is tested across folders (`test/fixtures/names/`).
 - `.gitignore` ignores `.vscode/` but re-includes `settings.json`, `tasks.json`, `launch.json` and `extensions.json`. Any other `.vscode/` file must be re-included there before it can be committed.
@@ -178,6 +196,8 @@ Everything public is re-exported from `src/index.ts`:
 - `readConfiguration(root)`, `validateConfiguration(value)` (`src/configuration/`): read and validate `tsshowcase.json`. Also `CONFIGURATION_FILE_NAME`, `DEFAULT_OUT_DIR`, and the types `Configuration`, `ConfigurationResult`.
 - `getStackAdapter(name)`, `getStackAdapterNames()` (`src/adapters/stack/`): look up the built-in stack adapters. Also the type `StackAdapter`, and `TypeScriptStackAdapter` (`src/adapters/stack/typescript/`).
 - Types `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind` (`src/host/`): the host information.
+
+The showcase application (`src/app/`: `App`, `mount()`, `ShownHostInformation`) is deliberately not exported: it is browser code, bundled by Vite from `dist/app/`.
 
 ---
 

@@ -36,29 +36,41 @@ src/
     typescript/         The TypeScript stack adapter
   cli/                  The tsshowcase command line (bin.ts is its executable entry point)
     check/              check(): collecting the host information from a host repository
+  app/                  The showcase application: React/FluentUI browser code, compiled to dist/app/ and bundled by Vite
+    host/               The shown host information, and finding documentation files in it
+    routing/            The hash router
+    links/              Resolving links in Markdown
+    navigation/         The navigation items
+    theme/              The light/dark theme
+    markdown/           Rendering Markdown
+    pages/              The home, documentation and not-found pages
+    layout/             The header and the navigation
 test/fixtures/          Fixture host repositories the tests run against
 ```
 
-Every module lives in `src/`, as an `index.ts` + `index.test.ts` pair, and is re-exported from `src/index.ts`.
+Every module lives in `src/`, as an `index.ts` + `index.test.ts` pair, and is re-exported from `src/index.ts`, except the showcase application's modules in `src/app/`, which are browser code.
 
 `tsshowcase check` (and `check()`) reads the host repository's `tsshowcase.json`, picks the stack adapter it names, has it read the project information, then walks the host repository once, skipping ignored files, to collect the documentation files and the code file index. Each list of patterns (`ignore`, `code`, `documentation`) works like a `.gitignore` file, matched by the `ignore` package: the built-in patterns (for documentation), then the stack adapter's, then the configuration's.
+
+The showcase application (`src/app/`) presents the shown host information: the host information without the code file index. `tsc` compiles it to `dist/app/`, next to its static `index.html`, and Vite bundles it from there, with the data served as the `virtual:tsshowcase-host` module, which `main.ts` passes to `mount()`. It routes through the URL's hash (`#/` for the home page, `#/<path>` for any other documentation file, then `#<heading id>`), so it works on static hosting under any path. Markdown is rendered by `react-markdown` with `remark-gfm`, `rehype-slug` (GitHub-compatible heading ids) and `rehype-highlight`; relative links to documentation files become routes, and other relative links plain text. Styles are Griffel's `makeStyles` with FluentUI tokens, so everything, highlighted code included, follows the light or dark theme.
 
 ### Glossary
 
 Terms used across code, comments and documentation. Use them as defined here. A new concept is added to this list in the change that introduces it (an agent proposes it first, see [WORKFLOW.md](./WORKFLOW.md) › "Glossary").
 
-| Term                 | Meaning                                                                                                                                                                                                          |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Host repository      | The repository that uses tsshowcase, and that the showcase application presents.                                                                                                                                 |
-| Host information     | The data tsshowcase collects from a host repository (project information, documentation files, code file index), which the showcase application presents.                                                        |
-| Showcase application | The static React/FluentUI SPA that tsshowcase builds (or serves, for previewing) for a host repository.                                                                                                          |
-| Project information  | The host repository's name, version, description, license, author, homepage and repository URL, read by its stack adapter.                                                                                       |
-| Documentation file   | A file in the host repository found by documentation discovery and the `documentation` patterns, and shown in the showcase application.                                                                          |
-| Code file index      | The sorted paths of the code files under the source root.                                                                                                                                                        |
-| Source root          | The folder under which the code file index is collected.                                                                                                                                                         |
-| Stack adapter        | An implementation of the common interface for one kind of host repository (language or framework). It supplies the project information and which files count as code, and later the showcases.                   |
-| SCM adapter          | An adapter for the service where the host repository's code is kept (GitHub, GitLab, Bitbucket, …), used to link to, read or show the host repository's files from there. SCM stands for source code management. |
-| Showcase             | A demoable, renderable, possibly editable code example, embedded in the showcase application.                                                                                                                    |
+| Term                   | Meaning                                                                                                                                                                                                          |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Host repository        | The repository that uses tsshowcase, and that the showcase application presents.                                                                                                                                 |
+| Host information       | The data tsshowcase collects from a host repository (project information, documentation files, code file index), which the showcase application presents.                                                        |
+| Shown host information | The part of the host information the showcase application presents: the project information and the documentation files, without the code file index.                                                            |
+| Showcase application   | The static React/FluentUI SPA that tsshowcase builds (or serves, for previewing) for a host repository.                                                                                                          |
+| Project information    | The host repository's name, version, description, license, author, homepage and repository URL, read by its stack adapter.                                                                                       |
+| Documentation file     | A file in the host repository found by documentation discovery and the `documentation` patterns, and shown in the showcase application.                                                                          |
+| Code file index        | The sorted paths of the code files under the source root.                                                                                                                                                        |
+| Source root            | The folder under which the code file index is collected.                                                                                                                                                         |
+| Stack adapter          | An implementation of the common interface for one kind of host repository (language or framework). It supplies the project information and which files count as code, and later the showcases.                   |
+| SCM adapter            | An adapter for the service where the host repository's code is kept (GitHub, GitLab, Bitbucket, …), used to link to, read or show the host repository's files from there. SCM stands for source code management. |
+| Showcase               | A demoable, renderable, possibly editable code example, embedded in the showcase application.                                                                                                                    |
 
 <!-- <@ofzza/repo-skill:contribute> Managed by the repo skill: this tag marks where its Workflow section starts. -->
 

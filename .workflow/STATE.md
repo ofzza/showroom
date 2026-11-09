@@ -2,9 +2,9 @@
 
 ## Next session: start here
 
-- **Stage:** planning: S1 is implemented; S2 Showcase application is approved (child segments S2.1 and S2.2); S3 Build command is not planned yet.
+- **Stage:** implementation: S2.1 Showcase application is implemented and committed; S2.2 Serve command (S2 steps 3 and 4) is next. S3 Build command is not planned yet.
 - **Working on:** nothing in progress.
-- **Next step:** the user chooses between implementing S2.1 Showcase application and planning S3. `./.workflow/.temp/review-s2-plan/` and `questions-s2-plan/` await the user's confirmation before deletion.
+- **Next step:** implement S2.2 Serve command (`./.workflow/PLAN.md` › S2, steps 3 and 4), then hold its checkpoint, including the user's check of the showcase application in a browser.
 
 ## Open questions
 
@@ -12,7 +12,6 @@
 
 ## Waiting on me
 
-- Confirmation that `./.workflow/.temp/review-s2-plan/` and `questions-s2-plan/` can be deleted (their results are in the plan, the specification and `CONTRIBUTE.md`).
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 
 ## Running
@@ -41,3 +40,6 @@
 - 2026-11-09: S2 zero-context review run (2 agents): 0 blockers; triaged into 7 questions, 22 fixes, 2 later, 1 skip. Stray-write check clean.
 - 2026-11-09: S2 review triage answered (options chosen: "Package root + mkdtemp", "Both yes", "rehype-highlight", "All as recommended"); applied as A16 (changed), A2, A13 (changed), A19–A26, two S3 open points, and Glossary entries.
 - 2026-11-09: S2 Showcase application approved (option chosen: "Approve and commit"); specification pitfalls 4, 5 and 7 updated.
+- 2026-11-09: `review-s2-plan/` and `questions-s2-plan/` working files deleted with the user's yes; the user chose to implement S2.1 next, in a fresh session.
+- 2026-11-09: S2.1 Showcase application implemented: `npm run ci` green (226 tests); not yet checked in a browser (needs S2.2's Vite setup).
+- 2026-11-09: S2.1 checkpoint: approved and committed (option chosen: "Approve and commit"); raw HTML tags dropped ("Drop tags", recorded in A6), Glossary term "Shown host information" added ("Add it"), implementation choices 3a–3g confirmed ("All OK").

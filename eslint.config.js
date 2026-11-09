@@ -1,6 +1,7 @@
 import { includeIgnoreFile } from '@eslint/compat';
 import js from '@eslint/js';
 import prettier from 'eslint-config-prettier';
+import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript-eslint';
@@ -13,6 +14,8 @@ export default ts.config(
   { files: ['**/*.{js,jsx,ts,tsx}'] },
   js.configs.recommended,
   ...ts.configs.recommended,
+  // The rules of hooks, for the showcase application's hand-written hooks (`@vitejs/plugin-react` is not used, so nothing else checks them)
+  reactHooks.configs.flat.recommended,
   prettier,
   {
     languageOptions: {

@@ -38,8 +38,9 @@
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "prebuild": "npm run clean",
-    "build": "tsc -p tsconfig.build.json",
-    "dev": "tsc -p tsconfig.build.json --watch",
+    "build": "tsc -p tsconfig.build.json && npm run copy-app",
+    "dev": "npm run copy-app && tsc -p tsconfig.build.json --watch",
+    "copy-app": "node -e \"require('fs').cpSync('src/app/index.html', 'dist/app/index.html')\"",
     "start": "node dist/cli/bin.js",
     "ci": "npm-run-all ci:*",
     "ci:build": "tsc -p tsconfig.build.json",
@@ -58,8 +59,11 @@
     "@eslint/compat": "^2.1.1",
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.12.0",
     "npm-run-all2": "^9.0.3",
     "prettier": "^3.8.1",
@@ -68,6 +72,13 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
-    "ignore": "^7.0.14"
+    "@fluentui/react-components": "^9.75.1",
+    "ignore": "^7.0.14",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1"
   }
 }
