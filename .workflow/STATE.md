@@ -2,9 +2,9 @@
 
 ## Next session: start here
 
-- **Stage:** specification approved; planning not started (`./.workflow/PLAN.md` doesn't exist yet).
-- **Working on:** nothing in progress.
-- **Next step:** enter the planning stage: segment the scope, taking open pitfalls 2, 3, 4, 5 and 7 as open points.
+- **Stage:** implementation of S1 Host scanning (approved); S2 and S3 not planned yet.
+- **Working on:** implementing S1 (`./.workflow/PLAN.md` › S1).
+- **Next step:** implement S1's steps, then its checkpoint; then plan S2 and S3.
 
 ## Open questions
 
@@ -12,7 +12,7 @@
 
 ## Waiting on me
 
-- Nothing.
+- `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 
 ## Running
 
@@ -27,3 +27,8 @@
 - 2026-11-09: D10 recorded (stack adapter lists skipped files, configuration overrides). `./.workflow/.temp/repo-init-report.md` deleted with the user's yes.
 - 2026-11-09: D11 recorded ("SCM adapter"), and the term added to the Glossary.
 - 2026-11-09: Specification approved as the basis for planning (option chosen: "Approve").
+- 2026-11-09: Planning stage entered; segmentation drafted (S1–S3).
+- 2026-11-09: Segmentation approved (S1 Host scanning, S2 Showcase application, S3 Build command), with S1 given a temporary way to output the collected data (user: "Otherwise agreed"). Must-have 5 (global or local install, `npx`) added to the specification at the user's request. Go-ahead for the pitfall 7 spike.
+- 2026-11-09: Pitfall 7 spike run: Vite, React and FluentUI work as tsshowcase's own dependencies for local, `npx` and global installs; install size 432 MB. Conclusions written into S3.
+- 2026-11-09: Specification updated to match S1 (D1, D5, D8, D10, must-haves 2–4), at the user's request ("Update the spec").
+- 2026-11-09: S1 Host scanning approved (user: "I approve S1, and we can commit it"), to be implemented before S2 and S3 are planned.
