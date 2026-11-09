@@ -196,6 +196,9 @@ None (B1).
 - **B8** The README's GitHub Pages example: on a push to `master` and `workflow_dispatch`; `actions/checkout`, `actions/setup-node`, `npm ci`, `npx tsshowcase build`, `actions/upload-pages-artifact` (`path: showcase`), `actions/deploy-pages`, with `pages: write` and `id-token: write`. This deploy skips Jekyll, so no `.nojekyll` is written. Rejected: writing `.nojekyll` for branch-based deploys.
 - **B9** Pitfall 3: the README documents `npx --package @ofzza/tsshowcase tsshowcase build`, which the spike showed works without a `package.json`; such hosts still need a stack adapter of their own (later). Rejected: leaving the pitfall open until a .NET stack adapter exists.
 - **B10** Glossary: new entry "Output folder". Rejected: no new term.
+- **B11** The build leaves out the bundler's warnings about the showcase application's own dependencies: `MODULE_LEVEL_DIRECTIVE` (FluentUI's and Griffel's `'use client'`, about 1900 lines per build) and the chunk-size warning (limit raised to 2048 kB); every other warning still shows. Chosen at the S3 checkpoint (implementation choice 1). Rejected: showing them (noise the host can't act on).
+- **B12** `main()` resolves `--out-dir` against the current directory before the check, so its error messages, like the success line, name the absolute path. Confirmed at the S3 checkpoint (implementation choice 2).
+- **B13** This repository's `.gitignore` ignores `/showcase/`, as its own `tsshowcase.json` lets it build itself. Added at the S3 checkpoint at the user's request.
 
 #### Spike: Vite, React and FluentUI from tsshowcase's own dependencies (2026-11-09)
 
@@ -220,7 +223,7 @@ None (B1).
 - [x] Pitfall 4: relative asset paths (Vite `base: './'`). Resolved by S2.2's `getViteConfiguration()` (`base: './'`), which B6 reuses.
 - [x] Pitfall 7: where Vite, React and FluentUI come from. The spike shows they can be tsshowcase's own `dependencies` (see "Spike" above). Moved to S2 (A14), with the install size and `cacheDir` open points.
 - [x] Set `build.emptyOutDir: true`: the output folder is outside Vite's root (A16), so Vite won't empty it otherwise. From the S2 review. Resolved by B2.
-- [ ] Check by hand, in a host repository with a different React installed, that the showcase application uses tsshowcase's own React (A23). From the S2 review. Planned in step 5.
+- [x] Check by hand, in a host repository with a different React installed, that the showcase application uses tsshowcase's own React (A23). From the S2 review. Resolved by step 5's trial: a host with React 18 and FluentUI hoisted next to it bundled only React 19.3.1, and the user's browser check passed.
 
 ## Known open issues
 

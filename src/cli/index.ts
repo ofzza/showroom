@@ -21,11 +21,14 @@ Commands:
            check passes, the collected host information (JSON) to stdout
   serve    Serves the showcase application for previewing, reloading it when the
            host repository's documentation changes; stop it with Ctrl+C
+  build    Builds the showcase application into the output folder, as static files
 
 Options:
-  --root <dir>   Root of the host repository (default: the current directory)
-  --port <port>  Port to serve on (serve only; default: 5173, or the next free one)
-  --help         Shows this help
+  --root <dir>     Root of the host repository (default: the current directory)
+  --out-dir <dir>  Output folder, overriding tsshowcase.json's outDir (default:
+                   ./showcase in the host repository)
+  --port <port>    Port to serve on (serve only; default: 5173, or the next free one)
+  --help           Shows this help
 `;
 
 /**
@@ -50,7 +53,7 @@ export interface CliOutput {
  * Runs the `tsshowcase` command line
  * @param args Command line arguments, without the `node` executable and script paths
  * @param output Output streams to write to; defaults to the process's
- * @returns Exit code: 0 on success, 1 on a failed check or invalid arguments
+ * @returns Exit code: 0 on success, 1 on a failed check, a failed build or invalid arguments
  */
 export async function main(args: string[], output: CliOutput = _processOutput()): Promise<number> {
   // Parse the arguments
@@ -67,11 +70,12 @@ export async function main(args: string[], output: CliOutput = _processOutput())
     return 0;
   }
   const [command, ...rest] = positionals;
-  if (!(command === 'check' || command === 'serve') || rest.length) {
+  if (!(command === 'check' || command === 'serve' || command === 'build') || rest.length) {
     output.stderr(`${command ? `Unknown command: ${[command, ...rest].join(' ')}` : 'No command given'}\n\n${USAGE}`);
     return 1;
   }
   const root = resolve(values.root ?? '.');
+  const outDir = values['out-dir'] === undefined ? undefined : resolve(values['out-dir']);
 
   // Serve the showcase application; Vite is only loaded here
   if (command === 'serve') {
@@ -81,15 +85,21 @@ export async function main(args: string[], output: CliOutput = _processOutput())
       return 1;
     }
     const { serve } = await import('./serve/index.js');
-    return serve({ root, port, output });
+    return serve({ root, port, outDir, output });
   }
   if (values.port !== undefined) {
     output.stderr(`--port only applies to serve\n\n${USAGE}`);
     return 1;
   }
 
+  // Build the showcase application; Vite is only loaded here
+  if (command === 'build') {
+    const { build } = await import('./build/index.js');
+    return build({ root, outDir, output });
+  }
+
   // Run the check
-  const result = await check(root);
+  const result = await check(root, { outDir });
   output.stderr(formatIssues(result.issues));
   if (result.host) output.stdout(`${JSON.stringify(result.host, null, 2)}\n`);
   return result.passed ? 0 : 1;
@@ -114,7 +124,7 @@ function _parse(args: string[]) {
   return parseArgs({
     args,
     allowPositionals: true,
-    options: { root: { type: 'string' }, port: { type: 'string' }, help: { type: 'boolean' } },
+    options: { root: { type: 'string' }, 'out-dir': { type: 'string' }, port: { type: 'string' }, help: { type: 'boolean' } },
   });
 }
 

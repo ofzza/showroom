@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { main, USAGE } from './index.js';
 
@@ -28,7 +29,8 @@ async function _run(args: string[]): Promise<{ code: number; stdout: string; std
 }
 
 describe('cli', () => {
-  // Tests main() through its arguments, exit code and captured output, running `check` on the fixture host repositories in `test/fixtures/`.
+  // Tests main() through its arguments, exit code and captured output, running `check` on the fixture host repositories in `test/fixtures/`, and `serve`
+  // and `build` only where their first check fails.
 
   describe('check', () => {
     // Where each part of a check's outcome goes: host information to stdout, issues to stderr, pass or fail to the exit code.
@@ -57,6 +59,20 @@ describe('cli', () => {
       expect(stdout).toBe('');
       expect(stderr).toBe('error: tsshowcase.json: Unknown stack "cobol"; the stack adapters are: typescript\n');
     });
+
+    it('Overrides the output folder with --out-dir, relative to the current directory', async () => {
+      const outDir = relative(process.cwd(), join(_fixture('output-folder'), 'unmarked'));
+      const { code, stdout } = await _run(['check', '--root', _fixture('output-folder'), '--out-dir', outDir]);
+      expect(code).toBe(0);
+      expect(JSON.parse(stdout).documentation.map((file: { path: string }) => file.path)).toEqual(['README.md', 'showcase/README.md']);
+    });
+
+    it("Fails on an --out-dir that is the host repository's root", async () => {
+      const root = _fixture('minimal');
+      const { code, stderr } = await _run(['check', '--root', root, '--out-dir', root]);
+      expect(code).toBe(1);
+      expect(stderr).toBe(`error: Output folder "${root}" is the host repository's root\n`);
+    });
   });
 
   describe('Arguments', () => {
@@ -73,9 +89,9 @@ describe('cli', () => {
     });
 
     it('Fails on an unknown command', async () => {
-      const { code, stderr } = await _run(['build']);
+      const { code, stderr } = await _run(['deploy']);
       expect(code).toBe(1);
-      expect(stderr).toBe(`Unknown command: build\n\n${USAGE}`);
+      expect(stderr).toBe(`Unknown command: deploy\n\n${USAGE}`);
     });
 
     it('Fails on an unknown option', async () => {
@@ -84,8 +100,10 @@ describe('cli', () => {
       expect(stderr).toMatch(/^Unknown option '--out'/);
     });
 
-    it('Lists the serve command and --port in the help', () => {
+    it('Lists the serve and build commands, --out-dir and --port in the help', () => {
       expect(USAGE).toMatch(/^ {2}serve {4}/m);
+      expect(USAGE).toMatch(/^ {2}build {4}/m);
+      expect(USAGE).toMatch(/^ {2}--out-dir <dir> /m);
       expect(USAGE).toMatch(/^ {2}--port <port> /m);
     });
 
@@ -103,6 +121,12 @@ describe('cli', () => {
       expect(code).toBe(1);
       expect(stderr).toBe(`--port only applies to serve\n\n${USAGE}`);
     });
+
+    it('Fails on --port with build, before building', async () => {
+      const { code, stderr } = await _run(['build', '--port', '8080', '--root', _fixture('minimal')]);
+      expect(code).toBe(1);
+      expect(stderr).toBe(`--port only applies to serve\n\n${USAGE}`);
+    });
   });
 
   describe('serve', () => {
@@ -114,6 +138,32 @@ describe('cli', () => {
       expect(code).toBe(1);
       expect(stdout).toBe('');
       expect(stderr).toBe('error: tsshowcase.json: Unknown stack "cobol"; the stack adapters are: typescript\n');
+    });
+
+    it('Passes --out-dir on to serve', async () => {
+      const root = _fixture('minimal');
+      const { code, stderr } = await _run(['serve', '--root', root, '--out-dir', root, '--port', '8080']);
+      expect(code).toBe(1);
+      expect(stderr).toBe(`error: Output folder "${root}" is the host repository's root\n`);
+    });
+  });
+
+  describe('build', () => {
+    // Only how main() hands over to build: its unit tests never run Vite (see AGENTS.md › Testing), so this runs build where its check fails, before it
+    // writes anything.
+
+    it('Exits with 1, writing the issues to stderr, when the check fails', async () => {
+      const { code, stdout, stderr } = await _run(['build', '--root', _fixture('unknown-stack')]);
+      expect(code).toBe(1);
+      expect(stdout).toBe('');
+      expect(stderr).toBe('error: tsshowcase.json: Unknown stack "cobol"; the stack adapters are: typescript\n');
+    });
+
+    it('Passes --out-dir on to build', async () => {
+      const root = _fixture('minimal');
+      const { code, stderr } = await _run(['build', '--root', root, '--out-dir', root]);
+      expect(code).toBe(1);
+      expect(stderr).toBe(`error: Output folder "${root}" is the host repository's root\n`);
     });
   });
 });

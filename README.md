@@ -4,7 +4,7 @@
 
 Build documentation/showcase apps for TypeScript libraries.
 
-tsshowcase reads a host repository (the repository that uses it) and collects its host information: the project information, the documentation files (`README`, `CONTRIBUTE`, `LICENSE`, ...) and an index of its code files. `tsshowcase check` collects and checks it, and `tsshowcase serve` previews the showcase application that presents it: a React/FluentUI SPA with the project information, a page per documentation file, and a light/dark toggle. Building it into static files, with `tsshowcase build`, is still to come.
+tsshowcase reads a host repository (the repository that uses it) and collects its host information: the project information, the documentation files (`README`, `CONTRIBUTE`, `LICENSE`, ...) and an index of its code files. `tsshowcase check` collects and checks it, `tsshowcase build` builds the showcase application that presents it into static files, ready for static hosting such as GitHub Pages, and `tsshowcase serve` previews it. The showcase application is a React/FluentUI SPA with the project information, a page per documentation file, and a light/dark toggle.
 
 ---
 
@@ -18,6 +18,8 @@ Jump to section:
   - [Stack adapters](#stack-adapters)
   - [`tsshowcase check`](#tsshowcase-check)
   - [`tsshowcase serve`](#tsshowcase-serve)
+  - [`tsshowcase build`](#tsshowcase-build)
+  - [Publishing to GitHub Pages](#publishing-to-github-pages)
   - [API](#api)
 - [Development](#development)
 - [Contributing](#contributing)
@@ -44,6 +46,8 @@ Or run it without installing it:
 $ npx @ofzza/tsshowcase check
 ```
 
+A host repository with no `package.json` of its own (e.g. a .NET one) can run it the same way, with Node installed: `npx --package @ofzza/tsshowcase tsshowcase build`. It still needs a stack adapter for its kind of repository, and the only one so far is `typescript`.
+
 # Usage
 
 ## Configuration: `tsshowcase.json`
@@ -60,14 +64,14 @@ Every host repository needs a `tsshowcase.json` file in its root. Without it, ts
 }
 ```
 
-| Key             | Required | Default             | Meaning                                                                                                 |
-| --------------- | -------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
-| `stack`         | yes      |                     | Name of the [stack adapter](#stack-adapters) to use.                                                    |
-| `sourceRoot`    | no       | the stack adapter's | Source root directory, relative to the host repository's root. Code files are only looked for under it. |
-| `outDir`        | no       | `./showcase`        | Output directory of the showcase application, relative to the host repository's root (not used yet).    |
-| `ignore`        | no       | `[]`                | [Patterns](#patterns) of files to ignore, appended to the stack adapter's.                              |
-| `code`          | no       | `[]`                | [Patterns](#patterns) of code files, relative to the source root, appended to the stack adapter's.      |
-| `documentation` | no       | `[]`                | [Patterns](#patterns) of documentation files, appended to the built-in ones and the stack adapter's.    |
+| Key             | Required | Default             | Meaning                                                                                                                                                                  |
+| --------------- | -------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `stack`         | yes      |                     | Name of the [stack adapter](#stack-adapters) to use.                                                                                                                     |
+| `sourceRoot`    | no       | the stack adapter's | Source root directory, relative to the host repository's root. Code files are only looked for under it.                                                                  |
+| `outDir`        | no       | `./showcase`        | Output folder of `tsshowcase build`, relative to the host repository's root. It must be inside the host repository, and isn't its root. Nothing in it is ever collected. |
+| `ignore`        | no       | `[]`                | [Patterns](#patterns) of files to ignore, appended to the stack adapter's.                                                                                               |
+| `code`          | no       | `[]`                | [Patterns](#patterns) of code files, relative to the source root, appended to the stack adapter's.                                                                       |
+| `documentation` | no       | `[]`                | [Patterns](#patterns) of documentation files, appended to the built-in ones and the stack adapter's.                                                                     |
 
 Any other key is an error, which catches typos.
 
@@ -106,14 +110,16 @@ The `typescript` stack adapter reads the `name` (required), `version`, `descript
 Checks the host repository in the current directory (or the one `--root` names):
 
 ```sh
-$ npx tsshowcase check [--root <dir>]
+$ npx tsshowcase check [--root <dir>] [--out-dir <dir>]
 ```
 
 - Every issue found goes to `stderr`, one per line, as `error: <path>: <message>` or `warning: <path>: <message>`.
 - If the check passes, the host information goes to `stdout`, as indented JSON. If it fails, `stdout` stays empty.
 - The exit code is `0` if the check passes, and `1` if it finds any error, or the arguments are wrong. Warnings alone don't fail it.
 
-Errors are: a missing or invalid `tsshowcase.json`, an unknown `stack`, project information that can't be read, and a source root that doesn't exist or is outside the host repository. Warnings are: several documentation files of the same kind in one folder.
+`--out-dir` overrides `tsshowcase.json`'s `outDir`, relative to the current directory (as `--root` is); `check` takes it so it skips the same files `build` would.
+
+Errors are: a missing or invalid `tsshowcase.json`, an unknown `stack`, project information that can't be read, a source root that doesn't exist or is outside the host repository, and an output folder that is the host repository's root or outside it. Warnings are: several documentation files of the same kind in one folder.
 
 The host information has this shape (types `HostInformation`, `ProjectInformation` and `DocumentationFile`):
 
@@ -132,12 +138,12 @@ Documentation files have a `kind` of `readme`, `contribute`, `license`, or `othe
 Serves the showcase application of the host repository in the current directory (or the one `--root` names), for previewing it while writing its documentation:
 
 ```sh
-$ npx tsshowcase serve [--root <dir>] [--port <port>]
+$ npx tsshowcase serve [--root <dir>] [--port <port>] [--out-dir <dir>]
 ```
 
 - It checks the host repository first, as `tsshowcase check` does, writing the issues to `stderr`. If the check fails, it exits with `1` without serving.
 - It then serves the showcase application with Vite's dev server on `--port` (default: `5173`, or the next free port), writing its URL to `stdout`, until you stop it with Ctrl+C.
-- It watches the host repository, skipping the files the `ignore` patterns skip. After any change it checks the host repository again, and reloads the page when the project information or a documentation file changed. A failed check writes its issues and keeps showing the last good data. Changes to `tsshowcase.json` apply without a restart.
+- It watches the host repository, skipping the files the `ignore` patterns skip, and the output folder (`--out-dir`, as for `check`). After any change it checks the host repository again, and reloads the page when the project information or a documentation file changed. A failed check writes its issues and keeps showing the last good data. Changes to `tsshowcase.json` apply without a restart.
 
 The showcase application has a page per documentation file, its address in the URL's hash (e.g. `#/docs/guide.md`), and a home page with the project information and the root `README`. The navigation lists `README` (the home page), `CONTRIBUTING` and `LICENSE` first, whatever the root files' actual names (e.g. `CONTRIBUTE.md`, `LICENCE.txt`), then every other documentation file by its path. `.md` files are rendered as GitHub-flavoured Markdown, with syntax-highlighted code blocks and the same heading ids as on GitHub; other documentation files are shown as plain text. In Markdown:
 
@@ -147,15 +153,76 @@ The showcase application has a page per documentation file, its address in the U
 
 Each run keeps Vite's cache in a fresh folder in the system's temporary folder, and removes it on exit; starting takes a few seconds while Vite prepares the dependencies.
 
+## `tsshowcase build`
+
+Builds the showcase application of the host repository in the current directory (or the one `--root` names) into its output folder, as static files:
+
+```sh
+$ npx tsshowcase build [--root <dir>] [--out-dir <dir>]
+```
+
+- It checks the host repository first, as `tsshowcase check` does, writing the issues to `stderr`. If the check fails, it exits with `1` without building.
+- The output folder is `outDir` from `tsshowcase.json` (default: `./showcase`), or `--out-dir`, relative to the current directory. It must be inside the host repository, and can't be its root.
+- **The output folder is emptied before every build.** To keep a mistyped `outDir` from deleting your files, every build writes a `.tsshowcase` marker file into it, and `build` refuses (exiting with `1`) to empty a folder that holds anything but a `.tsshowcase` file from an earlier build. A missing or empty folder is fine.
+- It writes the output folder's path to `stdout` once built, and exits with `0`. Warnings from the check don't fail it.
+
+The output is an `index.html`, its `assets/` and the `.tsshowcase` marker, with relative paths throughout, so it works wherever it's hosted, under any path (e.g. GitHub Pages' `https://<user>.github.io/<repo>/`). Pages are addressed in the URL's hash, so the host needs no rewrite rules. It needs to be served over HTTP: browsers won't run it from `file://`. Add the output folder to your `.gitignore`, unless you mean to commit it.
+
+## Publishing to GitHub Pages
+
+tsshowcase only builds; publishing is up to the host repository. With tsshowcase in its `devDependencies`, a GitHub Actions workflow like this one (e.g. `.github/workflows/showcase.yml`) builds and publishes the showcase application on every push to `master`, once the repository's Settings › Pages › Source is set to "GitHub Actions":
+
+```yaml
+name: Showcase
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx tsshowcase build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: showcase
+      - id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+Publishing this way skips Jekyll, so no `.nojekyll` file is needed. If you configured another `outDir`, change the artifact's `path` to match. Without tsshowcase in `devDependencies`, run `npx --yes @ofzza/tsshowcase build` instead of `npx tsshowcase build`.
+
 ## API
 
-Everything the command line does is also exported:
+Everything the command line does is also exported, except serving and building, which are only available through the command line and `main()`:
 
 ```ts
 import { check, readConfiguration, getStackAdapter, getStackAdapterNames, type CheckResult } from '@ofzza/tsshowcase';
 
 // Checks a host repository, and collects its host information if the check passes
 const result: CheckResult = await check('./path/to/host');
+// The output folder can be overridden, as with --out-dir
+await check('./path/to/host', { outDir: './path/to/host/site' });
 if (result.passed) {
   console.log(result.host?.code);
 }
@@ -172,18 +239,18 @@ const project = await adapter?.readProject('./path/to/host');
 console.log(getStackAdapterNames(), project, errors);
 ```
 
-- `check(root)`: checks a host repository and collects its host information; resolves to a `CheckResult` (`passed`, `host` when it passed, and `issues`).
+- `check(root, options?)`: checks a host repository and collects its host information; resolves to a `CheckResult` (`passed`, `host` when it passed, and `issues`). `options` (`CheckOptions`) overrides the configuration: `outDir`, absolute or relative to the current directory.
 - `readConfiguration(root)` / `validateConfiguration(value)`: read and validate a `tsshowcase.json`, resolving to either a `configuration` or `errors`.
 - `getStackAdapter(name)` / `getStackAdapterNames()`: look up the built-in stack adapters, which implement the `StackAdapter` interface; `TypeScriptStackAdapter` is the `typescript` one.
 - `main(args, output?)`: runs the command line with the given arguments, resolving to its exit code; `USAGE` is its help text.
 - Constants: `CONFIGURATION_FILE_NAME` (`tsshowcase.json`), `DEFAULT_OUT_DIR` (`./showcase`), and `BUILT_IN_DOCUMENTATION` (the built-in documentation patterns).
-- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Configuration`, `ConfigurationResult`, `StackAdapter`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.
+- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Configuration`, `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.
 
 # Development
 
 - `npm run build` - cleans `dist/` (`npm run clean`), then compiles `src/` into it, emitting declarations, and copies the showcase application's `src/app/index.html` to `dist/app/` (`npm run copy-app`). Also run on `prepare`, so a local `npm install` builds too.
 - `npm run dev` - the same, in watch mode (restart it after changing `src/app/index.html`).
-- `npm start` - runs the built command line, `dist/cli/bin.js`; pass it arguments after `--`, e.g. `npm start -- check --root test/fixtures/minimal`. To preview the showcase application while working on it, serve a host repository with `npm start -- serve --root <host>` while `npm run dev` recompiles `src/app/` into `dist/app/`, and reload the page after a change. `npm run build` empties `dist/` first, so restart `serve` after it.
+- `npm start` - runs the built command line, `dist/cli/bin.js`; pass it arguments after `--`, e.g. `npm start -- check --root test/fixtures/minimal`. Try `build` on a copy of a host repository (never on a fixture in `test/fixtures/`, which tests rely on), and serve its output folder over HTTP to look at it. To preview the showcase application while working on it, serve a host repository with `npm start -- serve --root <host>` while `npm run dev` recompiles `src/app/` into `dist/app/`, and reload the page after a change. `npm run build` empties `dist/` first, so restart `serve` after it.
 - `npm test` - runs every `test:*` script.
   - `npm run test:unit` - a single Vitest invocation that executes test files, runs their runtime expectations, and type checks them, reporting type errors as test failures. Tests run against the fixture host repositories in `test/fixtures/`; the showcase application's tests render it to HTML with `react-dom/server`.
 - `npm run ci` - runs every `ci:*` script: build, ESLint, Prettier and the tests. This is what GitHub Actions runs on every pull request targeting, and every push to, `master` or `develop`, against Node 22 and 24. It also runs on `prepublishOnly`, so `npm publish` refuses to publish a failing build.

@@ -8,7 +8,7 @@ import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { getStackAdapter, getStackAdapterNames } from '../../adapters/stack/index.js';
 import { readConfiguration, CONFIGURATION_FILE_NAME } from '../../configuration/index.js';
 import type { DocumentationFile, DocumentationKind, HostInformation, ProjectInformation } from '../../host/index.js';
-import { createIgnoreMatcher } from './internal/index.js';
+import { createIgnoreMatcher, resolveOutputFolder } from './internal/index.js';
 
 // #region Types
 
@@ -33,6 +33,16 @@ export interface CheckIssue {
    * POSIX-style path the issue concerns, relative to the host repository's root, if it concerns one
    */
   path?: string;
+}
+
+/**
+ * Represents the options of a check, overriding the configuration
+ */
+export interface CheckOptions {
+  /**
+   * Output folder, absolute or relative to the current directory; overrides the configuration's `outDir`
+   */
+  outDir?: string;
 }
 
 /**
@@ -100,9 +110,10 @@ function _getKind(name: string, extension: string): DocumentationKind {
 /**
  * Checks a host repository and collects its host information
  * @param root Path of the host repository's root
+ * @param options Options overriding the configuration
  * @returns The outcome of the check: whether it passed, the host information if it did, and every issue found
  */
-export async function check(root: string): Promise<CheckResult> {
+export async function check(root: string, options: CheckOptions = {}): Promise<CheckResult> {
   const issues: CheckIssue[] = [];
   const fail = (): CheckResult => ({ passed: false, issues });
 
@@ -143,8 +154,15 @@ export async function check(root: string): Promise<CheckResult> {
     return fail();
   }
 
+  // Resolve the output folder, which must be inside the host repository and is never walked
+  const outputFolder = resolveOutputFolder(root, configuration, options.outDir);
+  if ('error' in outputFolder) {
+    issues.push({ severity: 'error', message: outputFolder.error, ...(options.outDir === undefined ? { path: CONFIGURATION_FILE_NAME } : {}) });
+    return fail();
+  }
+
   // Walk the host repository
-  const ignored = createIgnoreMatcher(adapter, configuration);
+  const ignored = createIgnoreMatcher(adapter, configuration, outputFolder.relativePath);
   const files = await _walk(root, '', ignored);
 
   // Collect the code file index

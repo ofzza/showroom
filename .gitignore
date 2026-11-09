@@ -7,6 +7,7 @@ npm-debug.log*
 
 # Build output
 /build/
+/showcase/
 
 # Unit test / coverage reports
 htmlcov/

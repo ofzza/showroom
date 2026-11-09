@@ -193,4 +193,12 @@ describe('cli/serve', () => {
     expect(stdout).toBe('');
     expect(stderr).toBe('error: tsshowcase.json: Unknown stack "cobol"; the stack adapters are: typescript\n');
   });
+
+  it('Checks with the overriding output folder, without serving when it fails', async () => {
+    let stderr = '';
+    const root = _fixture('minimal');
+    const code = await serve({ root, outDir: root, output: { stdout: () => undefined, stderr: (text) => (stderr += text) } });
+    expect(code).toBe(1);
+    expect(stderr).toBe(`error: Output folder "${root}" is the host repository's root\n`);
+  });
 });

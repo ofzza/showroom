@@ -2,9 +2,9 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: S1 and S2 are implemented and committed; S3 Build command is approved, not yet implemented.
+- **Stage:** implementation: S1, S2 and S3 are implemented and committed; the plan's goals are met.
 - **Working on:** nothing in progress.
-- **Next step:** implement S3 Build command (`./.workflow/PLAN.md` › S3).
+- **Next step:** none planned; ask the user what's next (e.g. a release, see `PUBLISH.md`, or new specification items).
 
 ## Open questions
 
@@ -12,7 +12,6 @@
 
 ## Waiting on me
 
-- Confirm `./.workflow/.temp/questions-s3-plan/` can be deleted (its outcomes are in S3's Decisions).
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 
 ## Running
@@ -51,3 +50,8 @@
 - 2026-11-09: S3 planning started: segment drafted, with choices B1–B10 open.
 - 2026-11-09: S3 choices B1–B10 settled (option chosen: "Accept all ★"); pitfalls 3 and 4 ticked off; Glossary term "Output folder" added.
 - 2026-11-09: S3 Build command approved (option chosen: "Approve and commit"), without a zero-context review.
+- 2026-11-09: `questions-s3-plan/` working files deleted with the user's yes; the user chose to implement S3 in a fresh session.
+- 2026-11-09: S3 Build command implemented: `npm run ci` green (330 tests); trial builds of a fixture copy, a copy of `../tsstd`, and a host with React 18 installed (the bundle holds only tsshowcase's React 19.3.1).
+- 2026-11-09: S3 browser check passed (tsstd: "looks like I would expect it to"; React 18 host: "looks ok"); implementation choices 1–2 confirmed, `/showcase/` added to `.gitignore` at the user's request (B11–B13).
+- 2026-11-09: S3 checkpoint: approved and committed (option chosen: "Approve and commit"). S3 Build command is done.
+- 2026-11-09: `trial-s3/` working files deleted with the user's yes.

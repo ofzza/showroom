@@ -227,6 +227,10 @@ export interface ServeOptions {
    */
   port?: number;
   /**
+   * Output folder given on the command line, overriding the configuration's; it is never watched
+   */
+  outDir?: string;
+  /**
    * Output to write to: the URL to stdout, issues to stderr
    */
   output: CliOutput;
@@ -260,9 +264,9 @@ function _waitForStop(server: ViteDevServer): Promise<void> {
  * @param options Options of the command
  * @returns Exit code: 0 once stopped, 1 if the first check fails or the server can't start
  */
-export async function serve({ root, port = DEFAULT_PORT, output, appDir = getAppDir() }: ServeOptions): Promise<number> {
+export async function serve({ root, port = DEFAULT_PORT, outDir, output, appDir = getAppDir() }: ServeOptions): Promise<number> {
   // Check the host repository first
-  const first = await check(root);
+  const first = await check(root, { outDir });
   output.stderr(formatIssues(first.issues));
   if (!first.passed || !first.host) {
     return 1;
@@ -275,10 +279,10 @@ export async function serve({ root, port = DEFAULT_PORT, output, appDir = getApp
   try {
     const current = createHostWatcher({
       host: getShownHostInformation(first.host),
-      matcher: await readIgnoreMatcher(root),
+      matcher: await readIgnoreMatcher(root, outDir),
       issues: first.issues,
-      check: () => check(root),
-      readMatcher: () => readIgnoreMatcher(root),
+      check: () => check(root, { outDir }),
+      readMatcher: () => readIgnoreMatcher(root, outDir),
       output,
       target: {
         reload: () => {

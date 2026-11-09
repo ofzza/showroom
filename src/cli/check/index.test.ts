@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BUILT_IN_DOCUMENTATION, check } from './index.js';
 
@@ -142,6 +143,48 @@ describe('cli/check', () => {
         'tsshowcase.json: unknown key "extra"',
         'tsshowcase.json: "stack" is required',
       ]);
+    });
+  });
+
+  describe('Output folder', () => {
+    // The output folder fixture (source root `.`) holds a built showcase application in `showcase/` and another folder, `unmarked/`, each with a README
+    // and a JavaScript file; the out-dir fixtures configure an output folder that isn't allowed. The override is passed as `tsshowcase build` passes it.
+
+    it('Never collects anything in the default output folder', async () => {
+      const { passed, host } = await check(_fixture('output-folder'));
+      expect(passed).toBe(true);
+      expect(host?.documentation.map((file) => file.path)).toEqual(['README.md', 'unmarked/README.md']);
+      expect(host?.code).toEqual(['src/index.ts', 'unmarked/index.js']);
+    });
+
+    it('Never collects anything in an overriding output folder', async () => {
+      const { passed, host } = await check(_fixture('output-folder'), { outDir: join(_fixture('output-folder'), 'unmarked') });
+      expect(passed).toBe(true);
+      expect(host?.documentation.map((file) => file.path)).toEqual(['README.md', 'showcase/README.md']);
+      expect(host?.code).toEqual(['showcase/assets/index.js', 'src/index.ts']);
+    });
+
+    it("Fails on a configured output folder that is the host repository's root, or outside it", async () => {
+      expect(await check(_fixture('out-dir-root'))).toEqual({
+        passed: false,
+        issues: [{ severity: 'error', message: `Output folder "./" is the host repository's root`, path: 'tsshowcase.json' }],
+      });
+      expect(await check(_fixture('out-dir-outside'))).toEqual({
+        passed: false,
+        issues: [{ severity: 'error', message: 'Output folder "../site" is outside the host repository', path: 'tsshowcase.json' }],
+      });
+    });
+
+    it("Fails on an overriding output folder that is the host repository's root, or outside it, without blaming the configuration", async () => {
+      const root = _fixture('minimal');
+      expect((await check(root, { outDir: root })).issues).toEqual([{ severity: 'error', message: `Output folder "${root}" is the host repository's root` }]);
+      expect((await check(root, { outDir: dirname(root) })).issues).toEqual([
+        { severity: 'error', message: `Output folder "${dirname(root)}" is outside the host repository` },
+      ]);
+    });
+
+    it('Accepts an overriding output folder that fixes a configured one', async () => {
+      expect((await check(_fixture('out-dir-outside'), { outDir: join(_fixture('out-dir-outside'), 'site') })).passed).toBe(true);
     });
   });
 });

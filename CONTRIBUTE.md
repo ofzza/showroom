@@ -36,8 +36,9 @@ src/
     typescript/         The TypeScript stack adapter
   cli/                  The tsshowcase command line (bin.ts is its executable entry point)
     check/              check(): collecting the host information from a host repository
-      internal/         The ignore matcher and issue formatting, shared with serve
+      internal/         The output folder, the ignore matcher and issue formatting, shared with serve and build
     serve/              tsshowcase serve: Vite's dev server, reloading on changes
+    build/              tsshowcase build: Vite's build, into the output folder
   vite/                 The showcase application's Vite configuration
   app/                  The showcase application: React/FluentUI browser code, compiled to dist/app/ and bundled by Vite
     host/               The shown host information, and finding documentation files in it
@@ -53,11 +54,13 @@ test/fixtures/          Fixture host repositories the tests run against
 
 Every module lives in `src/`, as an `index.ts` + `index.test.ts` pair, and is re-exported from `src/index.ts`, except the showcase application's modules in `src/app/`, which are browser code.
 
-`tsshowcase check` (and `check()`) reads the host repository's `tsshowcase.json`, picks the stack adapter it names, has it read the project information, then walks the host repository once, skipping ignored files, to collect the documentation files and the code file index. Each list of patterns (`ignore`, `code`, `documentation`) works like a `.gitignore` file, matched by the `ignore` package: the built-in patterns (for documentation), then the stack adapter's, then the configuration's.
+`tsshowcase check` (and `check()`) reads the host repository's `tsshowcase.json`, picks the stack adapter it names, has it read the project information, then walks the host repository once, skipping ignored files and the output folder, to collect the documentation files and the code file index. Each list of patterns (`ignore`, `code`, `documentation`) works like a `.gitignore` file, matched by the `ignore` package: the built-in patterns (for documentation), then the stack adapter's, then the configuration's.
 
 The showcase application (`src/app/`) presents the shown host information: the host information without the code file index. `tsc` compiles it to `dist/app/`, next to its static `index.html`, and Vite bundles it from there, with the data served as the `virtual:tsshowcase-host` module, which `main.ts` passes to `mount()`. It routes through the URL's hash (`#/` for the home page, `#/<path>` for any other documentation file, then `#<heading id>`), so it works on static hosting under any path. Markdown is rendered by `react-markdown` with `remark-gfm`, `rehype-slug` (GitHub-compatible heading ids) and `rehype-highlight`; relative links to documentation files become routes, and other relative links plain text. Styles are Griffel's `makeStyles` with FluentUI tokens, so everything, highlighted code included, follows the light or dark theme.
 
-`tsshowcase serve` runs the check, then starts Vite's dev server with the configuration in `src/vite/`: Vite's root is the package's `dist/app/`, its cache a fresh temporary folder, the shown host information is served by a plugin as the virtual module, and React is aliased to tsshowcase's own copy. The server's watcher also watches the host repository, skipping what the `ignore` patterns skip; after a change, the host watcher reruns the check (debounced), and when the shown host information changed it invalidates the virtual module and fully reloads the page. `main()` imports `serve` dynamically, so only `serve` ever loads Vite.
+`tsshowcase serve` runs the check, then starts Vite's dev server with the configuration in `src/vite/`: Vite's root is the package's `dist/app/`, its cache a fresh temporary folder, the shown host information is served by a plugin as the virtual module, and React is aliased to tsshowcase's own copy. The server's watcher also watches the host repository, skipping what the `ignore` patterns skip; after a change, the host watcher reruns the check (debounced), and when the shown host information changed it invalidates the virtual module and fully reloads the page. `main()` imports `serve` and `build` dynamically, so only they ever load Vite.
+
+`tsshowcase build` runs the check, then Vite's `build()` with the same configuration, into the output folder, which must be inside the host repository and isn't its root. Vite empties the output folder first, so `build` only lets it when the folder is missing, empty, or holds the `.tsshowcase` marker file every build writes; anything else is refused, so a mistyped `outDir` never deletes the host repository's files. The bundler's warnings about the showcase application's own dependencies (FluentUI's `'use client'` directives, and its single large chunk) are left out, as the host repository can't act on them.
 
 ### Glossary
 

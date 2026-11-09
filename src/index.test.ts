@@ -4,7 +4,7 @@
 
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import * as api from './index.js';
-import type { CheckResult, Configuration, HostInformation, StackAdapter } from './index.js';
+import type { CheckOptions, CheckResult, Configuration, HostInformation, StackAdapter } from './index.js';
 
 describe('index', () => {
   // Tests that the entry point re-exports every module's public API: its runtime values through `expect`, and its types through `expectTypeOf`,
@@ -28,6 +28,8 @@ describe('index', () => {
 
   it('Exports the types', () => {
     expectTypeOf<Awaited<ReturnType<typeof api.check>>>().toEqualTypeOf<CheckResult>();
+    expectTypeOf<Parameters<typeof api.check>[1]>().toEqualTypeOf<CheckOptions | undefined>();
+    expectTypeOf<CheckOptions['outDir']>().toEqualTypeOf<string | undefined>();
     expectTypeOf<CheckResult['host']>().toEqualTypeOf<HostInformation | undefined>();
     expectTypeOf<Configuration['stack']>().toEqualTypeOf<string>();
     expectTypeOf<api.TypeScriptStackAdapter>().toExtend<StackAdapter>();
