@@ -1,0 +1,67 @@
+{
+  "name": "@ofzza/tsshowcase",
+  "version": "0.1.0",
+  "description": "Enforce and build documentation/showcase apps for TypeScript libraries.",
+  "keywords": [
+    "typescript",
+    "cli",
+    "showcase",
+    "documentation"
+  ],
+  "homepage": "https://github.com/ofzza/tsshowcase#readme",
+  "bugs": {
+    "url": "https://github.com/ofzza/tsshowcase/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ofzza/tsshowcase.git"
+  },
+  "license": "MIT",
+  "author": "ofzza",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+    "prebuild": "npm run clean",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "start": "node dist/index.js",
+    "ci": "npm-run-all ci:*",
+    "ci:build": "tsc -p tsconfig.build.json",
+    "ci:eslint": "eslint src",
+    "ci:prettier": "prettier --check src",
+    "ci:test-unit": "npm-run-all test:unit",
+    "test": "npm-run-all test:*",
+    "test:unit": "vitest run --passWithNoTests --project unit",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run ci"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^2.1.1",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.0.1",
+    "globals": "^17.12.0",
+    "npm-run-all2": "^9.0.3",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.43.0",
+    "vitest": "^5.0.3"
+  }
+}

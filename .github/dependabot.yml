@@ -1,0 +1,26 @@
+version: 2
+
+updates:
+  # Toolchain updates, grouped into a single pull request per week. This repository is almost entirely
+  # devDependencies, so ungrouped updates would be mostly noise
+  - package-ecosystem: npm
+    directory: /
+    # `develop` is the work-in-progress trunk; `master` only receives releases
+    target-branch: develop
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev-dependencies:
+        dependency-type: development
+    ignore:
+      # `@types/node` tracks the lowest supported Node major (see the CI matrix), so its major
+      # version is bumped by hand, together with that floor
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
