@@ -166,7 +166,36 @@ S2 is split in two (A19), each implemented and checkpointed on its own:
 
 ### S3 Build command
 
-Not planned yet.
+Approved 2026-11-09. Choices B1–B10 settled (the user accepted every recommendation).
+
+#### Goals
+
+Must-have 1's build into the output folder (D2, D4, D7), and the configuration-override flags (D5): `tsshowcase build` checks the host repository and builds the showcase application with S2's Vite configuration into `./showcase` (or the configured output folder), with relative asset paths, ready for static hosting; the README documents it, with an example GitHub Pages workflow (D7). Resolves pitfalls 3 and 4 as far as S3 goes.
+
+#### Child segments
+
+None (B1).
+
+#### Steps
+
+1. **Output folder** (`src/configuration/`, `src/cli/check/`; B2, B3, B4): `check(root, options?)` takes the overrides (`outDir`), resolves the output folder against the host root (the flag's value against the current directory), reports an error when it is the host root, contains it, or is outside it, and adds it to the ignore patterns. `HostInformation` is unchanged.
+2. **`tsshowcase build`** (`src/cli/build/`; B5, B6): `main()` and `USAGE` get the `build` command and `--out-dir` (shared by `check`, `serve` and `build`); `main()` loads `build` with a dynamic `import()`. It runs the check, then Vite's `build()` with `getViteConfiguration()` plus `build: { outDir, emptyOutDir: true }`, guarded by the output folder marker (B2), in a fresh `mkdtemp` cache folder removed afterwards.
+3. **Tests** (B7): beside each changed module.
+4. **Documentation**: `README.md` (`# Usage`: `tsshowcase build`, `--out-dir`, `outDir` no longer "not used yet", the `check()` signature, the GitHub Pages workflow and running without a `package.json` (B8, B9); `# Development`), `AGENTS.md` (Layout: `src/cli/build/`; Commands; Testing; Exports; gotchas), `CONTRIBUTE.md` (project structure; Glossary entry "Output folder", B10).
+5. **Trial runs and checks by hand**: `build` on copies of a fixture and of `../tsstd` in working files; the user checks a built showcase application in a browser, served over HTTP, including one built in a host with a different React installed (open point below).
+
+#### Decisions
+
+- **B1** One segment, no child segments: it's about the size of S2.2. Rejected: splitting off the output folder and flags.
+- **B2** The output folder is emptied (`emptyOutDir: true`, as it's outside Vite's root), but only when it doesn't exist, is empty, or holds the marker file `.tsshowcase` that every build writes into it; otherwise `build` exits with 1, naming the folder, so a mistyped `outDir` (e.g. `src`, `docs`) never wipes host files. Rejected: relying on B3's location rules alone; never emptying (stale hashed assets pile up).
+- **B3** The output folder must be inside the host repository, and not its root: the check reports an error otherwise, so `check` and `serve` report it too. Rejected: anywhere except the host root and its parents.
+- **B4** The check appends `/<output folder>/` to the ignore patterns, so a built showcase application is never scanned for code files nor watched by `serve`. Rejected: leaving it to the host's `ignore` patterns.
+- **B5** One configuration-override flag, `--out-dir`, shared by `check`, `serve` and `build`, resolved against the current directory (like `--root`); the API gets `check(root, { outDir })`. Rejected: `--source-root` and `--stack` too; no flags yet.
+- **B6** `build` works like `serve`: it checks first (exit 1 on a failed check; warnings don't fail it), runs Vite's `build()` with Vite's logs at `warn`, in a fresh `mkdtemp` cache folder removed afterwards, and writes one line to `stdout`: "Built the showcase application of <name> into <folder>". `build()` is internal (not re-exported), loaded by `main()` with a dynamic `import()`. No `--strict` for now.
+- **B7** Testing: unit tests of the build's Vite options, the output folder rules (fixtures with bad `outDir`s), the ignore pattern, and the marker guard's decision (read-only fixtures: missing, empty, marked and unmarked folders); `build()` and `main()`'s `build` only run on a fixture whose first check fails. Trial runs on copies by hand, and the user's browser check. Rejected: an integration test building into a temporary folder (against the testing rules).
+- **B8** The README's GitHub Pages example: on a push to `master` and `workflow_dispatch`; `actions/checkout`, `actions/setup-node`, `npm ci`, `npx tsshowcase build`, `actions/upload-pages-artifact` (`path: showcase`), `actions/deploy-pages`, with `pages: write` and `id-token: write`. This deploy skips Jekyll, so no `.nojekyll` is written. Rejected: writing `.nojekyll` for branch-based deploys.
+- **B9** Pitfall 3: the README documents `npx --package @ofzza/tsshowcase tsshowcase build`, which the spike showed works without a `package.json`; such hosts still need a stack adapter of their own (later). Rejected: leaving the pitfall open until a .NET stack adapter exists.
+- **B10** Glossary: new entry "Output folder". Rejected: no new term.
 
 #### Spike: Vite, React and FluentUI from tsshowcase's own dependencies (2026-11-09)
 
@@ -187,11 +216,11 @@ Not planned yet.
 
 #### Open points
 
-- [ ] Pitfall 3: running in a host repository without Node tooling (e.g. through `npx`).
-- [ ] Pitfall 4: relative asset paths (Vite `base: './'`).
+- [x] Pitfall 3: running in a host repository without Node tooling (e.g. through `npx`). Resolved by B9.
+- [x] Pitfall 4: relative asset paths (Vite `base: './'`). Resolved by S2.2's `getViteConfiguration()` (`base: './'`), which B6 reuses.
 - [x] Pitfall 7: where Vite, React and FluentUI come from. The spike shows they can be tsshowcase's own `dependencies` (see "Spike" above). Moved to S2 (A14), with the install size and `cacheDir` open points.
-- [ ] Set `build.emptyOutDir: true`: the output folder is outside Vite's root (A16), so Vite won't empty it otherwise. From the S2 review.
-- [ ] Check by hand, in a host repository with a different React installed, that the showcase application uses tsshowcase's own React (A23). From the S2 review.
+- [x] Set `build.emptyOutDir: true`: the output folder is outside Vite's root (A16), so Vite won't empty it otherwise. From the S2 review. Resolved by B2.
+- [ ] Check by hand, in a host repository with a different React installed, that the showcase application uses tsshowcase's own React (A23). From the S2 review. Planned in step 5.
 
 ## Known open issues
 

@@ -2,9 +2,9 @@
 
 ## Next session: start here
 
-- **Stage:** planning: S1 and S2 (S2.1, S2.2) are implemented and committed; S3 Build command is not planned yet.
+- **Stage:** implementation: S1 and S2 are implemented and committed; S3 Build command is approved, not yet implemented.
 - **Working on:** nothing in progress.
-- **Next step:** plan S3 Build command (`./.workflow/PLAN.md` › S3, starting from its open points).
+- **Next step:** implement S3 Build command (`./.workflow/PLAN.md` › S3).
 
 ## Open questions
 
@@ -12,6 +12,7 @@
 
 ## Waiting on me
 
+- Confirm `./.workflow/.temp/questions-s3-plan/` can be deleted (its outcomes are in S3's Decisions).
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 
 ## Running
@@ -46,3 +47,7 @@
 - 2026-11-09: S2.2 Serve command implemented: `npm run ci` green (280 tests); trial runs on a fixture copy and a copy of `../tsstd` served, reloaded and cleaned up as planned.
 - 2026-11-09: S2.2 checkpoint: approved and committed (option chosen: "Approve and commit"); the user's browser check passed ("All work"), implementation choices a–f confirmed ("All OK"). S2 Showcase application is done.
 - 2026-11-09: Fast path: navigation labels README / CONTRIBUTING / LICENSE for the home page and the root's contribute and license files, listed first (A8 changed; options chosen: "Fast path", "Always README", "Fixed first").
+- 2026-11-09: Stop and report: commit `96c6e51` also included the user's uncommitted `tsshowcase.json` (staged with `git add -A`). The user said it's intended, for serving this repository with itself, and to proceed; kept in the commit.
+- 2026-11-09: S3 planning started: segment drafted, with choices B1–B10 open.
+- 2026-11-09: S3 choices B1–B10 settled (option chosen: "Accept all ★"); pitfalls 3 and 4 ticked off; Glossary term "Output folder" added.
+- 2026-11-09: S3 Build command approved (option chosen: "Approve and commit"), without a zero-context review.
