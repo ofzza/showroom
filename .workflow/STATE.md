@@ -2,19 +2,19 @@
 
 ## Next session: start here
 
-- **Stage:** specification (discussion only, nothing drafted yet): _`P1`_, _`P2`_ and _`P3`_ are implemented and committed.
-- **Next free:** _`D74`_, _`S6`_, _`P4`_, _`O14`_, _`L3`_, _`R1`_, _`H1`_, _`K9`_
-- **Working on:** discussing showcases (moving them from the specification's "Ideas and later" to must-haves), with React and Angular first.
-- **Next step:** on the user's yes, draft the specification update recording the outcomes below (showcase metadata source left open for the showcase format discussion).
+- **Stage:** specification: _`S6`_ Showcases approved; _`P1`_, _`P2`_ and _`P3`_ are implemented and committed.
+- **Next free:** _`D87`_, _`S7`_, _`P4`_, _`O19`_, _`L3`_, _`R1`_, _`H1`_, _`K14`_
+- **Working on:** nothing in progress.
+- **Next step:** the user chooses: the showcase format discussion (_`O14`_–_`O18`_), or planning showcases (starting with the spikes for _`K9`_ and _`K10`_).
 
 ## Open questions
 
-- Showcases: whether showcase metadata comes from a JSON file linking to the code, from embeds in Markdown files, or both (to settle in the showcase format discussion). Open pitfalls are in `./.workflow/SPEC-pitfalls.md`.
+- See _`S6`_'s open points _`O14`_–_`O18`_. Open pitfalls are in `./.workflow/SPEC-pitfalls.md`.
 
 ## Waiting on me
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
-- The user's yes to draft the showcases specification update (as new specification segments) from `./.workflow/.temp/showcases-discussion/NOTES.md`; the `/ig-repo upgrade` is done.
+- Confirmation that `./.workflow/.temp/questions-s6-spec/`, `./.workflow/.temp/showcases-discussion/` and `./.workflow/.temp/repo-upgrade-report.md` can be deleted (their content is in the specification and the workflow files).
 
 ## Running
 
@@ -62,3 +62,6 @@
 - 2026-11-11: Showcases: no metadata in code files and no static extraction from them (metadata from a JSON file, Markdown embeds, or both, still open); React and Angular stack adapters extend the TypeScript one, one showcase framework per host ("I don't think we need to worry about several frameworks per host"), with the frame building a self-contained part the stack adapter supplies.
 - 2026-11-11: Stop and report: during `/ig-repo upgrade`'s reconcile step, the agent's conversion script emptied `./.workflow/PLAN.md` (opened for writing before reading). The user said to restore it and proceed ("Restore PLAN.md and proceed"); restored with `git restore`.
 - 2026-11-11: `/ig-repo upgrade`: the Advanced workflow added (user chose "Advanced workflow", "Upgrade the bases"), and the workflow files migrated to it ("Accept all the fixes"): plan segments S1, S2, S2.1, S2.2, S3 became _`P1`_, _`P2`_, _`P2.1`_, _`P2.2`_, _`P3`_; the specification became _`S4`_ (HARD RULES) and _`S5`_ (project and first version); must-haves _`D13`_–_`D17`_, budget _`D18`_–_`D20`_; plan decisions C… → _`D21`_–_`D34`_, A… → _`D35`_–_`D60`_, B… → _`D61`_–_`D73`_ (each noting its old label); pitfalls → _`K1`_–_`K8`_ in `SPEC-pitfalls.md`; open points _`O1`_–_`O13`_; known open issues _`L1`_, _`L2`_. History lines above keep the old labels.
+- 2026-11-11: _`S6`_ Showcases specification drafted (`SPEC-S6-showcases.md`: _`S6`_–_`S6.4`_, _`D74`_–_`D86`_, _`O14`_–_`O18`_), with pitfalls _`K9`_–_`K13`_; 9 choices open.
+- 2026-11-11: _`S6`_ draft choices settled: 1 and 2 "As recomended", 3 "A: serve + build, mechanism open", 4–9 accepted as recommended; Glossary updated (Showcase frame added; Showcase and Stack adapter reworded).
+- 2026-11-11: _`S6`_ Showcases approved (option chosen: "Approve and commit"); _`K2`_ and _`K7`_ resolved, _`D13`_, _`D15`_, _`D19`_ refined by _`D82`_, _`D79`_, _`D80`_.

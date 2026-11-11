@@ -20,7 +20,7 @@ approved 2026-11-09
 
 ### Must-haves
 
-- _`D13`_ (was must-have 1; `live`): **Build a showcase application** from a host repository: a React/FluentUI web SPA, deployable as static files (e.g. GitHub Pages).
+- _`D13`_ (was must-have 1; `live`, refined by _`D82`_ (SPEC-S6-showcases.md)): **Build a showcase application** from a host repository: a React/FluentUI web SPA, deployable as static files (e.g. GitHub Pages).
   - It's a one-shot CLI command, `tsshowcase build`, run locally or in CI (_`D4`_). Keeping the showcase application up to date means rerunning it.
   - `tsshowcase serve` serves the showcase application locally, with Vite's dev server, and reloads it when a documentation file changes, for previewing it while writing the host repository's documentation (_`D4`_).
   - It generates a Vite project and builds it against the host repository (_`D2`_).
@@ -36,7 +36,7 @@ approved 2026-11-09
       Finding and reading them is case-insensitive, accepts both UK and US spelling, and accepts the `.md` extension, `.txt`, or none.
 
   3.  **An index of the code files** under a specified source root directory: their paths only, not their contents (_`D3`_). Which files count as code is set by patterns (e.g. `*.ts`, `*.cs`), from the selected stack adapter and the configuration (_`D10`_).
-- _`D15`_ (was must-have 3; `live`): **Stack adapters.** Where different kinds of host repository (React, Angular, other languages and frameworks) need their own implementation, each one is a separate stack adapter implementing a common interface. The interface must leave room for the others. The first stack adapter is a **TypeScript stack adapter**: it reads `package.json` and treats TypeScript and JavaScript files as code, so it covers plain TypeScript and React libraries alike; a React-specific stack adapter comes with showcases (_`D1`_).
+- _`D15`_ (was must-have 3; `live`, refined by _`D79`_ (SPEC-S6-showcases.md)): **Stack adapters.** Where different kinds of host repository (React, Angular, other languages and frameworks) need their own implementation, each one is a separate stack adapter implementing a common interface. The interface must leave room for the others. The first stack adapter is a **TypeScript stack adapter**: it reads `package.json` and treats TypeScript and JavaScript files as code, so it covers plain TypeScript and React libraries alike; a React-specific stack adapter comes with showcases (_`D1`_).
 - _`D16`_ (was must-have 4; `live`): **Configuration:** a mandatory JSON config file at the host repository's root, `tsshowcase.json`, naming the stack adapter, plus a few CLI flags that override it (_`D5`_).
 - _`D17`_ (was must-have 5; `live`): **Installation:** tsshowcase can be installed with NPM globally, or locally in the host repository and run through `npx` (added by the user after approval, 2026-11-09).
 
@@ -51,7 +51,7 @@ approved 2026-11-09
 ### Time and complexity budget
 
 - _`D18`_ (`live`): Relatively small and simple.
-- _`D19`_ (`live`): Push complexity onto the host repository owner whenever possible, instead of trying to guess what the host repository needs. It's fine to require the host repository to follow a prescribed structure and/or provide configuration.
+- _`D19`_ (`live`, refined by _`D80`_ (SPEC-S6-showcases.md)): Push complexity onto the host repository owner whenever possible, instead of trying to guess what the host repository needs. It's fine to require the host repository to follow a prescribed structure and/or provide configuration.
 - _`D20`_ (`live`): Iterate quickly: a working version as soon as possible. Everything that can be done or decided later is left for later.
 
 ### Decisions
@@ -68,6 +68,12 @@ approved 2026-11-09
 - _`D10`_ (`live`): Which files are ignored, which count as code, and which are documentation are each set by a list of `.gitignore`-style patterns: the stack adapter's (e.g. ignoring `node_modules` for TypeScript, `bin` and `obj` for .NET) come first, and the configuration's extend them, re-including files with `!` (updated 2026-11-09, from _`P1`_'s _`D28`_ and _`D34`_). Rejected: the host's `.gitignore`; only git-tracked files; configuration-only exclusions.
 - _`D11`_ (`live`): The adapters for where the host repository's code is kept are called SCM adapters (source code management). Rejected: "SVC adapter" (not an established abbreviation), "Hosting adapter" (confusable with where the showcase application is published), "Repository adapter" (confusable with the host repository).
 - _`D12`_ (`live`; supersedes _`D43`_ (PLAN.md)): The showcase application shows the project information and the documentation files only; the code file index is collected but not shown yet (code browsing comes later). Code blocks in rendered Markdown are syntax highlighted (a must-have the user added, 2026-11-09).
+
+## _`S6`_ Showcases
+
+approved 2026-11-11
+
+[See Showcases](./SPEC-S6-showcases.md)
 
 ## Pitfalls
 
