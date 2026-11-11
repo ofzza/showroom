@@ -2,17 +2,19 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: S1, S2 and S3 are implemented and committed; the plan's goals are met.
-- **Working on:** nothing in progress.
-- **Next step:** none planned; ask the user what's next (e.g. a release, see `PUBLISH.md`, or new specification items).
+- **Stage:** specification (discussion only, nothing drafted yet): _`P1`_, _`P2`_ and _`P3`_ are implemented and committed.
+- **Next free:** _`D74`_, _`S6`_, _`P4`_, _`O14`_, _`L3`_, _`R1`_, _`H1`_, _`K9`_
+- **Working on:** discussing showcases (moving them from the specification's "Ideas and later" to must-haves), with React and Angular first.
+- **Next step:** on the user's yes, draft the specification update recording the outcomes below (showcase metadata source left open for the showcase format discussion).
 
 ## Open questions
 
-- None. Open pitfalls are in `./.workflow/SPEC.md` › Pitfalls.
+- Showcases: whether showcase metadata comes from a JSON file linking to the code, from embeds in Markdown files, or both (to settle in the showcase format discussion). Open pitfalls are in `./.workflow/SPEC-pitfalls.md`.
 
 ## Waiting on me
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
+- The user's yes to draft the showcases specification update (as new specification segments) from `./.workflow/.temp/showcases-discussion/NOTES.md`; the `/ig-repo upgrade` is done.
 
 ## Running
 
@@ -55,3 +57,8 @@
 - 2026-11-09: S3 browser check passed (tsstd: "looks like I would expect it to"; React 18 host: "looks ok"); implementation choices 1–2 confirmed, `/showcase/` added to `.gitignore` at the user's request (B11–B13).
 - 2026-11-09: S3 checkpoint: approved and committed (option chosen: "Approve and commit"). S3 Build command is done.
 - 2026-11-09: `trial-s3/` working files deleted with the user's yes.
+- 2026-11-11: Showcases discussion started (no specification draft yet). The user settled: showcases render in iframes; tsshowcase's own strict showcase format per supported framework, no third-party format (e.g. Storybook's CSF), format to be discussed in detail later; editable showcases not in the first version but on the roadmap, and the format must be designed with them in mind; requiring `angular.json`, an installed host (`npm install`) and similar host requirements is acceptable, to keep complexity down.
+- 2026-11-11: Showcases: the showcase frame contract is an internal boundary; "bring your own build" frames will be implemented and tested like the React and Angular builds, but not documented as a feature until the interface is stable (user: "A approve of your recomendation").
+- 2026-11-11: Showcases: no metadata in code files and no static extraction from them (metadata from a JSON file, Markdown embeds, or both, still open); React and Angular stack adapters extend the TypeScript one, one showcase framework per host ("I don't think we need to worry about several frameworks per host"), with the frame building a self-contained part the stack adapter supplies.
+- 2026-11-11: Stop and report: during `/ig-repo upgrade`'s reconcile step, the agent's conversion script emptied `./.workflow/PLAN.md` (opened for writing before reading). The user said to restore it and proceed ("Restore PLAN.md and proceed"); restored with `git restore`.
+- 2026-11-11: `/ig-repo upgrade`: the Advanced workflow added (user chose "Advanced workflow", "Upgrade the bases"), and the workflow files migrated to it ("Accept all the fixes"): plan segments S1, S2, S2.1, S2.2, S3 became _`P1`_, _`P2`_, _`P2.1`_, _`P2.2`_, _`P3`_; the specification became _`S4`_ (HARD RULES) and _`S5`_ (project and first version); must-haves _`D13`_–_`D17`_, budget _`D18`_–_`D20`_; plan decisions C… → _`D21`_–_`D34`_, A… → _`D35`_–_`D60`_, B… → _`D61`_–_`D73`_ (each noting its old label); pitfalls → _`K1`_–_`K8`_ in `SPEC-pitfalls.md`; open points _`O1`_–_`O13`_; known open issues _`L1`_, _`L2`_. History lines above keep the old labels.

@@ -300,4 +300,107 @@ The goal of the planning stage is to iterate on `./.workflow/PLAN.md`, which the
 - Choosing "approve and commit" is my yes for that one commit (see "Outward actions"); update the session state before committing, so that it's part of the same commit. Pushing still needs its own yes.
 - If implementation shows that the plan or the specification is wrong or incomplete, stop and **PROPOSE** circling back to the planning or specification stage, instead of silently deviating from the plan (see "Primary workflow").
 
+---
+
+### Additional (advanced) workflow considerations
+
+Here are contained additional rules and principles to follow, required on more complex repositories such as this one. Unless a rule here says _instead_, it extends the corresponding rule earlier in this workflow rather than replacing it.
+
+At a glance, this adds: a tag on every item (`D` decisions, `S` and `P` specification and plan segments, `O` open points, `L` known open issues, `R` revisions, `H` hard rules, `K` pitfalls; see "Tagging"), append-only decision logs with approval lines, and extracted `SPEC-*.md` and `PLAN-*.md` files, including `SPEC-pitfalls.md`.
+
+#### Terminology (advanced)
+
+These terms extend the workflow's terminology (see "Terminology"):
+
+- **Tag**: the permanent identifier of an item (e.g. `D3`, `S2.1`, `P4`), never renumbered or reused (see "Tagging").
+- **Decision**: a tagged bullet (`D<n>`) recording one thing a segment requires or decides (see "Segments and decisions").
+- **Decision log**: an append-only document of decisions: the specification, the plan and their extracted files (see "Append-only logs").
+- **Decision status**: whether a decision is in force: `live`, `refined by`, `changed by`, `replaced by` or `superseded by` (see "Decision status").
+- **Approval line**: the status line a document or segment opens with: `draft`, `approved`, `revised`, `implemented` or `merged into` (see "Approvals and re-approval").
+- **Revision**: a tagged note (`R<n>`) on an approved segment that a later decision changed (see "Approvals and re-approval").
+- **Drift**: a decision in a child segment that changes its parent segment or the specification (see "Approvals and re-approval").
+- **Compaction**: rewriting a decision log so that only the decisions in force remain (see "Append-only logs").
+- **Extracted file**: a part of the specification or plan moved into its own `SPEC-<tag>-<description>.md` or `PLAN-<tag>-<description>.md` file (see "Specification stage (advanced)" and "Planning stage (advanced)").
+- **Evidence**: the note under a decision recording a spike's conclusions (see "Planning stage (advanced)").
+- **Stub**: the one line left in place of a tag dropped by compaction while it's still referenced (e.g. `D12: replaced by D14`, see "Append-only logs").
+- **Next free**: the session state's line with the next free number of each tag type (see "Tagging").
+
+#### Segments and decisions
+
+- The specification and the plan are split into segments (`S…`, `P…`, see "Tagging"), which are the units of approval. Each segment contains decisions (`D…`): everything a segment requires or decides is a separate, tagged decision bullet; untagged prose is only context.
+- A change to a segment appends a new decision to it, rather than rewriting an existing one (see "Append-only logs").
+
+#### Append-only logs
+
+- Edit `./.workflow/SPEC.md`, `./.workflow/PLAN.md` and their extracted files as **append-only decision logs**: never rewrite or delete a decision's text; instead, append new decisions and update the status of the decisions they affect (see "Decision status"), so the history of how and why decisions changed is kept.
+- These may be edited in place: approval lines, decision statuses, ticks on open points, the "taken by" and "resolved" fields of pitfalls, the statuses of known open issues, wording fixes noted in the approval line (see "Approvals and re-approval"), and reflows by the formatter.
+- **Compaction**: periodically you will be asked, or can **PROPOSE** yourself, to compact a document by rewriting it so that only the decisions in force remain. Compact only on my explicit go-ahead, as a commit of its own (in the collaborative workflow, a pull request of its own), and:
+  - keep every remaining decision's tag and wording;
+  - never renumber or reuse a tag, and keep a one-line stub (e.g. `D12: replaced by D14`) for every dropped tag that's still referenced from workflow files (on any branch or open pull request), the session state or code; commit messages don't count;
+  - keep the approval lines: a compaction that changes no scope needs no re-approval;
+  - never drop or reword a hard rule (see "Hard rules");
+  - before dropping a decision that references other content (e.g. another contributor's, in the collaborative workflow), make sure the decision in force that replaced it carries that reference over (see "Decision status");
+  - add `compacted <YYYY-MM-DD>, history at <commit>` to the document's approval line, naming a commit on the long-lived branch (e.g. `develop`), and update it after the merge if the host squashes or rebases.
+
+#### Specification stage (advanced)
+
+- When beneficial, any part of the specification can be extracted into a separate `./.workflow/SPEC-<tag>-<description>.md` file, which is then referenced from the correct location within the original `./.workflow/SPEC.md` file as `[See <title>](./SPEC-<tag>-<description>.md)`. When reading `./.workflow/SPEC.md`, also read the files it references, recursively.
+- Pitfalls are kept in their own `./.workflow/SPEC-pitfalls.md` file (an intentional exception to the `SPEC-<tag>-<description>.md` naming), referenced from `./.workflow/SPEC.md` as `[See Pitfalls](./SPEC-pitfalls.md)`, instead of in a section of `./.workflow/SPEC.md`. Each pitfall is tagged (`K…`).
+- The HARD RULES are a specification segment of their own, with an approval line. Every exception I grant to one (see "Hard rules") gets a line in the session state's history.
+
+#### Planning stage (advanced)
+
+- When beneficial, any part of the plan can be extracted into a separate `./.workflow/PLAN-<tag>-<description>.md` file, which is then referenced from the correct location within the original `./.workflow/PLAN.md` file as `[See <title>](./PLAN-<tag>-<description>.md)`. When reading `./.workflow/PLAN.md`, also read the files it references, recursively.
+- A segment's open points live in an "Open points" subsection of the segment, wherever it's kept (in `./.workflow/PLAN.md` or in its extracted file), each tagged (`O…`) and naming where it came from: a tag (e.g. `From P2, D14`), or for a review finding `From review <YYYY-MM-DD> #<n>: <one-line summary>`. Adding one to an approved segment doesn't change its scope and needs no re-approval; resolving it might. A resolved open point is ticked off with the tag of the decision that resolved it.
+- Known open issues are listed in a "Known open issues" section of `./.workflow/PLAN.md` (and of `./.workflow/SPEC.md`, for the specification), each tagged (`L…`), with the reason it was deferred, the segment expected to pick it up, and a status: `open`, `picked up by <tag>` or `dropped by D<n>`. The target segment's open points only refer to it (e.g. "see L1").
+- When resuming, read the segments the session state names as current, their ancestors, and the files they reference; read the rest when needed.
+- A spike's conclusions go into an "Evidence" note under the decision they inform (e.g. `Spike <YYYY-MM-DD>: …`), and a spike run is a milestone in the session state's history.
+
+#### Approvals and re-approval
+
+- `./.workflow/SPEC.md`, `./.workflow/PLAN.md` and every specification and plan segment open with an **approval line**, followed by notes on later wording edits, revisions and compactions:
+  - `draft`;
+  - `approved <YYYY-MM-DD>`;
+  - `revised <YYYY-MM-DD> (R<n>), pending re-approval`;
+  - `implemented <YYYY-MM-DD>`;
+  - `merged into P<n>`.
+- Record each approval (see "Approvals") in the segment's approval line too. Approving a parent segment doesn't approve its draft children.
+- After a segment is approved:
+  - edits that only fix wording (typos, clarity) are noted in its approval line and listed at the next checkpoint; they need no re-approval;
+  - any change in scope needs re-approval: what the segment does, decides or requires, how strongly (e.g. "must" vs "should"), its numbers, names or references, and bringing in another segment's decisions.
+- Tags are permanent: splitting a segment adds new child segments, and joining segments marks the old ones `merged into P<n>`.
+- **Drift**: when a decision made while working on a child segment changes its parent segment (or the specification), update the parent in the same step: add a revision note `R<n> <YYYY-MM-DD>: <what changed>, caused by D<n>` (see "Tagging"), and set its approval line to `revised`. Revision notes are only needed on approved segments; when you're unsure whether a parent is affected, ask me. When one decision affects several segments, add a revision note to each and re-approve them all together with the child, in one dialog; check the parent's other children, and anything that depends on it, for impacts, and list them in that dialog.
+
+#### Decision status
+
+- Every decision carries a status:
+  - `live`: in force as written;
+  - `refined by D<n>`: in force, with details added or narrowed by `D<n>`;
+  - `changed by D<n>`: in force in part; `D<n>` changes a part of it;
+  - `replaced by D<n>`: no longer in force; `D<n>` decides the same question differently;
+  - `superseded by D<n>`: no longer in force; the question it answered no longer applies after `D<n>`.
+- A decision can carry several relations (e.g. `refined by D5, changed by D9`).
+- The relation is recorded in both directions: the new decision names the decisions it refines, changes, replaces or supersedes, and their status is updated to point back at it.
+- When a decision stops being in force, re-point the decisions it refined or changed to the decision that replaced it, and carry the references it made (its own `refines`, `changes`, `replaces` and `supersedes`) over to that decision, unless I decide that the content it referenced is back in force.
+- This way, the log can be read for what is currently in force without rereading its history.
+
+#### Tagging
+
+- Tag every item as below. `<n>` stands for a sequential number, here and in tags elsewhere in this workflow (e.g. `D<n>`).
+
+  | Tag                                   | Items                                                                         |
+  | ------------------------------------- | ----------------------------------------------------------------------------- |
+  | `D<n>`                                | decisions (any decision recorded within the workflow files)                   |
+  | `S<n>`, `S<n>.<n>`, `S<n>.<n>.<n>`, … | specification segments, sub-segments, grand-segments, etc.                    |
+  | `P<n>`, `P<n>.<n>`, `P<n>.<n>.<n>`, … | plan segments, sub-segments, grand-segments, etc.                             |
+  | `O<n>`                                | open points                                                                   |
+  | `L<n>`                                | known open issues                                                             |
+  | `R<n>`                                | revisions                                                                     |
+  | `H<n>`                                | hard rules; in the HARD RULES section, these tags replace the plain numbering |
+  | `K<n>`                                | pitfalls                                                                      |
+
+- Tags are never renumbered or reused. Keep the next free number of each tag type on a "Next free" line in the session state (e.g. `Next free: D15, S5, P9, O3, L2, R3, H4, K6`).
+- Write every tag as italic inline code, ``_`D3`_``, so it stands out from the surrounding text: in the workflow files, other Markdown documents and the conversation, including tags in statuses, stubs and references (e.g. ``replaced by _`D14`_``). Where Markdown isn't rendered (commit messages, code and code comments, file names, code blocks, or a span that's already code-formatted), write the plain tag (`D3`).
+- A reference to a tag in another file names that file (e.g. `replaced by D14 (PLAN-P2-uploads.md)`).
+
 <!-- </@ofzza/repo-skill:workflow> -->

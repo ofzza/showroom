@@ -169,4 +169,51 @@ The terms for how work is done in this repository. They change only with the wor
 | **Green**               | The repository builds, its full test suite passes, and its linters and formatters pass, as far as it has them.                  |
 | **Glossary**            | The project's domain terms, for what is built, in the first section of this file with "Glossary" in its heading.                |
 
+### Advanced workflow
+
+This repository also uses the advanced workflow, for keeping a complex specification and plan traceable over time.
+
+#### How it works
+
+- **Every item is tagged**, and tags are never renumbered or reused; untagged prose is only context. In documents, tags are written as italic code (_`D3`_) so they stand out:
+
+  | Tag  | Meaning                                                               |
+  | ---- | --------------------------------------------------------------------- |
+  | `D3` | A decision: one thing a segment requires or decides                   |
+  | `S2` | A specification segment (`S2.1`, `S2.1.1`, … for its children)        |
+  | `P4` | A plan segment (`P4.1`, … for its children)                           |
+  | `O1` | An open point                                                         |
+  | `L1` | A known open issue                                                    |
+  | `R1` | A revision of an approved segment                                     |
+  | `H1` | A hard rule (the HARD RULES are a specification segment of their own) |
+  | `K1` | A pitfall                                                             |
+
+- **Approval lines**: the specification, the plan and every segment open with their status: `draft`, `approved <date>`, `revised <date> (R<n>), pending re-approval`, `implemented <date>` or `merged into P<n>`. Approving a parent segment doesn't approve its draft children.
+- **Append-only decision logs**: in normal work, decisions are never rewritten or deleted. A change adds a new decision, and the old one's status points to it: `refined by`, `changed by`, `replaced by` or `superseded by`. Only statuses, approval lines, ticks and noted wording fixes change in place. Reading the statuses tells you what's currently in force.
+- **Extracted files**: parts of the specification or plan can move into their own files when that helps, e.g. `./.workflow/PLAN-P2-uploads.md`, linked from `SPEC.md` or `PLAN.md`. Pitfalls live in `./.workflow/SPEC-pitfalls.md`.
+- **Drift and re-approval**: wording fixes to an approved segment need no re-approval, but any change in scope does. When work on a child segment changes its parent, the parent is marked `revised` and re-approved together with the child.
+- **Compaction**: once a log grows long, the agent may propose compacting it down to the decisions in force, on your go-ahead, as a commit of its own; the full history stays in git, and **stubs** keep dropped tags that are still referenced.
+
+#### Terminology (advanced)
+
+| Term                | Meaning                                                                                                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Tag**             | An item's permanent identifier (e.g. `D3`, `S2.1`), never renumbered or reused.                                   |
+| **Decision**        | A tagged bullet (`D<n>`) recording one thing a segment requires or decides.                                       |
+| **Decision log**    | An append-only document of decisions: the specification, the plan and their extracted files.                      |
+| **Decision status** | Whether a decision is in force: `live`, `refined by`, `changed by`, `replaced by` or `superseded by`.             |
+| **Approval line**   | The status line a document or segment opens with: `draft`, `approved`, `revised`, `implemented` or `merged into`. |
+| **Revision**        | A tagged note (`R<n>`) on an approved segment that a later decision changed.                                      |
+| **Drift**           | A decision in a child segment that changes its parent segment or the specification.                               |
+| **Compaction**      | Rewriting a decision log down to the decisions in force.                                                          |
+| **Stub**            | The one line left in place of a tag dropped by compaction while it's still referenced.                            |
+| **Extracted file**  | A part of the specification or plan moved into its own `SPEC-…` or `PLAN-…` file.                                 |
+| **Evidence**        | The note under a decision recording a spike's conclusions.                                                        |
+| **Next free**       | The session state's line with the next free number of each tag type.                                              |
+
+#### What to watch out for
+
+- Don't edit decisions or tags by hand; ask the agent for the change, so that it's recorded as a new decision with its relations.
+- Refer to items by their tag when asking for changes (e.g. "replace D12", "resolve O3"); tags are how the agent finds and links them.
+
 <!-- </@ofzza/repo-skill:contribute> -->
