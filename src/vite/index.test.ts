@@ -4,6 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -260,6 +261,11 @@ describe('vite', () => {
   it("Gets the showroom's folder beside this module's", () => {
     // From `src/vite/` this is `src/app/`, and from `dist/vite/` it is `dist/app/`: both hold the static `index.html`
     expect(existsSync(join(getAppDir(), 'index.html'))).toBe(true);
+  });
+
+  it("Has a favicon of its own, inline in the showroom's page", async () => {
+    // A data URI, so nothing is fetched: without one, browsers asked for /favicon.ico and logged a 404
+    expect(await readFile(join(getAppDir(), 'index.html'), 'utf8')).toMatch(/<link\s+rel="icon"\s+type="image\/svg\+xml"\s+href="data:image\/svg\+xml,[^"]+"/);
   });
 
   it('Gets the Vite configuration', () => {

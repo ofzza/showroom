@@ -3,7 +3,17 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { getFolder, isAbsoluteUrl, isMarkdownPath, isValidVirtualFileName, parseShowcaseMarker, resolvePath, scanMarkdown, splitLink } from './index.js';
+import {
+  getFolder,
+  getOpeningTitleOffset,
+  isAbsoluteUrl,
+  isMarkdownPath,
+  isValidVirtualFileName,
+  parseShowcaseMarker,
+  resolvePath,
+  scanMarkdown,
+  splitLink,
+} from './index.js';
 
 describe('markdown', () => {
   // Tests the Markdown module's pure functions on hand-written paths, markers and Markdown text.
@@ -104,6 +114,26 @@ describe('markdown', () => {
       for (const name of ['', '.', '..', 'a/b.js', 'a\\b.js', ' a.js', 'a.js ']) {
         expect(isValidVirtualFileName(name)).toBe(false);
       }
+    });
+  });
+
+  describe('Opening title', () => {
+    // Tests getOpeningTitleOffset(), which the showroom's home page uses to tell if the README opens with its own title.
+
+    it('Finds a level-1 heading the document opens with', () => {
+      expect(getOpeningTitleOffset('# Title\n\nText')).toBe(0);
+      expect(getOpeningTitleOffset('\n\nTitle\n=====\n')).toBe(2);
+    });
+
+    it('Skips raw HTML before the heading', () => {
+      // The showroom doesn't render raw HTML (e.g. a README's centred logo), so the heading after it is the first thing shown
+      expect(getOpeningTitleOffset('<p align="center">logo</p>\n\n# Title\n')).toBe(28);
+    });
+
+    it('Finds none when the document opens otherwise', () => {
+      expect(getOpeningTitleOffset('Text\n\n# Title\n')).toBeUndefined();
+      expect(getOpeningTitleOffset('## Title\n')).toBeUndefined();
+      expect(getOpeningTitleOffset('')).toBeUndefined();
     });
   });
 

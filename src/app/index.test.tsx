@@ -42,7 +42,8 @@ describe('app', () => {
 
   it('Shows the home page by default', () => {
     const html = _render();
-    expect(html).toMatch(/<h1 [^>]*>my-library<\/h1>/);
+    // The README opens with its own title, which replaces the project's name
+    expect(html).not.toMatch(/<h1 [^>]*>my-library<\/h1>/);
     expect(html).toContain('<h1 id="welcome">Welcome</h1>');
     expect(html).toMatch(/<a [^>]*href="#\/docs\/guide.md"[^>]*>guide<\/a>/);
     expect(html).toMatch(/<a [^>]*aria-current="page"[^>]*>README<\/a>|<a [^>]*href="#\/"[^>]*aria-current="page"[^>]*>/);

@@ -310,6 +310,7 @@ interface _Node {
   type: string;
   children?: _Node[];
   position?: { start: { line: number; offset?: number } };
+  depth?: number;
   lang?: string | null;
   meta?: string | null;
   value?: string;
@@ -329,6 +330,16 @@ const _EXTENSIONS: Record<string, string> = { typescript: 'ts', javascript: 'js'
  */
 function _parse(content: string): _Node {
   return unified().use(remarkParse).use(remarkGfm).parse(content) as unknown as _Node;
+}
+
+/**
+ * Gets the offset of the level-1 heading a Markdown document opens with: its first node, not counting raw HTML (which the showroom doesn't render)
+ * @param content Markdown text
+ * @returns The heading's start offset in the text, or undefined if the document doesn't open with a level-1 heading
+ */
+export function getOpeningTitleOffset(content: string): number | undefined {
+  const first = _parse(content).children?.find((node) => node.type !== 'html');
+  return first?.type === 'heading' && first.depth === 1 ? first.position?.start.offset : undefined;
 }
 
 /**

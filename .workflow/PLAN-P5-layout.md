@@ -1,6 +1,6 @@
 # _`P5`_ Showroom layout fixes
 
-approved 2026-11-12
+approved 2026-11-12; implemented 2026-11-12
 
 Planned 2026-11-12, after _`P4.3`_ (_`D177`_ (PLAN.md)). Takes the known open issues _`L4`_–_`L9`_ (PLAN.md), found dogfooding `showroom` on its own repository. All of it is browser code in `src/app/` (and `src/app/index.html`); nothing in the CLI, the host information or the showcases changes.
 
@@ -35,6 +35,12 @@ Not in _`P5`_: a host-configurable favicon or logo; a table of contents of a pag
 - _`D213`_ (`live`; Q6 "Accept all (Rec.)"): **A favicon of the showroom's own**: a small inline SVG `data:` URI in `src/app/index.html`'s `<link rel="icon">` (a generic, theme-neutral mark), so nothing is fetched and no file has to be copied or emitted. Rejected: an empty `data:,` icon (silences the 404, but shows no icon); the host's own favicon (needs configuration; later, if ever).
 - _`D214`_ (`live`): **Every highlight.js token class is coloured.** The dogfood finding was a misdiagnosis: `README.md`'s four-backtick examples are labelled `md`, and highlight.js marks their whole content as `hljs-code`, which `_TOKEN_STYLES` (`src/app/markdown/`) doesn't colour. Add `hljs-code` and the other classes highlight.js emits that are missing (e.g. `hljs-formula`, `hljs-subst`, `hljs-char.escape`, `hljs-selector-attr`, `hljs-selector-pseudo`, `hljs-template-tag`, `hljs-operator`, `hljs-punctuation`), checked against highlight.js's class reference. Code blocks without a language stay unhighlighted, as on GitHub (no language detection).
 - _`D215`_ (`live`): **The "Dark theme" label doesn't wrap**: `whiteSpace: 'nowrap'` through the `Switch`'s `label` slot (_`L9`_).
+
+### From the implementation (2026-11-12)
+
+- _`D216`_ (`live`; refines _`D207`_, _`D215`_; the user: "Hide label on phones (Rec.)"): **Below the breakpoint, the theme toggle shows only its switch**: the "Dark theme" label is visually hidden (screen readers still get it), so a long project name (e.g. `@ofzza/showroom`) has room in the header instead of breaking mid-word; the header's padding and gaps also shrink there (`M` and `S`). The overlay drawer also gets a header, "Documentation", with a close button, as its list sat flush against the top edge without one. Rejected: cutting the name off with an ellipsis; keeping the mid-word wrapping.
+- _`D217`_ (`live`; refines _`D216`_; the user, at the checkpoint: "When the showroom's title doesn't fit, I would rather it gets `white-space: ellipsies` then have it break into multiple lines and break header layout like it does now", then "Ellipsis only"): **The header's project name stays on one line**, cut off with an ellipsis when it doesn't fit, with the full name as its tooltip; the version badge doesn't shrink. Rejected: shrinking the font to fit, by measuring (a `ResizeObserver`), by a CSS estimate from the name's length, or by the viewport's width.
+- _`D218`_ (`live`; the user, at the checkpoint: "Can we make the title link back to `/#/`?"): **The header's project name links to the home page** (`#/`), keeping the header's text colour.
 
 ## Steps
 

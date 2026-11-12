@@ -34,7 +34,8 @@ function _render(project: ProjectInformation, current?: string, theme: ThemeName
 }
 
 describe('app/layout', () => {
-  // Tests the layout by rendering it to HTML with `react-dom/server`, around a placeholder page.
+  // Tests the layout by rendering it to HTML with `react-dom/server`, around a placeholder page. Which navigation a viewport shows is switched by
+  // media queries alone, which the rendered HTML doesn't apply, so both are rendered in every test.
 
   it('Shows the project name and version, the theme toggle, the navigation and the page', () => {
     const html = _render({ name: 'my-library', version: '1.2.3' });
@@ -59,5 +60,23 @@ describe('app/layout', () => {
   it('Shows the theme toggle switched on in the dark theme', () => {
     expect(_render({ name: 'p' }, undefined, 'dark')).toMatch(/<input [^>]*checked=""/);
     expect(_render({ name: 'p' }, undefined, 'light')).not.toMatch(/<input [^>]*checked=""/);
+  });
+
+  it("Has a menu button for the narrow viewport's navigation, closed at first", () => {
+    const html = _render({ name: 'p' });
+    expect(html).toMatch(/<header[^>]*><button [^>]*aria-label="Open the navigation"[^>]*>/);
+    expect(html).toMatch(/<button [^>]*aria-expanded="false"/);
+  });
+
+  it('Renders the navigation once while the overlay navigation is closed', () => {
+    // The overlay drawer renders nothing while closed, so the inline drawer's navigation is the only one in the page
+    expect(_render({ name: 'p' }).match(/<nav /g)).toHaveLength(1);
+  });
+
+  it("Links the project's name to the home page, with its full text as a tooltip", () => {
+    // The name is cut off with an ellipsis when the header is too narrow for it
+    const html = _render({ name: 'a-very-long-project-name' });
+    expect(html).toMatch(/<header[^>]*>.*<a [^>]*href="#\/"[^>]*>a-very-long-project-name<\/a>/s);
+    expect(html).toMatch(/<a [^>]*title="a-very-long-project-name"[^>]*>/);
   });
 });

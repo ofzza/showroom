@@ -10,7 +10,7 @@ import rehypeHighlight from 'rehype-highlight';
 import rehypeSlug from 'rehype-slug';
 import { Link, Tooltip, makeStyles, tokens, type GriffelStyle } from '@fluentui/react-components';
 import type { DocumentationFile } from '../../host/index.js';
-import { isAbsoluteUrl } from '../../markdown/index.js';
+import { getOpeningTitleOffset, isAbsoluteUrl } from '../../markdown/index.js';
 import type { ShownShowcase } from '../host/index.js';
 import { resolveLink } from '../links/index.js';
 import { scrollToAnchor } from '../routing/index.js';
@@ -24,21 +24,44 @@ import { SHOWCASE_FRAME_ELEMENT, SHOWCASE_ID_PROPERTY, ShowcaseFrame, remarkShow
 export const UNRESOLVED_LINK_TOOLTIP = 'Not in the showroom';
 
 /**
- * Colours of highlight.js's token classes, as FluentUI tokens, so code blocks follow the theme
+ * Colours of highlight.js's token classes, as FluentUI tokens, so code blocks follow the theme. Every class highlight.js emits is coloured, except
+ * those listed in UNCOLOURED_TOKEN_CLASSES
  */
 const _TOKEN_STYLES: [string[], GriffelStyle][] = [
   [['hljs-comment', 'hljs-quote'], { color: tokens.colorNeutralForeground3, fontStyle: 'italic' }],
-  [['hljs-keyword', 'hljs-selector-tag', 'hljs-literal', 'hljs-doctag', 'hljs-meta .hljs-keyword'], { color: tokens.colorPaletteBerryForeground1 }],
+  // A code block or span inside Markdown (e.g. a fenced example in an `md` block), and a formula
+  [['hljs-code', 'hljs-formula'], { color: tokens.colorNeutralForeground3 }],
+  [
+    ['hljs-keyword', 'hljs-selector-tag', 'hljs-literal', 'hljs-doctag', 'hljs-meta .hljs-keyword', 'hljs-template-tag', 'hljs-variable.language_'],
+    { color: tokens.colorPaletteBerryForeground1 },
+  ],
   [['hljs-string', 'hljs-regexp', 'hljs-addition', 'hljs-meta .hljs-string'], { color: tokens.colorPaletteGreenForeground1 }],
-  [['hljs-number', 'hljs-symbol', 'hljs-bullet', 'hljs-link'], { color: tokens.colorPaletteDarkOrangeForeground1 }],
-  [['hljs-title', 'hljs-section', 'hljs-name', 'hljs-selector-id', 'hljs-selector-class'], { color: tokens.colorPaletteBlueForeground2 }],
+  [['hljs-number', 'hljs-symbol', 'hljs-bullet', 'hljs-link', 'hljs-char.escape_'], { color: tokens.colorPaletteDarkOrangeForeground1 }],
+  [
+    ['hljs-title', 'hljs-section', 'hljs-name', 'hljs-selector-id', 'hljs-selector-class', 'hljs-selector-pseudo'],
+    { color: tokens.colorPaletteBlueForeground2 },
+  ],
   [['hljs-type', 'hljs-built_in', 'hljs-title.class_', 'hljs-class .hljs-title'], { color: tokens.colorPaletteTealForeground2 }],
-  [['hljs-attr', 'hljs-attribute', 'hljs-variable', 'hljs-template-variable', 'hljs-property', 'hljs-params'], { color: tokens.colorPaletteRedForeground1 }],
+  [
+    ['hljs-attr', 'hljs-attribute', 'hljs-variable', 'hljs-template-variable', 'hljs-property', 'hljs-params', 'hljs-operator', 'hljs-selector-attr'],
+    { color: tokens.colorPaletteRedForeground1 },
+  ],
   [['hljs-meta'], { color: tokens.colorNeutralForeground2 }],
   [['hljs-deletion'], { color: tokens.colorPaletteRedForeground1 }],
   [['hljs-emphasis'], { fontStyle: 'italic' }],
   [['hljs-strong'], { fontWeight: tokens.fontWeightSemibold }],
 ];
+
+/**
+ * highlight.js's token classes that deliberately keep the code block's own colour: punctuation, a substitution's content (e.g. `${...}` in a
+ * template string, whose parts are coloured themselves), and the containers of other tokens (an HTML tag, a function's signature)
+ */
+export const UNCOLOURED_TOKEN_CLASSES = ['hljs-punctuation', 'hljs-subst', 'hljs-tag', 'hljs-function', 'hljs-class'];
+
+/**
+ * Names of highlight.js's token classes the showroom colours (each style's first class, e.g. `hljs-title` for `hljs-title.class_`)
+ */
+export const COLOURED_TOKEN_CLASSES = [...new Set(_TOKEN_STYLES.flatMap(([classes]) => classes.map((name) => name.split(/[ .]/)[0]!)))];
 
 /**
  * Styles of rendered Markdown
@@ -97,6 +120,10 @@ export interface MarkdownProps {
    * Shown showcases, whose showcase frames are placed in the documentation file embedding them; none if not given
    */
   showcases?: ShownShowcase[];
+  /**
+   * Content placed right after the level-1 heading the file opens with (see getOpeningTitleOffset()); not shown if it doesn't open with one
+   */
+  afterTitle?: ReactNode;
 }
 
 /**
@@ -109,8 +136,9 @@ const _NO_SHOWCASES: ShownShowcase[] = [];
  * @param props Properties of the component
  * @returns The rendered Markdown
  */
-export function Markdown({ file, documentation, showcases = _NO_SHOWCASES }: MarkdownProps): ReactNode {
+export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, afterTitle }: MarkdownProps): ReactNode {
   const styles = _useStyles();
+  const titleOffset = useMemo(() => (afterTitle === undefined ? undefined : getOpeningTitleOffset(file.content)), [afterTitle, file.content]);
   const fileShowcases = useMemo(() => showcases.filter((showcase) => showcase.documentation === file.path), [showcases, file.path]);
   const remarkPlugins = useMemo<Options['remarkPlugins']>(() => [remarkGfm, [remarkShowcaseFrames, { showcases: fileShowcases }]], [fileShowcases]);
   // Kept between renders, so react-markdown doesn't remount every link, image and showcase frame on each one; the theme and the showcases reach
@@ -122,13 +150,23 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES }: Mar
           {children}
         </_MarkdownLink>
       ),
+      // The opening title is told apart by its offset, as the file is rendered whole (showcase frames are placed by offsets too)
+      h1: ({ node, ...props }) =>
+        titleOffset !== undefined && node?.position?.start.offset === titleOffset ? (
+          <>
+            <h1 {...props} />
+            {afterTitle}
+          </>
+        ) : (
+          <h1 {...props} />
+        ),
       img: ({ src, alt }) => (typeof src === 'string' && isAbsoluteUrl(src) ? <img src={src} alt={alt ?? ''} /> : <span>{alt}</span>),
       // An element react-markdown's types don't know, as the remark plugin names it
       ...({
         [SHOWCASE_FRAME_ELEMENT]: (props: Record<string, unknown>) => <PlacedShowcaseFrame id={props[SHOWCASE_ID_PROPERTY]} />,
       } as Components),
     }),
-    [file, documentation, styles.unresolved],
+    [file, documentation, styles.unresolved, titleOffset, afterTitle],
   );
   return (
     <div className={styles.markdown}>

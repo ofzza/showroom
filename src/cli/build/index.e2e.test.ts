@@ -54,6 +54,8 @@ describe('cli/build (end to end)', () => {
     expect(stdout).toBe(`Built the showroom of showcase-frames-host into ${out}\n`);
     expect(await readFile(join(out, OUTPUT_FOLDER_MARKER), 'utf8')).toBe(OUTPUT_FOLDER_MARKER_CONTENT);
     expect(existsSync(join(out, 'index.html'))).toBe(true);
+    // The showroom's inline favicon survives Vite's build of its page
+    expect(await readFile(join(out, 'index.html'), 'utf8')).toMatch(/<link\s+rel="icon"\s+type="image\/svg\+xml"\s+href="data:image\/svg\+xml,/);
 
     // The showcase frames, with the frame script, under their documentation files' paths as they are
     const script = `<script>${getFrameScript()}</script>`;

@@ -233,7 +233,7 @@ None (_`D61`_).
 
 ## Showroom layout
 
-- _`P5`_ Showroom layout fixes (approved 2026-11-12, [See Showroom layout fixes](./PLAN-P5-layout.md)): the known open issues _`L4`_–_`L9`_, found dogfooding `showroom` on its own repository (phone navigation, sideways scrolling, the navigation scrolling away, the doubled home page title, the favicon and unhighlighted code blocks, the wrapping "Dark theme" label). _`L7`_ needs a choice of what the home page shows above the README.
+- _`P5`_ Showroom layout fixes (implemented 2026-11-12, [See Showroom layout fixes](./PLAN-P5-layout.md)): the known open issues _`L4`_–_`L9`_, found dogfooding `showroom` on its own repository (phone navigation, sideways scrolling, the navigation scrolling away, the doubled home page title, the favicon and unhighlighted code blocks, the wrapping "Dark theme" label). _`L7`_ needs a choice of what the home page shows above the README.
   - _`D177`_ (`live`; the user, 2026-11-12: "Please note that we do P4.3 next, then fix layout after"): **_`P4.3`_ is planned and implemented next, then _`P5`_**, before the first release. Rejected: the layout fixes first (they don't block _`P4.3`_, and nothing is published yet).
 
 ## Publishing this repository's showroom

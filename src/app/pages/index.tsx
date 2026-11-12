@@ -5,6 +5,7 @@
 import type { ReactNode } from 'react';
 import { Body1, Caption1, Link, Title1, Title2, makeStyles, tokens } from '@fluentui/react-components';
 import type { DocumentationFile, ProjectInformation } from '../../host/index.js';
+import { getOpeningTitleOffset } from '../../markdown/index.js';
 import { isMarkdown, type ShownShowcase } from '../host/index.js';
 import { Markdown } from '../markdown/index.js';
 import { formatRoute } from '../routing/index.js';
@@ -23,7 +24,8 @@ const _useStyles = makeStyles({
     columnGap: tokens.spacingHorizontalL,
     rowGap: tokens.spacingVerticalXS,
     margin: '0',
-    '& dd': { margin: '0' },
+    // Long values (e.g. URLs) wrap anywhere, rather than widening the page on a narrow viewport
+    '& dd': { margin: '0', minWidth: '0', overflowWrap: 'anywhere' },
     '& dt': { color: tokens.colorNeutralForeground3 },
   },
   text: { fontFamily: tokens.fontFamilyMonospace, whiteSpace: 'pre-wrap', overflowWrap: 'break-word', margin: '0' },
@@ -99,11 +101,11 @@ function _getProjectUrl(value: string): string | undefined {
 }
 
 /**
- * Renders the home page: the project information, followed by the root `README` if there is one
- * @param props Properties of the component
- * @returns The rendered page
+ * Renders the project information: the project's name as a title (unless left out), its description, and its fields
+ * @param props Properties of the component: the project information, and whether to leave out the title
+ * @returns The rendered project information
  */
-export function HomePage({ project, readme, documentation, showcases }: HomePageProps): ReactNode {
+function _ProjectInformation({ project, untitled }: { project: ProjectInformation; untitled?: boolean }): ReactNode {
   const styles = _useStyles();
   const fields: [string, string | undefined, boolean][] = [
     ['Version', project.version, false],
@@ -113,33 +115,53 @@ export function HomePage({ project, readme, documentation, showcases }: HomePage
     ['Repository', project.repository, true],
   ];
   return (
+    <section className={styles.project}>
+      {untitled ? null : <Title1 as="h1">{project.name}</Title1>}
+      {project.description ? <Body1>{project.description}</Body1> : null}
+      <dl className={styles.fields}>
+        {fields
+          .filter(([, value]) => value)
+          .map(([label, value, isLink]) => {
+            const url = isLink ? _getProjectUrl(value!) : undefined;
+            return [
+              <dt key={`${label}-label`}>
+                <Body1>{label}</Body1>
+              </dt>,
+              <dd key={`${label}-value`}>
+                {url ? (
+                  <Link href={url} target="_blank" rel="noopener noreferrer">
+                    {value}
+                  </Link>
+                ) : (
+                  <Body1>{value}</Body1>
+                )}
+              </dd>,
+            ];
+          })}
+      </dl>
+    </section>
+  );
+}
+
+/**
+ * Renders the home page: the project information, followed by the root `README` if there is one. When the `README` is Markdown opening with a
+ * level-1 heading, that heading is the page's title, and the project information follows it, without the project's name
+ * @param props Properties of the component
+ * @returns The rendered page
+ */
+export function HomePage({ project, readme, documentation, showcases }: HomePageProps): ReactNode {
+  const styles = _useStyles();
+  const titled = readme !== undefined && isMarkdown(readme) && getOpeningTitleOffset(readme.content) !== undefined;
+  return (
     <div className={styles.page}>
-      <section className={styles.project}>
-        <Title1 as="h1">{project.name}</Title1>
-        {project.description ? <Body1>{project.description}</Body1> : null}
-        <dl className={styles.fields}>
-          {fields
-            .filter(([, value]) => value)
-            .map(([label, value, isLink]) => {
-              const url = isLink ? _getProjectUrl(value!) : undefined;
-              return [
-                <dt key={`${label}-label`}>
-                  <Body1>{label}</Body1>
-                </dt>,
-                <dd key={`${label}-value`}>
-                  {url ? (
-                    <Link href={url} target="_blank" rel="noopener noreferrer">
-                      {value}
-                    </Link>
-                  ) : (
-                    <Body1>{value}</Body1>
-                  )}
-                </dd>,
-              ];
-            })}
-        </dl>
-      </section>
-      {readme ? <DocumentationContent file={readme} documentation={documentation} showcases={showcases} /> : null}
+      {titled ? (
+        <Markdown file={readme} documentation={documentation} showcases={showcases} afterTitle={<_ProjectInformation project={project} untitled />} />
+      ) : (
+        <>
+          <_ProjectInformation project={project} />
+          {readme ? <DocumentationContent file={readme} documentation={documentation} showcases={showcases} /> : null}
+        </>
+      )}
     </div>
   );
 }

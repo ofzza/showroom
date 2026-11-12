@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation (_`P5`_ next). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ and _`P4`_ (_`P4.1`_–_`P4.4`_) are implemented and committed.
-- **Next free:** _`D216`_, _`S8`_, _`P7`_, _`O29`_, _`L10`_, _`R14`_, _`H1`_, _`K15`_
-- **Working on:** _`P5`_ Showroom layout fixes (`./.workflow/PLAN-P5-layout.md`, approved, not yet implemented; _`L4`_–_`L9`_). _`P4`_ Showcases (_`P4.1`_–_`P4.4`_) is done.
-- **Next step:** implement _`P5`_ Showroom layout fixes (`./.workflow/PLAN-P5-layout.md`, approved 2026-11-12), steps 1–5. Then plan _`P6`_ Publishing this repository's own showroom to GitHub Pages (_`D178`_–_`D180`_, `./.workflow/PLAN.md`).
+- **Stage:** planning (_`P6`_ next). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ and _`P4`_ (_`P4.1`_–_`P4.4`_) are implemented and committed.
+- **Next free:** _`D219`_, _`S8`_, _`P7`_, _`O29`_, _`L10`_, _`R14`_, _`H1`_, _`K15`_
+- **Working on:** _`P5`_ Showroom layout fixes (`./.workflow/PLAN-P5-layout.md`) implemented and committed; _`P4`_ Showcases done.
+- **Next step:** plan _`P6`_ Publishing this repository's own showroom to GitHub Pages (_`D178`_–_`D180`_, _`O27`_, `./.workflow/PLAN.md`).
 
 ## Open questions
 
@@ -16,7 +16,7 @@
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
-- `./.workflow/.temp/questions-p5-plan/`: ask before deleting it.
+- `./.workflow/.temp/trial-p5/` and `./.workflow/.temp/format-p5/`: ask before deleting them.
 
 ## Running
 
@@ -136,3 +136,9 @@
 - 2026-11-12: _`P5`_ planning started (user: "Please continue ..."); draft written with _`D207`_–_`D215`_ and 6 choices.
 - 2026-11-12: _`P5`_ choices answered: Q1 "react-icons (Rec.)" (_`D209`_), Q2–Q6 "Accept all (Rec.)" (_`D207`_, _`D208`_, _`D211`_–_`D213`_).
 - 2026-11-12: _`P5`_ approved, without a zero-context review (option chosen: "Approve and commit"); _`L4`_–_`L9`_ picked up by _`P5`_.
+- 2026-11-12: `questions-p5-plan/` and `format-p5/` working files deleted ("Delete both (Rec.)"); _`P5`_ implementation started (option chosen: "Implement P5 now").
+- 2026-11-12: _`P5`_ implemented (steps 1–5): `npm run ci` green (598 unit, 6 integration, 10 end-to-end, 3 serve tests); a dogfood build of a copy of this repository checked in Playwright at 375 px and 1280 px wide.
+- 2026-11-12: _`P5`_ checkpoint: the label hidden on phones (_`D216`_; option chosen: "Hide label on phones (Rec.)"); the trial build served for the user's browser check ("Serve it for me first").
+- 2026-11-12: _`P5`_ browser check: the user found the header's name breaking onto two lines; it stays on one line with an ellipsis (_`D217`_; option chosen: "Ellipsis only").
+- 2026-11-12: _`P5`_ browser check: the header's name links to the home page, at the user's request (_`D218`_).
+- 2026-11-12: _`P5`_ browser check passed, and its checkpoint approved and committed (option chosen: "All good: commit"); trial server stopped.
