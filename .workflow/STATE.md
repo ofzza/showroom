@@ -5,7 +5,7 @@
 - **Stage:** implementation (_`P6`_ done). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_ and _`P6`_ are implemented and committed.
 - **Next free:** _`D229`_, _`S8`_, _`P7`_, _`O29`_, _`L11`_, _`R14`_, _`H1`_, _`K15`_
 - **Working on:** nothing; _`P6`_ Publishing this repository's own showroom implemented and committed.
-- **Next step:** the user's GitHub settings for Pages (`PUBLISH.md` › Showroom on GitHub Pages) before the next release; then the next segment (e.g. _`L10`_), or a release.
+- **Next step:** the next segment (e.g. _`L10`_), or a release (the showroom is first published when it reaches `master`).
 
 ## Open questions
 
@@ -149,3 +149,4 @@
 - 2026-11-12: _`P6`_ implementation started (option chosen: "Implement P6 now (Rec.)").
 - 2026-11-12: _`P6`_ implemented (steps 1–6): `npm run ci` green (604 unit, 6 integration, 11 end-to-end, 3 serve tests, and `ci:showroom`); a trial build of a copy of this repository with the workflow's command checked in Playwright; _`O27`_ resolved.
 - 2026-11-12: _`P6`_ checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"); `trial-p6/` working files deleted.
+- 2026-11-12: The user set up GitHub Pages ("I've updated GitHub settings as instructed"); checked through the API: Pages built by GitHub Actions, `master` allowed in the `github-pages` environment.
