@@ -234,6 +234,15 @@ None (_`D61`_).
 - _`P5`_ Showroom layout fixes (draft, not yet planned): the known open issues _`L4`_–_`L9`_, found dogfooding `showroom` on its own repository (phone navigation, sideways scrolling, the navigation scrolling away, the doubled home page title, the favicon and unhighlighted code blocks, the wrapping "Dark theme" label). _`L7`_ needs a choice of what the home page shows above the README.
   - _`D177`_ (`live`; the user, 2026-11-12: "Please note that we do P4.3 next, then fix layout after"): **_`P4.3`_ is planned and implemented next, then _`P5`_**, before the first release. Rejected: the layout fixes first (they don't block _`P4.3`_, and nothing is published yet).
 
+## Publishing this repository's showroom
+
+- _`P6`_ Publishing this repository's own showroom to GitHub Pages (draft, not yet planned), after _`P5`_: dogfooding `showroom` on its own repository for real, the way `README.md` › Publishing to GitHub Pages documents.
+  - _`D178`_ (`live`; the user, 2026-11-12: "Actions workflow (Rec.)"): **A GitHub Actions workflow builds and deploys the showroom** (`.github/workflows/showroom.yml`, like the README's example, with `actions/deploy-pages`); nothing built is committed, and `.gitignore` keeps ignoring `/showroom/` (_`D73`_). In this repository it runs `npm ci` (which builds `dist/`) and then `node dist/cli/bin.js build`, as a package's own `bin` isn't linked into its own `node_modules` (`npx showroom` doesn't resolve here). The user sets Settings › Pages › Source to "GitHub Actions" (a repository setting, not a file). Rejected: building into a committed folder (branch-based Pages only serves the root or `/docs`; the output goes stale and its hashed bundle, about 810 kB, would be replaced in the history on every rebuild; it would reverse _`D73`_).
+  - _`D179`_ (`live`; the user: "After P5 (Rec.)"): **Order: after _`P5`_**, so the first published showroom has the layout fixes; _`P4.3`_ stays next (_`D177`_). Rejected: now, as a fast path; between _`P4.3`_ and _`P5`_.
+  - _`D180`_ (`live`; the user: "master (Rec.)"): **Pushes to `master` publish it**, so the published showroom matches the latest release, as the README's example does. Rejected: `develop`.
+  - Open points:
+    - [ ] _`O27`_ From the dogfooding discussion (2026-11-12). The README's example workflow is named `name: Showcase`, likely a leftover from before the rename to `showroom`: fix it with _`P6`_'s workflow.
+
 ## Known open issues
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: not yet assigned. Status: `open`.

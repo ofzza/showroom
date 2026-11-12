@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** planning (_`P4`_). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_, _`P4.1`_, _`P4.2`_ and _`P4.4`_ are implemented and committed.
-- **Next free:** _`D178`_, _`S8`_, _`P6`_, _`O27`_, _`L10`_, _`R11`_, _`H1`_, _`K15`_
+- **Next free:** _`D181`_, _`S8`_, _`P7`_, _`O28`_, _`L10`_, _`R11`_, _`H1`_, _`K15`_
 - **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ Showcase frames in `build` implemented (`./.workflow/PLAN-P4.2-showcase-frames.md`); _`P4.4`_ Resources in `html` showcases, and live README examples implemented and committed (`./.workflow/PLAN-P4.4-html-resources.md`); _`P4.3`_ not yet planned. After _`P4.3`_: _`P5`_ Showroom layout fixes (_`L4`_–_`L9`_, `./.workflow/PLAN.md`; order set by _`D177`_).
-- **Next step:** plan _`P4.3`_ Showcases in `serve` (`./.workflow/PLAN-P4-showcases.md`; its open points include _`O22`_, _`O24`_ and _`O25`_, the last in `./.workflow/PLAN-P4.4-html-resources.md`); then implement it; then plan _`P5`_ Showroom layout fixes (_`D177`_).
+- **Next step:** plan _`P4.3`_ Showcases in `serve` (`./.workflow/PLAN-P4-showcases.md`; its open points include _`O22`_, _`O24`_ and _`O25`_, the last in `./.workflow/PLAN-P4.4-html-resources.md`); then implement it; then plan _`P5`_ Showroom layout fixes (_`D177`_); then _`P6`_ Publishing this repository's own showroom to GitHub Pages (_`D178`_–_`D180`_, `./.workflow/PLAN.md`).
 
 ## Open questions
 
@@ -14,12 +14,11 @@
 ## Waiting on me
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
-- `./.workflow/.temp/dogfood/` (a built copy of this repository and screenshots, from the dogfooding check): ask before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
 ## Running
 
-- HTTP server on http://127.0.0.1:8765/ (`python3 -m http.server`, started from the previous session) serving `./.workflow/.temp/dogfood/host/showroom/`, a dogfood build of this repository at commit `910a4d7`, kept alive at the user's request for their review. A new session can't stop it as its own task: ask the user whether it is still needed; if it's still running and no longer needed, stop it (e.g. `pkill -f 'http.server 8765'`, after checking with `pgrep -af 'http.server 8765'`).
+- Nothing.
 
 ## History
 
@@ -117,3 +116,6 @@
 - 2026-11-12: The user's review of the dogfood build: the "Dark theme" label wraps; recorded as _`L9`_ (option chosen: "Collect for later").
 - 2026-11-12: Order set: _`P4.3`_ next, then the layout fixes (user: "Please note that we do P4.3 next, then fix layout after"): _`P5`_ Showroom layout fixes added to `PLAN.md` (draft, not yet planned) with _`D177`_, taking _`L4`_–_`L9`_.
 - 2026-11-12: Workflow files committed before clearing the context (option chosen: "Commit (Rec.)").
+- 2026-11-12: Preview server stopped at the user's request, before clearing the context.
+- 2026-11-12: `dogfood/` working files deleted with the user's yes ("I think we can delete `./.workflow/.temp/dogfood/`").
+- 2026-11-12: Publishing this repository's showroom: _`P6`_ added to `PLAN.md` (draft, not yet planned), after _`P5`_, with _`D178`_ ("Actions workflow (Rec.)"), _`D179`_ ("After P5 (Rec.)"), _`D180`_ ("master (Rec.)") and _`O27`_.
