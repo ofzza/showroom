@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** planning (_`P4`_). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_, _`P4.1`_, _`P4.2`_ and _`P4.4`_ are implemented and committed.
-- **Next free:** _`D181`_, _`S8`_, _`P7`_, _`O28`_, _`L10`_, _`R11`_, _`H1`_, _`K15`_
-- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ Showcase frames in `build` implemented (`./.workflow/PLAN-P4.2-showcase-frames.md`); _`P4.4`_ Resources in `html` showcases, and live README examples implemented and committed (`./.workflow/PLAN-P4.4-html-resources.md`); _`P4.3`_ not yet planned. After _`P4.3`_: _`P5`_ Showroom layout fixes (_`L4`_–_`L9`_, `./.workflow/PLAN.md`; order set by _`D177`_).
-- **Next step:** plan _`P4.3`_ Showcases in `serve` (`./.workflow/PLAN-P4-showcases.md`; its open points include _`O22`_, _`O24`_ and _`O25`_, the last in `./.workflow/PLAN-P4.4-html-resources.md`); then implement it; then plan _`P5`_ Showroom layout fixes (_`D177`_); then _`P6`_ Publishing this repository's own showroom to GitHub Pages (_`D178`_–_`D180`_, `./.workflow/PLAN.md`).
+- **Next free:** _`D207`_, _`S8`_, _`P7`_, _`O29`_, _`L10`_, _`R14`_, _`H1`_, _`K15`_
+- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ Showcase frames in `build` implemented (`./.workflow/PLAN-P4.2-showcase-frames.md`); _`P4.4`_ Resources in `html` showcases, and live README examples implemented and committed (`./.workflow/PLAN-P4.4-html-resources.md`); _`P4.3`_ Showcases in `serve` approved (`./.workflow/PLAN-P4.3-serve.md`), not yet implemented. After _`P4.3`_: _`P5`_ Showroom layout fixes (_`L4`_–_`L9`_, `./.workflow/PLAN.md`; order set by _`D177`_).
+- **Next step:** implement _`P4.3`_ (steps 1–5); then plan _`P5`_ Showroom layout fixes (_`D177`_); then _`P6`_ Publishing this repository's own showroom to GitHub Pages (_`D178`_–_`D180`_, `./.workflow/PLAN.md`).
 
 ## Open questions
 
@@ -15,6 +15,8 @@
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
+
+- `./.workflow/.temp/review-p4.3-plan/` and `./.workflow/.temp/questions-p4.3-plan/`: their outcomes are in `./.workflow/PLAN-P4.3-serve.md`; ask before deleting them.
 
 ## Running
 
@@ -119,3 +121,10 @@
 - 2026-11-12: Preview server stopped at the user's request, before clearing the context.
 - 2026-11-12: `dogfood/` working files deleted with the user's yes ("I think we can delete `./.workflow/.temp/dogfood/`").
 - 2026-11-12: Publishing this repository's showroom: _`P6`_ added to `PLAN.md` (draft, not yet planned), after _`P5`_, with _`D178`_ ("Actions workflow (Rec.)"), _`D179`_ ("After P5 (Rec.)"), _`D180`_ ("master (Rec.)") and _`O27`_.
+- 2026-11-12: _`P4.3`_ planning started (option chosen: "Start planning P4.3 (Rec.)"); draft written with _`D181`_–_`D191`_, _`O28`_ and 10 choices.
+- 2026-11-12: _`P4.3`_ choices Q1–Q10 answered (option chosen: "Accept all (Rec.)"): _`D181`_–_`D191`_ as drafted.
+- 2026-11-12: Go-ahead for a zero-context review of the _`P4.3`_ draft (option chosen: "Review first"; 2 agents).
+- 2026-11-12: Zero-context review of the _`P4.3`_ draft run (2 agents): 2 blockers, 6 major, 16 minor; triaged into 1 question and 13 fixes. Stray-write check clean.
+- 2026-11-12: _`P4.3`_ review triage answered: RQ1 "C: Drop edit tests"; F6 with an issues bar in the showroom (the user's addition; "A: Issues bar (Rec.)"); the other fixes "Apply them (Rec.)": _`D192`_–_`D205`_, revisions _`R11`_ (_`P2`_), _`R12`_ (_`P4.2`_), _`R13`_ (_`P4`_); _`K13`_ taken by _`P4.3`_.
+- 2026-11-12: Resources and real files in `serve` discussed: ignored files stay unwatched (_`D206`_; the user: "No"); _`O28`_ extended with the resource rule; `build`'s resource caching gap not recorded (the user: "Only O28").
+- 2026-11-12: _`P4.3`_ approved, and _`P2`_ (_`R11`_), _`P4.2`_ (_`R12`_) and _`P4`_ (_`R13`_) re-approved (option chosen: "Approve and commit (Rec.)"); _`O22`_, _`O24`_, _`O25`_ resolved.

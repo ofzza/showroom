@@ -40,5 +40,5 @@ Not in _`P4.4`_: following real files from disk for `html` (_`D150`_ stays); a l
 
 ## Open points
 
-- [ ] _`O25`_ From _`D169`_. For _`P4.3`_: `serve` hands out an `html` showcase frame's resources with its page, and updates them when their code blocks change.
+- [x] _`O25`_ (resolved by _`D181`_ (PLAN-P4.3-serve.md)) From _`D169`_. For _`P4.3`_: `serve` hands out an `html` showcase frame's resources with its page, and updates them when their code blocks change.
 - [x] _`O26`_ (resolved by _`D176`_) From _`P4.4`_'s implementation (_`D175`_). `showcases (integration)` › "Removes its temporary folder" failed now and then (seen before _`P4.4`_ too): it expected no `showroom-showcases-*` folder in the tier's shared OS temp folder while another test file was building; with _`D175`_'s build it failed about 1 run in 6.
