@@ -3,7 +3,7 @@
 ## Next session: start here
 
 - **Stage:** planning (_`P6`_ next). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ and _`P4`_ (_`P4.1`_–_`P4.4`_) are implemented and committed.
-- **Next free:** _`D219`_, _`S8`_, _`P7`_, _`O29`_, _`L10`_, _`R14`_, _`H1`_, _`K15`_
+- **Next free:** _`D219`_, _`S8`_, _`P7`_, _`O29`_, _`L11`_, _`R14`_, _`H1`_, _`K15`_
 - **Working on:** _`P5`_ Showroom layout fixes (`./.workflow/PLAN-P5-layout.md`) implemented and committed; _`P4`_ Showcases done.
 - **Next step:** plan _`P6`_ Publishing this repository's own showroom to GitHub Pages (_`D178`_–_`D180`_, _`O27`_, `./.workflow/PLAN.md`).
 
@@ -15,8 +15,6 @@
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
-
-- `./.workflow/.temp/trial-p5/` and `./.workflow/.temp/format-p5/`: ask before deleting them.
 
 ## Running
 
@@ -142,3 +140,6 @@
 - 2026-11-12: _`P5`_ browser check: the user found the header's name breaking onto two lines; it stays on one line with an ellipsis (_`D217`_; option chosen: "Ellipsis only").
 - 2026-11-12: _`P5`_ browser check: the header's name links to the home page, at the user's request (_`D218`_).
 - 2026-11-12: _`P5`_ browser check passed, and its checkpoint approved and committed (option chosen: "All good: commit"); trial server stopped.
+- 2026-11-12: `trial-p5/` and `format-p5/` working files deleted ("Delete both (Rec.)"); `showcases` pushed (option chosen: "Push first").
+- 2026-11-12: _`L10`_ recorded at the user's request: style customization in `showroom.json` (favicon, title, light and dark theme colours), for later.
+- 2026-11-12: Workflow files committed (option chosen: "Commit, then P6 fresh (Rec.)"); _`P6`_ to be planned in a fresh session.
