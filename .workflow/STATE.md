@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** planning (_`P4`_). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_, _`P4.1`_ and _`P4.2`_ are implemented and committed.
-- **Next free:** _`D169`_, _`S8`_, _`P5`_, _`O25`_, _`L4`_, _`R10`_, _`H1`_, _`K15`_
-- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ Showcase frames in `build` implemented (`./.workflow/PLAN-P4.2-showcase-frames.md`); _`P4.3`_ not yet planned.
-- **Next step:** plan _`P4.3`_ Showcases in `serve` (its open points include _`O22`_ and _`O24`_, in `./.workflow/PLAN-P4-showcases.md`).
+- **Next free:** _`D176`_, _`S8`_, _`P5`_, _`O26`_, _`L9`_, _`R11`_, _`H1`_, _`K15`_
+- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ Showcase frames in `build` implemented (`./.workflow/PLAN-P4.2-showcase-frames.md`); _`P4.4`_ Resources in `html` showcases, and live README examples approved (`./.workflow/PLAN-P4.4-html-resources.md`), to go before _`P4.3`_; _`P4.3`_ not yet planned.
+- **Next step:** implement _`P4.4`_ (its step 1, the README fast-path change, is uncommitted), then plan _`P4.3`_.
 
 ## Open questions
 
@@ -13,13 +13,13 @@
 
 ## Waiting on me
 
-- Confirmation that the _`P4.2`_ trial's outcomes are recorded, and a yes to delete `./.workflow/.temp/trial-p4.2/` and `./.workflow/.temp/format-p4.2/`.
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
+- `./.workflow/.temp/dogfood/` (a built copy of this repository and screenshots, from the dogfooding check): ask before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
 ## Running
 
-- Nothing.
+- HTTP server on http://127.0.0.1:8765/ serving `./.workflow/.temp/dogfood/host/showroom/` for the user's preview of the dogfooding fast path (stop it before committing).
 
 ## History
 
@@ -102,3 +102,9 @@
 - 2026-11-12: _`P4.2`_ checkpoint answers: implementation choices (a)–(d) and (f) kept ("Keep both (Rec.)" for (b) and (c), "Keep as is (Rec.)" for the growth guard); _`O24`_ kept for later ("Keep for later (Rec.)"); "Approve and commit (Rec.)" held for a separate discussion of (e) (the user: "I want to discuss this in detail, separate to the other items in this dialog ...").
 - 2026-11-12: (e) settled: the `html` showcase adapter stays self-contained (_`D134`_, _`D150`_; the user: "I don't want the `html` adapter to have to parse HTML and figure out any relative outside resources it might be using so that it can copy them"); `README.md`'s examples are compact inline `html` showcases, custom showcase adapters only in their own section (the user: "I don't want the README.md file to use custom adapters anywhere excepth when explicitly documenting what custom adapters are").
 - 2026-11-12: _`P4.2`_ re-approved with _`D168`_ (_`R9`_), and its checkpoint approved and committed (option chosen: "Approve and commit (Rec.)").
+- 2026-11-12: `trial-p4.2/` and `format-p4.2/` working files deleted with the user's yes ("Delete both (Rec.)").
+- 2026-11-12: Dogfooding check before _`P4.3`_ (the user: "can you please check if the current state of `showroom` is dogfood-able?"): `check` clean (0 showcases), `build` of a copy reviewed in Playwright; findings reported in the conversation.
+- 2026-11-12: Dogfooding findings: fast path for a live inline `html` showcase in `README.md` (option chosen: "Fast path 1 now"); the other findings recorded as _`L4`_–_`L8`_.
+- 2026-11-12: Live README examples: the user asked that every README example of how a showcase is written be followed by the live showcase (Q1 "./examples/", Q2 "No, keep it as text", Q4 "Short line (Rec.)"); `html` showcases using declared resources agreed ("Yes, as described (Rec.)"), as a new segment ("New small segment P4.4 (Rec.)"): _`P4.4`_ drafted (_`D169`_–_`D175`_, _`O25`_), _`R10`_ on _`P4.2`_.
+- 2026-11-12: _`P4.4`_ choices answered: Q1 "A: kind on VirtualFile (Rec.)" (_`D170`_), Q2 "Yes, same rule (Rec.)" (_`D171`_), Q3 "Yes (Rec.)" (_`D175`_).
+- 2026-11-12: _`P4.4`_ approved, and _`P4.2`_ re-approved with _`R10`_ (option chosen: "Approve and commit (Rec.)").
