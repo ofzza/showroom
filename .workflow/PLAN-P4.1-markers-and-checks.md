@@ -1,6 +1,8 @@
 # _`P4.1`_ Showcase markers and documentation checks
 
-approved 2026-11-12; implemented 2026-11-12
+approved 2026-11-12; implemented 2026-11-12; revised 2026-11-12 (_`R6`_); re-approved 2026-11-12
+
+- _`R6`_ 2026-11-12: a custom showcase adapter module exports a factory, called once per run (_`D127`_, _`D129`_ changed), caused by _`D149`_ (PLAN-P4.2-showcase-frames.md); the showroom doesn't find showcases with `src/markdown/` (_`D116`_ changed), caused by _`D166`_ (PLAN-P4.2-showcase-frames.md). The code changes in _`P4.2`_.
 
 Child of _`P4`_ (PLAN-P4-showcases.md). Static: it builds nothing. Its choices were settled 2026-11-12 (QD1, QD2 and Q1–Q18 of the planning discussion; each decision names its question).
 
@@ -24,7 +26,7 @@ Not in _`P4.1`_: building anything, `check --showcases`, and any change to the s
 
 ### Modules
 
-- _`D116`_ (`live`; Q1): **Two new internal modules, not re-exported**:
+- _`D116`_ (`live`, changed by _`D166`_ (PLAN-P4.2-showcase-frames.md); Q1): **Two new internal modules, not re-exported**:
   - `src/markdown/`: Node-free, so `check` and the showroom (in _`P4.2`_, to find the showcases it renders) can both use it: parsing a documentation file's Markdown, the showcase marker's grammar, extracting showcases and virtual files from the syntax tree, and resolving relative links (moved from `src/app/links/`, which then uses it);
   - `src/adapters/showcase/`: the showcase adapter interface, the registry of built-in showcase adapters, loading custom ones, and `html/` (the `html` showcase adapter).
 
@@ -54,7 +56,7 @@ Not in _`P4.1`_: building anything, `check --showcases`, and any change to the s
 
 ### Showcase adapter interface
 
-- _`D127`_ (`live`; Q12): **The showcase adapter interface** (a showcase adapter object lives for one run of `check`, `build` or `serve`):
+- _`D127`_ (`live`, changed by _`D149`_ (PLAN-P4.2-showcase-frames.md); Q12): **The showcase adapter interface** (a showcase adapter object lives for one run of `check`, `build` or `serve`):
   - `validate(showcase)`: static, per showcase: checks its options and entry point (e.g. its extension), returning the validated options or error messages;
   - `check?(root)`: static, once per run (the showcase adapter's part of `check`, where `validate` is per showcase), only for showcase adapters some showcase uses: returns the host requirements that are missing (e.g. "react is not installed", _`D80`_);
   - `build(request)`: per showcase (_`P4.2`_): takes the root, the showcase, its validated options, the virtual files of its folder and a scratch folder (_`D105`_); returns the showcase frame page's path and its files in memory, plus the files it read (for _`P4.3`_'s watching), or build errors with their paths and lines;
@@ -63,7 +65,7 @@ Not in _`P4.1`_: building anything, `check --showcases`, and any change to the s
   Rejected: one `build` call per showcase adapter with all its showcases (shared assets complicate the output; sharing work is still possible through the long-lived object and `close()`).
 
 - _`D128`_ (`live`; Q13): **The `html` showcase adapter's static half**: it takes no options (any are an error), and its entry point must be an `html` or `htm` fence, or a linked `.html` or `.htm` file (_`D92`_'s rule, applied to `showcase=html` too); it has no host requirements. Its `build` comes in _`P4.2`_.
-- _`D129`_ (`live`; Q14): **Custom showcase adapters** are listed in `showroom.json` as `"customShowcaseAdapters": { "<name>": "<path>" }`: the path is relative to the root, inside the host repository, to a `.js` or `.mjs` file whose default export is an object implementing the interface (`validate` and `build` are checked to be functions). Names follow _`D122`_ and may not be a built-in showcase adapter's name, nor a planned one (`ts`, `react`, `angular`). Every listed adapter is loaded and validated by every `check`, used or not; loading runs the host repository's code.
+- _`D129`_ (`live`, changed by _`D149`_ (PLAN-P4.2-showcase-frames.md); Q14): **Custom showcase adapters** are listed in `showroom.json` as `"customShowcaseAdapters": { "<name>": "<path>" }`: the path is relative to the root, inside the host repository, to a `.js` or `.mjs` file whose default export is an object implementing the interface (`validate` and `build` are checked to be functions). Names follow _`D122`_ and may not be a built-in showcase adapter's name, nor a planned one (`ts`, `react`, `angular`). Every listed adapter is loaded and validated by every `check`, used or not; loading runs the host repository's code.
 - _`D130`_ (`live`; Q15): **Exports and documentation**: `Showcase` and `VirtualFile` are exported (they are part of `HostInformation`), and so are the showcase adapter interface and its request and result types (_`D133`_ (SPEC-S6-showcases.md)); `src/markdown/` and the registry are not. `README.md` documents the showcase markers and what `check` reports, saying that showcases are not shown until `build` and `serve` support them, and documents custom showcase adapters (`customShowcaseAdapters`, the interface) in a section marked experimental: the interface may change in any release until it is declared stable (_`D133`_). Its build half is documented as it is implemented, in _`P4.2`_.
 
 ### Documentation checks

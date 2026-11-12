@@ -233,3 +233,4 @@ None (_`D61`_).
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: not yet assigned. Status: `open`.
 - _`L2`_ Raw HTML in Markdown isn't rendered (_`P2`_, _`D40`_). Deferred: rendering it safely needs sanitising. Segment: not yet assigned. Status: `open`.
+- _`L3`_ Showcase frame folders of documentation files whose paths differ only in case (_`P4.2`_, _`D161`_) collide when the output folder is on a case-insensitive file system. Deferred: rare (two documentation files differing only in case, on Linux). Segment: not yet assigned. Status: `open`.

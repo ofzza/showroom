@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning (_`P4`_). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ and _`P4.1`_ are implemented and committed.
-- **Next free:** _`D134`_, _`S8`_, _`P5`_, _`O23`_, _`L3`_, _`R6`_, _`H1`_, _`K15`_
-- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ and _`P4.3`_ are not yet planned.
-- **Next step:** plan _`P4.2`_ Showcase frames in `build` (`./.workflow/PLAN-P4-showcases.md`), starting with its open points (_`K14`_, from _`P4.1`_), possibly in a fresh session.
+- **Stage:** planning (_`P4`_). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ and _`P4.1`_ are implemented and committed; _`P4.2`_ is approved.
+- **Next free:** _`D168`_, _`S8`_, _`P5`_, _`O24`_, _`L4`_, _`R9`_, _`H1`_, _`K15`_
+- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ Showcase frames in `build` approved (`./.workflow/PLAN-P4.2-showcase-frames.md`); _`P4.3`_ not yet planned.
+- **Next step:** implement _`P4.2`_ (its steps 1–6), possibly in a fresh session; first confirm with the user that the review's outcomes are recorded, and delete `./.workflow/.temp/review-p4.2-plan/` and `./.workflow/.temp/questions-p4.2-plan/` with their yes.
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- Confirmation that the _`P4.2`_ review's and questions' outcomes are recorded, and a yes to delete `review-p4.2-plan/` and `questions-p4.2-plan/` from `./.workflow/.temp/`.
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
@@ -88,3 +89,9 @@
 - 2026-11-12: _`P4.1`_ implementation started (user: "Please proceed").
 - 2026-11-12: _`P4.1`_ implemented (steps 1–5): `npm run ci` green (408 unit tests, 5 end-to-end tests); _`O22`_ added to _`P4`_ for _`P4.3`_.
 - 2026-11-12: _`P4.1`_ checkpoint: approved and committed (option chosen: "Approve and commit"); implementation choices 2a–2e kept ("All OK (Rec.)"); Glossary "Host information" extended with showcases and virtual files ("Add them (Rec.)"); `trial-p4.1/` working files deleted ("Delete it (Rec.)").
+- 2026-11-12: _`P4.2`_ planning started (option chosen: "Start planning P4.2 (Rec.)"); draft written with _`D134`_–_`D148`_, _`O23`_ and 15 choices.
+- 2026-11-12: _`P4.2`_ choices answered: Q1 "A: Self-contained (Rec.)" (_`D134`_; _`K14`_ taken by _`P4.2`_ for `html` and custom showcase adapters), Q2–Q15 "Accept all (Rec.)" (_`D135`_–_`D148`_).
+- 2026-11-12: Go-ahead for a zero-context review of the _`P4.2`_ draft (option chosen: "Review first"; 2 agents).
+- 2026-11-12: Zero-context review of the _`P4.2`_ draft run (2 agents): 0 blockers, 11 major, 23 minor; triaged into 4 questions and 16 fixes. Stray-write check clean.
+- 2026-11-12: _`P4.2`_ review triage answered: RQ1 "A: Factory export (Rec.)", RQ2 "A: Revise D90 (Rec.)", RQ3 "A: Call build() (Rec.)", RQ4 "A: Guard, no cap (Rec.)", fixes F1–F16 "Apply all (Rec.)": _`D149`_–_`D167`_, _`L3`_, revisions _`R6`_ (_`P4.1`_), _`R7`_ (_`S6.5`_), _`R8`_ (_`P4`_).
+- 2026-11-12: _`P4.2`_ approved, and _`P4.1`_ (_`R6`_), _`S6.5`_ (_`R7`_) and _`P4`_ (_`R8`_) re-approved (option chosen: "Approve and commit").
