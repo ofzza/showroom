@@ -4,8 +4,8 @@
 
 - **Stage:** implementation (_`P6`_ done). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_ and _`P6`_ are implemented and committed.
 - **Next free:** _`D229`_, _`S8`_, _`P7`_, _`O29`_, _`L11`_, _`R14`_, _`H1`_, _`K15`_
-- **Working on:** nothing; _`P6`_ Publishing this repository's own showroom implemented and committed.
-- **Next step:** the next segment (e.g. _`L10`_), or a release (the showroom is first published when it reaches `master`).
+- **Working on:** the React showcase format (_`O16`_, _`O19`_), back in the specification stage (_`S6`_).
+- **Next step:** discuss the React showcase format, starting from _`S6`_'s open points _`O16`_ and _`O19`_.
 
 ## Open questions
 
@@ -151,3 +151,5 @@
 - 2026-11-12: _`P6`_ checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"); `trial-p6/` working files deleted.
 - 2026-11-12: The user set up GitHub Pages ("I've updated GitHub settings as instructed"); checked through the API: Pages built by GitHub Actions, `master` allowed in the `github-pages` environment.
 - 2026-11-12: `showcases` pushed and pull request #2 opened into `develop` (option chosen: "Push + open PR").
+- 2026-11-12: Pull request #2 (`showcases` into `develop`) and #3 (`develop` into `master`) merged; CI and the Showroom workflow passed on `master`, so the showroom is published to GitHub Pages. Dependabot's pull request #1 fails CI (not yet looked into).
+- 2026-11-12: Next: the React showcase format (option chosen: "React showcases"); session state committed and `develop` pushed (option chosen: "Record + push (Rec.)").
