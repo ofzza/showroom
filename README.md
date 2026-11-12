@@ -128,11 +128,11 @@ An **inline showcase** is a fenced code block with the marker right after its la
 ```
 ````
 
-Here is that block again, as a live showcase in this repository's own showroom:
-
-```html showcase
-<button style="color: rebeccapurple" onclick="this.textContent = 'Clicked'">Click me</button>
-```
+> Here is that block again, as a live showcase in this repository's own showroom:
+>
+> ```html showcase
+> <button style="color: rebeccapurple" onclick="this.textContent = 'Clicked'">Click me</button>
+> ```
 
 A code block marked `showcase file=<name>` is a **resource** instead: a file the showcases of its folder can use. Here, a stylesheet, and an inline showcase using it:
 
@@ -149,18 +149,18 @@ A code block marked `showcase file=<name>` is a **resource** instead: a file the
 ```
 ````
 
-Here are those blocks again, live:
-
-```css showcase file=demo.css
-.demo {
-  color: rebeccapurple;
-}
-```
-
-```html showcase
-<link rel="stylesheet" href="./demo.css" />
-<p class="demo">Styled by a resource</p>
-```
+> Here are those blocks again, live:
+>
+> ```css showcase file=demo.css
+> .demo {
+>   color: rebeccapurple;
+> }
+> ```
+>
+> ```html showcase
+> <link rel="stylesheet" href="./demo.css" />
+> <p class="demo">Styled by a resource</p>
+> ```
 
 The code blocks of inline showcases and resources are **virtual files**: they resolve like real files in their documentation file's folder, so every documentation file in that folder, and other folders through relative paths, can use them. A resource is named by its `file` key, a plain file name. An inline showcase's entry point gets a generated name, `<documentation file's name>.showcase-<n>.<extension>`, where `<n>` is its position among the showcases in its documentation file, and `<extension>` comes from the code block's language (`typescript` gives `ts`, `javascript` gives `js`, `htm` gives `html`; any other language is used as is). The first showcase in `README.md`, the button above, is `README.showcase-1.html`. A virtual file's name may not collide, ignoring case, with another virtual file or a real file or folder in the same folder.
 
@@ -170,9 +170,9 @@ A **linked showcase** is a link to its entry point's file, with the marker as th
 [The button demo](./examples/button.html 'showcase')
 ```
 
-Here is that link again, live:
-
-[The button demo](./examples/button.html 'showcase')
+> Here is that link again, live:
+>
+> [The button demo](./examples/button.html 'showcase')
 
 The link must be an inline link (not a reference, nor an image) with a relative path, without a query or fragment, naming a file inside the host repository that isn't a virtual file. The files the entry point uses are ordinary files too, which a showcase adapter building from disk follows; the `html` showcase adapter follows none (see below). A title is a marker when its first word is `showcase`, or starts with `showcase=`, and must then be a valid marker.
 
@@ -198,11 +198,11 @@ The showcase frame follows the showroom's light or dark theme: the script sets i
 ```
 ````
 
-Here is that block again, live (switch the showroom's theme to see it change):
-
-```html showcase
-<p style="color: light-dark(#0f6cbd, #479ef5)">A themed fragment</p>
-```
+> Here is that block again, live (switch the showroom's theme to see it change):
+>
+> ```html showcase
+> <p style="color: light-dark(#0f6cbd, #479ef5)">A themed fragment</p>
+> ```
 
 ## Custom showcase adapters (experimental)
 

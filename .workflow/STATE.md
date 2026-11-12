@@ -5,7 +5,7 @@
 - **Stage:** planning (_`P4`_). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_, _`P4.1`_ and _`P4.2`_ are implemented and committed.
 - **Next free:** _`D177`_, _`S8`_, _`P5`_, _`O27`_, _`L9`_, _`R11`_, _`H1`_, _`K15`_
 - **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ Showcase frames in `build` implemented (`./.workflow/PLAN-P4.2-showcase-frames.md`); _`P4.4`_ Resources in `html` showcases, and live README examples implemented (`./.workflow/PLAN-P4.4-html-resources.md`), to go before _`P4.3`_; _`P4.3`_ not yet planned.
-- **Next step:** plan _`P4.3`_ Showcases in `serve` (its open points include _`O22`_, _`O24`_ and _`O25`_).
+- **Next step:** the user's review of the dogfood build; then plan _`P4.3`_ Showcases in `serve` (its open points include _`O22`_, _`O24`_ and _`O25`_), in a fresh session.
 
 ## Open questions
 
@@ -19,7 +19,7 @@
 
 ## Running
 
-- Nothing.
+- HTTP server on http://127.0.0.1:8765/ serving `./.workflow/.temp/dogfood/host/showroom/` (a dogfood build of this repository as committed) for the user's review of everything done so far; kept alive at the user's request.
 
 ## History
 
@@ -112,3 +112,5 @@
 - 2026-11-12: _`P4.4`_ implemented (steps 1–5): `npm run ci` green (512 unit, 6 integration, 10 end-to-end tests); dogfood build of a copy of this repository checked in Playwright (4 live showcases in `README.md`).
 - 2026-11-12: _`P4.4`_ checkpoint: approved, not committed (option chosen: "Approve, don't commit").
 - 2026-11-12: _`P4.4`_ committed at the user's request ("Before we proceed, let's first commit").
+- 2026-11-12: README's live showcases put in `>` blocks with their lead-in lines (user: "Let's go with `>` in the actual README.md file and move on ..."), after trials in the dogfood copy (`>` blocks; a styled `<div>`, which neither the showroom nor GitHub renders).
+- 2026-11-12: The `>` blocks committed (option chosen: "Commit, then stop"); the dogfood build served for the user's review.
