@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ are implemented and committed.
+- **Stage:** planning (_`P4`_). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ are implemented and committed.
 - **Next free:** _`D114`_, _`S8`_, _`P5`_, _`O22`_, _`L3`_, _`R4`_, _`H1`_, _`K15`_
 - **Working on:** planning _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`, draft): its testing strategy (_`D105`_–_`D109`_) and segmentation (_`D110`_–_`D113`_: _`P4.1`_–_`P4.3`_) are approved; _`P4.1`_–_`P4.3`_ are not yet planned.
-- **Next step:** the user renames the GitHub repository, `git remote`, the project folder and the agent's memory folder (commands given in the conversation); then plan _`P4.1`_ Showcase markers and documentation checks. `./.workflow/.temp/showcases-ideas/NOTES.md` holds older proposals.
+- **Next step:** plan _`P4.1`_ Showcase markers and documentation checks. `./.workflow/.temp/showcases-ideas/NOTES.md` holds older proposals.
 
 ## Open questions
 
@@ -14,7 +14,6 @@
 ## Waiting on me
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
-- Renaming the GitHub repository, `git remote`, the project folder and the agent's memory folder (the user runs them).
 - The go-ahead to start planning _`P4.1`_.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
@@ -80,3 +79,4 @@
 - 2026-11-12: _`P4`_'s segmentation (_`P4.1`_–_`P4.3`_), testing strategy and _`D105`_–_`D113`_ approved (option chosen: "Approve and commit").
 - 2026-11-12: Fast path: renamed the tool from `tsshowcase` to `showroom` (option chosen: "Yes, fast path"): the Glossary term "Showcase application" became "Showroom" (the user: "The tool is `showroom` and it builds a \"`showroom`\" (application) featuring documentation about the host repository enriched by individual \"`showcase`s\""), the Markdown marker keyword became `showcase` (the user: "I would still go with `showcase=react`"), the default output folder `./showroom` ("./showroom (Rec.)"). One-off exception to the append-only rule for the workflow files, granted for this rename (the user: "Yes, I will list it for the rename"); the user's quoted words were kept as they were. A rename note was added to `AGENTS.md` at the user's request.
 - 2026-11-12: Rename checkpoint: the user reviewed it after "Stop here" ("Reviewed and looking good - proceed"); approved and committed (option chosen: "Approve and commit").
+- 2026-11-12: The user renamed the GitHub repository (`ofzza/showroom`), `git remote`, the project folder (`~/projects/ofzza/showroom`) and the agent's memory folder.
