@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning (_`P6`_ next). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ and _`P4`_ (_`P4.1`_–_`P4.4`_) are implemented and committed.
-- **Next free:** _`D219`_, _`S8`_, _`P7`_, _`O29`_, _`L11`_, _`R14`_, _`H1`_, _`K15`_
-- **Working on:** _`P5`_ Showroom layout fixes (`./.workflow/PLAN-P5-layout.md`) implemented and committed; _`P4`_ Showcases done.
-- **Next step:** plan _`P6`_ Publishing this repository's own showroom to GitHub Pages (_`D178`_–_`D180`_, _`O27`_, `./.workflow/PLAN.md`).
+- **Stage:** implementation (_`P6`_ next). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ and _`P4`_ (_`P4.1`_–_`P4.4`_) are implemented and committed.
+- **Next free:** _`D229`_, _`S8`_, _`P7`_, _`O29`_, _`L11`_, _`R14`_, _`H1`_, _`K15`_
+- **Working on:** _`P6`_ Publishing this repository's own showroom, approved; _`P5`_ and _`P4`_ done.
+- **Next step:** implement _`P6`_ (`./.workflow/PLAN.md`, steps 1–6).
 
 ## Open questions
 
@@ -143,3 +143,6 @@
 - 2026-11-12: `trial-p5/` and `format-p5/` working files deleted ("Delete both (Rec.)"); `showcases` pushed (option chosen: "Push first").
 - 2026-11-12: _`L10`_ recorded at the user's request: style customization in `showroom.json` (favicon, title, light and dark theme colours), for later.
 - 2026-11-12: Workflow files committed (option chosen: "Commit, then P6 fresh (Rec.)"); _`P6`_ to be planned in a fresh session.
+- 2026-11-12: _`P6`_ planning started (option chosen: "Start planning P6 (Rec.)"); draft written with _`D219`_–_`D225`_ and 7 choices.
+- 2026-11-12: _`P6`_ choices answered: Q1, Q2, Q5–Q7 as recommended ("rest are approved"); Q3 `showroom check` on pull requests, as dogfooding ("ci:showroom npm script", with a new `--quiet` flag: _`D226`_, _`D228`_); Q4 "PUBLISH.md only" (_`D227`_), after the environment's branch rule was explained.
+- 2026-11-12: _`P6`_ approved, with _`D30`_ refined by _`D228`_ (option chosen: "Approve and commit (Rec.)"); `questions-p6-plan/` working files deleted.
