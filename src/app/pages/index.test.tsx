@@ -1,5 +1,5 @@
 /**
- * Tests of the showcase application's pages
+ * Tests of the showroom's pages
  */
 
 import { describe, it, expect } from 'vitest';
@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import { renderToString } from 'react-dom/server';
 import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-components';
 import type { DocumentationFile, ProjectInformation } from '../../host/index.js';
+import { scanMarkdown } from '../../markdown/index.js';
 import { DocumentationPage, HomePage, NotFoundPage } from './index.js';
 
 /**
@@ -39,16 +40,38 @@ describe('app/pages', () => {
   const documentation = [license, readme];
 
   describe('HomePage', () => {
-    // The project information, then the root README.
+    // The project information and the root README: the README's opening level-1 heading as the title, with the project information right after it,
+    // or else the project's name as the title, then the project information, then the README.
 
-    it('Shows the project information, then the root README', () => {
+    it("Shows the README's opening heading as the title, then the project information, then the rest of the README", () => {
       const html = _render(<HomePage project={project} readme={readme} documentation={documentation} />);
-      expect(html).toMatch(/<h1 [^>]*>my-library<\/h1>/);
+      expect(html).not.toContain('my-library</h1>');
+      expect(html.match(/<h1 /g)).toHaveLength(1);
       for (const text of ['A library', 'Version', '1.2.3', 'License', 'MIT', 'Author', 'Jane Doe']) {
         expect(html).toContain(text);
       }
       expect(html).toMatch(/<a [^>]*href="https:\/\/example.com"[^>]*>https:\/\/example.com<\/a>/);
-      expect(html.indexOf('my-library</h1>')).toBeLessThan(html.indexOf('<h1 id="welcome">Welcome</h1>'));
+      expect(html.indexOf('<h1 id="welcome">Welcome</h1>')).toBeLessThan(html.indexOf('A library'));
+      expect(html.indexOf('Jane Doe')).toBeLessThan(html.indexOf('Hello.'));
+    });
+
+    it("Shows the project's name as the title, then the project information, then a README opening otherwise", () => {
+      for (const content of ['Hello.\n\n# Welcome', '## Welcome\n\nHello.']) {
+        const html = _render(<HomePage project={project} readme={{ ...readme, content }} documentation={documentation} />);
+        expect(html).toMatch(/<h1 [^>]*>my-library<\/h1>/);
+        expect(html.indexOf('my-library</h1>')).toBeLessThan(html.indexOf('A library'));
+        expect(html.indexOf('Jane Doe')).toBeLessThan(html.indexOf('Hello.'));
+      }
+    });
+
+    it("Places the README's showcase frames after its opening heading too", () => {
+      // The README is still rendered whole, so showcase frames placed by their offsets in it still find their place
+      const content = '# Welcome\n\n```html showcase\n<b>Hi</b>\n```\n';
+      const [found] = scanMarkdown('README.md', content).showcases;
+      const showcases = [{ id: found!.id, documentation: 'README.md', offset: found!.offset, url: 'showcases/README.md/1/index.html?hash=00000001' }];
+      const html = _render(<HomePage project={project} readme={{ ...readme, content }} documentation={documentation} showcases={showcases} />);
+      expect(html.indexOf('Jane Doe')).toBeLessThan(html.indexOf('<iframe'));
+      expect(html).toContain('showcases/README.md/1/index.html?hash=00000001');
     });
 
     it('Links a git+ repository URL to its HTTP(S) URL, showing it as written', () => {

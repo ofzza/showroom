@@ -1,5 +1,5 @@
 /**
- * Internals of the check shared with `tsshowcase serve` and `tsshowcase build`, and so not re-exported: the output folder, the ignore matcher (which
+ * Internals of the check shared with `showroom serve` and `showroom build`, and so not re-exported: the output folder, the ignore matcher (which
  * files of a host repository are ignored), and the formatting of check issues as output
  */
 
@@ -27,7 +27,7 @@ export interface OutputFolder {
 
 /**
  * Resolves the output folder: the override if given (relative to the current directory), else the configuration's `outDir` (relative to the host
- * repository's root), else `./showcase`
+ * repository's root), else `./showroom`
  * @param root Path of the host repository's root
  * @param configuration Configuration of the host repository
  * @param override Output folder given on the command line, if any
@@ -91,12 +91,14 @@ export async function readIgnoreMatcher(root: string, outDir?: string): Promise<
 // #region Issues
 
 /**
- * Formats check issues as lines of output, e.g. `warning: README.md: Several readme files ...`
+ * Formats check issues as lines of output, e.g. `warning: README.md: Several readme files ...`, or `error: docs/guide.md:12: Unknown showcase ...`
  * @param issues Issues to format
  * @returns One line per issue, each with its line break, or an empty string without issues
  */
 export function formatIssues(issues: CheckIssue[]): string {
-  return issues.map((issue) => `${issue.severity}: ${issue.path ? `${issue.path}: ` : ''}${issue.message}\n`).join('');
+  return issues
+    .map((issue) => `${issue.severity}: ${issue.path ? `${issue.path}${issue.line !== undefined ? `:${issue.line}` : ''}: ` : ''}${issue.message}\n`)
+    .join('');
 }
 
 // #endregion

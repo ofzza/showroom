@@ -29,7 +29,7 @@ describe('adapters/stack/typescript', () => {
     });
 
     it('Ignores dependencies, build output and coverage', () => {
-      // The fixtures have no node_modules (it can't be committed), so this list is what guards it. See PLAN.md › S1 › C12.
+      // The fixtures have no node_modules (it can't be committed), so this list is what guards it. See PLAN.md › P1 › D32.
       expect(new TypeScriptStackAdapter().ignore).toEqual(['.git', 'node_modules', 'dist', 'coverage']);
     });
 

@@ -5,4 +5,5 @@
 export * from './host/index.js';
 export * from './configuration/index.js';
 export * from './adapters/stack/index.js';
+export * from './adapters/showcase/index.js';
 export * from './cli/index.js';

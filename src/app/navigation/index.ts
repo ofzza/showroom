@@ -1,5 +1,5 @@
 /**
- * The showcase application's navigation: README (the home page), CONTRIBUTING and LICENSE, then a page per other documentation file
+ * The showroom's navigation: README (the home page), CONTRIBUTING and LICENSE, then a page per other documentation file
  */
 
 import type { DocumentationFile, DocumentationKind } from '../../host/index.js';

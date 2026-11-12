@@ -1,5 +1,5 @@
 /**
- * Tests of the check's internals shared with `tsshowcase serve`
+ * Tests of the check's internals shared with `showroom serve`
  */
 
 import { describe, it, expect } from 'vitest';
@@ -29,9 +29,9 @@ describe('cli/check/internal', () => {
     expect(createIgnoreMatcher(new TypeScriptStackAdapter(), { stack: 'typescript' }).ignores('vendor/')).toBe(false);
   });
 
-  it('Resolves the output folder from the override, else the configuration, else ./showcase', () => {
+  it('Resolves the output folder from the override, else the configuration, else ./showroom', () => {
     const root = resolve('host');
-    expect(resolveOutputFolder(root, { stack: 'typescript' })).toEqual({ path: join(root, 'showcase'), relativePath: 'showcase' });
+    expect(resolveOutputFolder(root, { stack: 'typescript' })).toEqual({ path: join(root, 'showroom'), relativePath: 'showroom' });
     expect(resolveOutputFolder(root, { stack: 'typescript', outDir: 'docs/site/' })).toEqual({ path: join(root, 'docs', 'site'), relativePath: 'docs/site' });
     // The override is relative to the current directory, not the host repository's root
     expect(resolveOutputFolder(root, { stack: 'typescript', outDir: 'site' }, 'host/out')).toEqual({ path: join(root, 'out'), relativePath: 'out' });
@@ -65,10 +65,10 @@ describe('cli/check/internal', () => {
 
   it("Reads the ignore matcher with the output folder, the override's if given, and without one that isn't allowed", async () => {
     const root = _fixture('output-folder');
-    expect((await readIgnoreMatcher(root))?.ignores('showcase/')).toBe(true);
+    expect((await readIgnoreMatcher(root))?.ignores('showroom/')).toBe(true);
     const overridden = await readIgnoreMatcher(root, join(root, 'unmarked'));
     expect(overridden?.ignores('unmarked/')).toBe(true);
-    expect(overridden?.ignores('showcase/')).toBe(false);
+    expect(overridden?.ignores('showroom/')).toBe(false);
     expect((await readIgnoreMatcher(_fixture('out-dir-root')))?.ignores('src/')).toBe(false);
   });
 
@@ -77,13 +77,14 @@ describe('cli/check/internal', () => {
     expect(await readIgnoreMatcher(_fixture('unknown-stack'))).toBeUndefined();
   });
 
-  it('Formats issues one per line, with their path when they have one', () => {
+  it('Formats issues one per line, with their path and line when they have them', () => {
     expect(formatIssues([])).toBe('');
     expect(
       formatIssues([
-        { severity: 'error', message: 'Broken', path: 'tsshowcase.json' },
+        { severity: 'error', message: 'Broken', path: 'showroom.json' },
         { severity: 'warning', message: 'Odd' },
+        { severity: 'error', message: 'Unknown', path: 'docs/guide.md', line: 12 },
       ]),
-    ).toBe('error: tsshowcase.json: Broken\nwarning: Odd\n');
+    ).toBe('error: showroom.json: Broken\nwarning: Odd\nerror: docs/guide.md:12: Unknown\n');
   });
 });

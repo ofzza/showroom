@@ -5,9 +5,13 @@
 import ignore from 'ignore';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import type { ShowcaseAdapter } from '../../adapters/showcase/index.js';
+import { createShowcaseAdapter, getShowcaseAdapterNames, loadCustomShowcaseAdapters } from '../../adapters/showcase/registry/index.js';
 import { getStackAdapter, getStackAdapterNames } from '../../adapters/stack/index.js';
-import { readConfiguration, CONFIGURATION_FILE_NAME } from '../../configuration/index.js';
-import type { DocumentationFile, DocumentationKind, HostInformation, ProjectInformation } from '../../host/index.js';
+import { readConfiguration, CONFIGURATION_FILE_NAME, type Configuration } from '../../configuration/index.js';
+import type { DocumentationFile, DocumentationKind, HostInformation, ProjectInformation, Showcase, VirtualFile } from '../../host/index.js';
+import { getFolder, isMarkdownPath, resolvePath, scanMarkdown, splitLink, type MarkdownLink } from '../../markdown/index.js';
+import { buildShowcases, getBuildShowcasesIssues } from '../../showcases/index.js';
 import { createIgnoreMatcher, resolveOutputFolder } from './internal/index.js';
 
 // #region Types
@@ -33,6 +37,10 @@ export interface CheckIssue {
    * POSIX-style path the issue concerns, relative to the host repository's root, if it concerns one
    */
   path?: string;
+  /**
+   * Line of the file at `path` the issue concerns, from 1, if it concerns one
+   */
+  line?: number;
 }
 
 /**
@@ -43,6 +51,11 @@ export interface CheckOptions {
    * Output folder, absolute or relative to the current directory; overrides the configuration's `outDir`
    */
   outDir?: string;
+  /**
+   * True to also build every showcase, once the static check finds no errors, throwing the showcase frames away; a showcase that doesn't build is
+   * an error
+   */
+  showcases?: boolean;
 }
 
 /**
@@ -182,10 +195,208 @@ export async function check(root: string, options: CheckOptions = {}): Promise<C
     documentation.push({ path, kind: _getKind(name, extension), extension, content: await readFile(join(root, path), 'utf8') });
   }
 
-  // Report the outcome
+  // Find the showcases, virtual files and links in the Markdown documentation files, and check them
+  const showcases: Showcase[] = [];
+  const virtualFiles: VirtualFile[] = [];
+  const links: (MarkdownLink & { documentation: string })[] = [];
+  for (const file of documentation.filter((file) => isMarkdownPath(file.path))) {
+    const scan = scanMarkdown(file.path, file.content);
+    showcases.push(...scan.showcases);
+    virtualFiles.push(...scan.virtualFiles);
+    links.push(...scan.links.map((link) => ({ ...link, documentation: file.path })));
+    issues.push(...scan.errors.map(({ line, message }) => ({ severity: 'error' as const, message, path: file.path, line })));
+  }
+  await _checkVirtualFiles(root, virtualFiles, issues);
+  await _checkShowcases(root, configuration, showcases, virtualFiles, issues);
+  await _checkLinks(root, links, issues);
+
   if (!project || issues.some((issue) => issue.severity === 'error')) return fail();
-  return { passed: true, host: { project, documentation, code }, issues };
+  const host: HostInformation = { project, documentation, code, showcases, virtualFiles };
+
+  // Build every showcase, if asked to, throwing the showcase frames away
+  if (options.showcases) {
+    const built = getBuildShowcasesIssues(await buildShowcases({ root, host, configuration }));
+    if (built.length) {
+      issues.push(...built);
+      return fail();
+    }
+  }
+  return { passed: true, host, issues };
 }
+
+// #endregion
+
+// #region Showcases
+
+/**
+ * Checks that every virtual file's name is unique in its folder, case-insensitively: among the virtual files, and among the real files and folders
+ * on disk, ignored or not
+ * @param root Path of the host repository's root
+ * @param virtualFiles Virtual files, sorted by documentation file and line
+ * @param issues Issues to add the errors to
+ */
+async function _checkVirtualFiles(root: string, virtualFiles: VirtualFile[], issues: CheckIssue[]): Promise<void> {
+  const seen = new Map<string, VirtualFile>();
+  const onDisk = new Map<string, Map<string, string>>();
+  for (const file of virtualFiles) {
+    const folder = getFolder(file.path);
+    const name = file.path.slice(folder ? folder.length + 1 : 0);
+    const error = (message: string): void => void issues.push({ severity: 'error', message, path: file.documentation, line: file.line });
+    // Another virtual file
+    const other = seen.get(file.path.toLowerCase());
+    if (other) {
+      error(`Virtual file "${file.path}" collides with the virtual file at ${other.documentation}:${other.line}`);
+      continue;
+    }
+    seen.set(file.path.toLowerCase(), file);
+    // A real file or folder
+    if (!onDisk.has(folder)) {
+      const names = await readdir(join(root, folder)).catch(() => [] as string[]);
+      onDisk.set(folder, new Map(names.map((entry) => [entry.toLowerCase(), entry])));
+    }
+    const real = onDisk.get(folder)!.get(name.toLowerCase());
+    if (real !== undefined) {
+      error(`Virtual file "${file.path}" collides with "${folder ? `${folder}/` : ''}${real}" on disk`);
+    }
+  }
+}
+
+/**
+ * Checks every showcase: its linked entry point, and its showcase adapter's validation; then each used showcase adapter's host requirements. Every
+ * custom showcase adapter is loaded, used or not. Each showcase's options are replaced by the validated ones.
+ * @param root Path of the host repository's root
+ * @param configuration Configuration of the host repository
+ * @param showcases Showcases, sorted by documentation file and line
+ * @param virtualFiles Virtual files
+ * @param issues Issues to add the errors to
+ */
+async function _checkShowcases(
+  root: string,
+  configuration: Configuration,
+  showcases: Showcase[],
+  virtualFiles: VirtualFile[],
+  issues: CheckIssue[],
+): Promise<void> {
+  // Load the custom showcase adapters
+  const listed = configuration.customShowcaseAdapters ?? {};
+  const custom = await loadCustomShowcaseAdapters(root, listed);
+  issues.push(...custom.errors.map((message) => ({ severity: 'error' as const, message, path: CONFIGURATION_FILE_NAME })));
+  const adapters = new Map<string, ShowcaseAdapter>(custom.adapters);
+  const used = new Set<string>();
+  const virtualPaths = new Set(virtualFiles.map((file) => file.path.toLowerCase()));
+
+  try {
+    for (const showcase of showcases) {
+      const error = (message: string): void => void issues.push({ severity: 'error', message, path: showcase.documentation, line: showcase.line });
+
+      // A linked entry point must be a real file
+      if (showcase.kind === 'linked') {
+        const kind = virtualPaths.has(showcase.entry.toLowerCase()) ? 'virtual' : await _getEntryKind(join(root, showcase.entry));
+        if (kind !== 'file') {
+          error(
+            kind === 'virtual'
+              ? `A linked showcase's entry point "${showcase.entry}" is a virtual file; use an inline showcase instead`
+              : `A linked showcase's entry point "${showcase.entry}" ${kind === 'folder' ? 'is a folder' : 'not found'}`,
+          );
+        }
+      }
+
+      // Its showcase adapter
+      if (!adapters.has(showcase.adapter)) {
+        const adapter = createShowcaseAdapter(showcase.adapter);
+        if (adapter) {
+          adapters.set(showcase.adapter, adapter);
+        } else if (!Object.hasOwn(listed, showcase.adapter)) {
+          const names = [...getShowcaseAdapterNames(), ...custom.adapters.keys()].sort();
+          error(`Unknown showcase adapter "${showcase.adapter}"; the showcase adapters are: ${names.join(', ')}`);
+          continue;
+        }
+      }
+      const adapter = adapters.get(showcase.adapter);
+      if (!adapter) continue; // A custom showcase adapter that didn't load, reported already
+      used.add(showcase.adapter);
+
+      // Its validation
+      try {
+        const validation = await adapter.validate({ ...showcase });
+        if (validation.errors.length) {
+          validation.errors.forEach(error);
+        } else if (validation.options === undefined) {
+          delete showcase.options;
+        } else {
+          showcase.options = validation.options;
+        }
+      } catch (err) {
+        error(`Showcase adapter "${showcase.adapter}" failed to validate the showcase: ${(err as Error).message}`);
+      }
+    }
+
+    // The host requirements of the showcase adapters in use
+    for (const name of [...used].sort()) {
+      try {
+        const missing = (await adapters.get(name)!.check?.(resolve(root))) ?? [];
+        issues.push(...missing.map((message) => ({ severity: 'error' as const, message: `Showcase adapter "${name}": ${message}` })));
+      } catch (err) {
+        issues.push({ severity: 'error', message: `Showcase adapter "${name}" failed to check the host repository: ${(err as Error).message}` });
+      }
+    }
+  } finally {
+    // Let every showcase adapter clean up
+    for (const [name, adapter] of adapters) {
+      try {
+        await adapter.close?.();
+      } catch (err) {
+        issues.push({ severity: 'error', message: `Showcase adapter "${name}" failed to close: ${(err as Error).message}` });
+      }
+    }
+  }
+}
+
+/**
+ * Gets what is at a linked showcase's entry point
+ * @param path Absolute path of the entry point
+ * @returns `file`, `folder`, or `missing`
+ */
+async function _getEntryKind(path: string): Promise<'file' | 'folder' | 'missing'> {
+  try {
+    return (await stat(path)).isDirectory() ? 'folder' : 'file';
+  } catch (_err) {
+    return 'missing';
+  }
+}
+
+// #endregion
+
+// #region Links
+
+/**
+ * Checks every link with a relative target in the Markdown documentation files, warning about those leading outside the host repository, or to
+ * nothing on disk
+ * @param root Path of the host repository's root
+ * @param links Links, with the documentation file holding each
+ * @param issues Issues to add the warnings to
+ */
+async function _checkLinks(root: string, links: (MarkdownLink & { documentation: string })[], issues: CheckIssue[]): Promise<void> {
+  for (const link of links) {
+    const warn = (message: string): void => void issues.push({ severity: 'warning', message, path: link.documentation, line: link.line });
+    const target = splitLink(link.href);
+    if (!target) {
+      warn(`Broken link "${link.href}": it can't be URL-decoded`);
+      continue;
+    }
+    if (!target.path) continue; // Only a query: the documentation file itself
+    const resolved = resolvePath(link.documentation, target.path);
+    if (!resolved) {
+      warn(`Broken link "${link.href}": it leads outside the host repository`);
+    } else if ((await _getEntryKind(join(root, resolved.path))) === 'missing') {
+      warn(`Broken link "${link.href}": nothing at "${resolved.path}"`);
+    }
+  }
+}
+
+// #endregion
+
+// #region Files
 
 /**
  * Walks a directory, collecting the files that aren't ignored; symbolic links are not followed

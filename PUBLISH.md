@@ -2,6 +2,13 @@
 
 How to release a new version of this package to NPM. Releases are cut from `develop` and published from `master`, following the branching model in [AGENTS.md](./AGENTS.md#branching).
 
+## Showroom on GitHub Pages
+
+This repository's own showroom is built and published to GitHub Pages by `.github/workflows/showroom.yml`, on every push to `master`, so it shows the latest release. Set it up once, in the GitHub repository's settings:
+
+- [ ] **Settings › Pages › Build and deployment › Source** is "GitHub Actions".
+- [ ] **Settings › Environments › `github-pages` › Deployment branches and tags** allows `master`. GitHub only lets the default branch (`develop`) deploy to this environment, so without it the deployment fails with "Branch "master" is not allowed to deploy to github-pages due to environment protection rules". The environment appears once Pages is set up.
+
 ## Before each publish
 
 - [ ] **`develop` is clean and in sync with `origin`**: `git status` shows nothing to commit, and `git pull` brings in nothing new.
@@ -16,7 +23,7 @@ How to release a new version of this package to NPM. Releases are cut from `deve
 
 ### Consumer smoke test
 
-Install the packed tarball into a throwaway project, and check that its types resolve under both `nodenext` and `bundler` module resolution, that it imports at runtime, and that its `tsshowcase` command line (the `bin` in `package.json`) runs:
+Install the packed tarball into a throwaway project, and check that its types resolve under both `nodenext` and `bundler` module resolution, that it imports at runtime, and that its `showroom` command line (the `bin` in `package.json`) runs:
 
 ```sh
 $ npm pack --pack-destination /tmp/<package>-smoke
@@ -30,7 +37,7 @@ TS
 $ npx tsc --noEmit --strict --module nodenext --moduleResolution nodenext smoke.ts
 $ npx tsc --noEmit --strict --module esnext --moduleResolution bundler smoke.ts
 $ node -e "import('<package>').then(() => console.log('ok'))"
-$ npx tsshowcase --help
+$ npx showroom --help
 ```
 
 ## Packaging and publishing
@@ -56,6 +63,8 @@ $ npx tsshowcase --help
    $ git merge --ff-only develop
    $ git push origin master
    ```
+
+   The push also publishes the showroom: check that the `Showroom` workflow run passes, and that [ofzza.github.io/showroom](https://ofzza.github.io/showroom/) shows the new version (see [Showroom on GitHub Pages](#showroom-on-github-pages)).
 
 4. **Publish from `master`.** `prepublishOnly` runs `npm run ci` first and aborts the publish if anything fails. `publishConfig.access` is already `public`, so `--access public` is not needed:
 
