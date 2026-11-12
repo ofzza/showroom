@@ -1,4 +1,11 @@
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+
+/**
+ * Absolute path of this repository's root
+ */
+const _ROOT = fileURLToPath(new URL('.', import.meta.url));
 
 /**
  * Test tiers beside `unit`, each a Vitest project of its own: real showcase adapter builds (`integration`), the command line on fixture copies
@@ -10,6 +17,16 @@ const _TIERS = ['integration', 'e2e', 'serve'] as const;
  * Globs of the other tiers' test files, which the `unit` project leaves out although they end in `.test.*` too
  */
 const _OTHER_TIERS = _TIERS.map((tier) => `src/**/*.${tier}.test.{js,jsx,ts,tsx}`);
+
+/**
+ * Gets the environment variables pointing a test project's OS temp folder into this repository
+ * @param tier Name of the test project
+ * @returns `TMPDIR`, `TMP` and `TEMP`, all set to `node_modules/.cache/showroom-tests/tmp-<tier>/`
+ */
+function _getTemporaryFolderEnv(tier: string): Record<string, string> {
+  const folder = join(_ROOT, 'node_modules', '.cache', 'showroom-tests', `tmp-${tier}`);
+  return { TMPDIR: folder, TMP: folder, TEMP: folder };
+}
 
 export default defineConfig({
   test: {
@@ -49,11 +66,15 @@ export default defineConfig({
         },
       },
       // The other test tiers, each told apart by its file name suffix: only executed, never type checked by Vitest (the `unit` project's `tsc` run
-      // still reports type errors in them, as it checks the whole `tsconfig.json` program)
+      // still reports type errors in them, as it checks the whole `tsconfig.json` program). Their OS temp folder is a folder of their own inside this
+      // repository, so the temporary folders `showroom` makes stay there, created and removed by a global setup; the `e2e` project also compiles
+      // the showroom once per run, for its builds.
       ..._TIERS.map((tier) => ({
         test: {
           name: tier,
           setupFiles: [],
+          globalSetup: ['src/testing/setup/temporary-folder.ts', ...(tier === 'e2e' ? ['src/testing/setup/app.ts'] : [])],
+          env: _getTemporaryFolderEnv(tier),
           include: [`src/**/*.${tier}.test.{js,jsx,ts,tsx}`],
           exclude: ['node_modules/**', 'dist/**'],
           testTimeout: 60000,

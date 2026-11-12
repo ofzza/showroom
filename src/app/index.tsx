@@ -12,7 +12,7 @@ import { Layout } from './layout/index.js';
 import { getNavigationItems } from './navigation/index.js';
 import { DocumentationPage, HomePage, NotFoundPage } from './pages/index.js';
 import { formatRoute, parseRoute, resolveRoute, scrollToAnchor, useHash } from './routing/index.js';
-import { getInitialTheme, getTheme, storeTheme, useBodyStyle, type ThemeName } from './theme/index.js';
+import { ThemeContext, getInitialTheme, getTheme, storeTheme, useBodyStyle, type ThemeName } from './theme/index.js';
 
 export type { ShownHostInformation } from './host/index.js';
 
@@ -78,11 +78,11 @@ export function App({ data, route, theme: initialTheme }: AppProps): ReactNode {
   let current: string | undefined;
   switch (resolved.page) {
     case 'home':
-      page = <HomePage project={data.project} readme={getRootReadme(data.documentation)} documentation={data.documentation} />;
+      page = <HomePage project={data.project} readme={getRootReadme(data.documentation)} documentation={data.documentation} showcases={data.showcases} />;
       current = formatRoute();
       break;
     case 'documentation':
-      page = <DocumentationPage file={resolved.file} documentation={data.documentation} />;
+      page = <DocumentationPage file={resolved.file} documentation={data.documentation} showcases={data.showcases} />;
       current = formatRoute(resolved.file.path);
       break;
     case 'not-found':
@@ -92,9 +92,11 @@ export function App({ data, route, theme: initialTheme }: AppProps): ReactNode {
 
   return (
     <FluentProvider theme={getTheme(theme)}>
-      <Layout project={data.project} navigation={navigation} current={current} theme={theme} onThemeChange={onThemeChange}>
-        {page}
-      </Layout>
+      <ThemeContext.Provider value={theme}>
+        <Layout project={data.project} navigation={navigation} current={current} theme={theme} onThemeChange={onThemeChange}>
+          {page}
+        </Layout>
+      </ThemeContext.Provider>
     </FluentProvider>
   );
 }

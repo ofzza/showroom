@@ -38,7 +38,7 @@ function _host(content: string, code: string[] = []): HostInformation {
 function _watcher(results: CheckResult[], options: Partial<HostWatcherOptions> = {}) {
   const record = { reloads: 0, stderr: '', checks: 0 };
   const watcher = createHostWatcher({
-    host: { project: { name: 'p' }, documentation: _host('first').documentation },
+    host: { project: { name: 'p' }, documentation: _host('first').documentation, showcases: [] },
     check: async () => results[Math.min(record.checks++, results.length - 1)],
     readMatcher: async () => ignore().add('vendor/'),
     target: { reload: () => record.reloads++ },
@@ -110,6 +110,14 @@ describe('cli/serve', () => {
       const { watcher, record } = _watcher([{ passed: true, host: _host('first', ['src/new.ts']), issues: [] }]);
       await watcher.update();
       expect(record.reloads).toBe(0);
+    });
+
+    it('Shows no showcases, as serve builds no showcase frames yet', async () => {
+      const host = _host('second');
+      host.showcases = [{ id: 'README.md#1', documentation: 'README.md', line: 1, offset: 0, kind: 'linked', adapter: 'html', entry: 'a.html' }];
+      const { watcher } = _watcher([{ passed: true, host, issues: [] }]);
+      await watcher.update();
+      expect(watcher.getHost().showcases).toEqual([]);
     });
 
     it('Keeps the last good data, and writes the issues, when the check fails', async () => {

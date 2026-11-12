@@ -14,7 +14,7 @@ const _ROOT = fileURLToPath(new URL('../../../../test/fixtures/showcase-adapters
 
 describe('adapters/showcase/registry', () => {
   // Tests the built-in showcase adapters' registry, and loading custom showcase adapters from the `showcase-adapters` fixture, which lists one per
-  // way of getting it wrong.
+  // way of getting it wrong. Each module's default export is a factory of showcase adapter objects.
 
   it('Lists and creates the built-in showcase adapters', () => {
     expect(getShowcaseAdapterNames()).toEqual(['html']);
@@ -35,6 +35,14 @@ describe('adapters/showcase/registry', () => {
     expect(await adapters.get('good')!.check!(_ROOT)).toEqual(['good needs nothing, but says so']);
   });
 
+  it('Creates fresh custom showcase adapter objects on every load', async () => {
+    // Each run gets its own objects, so one closed at the end of a run is never used again; the module itself is only loaded once
+    const first = await loadCustomShowcaseAdapters(_ROOT, { good: './adapters/good.js' });
+    const second = await loadCustomShowcaseAdapters(_ROOT, { good: './adapters/good.js' });
+    expect(first.adapters.get('good')).not.toBe(second.adapters.get('good'));
+    expect(first.adapters.get('good')!.build).not.toBe(second.adapters.get('good')!.build);
+  });
+
   it('Reports every custom showcase adapter that does not load', async () => {
     const { adapters, errors } = await loadCustomShowcaseAdapters(_ROOT, {
       html: './adapters/good.js',
@@ -48,6 +56,9 @@ describe('adapters/showcase/registry', () => {
       'no-default': './adapters/no-default.js',
       incomplete: './adapters/incomplete.js',
       throws: './adapters/throws.js',
+      object: './adapters/object.js',
+      'factory-throws': './adapters/factory-throws.js',
+      'returns-nothing': './adapters/returns-nothing.js',
     });
     expect(adapters.size).toBe(0);
     expect(errors).toEqual([
@@ -59,9 +70,12 @@ describe('adapters/showcase/registry', () => {
       'Custom showcase adapter "missing": "./adapters/missing.js" not found',
       'Custom showcase adapter "typescript": "./adapters/adapter.ts" must be a .js or .mjs file',
       'Custom showcase adapter "folder": "./adapters/folder.js" not found',
-      'Custom showcase adapter "no-default": "./adapters/no-default.js" must have a default export: an object implementing the showcase adapter interface',
-      'Custom showcase adapter "incomplete": "./adapters/incomplete.js"\'s default export must implement the showcase adapter interface; check "build", "check"',
+      'Custom showcase adapter "no-default": "./adapters/no-default.js" must have a default export: a function returning an object implementing the showcase adapter interface',
+      'Custom showcase adapter "incomplete": "./adapters/incomplete.js"\'s default export must return an object implementing the showcase adapter interface; check "build", "check"',
       'Custom showcase adapter "throws": "./adapters/throws.js" failed to load: broken on purpose',
+      'Custom showcase adapter "object": "./adapters/object.js" must have a default export: a function returning an object implementing the showcase adapter interface',
+      'Custom showcase adapter "factory-throws": "./adapters/factory-throws.js" failed to create its showcase adapter: factory broke',
+      'Custom showcase adapter "returns-nothing": "./adapters/returns-nothing.js"\'s default export must return an object implementing the showcase adapter interface',
     ]);
   });
 });

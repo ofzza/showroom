@@ -5,7 +5,7 @@
 import type { ReactNode } from 'react';
 import { Body1, Caption1, Link, Title1, Title2, makeStyles, tokens } from '@fluentui/react-components';
 import type { DocumentationFile, ProjectInformation } from '../../host/index.js';
-import { isMarkdown } from '../host/index.js';
+import { isMarkdown, type ShownShowcase } from '../host/index.js';
 import { Markdown } from '../markdown/index.js';
 import { formatRoute } from '../routing/index.js';
 
@@ -46,6 +46,10 @@ export interface DocumentationContentProps {
    * Documentation files, to resolve links against
    */
   documentation: DocumentationFile[];
+  /**
+   * Shown showcases, whose showcase frames are placed in the documentation files embedding them
+   */
+  showcases?: ShownShowcase[];
 }
 
 /**
@@ -53,9 +57,9 @@ export interface DocumentationContentProps {
  * @param props Properties of the component
  * @returns The rendered content
  */
-export function DocumentationContent({ file, documentation }: DocumentationContentProps): ReactNode {
+export function DocumentationContent({ file, documentation, showcases }: DocumentationContentProps): ReactNode {
   const styles = _useStyles();
-  return isMarkdown(file) ? <Markdown file={file} documentation={documentation} /> : <pre className={styles.text}>{file.content}</pre>;
+  return isMarkdown(file) ? <Markdown file={file} documentation={documentation} showcases={showcases} /> : <pre className={styles.text}>{file.content}</pre>;
 }
 
 // #endregion
@@ -78,6 +82,10 @@ export interface HomePageProps {
    * Documentation files, to resolve links against
    */
   documentation: DocumentationFile[];
+  /**
+   * Shown showcases, whose showcase frames are placed in the documentation files embedding them
+   */
+  showcases?: ShownShowcase[];
 }
 
 /**
@@ -95,7 +103,7 @@ function _getProjectUrl(value: string): string | undefined {
  * @param props Properties of the component
  * @returns The rendered page
  */
-export function HomePage({ project, readme, documentation }: HomePageProps): ReactNode {
+export function HomePage({ project, readme, documentation, showcases }: HomePageProps): ReactNode {
   const styles = _useStyles();
   const fields: [string, string | undefined, boolean][] = [
     ['Version', project.version, false],
@@ -131,7 +139,7 @@ export function HomePage({ project, readme, documentation }: HomePageProps): Rea
             })}
         </dl>
       </section>
-      {readme ? <DocumentationContent file={readme} documentation={documentation} /> : null}
+      {readme ? <DocumentationContent file={readme} documentation={documentation} showcases={showcases} /> : null}
     </div>
   );
 }
@@ -152,6 +160,10 @@ export interface DocumentationPageProps {
    * Documentation files, to resolve links against
    */
   documentation: DocumentationFile[];
+  /**
+   * Shown showcases, whose showcase frames are placed in the documentation files embedding them
+   */
+  showcases?: ShownShowcase[];
 }
 
 /**
@@ -159,12 +171,12 @@ export interface DocumentationPageProps {
  * @param props Properties of the component
  * @returns The rendered page
  */
-export function DocumentationPage({ file, documentation }: DocumentationPageProps): ReactNode {
+export function DocumentationPage({ file, documentation, showcases }: DocumentationPageProps): ReactNode {
   const styles = _useStyles();
   return (
     <article className={styles.page}>
       <Caption1 className={styles.path}>{file.path}</Caption1>
-      <DocumentationContent file={file} documentation={documentation} />
+      <DocumentationContent file={file} documentation={documentation} showcases={showcases} />
     </article>
   );
 }

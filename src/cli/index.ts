@@ -28,6 +28,8 @@ Options:
   --out-dir <dir>  Output folder, overriding showroom.json's outDir (default:
                    ./showroom in the host repository)
   --port <port>    Port to serve on (serve only; default: 5173, or the next free one)
+  --showcases      Also builds every showcase, throwing the result away (check only;
+                   build always builds them)
   --help           Shows this help
 `;
 
@@ -77,6 +79,11 @@ export async function main(args: string[], output: CliOutput = _processOutput())
   const root = resolve(values.root ?? '.');
   const outDir = values['out-dir'] === undefined ? undefined : resolve(values['out-dir']);
 
+  if (values.showcases && command !== 'check') {
+    output.stderr(`--showcases only applies to check (build always builds the showcases)\n\n${USAGE}`);
+    return 1;
+  }
+
   // Serve the showroom; Vite is only loaded here
   if (command === 'serve') {
     const port = values.port === undefined ? undefined : _parsePort(values.port);
@@ -99,7 +106,7 @@ export async function main(args: string[], output: CliOutput = _processOutput())
   }
 
   // Run the check
-  const result = await check(root, { outDir });
+  const result = await check(root, { outDir, ...(values.showcases ? { showcases: true } : {}) });
   output.stderr(formatIssues(result.issues));
   if (result.host) output.stdout(`${JSON.stringify(result.host, null, 2)}\n`);
   return result.passed ? 0 : 1;
@@ -124,7 +131,7 @@ function _parse(args: string[]) {
   return parseArgs({
     args,
     allowPositionals: true,
-    options: { root: { type: 'string' }, 'out-dir': { type: 'string' }, port: { type: 'string' }, help: { type: 'boolean' } },
+    options: { root: { type: 'string' }, 'out-dir': { type: 'string' }, port: { type: 'string' }, showcases: { type: 'boolean' }, help: { type: 'boolean' } },
   });
 }
 

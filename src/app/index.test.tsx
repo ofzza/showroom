@@ -18,6 +18,7 @@ const _DATA: ShownHostInformation = {
     { path: 'README.md', kind: 'readme', extension: '.md', content: '# Welcome\n\nSee the [guide](docs/guide.md).' },
     { path: 'docs/guide.md', kind: 'other', extension: '.md', content: '# Guide\n\n## Install' },
   ],
+  showcases: [],
 };
 
 /**
@@ -76,9 +77,20 @@ describe('app', () => {
   });
 
   it('Shows only the project information without a root README', () => {
-    const html = _render(undefined, undefined, { project: { name: 'bare' }, documentation: [] });
+    const html = _render(undefined, undefined, { project: { name: 'bare' }, documentation: [], showcases: [] });
     expect(html).toMatch(/<h1 [^>]*>bare<\/h1>/);
     expect(html).not.toContain('<h1 id=');
+  });
+
+  it('Shows showcase frames in the theme, on the page of their documentation file', () => {
+    const content = '# Guide\n\n```html showcase\n<p>x</p>\n```';
+    const data: ShownHostInformation = {
+      ..._DATA,
+      documentation: [..._DATA.documentation.slice(0, 2), { path: 'docs/guide.md', kind: 'other', extension: '.md', content }],
+      showcases: [{ id: 'docs/guide.md#1', documentation: 'docs/guide.md', offset: content.indexOf('```'), url: 'showcases/docs/guide.md/1/index.html' }],
+    };
+    expect(_render('#/docs/guide.md', 'dark', data)).toMatch(/<iframe [^>]*src="showcases\/docs\/guide.md\/1\/index.html\?theme=dark"/);
+    expect(_render(undefined, 'dark', data)).not.toContain('<iframe');
   });
 
   it('Exports mount()', () => {

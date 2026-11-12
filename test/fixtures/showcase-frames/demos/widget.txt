@@ -1,0 +1,1 @@
+A widget the assets showcase adapter labels

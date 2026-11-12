@@ -10,10 +10,37 @@ export { getFolder };
 // #region Shown host information
 
 /**
- * Represents the shown host information: the host information's project information and documentation files, without the code file index, which the
- * showroom doesn't show
+ * Represents a shown showcase: where the showroom places a showcase's showcase frame, and the URL it loads it by
  */
-export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentation'>;
+export interface ShownShowcase {
+  /**
+   * Identifier of the showcase (e.g. `README.md#2`)
+   */
+  id: string;
+  /**
+   * POSIX-style path of the documentation file embedding the showcase, relative to the host repository's root
+   */
+  documentation: string;
+  /**
+   * Offset of the showcase's entry point (the fence, or the link) in the documentation file's content, in characters, from 0
+   */
+  offset: number;
+  /**
+   * URL of the showcase frame's page, relative to the showroom's page, without a query
+   */
+  url: string;
+}
+
+/**
+ * Represents the shown host information: the host information's project information and documentation files, without the code file index, which the
+ * showroom doesn't show; and the showcases with a showcase frame
+ */
+export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentation'> & {
+  /**
+   * The showcases with a showcase frame, sorted by documentation file and offset; none where showcase frames aren't built (`serve`, for now)
+   */
+  showcases: ShownShowcase[];
+};
 
 // #endregion
 

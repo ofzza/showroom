@@ -11,6 +11,7 @@ import { getStackAdapter, getStackAdapterNames } from '../../adapters/stack/inde
 import { readConfiguration, CONFIGURATION_FILE_NAME, type Configuration } from '../../configuration/index.js';
 import type { DocumentationFile, DocumentationKind, HostInformation, ProjectInformation, Showcase, VirtualFile } from '../../host/index.js';
 import { getFolder, isMarkdownPath, resolvePath, scanMarkdown, splitLink, type MarkdownLink } from '../../markdown/index.js';
+import { buildShowcases } from '../../showcases/index.js';
 import { createIgnoreMatcher, resolveOutputFolder } from './internal/index.js';
 
 // #region Types
@@ -50,6 +51,11 @@ export interface CheckOptions {
    * Output folder, absolute or relative to the current directory; overrides the configuration's `outDir`
    */
   outDir?: string;
+  /**
+   * True to also build every showcase, once the static check finds no errors, throwing the showcase frames away; a showcase that doesn't build is
+   * an error
+   */
+  showcases?: boolean;
 }
 
 /**
@@ -204,9 +210,18 @@ export async function check(root: string, options: CheckOptions = {}): Promise<C
   await _checkShowcases(root, configuration, showcases, virtualFiles, issues);
   await _checkLinks(root, links, issues);
 
-  // Report the outcome
   if (!project || issues.some((issue) => issue.severity === 'error')) return fail();
-  return { passed: true, host: { project, documentation, code, showcases, virtualFiles }, issues };
+  const host: HostInformation = { project, documentation, code, showcases, virtualFiles };
+
+  // Build every showcase, if asked to, throwing the showcase frames away
+  if (options.showcases) {
+    const built = await buildShowcases({ root, host, configuration });
+    if (built.issues) {
+      issues.push(...built.issues);
+      return fail();
+    }
+  }
+  return { passed: true, host, issues };
 }
 
 // #endregion

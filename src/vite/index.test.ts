@@ -8,10 +8,12 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import type { Alias, Plugin } from 'vite';
 import type { HostInformation } from '../host/index.js';
+import type { ShowcaseFrame } from '../showcases/index.js';
 import {
   HOST_MODULE_ID,
   RESOLVED_HOST_MODULE_ID,
   createHostPlugin,
+  createShowcaseFramesPlugin,
   getAppDir,
   getReactAliases,
   getShownHostInformation,
@@ -25,9 +27,31 @@ const _HOST: HostInformation = {
   project: { name: 'my <library> & "co"' },
   documentation: [{ path: 'README.md', kind: 'readme', extension: '.md', content: '# Hi' }],
   code: ['src/index.ts'],
-  showcases: [],
+  showcases: [
+    { id: 'README.md#1', documentation: 'README.md', line: 3, offset: 10, kind: 'inline', adapter: 'html', entry: 'README.showcase-1.html' },
+    { id: 'my docs/a #1.md#2', documentation: 'my docs/a #1.md', line: 5, offset: 40, kind: 'linked', adapter: 'x', entry: 'demo.html' },
+  ],
   virtualFiles: [],
 };
+
+/**
+ * Showcase frames of the host repository's showcases
+ */
+const _FRAMES = new Map<string, ShowcaseFrame>([
+  ['README.md#1', { folder: 'showcases/README.md/1', page: 'index.html', files: [{ path: 'index.html', content: '<p>1</p>' }], reads: [] }],
+  [
+    'my docs/a #1.md#2',
+    {
+      folder: 'showcases/my docs/a #1.md/2',
+      page: 'pages/index.html',
+      files: [
+        { path: 'pages/index.html', content: '<p>2</p>' },
+        { path: 'a.png', content: new Uint8Array([1, 2]) },
+      ],
+      reads: [],
+    },
+  ],
+]);
 
 /**
  * Calls one of a plugin's hooks, which Vite allows to be a function or an object with a `handler`
@@ -36,10 +60,22 @@ const _HOST: HostInformation = {
  * @param args Arguments of the hook
  * @returns What the hook returns
  */
-function _call(plugin: Plugin, name: 'resolveId' | 'load' | 'transformIndexHtml', ...args: unknown[]): unknown {
+function _call(plugin: Plugin, name: 'resolveId' | 'load' | 'transformIndexHtml' | 'generateBundle', ...args: unknown[]): unknown {
+  return _callWith({}, plugin, name, ...args);
+}
+
+/**
+ * Calls one of a plugin's hooks with a given `this`, as Vite would
+ * @param context The hook's `this`
+ * @param plugin The plugin
+ * @param name Name of the hook
+ * @param args Arguments of the hook
+ * @returns What the hook returns
+ */
+function _callWith(context: object, plugin: Plugin, name: 'resolveId' | 'load' | 'transformIndexHtml' | 'generateBundle', ...args: unknown[]): unknown {
   const hook = plugin[name] as unknown;
   const handler = (typeof hook === 'function' ? hook : (hook as { handler: unknown }).handler) as (...args: unknown[]) => unknown;
-  return handler.apply({}, args);
+  return handler.apply(context, args);
 }
 
 /**
@@ -56,8 +92,27 @@ function _alias(aliases: Alias[], id: string): string | undefined {
 describe('vite', () => {
   // Tests the Vite configuration and its plugin by calling them directly, without starting Vite.
 
-  it('Gets the shown host information, without the code file index', () => {
-    expect(getShownHostInformation(_HOST)).toEqual({ project: _HOST.project, documentation: _HOST.documentation });
+  it('Gets the shown host information, without the code file index, nor showcases without showcase frames', () => {
+    expect(getShownHostInformation(_HOST)).toEqual({ project: _HOST.project, documentation: _HOST.documentation, showcases: [] });
+  });
+
+  it('Gets the shown showcases with their showcase frames, by URL-encoded relative URLs', () => {
+    expect(getShownHostInformation(_HOST, _FRAMES).showcases).toEqual([
+      { id: 'README.md#1', documentation: 'README.md', offset: 10, url: 'showcases/README.md/1/index.html' },
+      { id: 'my docs/a #1.md#2', documentation: 'my docs/a #1.md', offset: 40, url: 'showcases/my%20docs/a%20%231.md/2/pages/index.html' },
+    ]);
+    expect(getShownHostInformation(_HOST, new Map([['README.md#1', _FRAMES.get('README.md#1')!]])).showcases.map(({ id }) => id)).toEqual(['README.md#1']);
+  });
+
+  it("Emits the showcase frames' files into the build", () => {
+    const emitted: unknown[] = [];
+    const plugin = createShowcaseFramesPlugin(() => _FRAMES);
+    _callWith({ emitFile: (file: unknown) => emitted.push(file) }, plugin, 'generateBundle');
+    expect(emitted).toEqual([
+      { type: 'asset', fileName: 'showcases/README.md/1/index.html', source: '<p>1</p>' },
+      { type: 'asset', fileName: 'showcases/my docs/a #1.md/2/pages/index.html', source: '<p>2</p>' },
+      { type: 'asset', fileName: 'showcases/my docs/a #1.md/2/a.png', source: new Uint8Array([1, 2]) },
+    ]);
   });
 
   describe('createHostPlugin', () => {
@@ -106,7 +161,7 @@ describe('vite', () => {
     const getHost = () => getShownHostInformation(_HOST);
     const configuration = getViteConfiguration({ appDir: '/app', cacheDir: '/cache', getHost });
     expect(configuration).toMatchObject({ configFile: false, root: '/app', base: './', cacheDir: '/cache', clearScreen: false, logLevel: 'warn' });
-    expect((configuration.plugins as Plugin[]).map((plugin) => plugin.name)).toEqual(['showroom-host']);
+    expect((configuration.plugins as Plugin[]).map((plugin) => plugin.name)).toEqual(['showroom-host', 'showroom-showcase-frames']);
     expect(configuration.resolve?.alias).toEqual(getReactAliases());
   });
 });

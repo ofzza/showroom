@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning (_`P4`_). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ and _`P4.1`_ are implemented and committed; _`P4.2`_ is approved.
-- **Next free:** _`D168`_, _`S8`_, _`P5`_, _`O24`_, _`L4`_, _`R9`_, _`H1`_, _`K15`_
-- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ Showcase frames in `build` approved (`./.workflow/PLAN-P4.2-showcase-frames.md`); _`P4.3`_ not yet planned.
-- **Next step:** implement _`P4.2`_ (its steps 1–6), possibly in a fresh session; first confirm with the user that the review's outcomes are recorded, and delete `./.workflow/.temp/review-p4.2-plan/` and `./.workflow/.temp/questions-p4.2-plan/` with their yes.
+- **Stage:** planning (_`P4`_). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_, _`P4.1`_ and _`P4.2`_ are implemented and committed.
+- **Next free:** _`D169`_, _`S8`_, _`P5`_, _`O25`_, _`L4`_, _`R10`_, _`H1`_, _`K15`_
+- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ Showcase frames in `build` implemented (`./.workflow/PLAN-P4.2-showcase-frames.md`); _`P4.3`_ not yet planned.
+- **Next step:** plan _`P4.3`_ Showcases in `serve` (its open points include _`O22`_ and _`O24`_, in `./.workflow/PLAN-P4-showcases.md`).
 
 ## Open questions
 
@@ -13,7 +13,7 @@
 
 ## Waiting on me
 
-- Confirmation that the _`P4.2`_ review's and questions' outcomes are recorded, and a yes to delete `review-p4.2-plan/` and `questions-p4.2-plan/` from `./.workflow/.temp/`.
+- Confirmation that the _`P4.2`_ trial's outcomes are recorded, and a yes to delete `./.workflow/.temp/trial-p4.2/` and `./.workflow/.temp/format-p4.2/`.
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
@@ -95,3 +95,10 @@
 - 2026-11-12: Zero-context review of the _`P4.2`_ draft run (2 agents): 0 blockers, 11 major, 23 minor; triaged into 4 questions and 16 fixes. Stray-write check clean.
 - 2026-11-12: _`P4.2`_ review triage answered: RQ1 "A: Factory export (Rec.)", RQ2 "A: Revise D90 (Rec.)", RQ3 "A: Call build() (Rec.)", RQ4 "A: Guard, no cap (Rec.)", fixes F1–F16 "Apply all (Rec.)": _`D149`_–_`D167`_, _`L3`_, revisions _`R6`_ (_`P4.1`_), _`R7`_ (_`S6.5`_), _`R8`_ (_`P4`_).
 - 2026-11-12: _`P4.2`_ approved, and _`P4.1`_ (_`R6`_), _`S6.5`_ (_`R7`_) and _`P4`_ (_`R8`_) re-approved (option chosen: "Approve and commit").
+- 2026-11-12: `review-p4.2-plan/` and `questions-p4.2-plan/` working files deleted with the user's yes ("Delete both (Rec.)"); the user chose to implement _`P4.2`_ in a fresh session.
+- 2026-11-12: _`P4.2`_ implementation started (user: "Please continue with next step(s) ...").
+- 2026-11-12: _`P4.2`_ implemented (steps 1–6): `npm run ci` green (504 unit, 5 integration, 10 end-to-end tests); trial build of an enriched copy of the `showcase-frames` fixture in `./.workflow/.temp/trial-p4.2/`.
+- 2026-11-12: _`P4.2`_ browser check: the user found the custom showcase frame on the notes page missing (it was about 30 px high); the agent re-ran all 5 points with the Playwright browser the user installed, found every short showcase frame cut off, and fixed the measurement (_`D168`_, _`R9`_, pending re-approval); all 5 points pass. _`O24`_ (cached showcase frames) added to _`P4`_.
+- 2026-11-12: _`P4.2`_ checkpoint answers: implementation choices (a)–(d) and (f) kept ("Keep both (Rec.)" for (b) and (c), "Keep as is (Rec.)" for the growth guard); _`O24`_ kept for later ("Keep for later (Rec.)"); "Approve and commit (Rec.)" held for a separate discussion of (e) (the user: "I want to discuss this in detail, separate to the other items in this dialog ...").
+- 2026-11-12: (e) settled: the `html` showcase adapter stays self-contained (_`D134`_, _`D150`_; the user: "I don't want the `html` adapter to have to parse HTML and figure out any relative outside resources it might be using so that it can copy them"); `README.md`'s examples are compact inline `html` showcases, custom showcase adapters only in their own section (the user: "I don't want the README.md file to use custom adapters anywhere excepth when explicitly documenting what custom adapters are").
+- 2026-11-12: _`P4.2`_ re-approved with _`D168`_ (_`R9`_), and its checkpoint approved and committed (option chosen: "Approve and commit (Rec.)").

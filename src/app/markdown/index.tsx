@@ -1,18 +1,20 @@
 /**
- * Markdown rendering of documentation files: GitHub-flavoured Markdown, with heading ids, syntax-highlighted code blocks, links resolved inside the showcase
- * application, relative images shown as their alt text, and no raw HTML
+ * Markdown rendering of documentation files: GitHub-flavoured Markdown, with heading ids, syntax-highlighted code blocks, links resolved inside the
+ * showroom, relative images shown as their alt text, showcase frames placed before their entry points, and no raw HTML
  */
 
 import { useMemo, type ComponentProps, type ReactNode } from 'react';
-import ReactMarkdown, { type Components } from 'react-markdown';
+import ReactMarkdown, { type Components, type Options } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeSlug from 'rehype-slug';
 import { Link, Tooltip, makeStyles, tokens, type GriffelStyle } from '@fluentui/react-components';
 import type { DocumentationFile } from '../../host/index.js';
 import { isAbsoluteUrl } from '../../markdown/index.js';
+import type { ShownShowcase } from '../host/index.js';
 import { resolveLink } from '../links/index.js';
 import { scrollToAnchor } from '../routing/index.js';
+import { SHOWCASE_FRAME_ELEMENT, SHOWCASE_ID_PROPERTY, ShowcaseFrame, remarkShowcaseFrames } from '../showcases/index.js';
 
 // #region Styles
 
@@ -91,16 +93,28 @@ export interface MarkdownProps {
    * Documentation files, to resolve links against
    */
   documentation: DocumentationFile[];
+  /**
+   * Shown showcases, whose showcase frames are placed in the documentation file embedding them; none if not given
+   */
+  showcases?: ShownShowcase[];
 }
+
+/**
+ * No shown showcases, the default of the Markdown component's, kept as one array so its memoised values stay put
+ */
+const _NO_SHOWCASES: ShownShowcase[] = [];
 
 /**
  * Renders a documentation file's content as Markdown
  * @param props Properties of the component
  * @returns The rendered Markdown
  */
-export function Markdown({ file, documentation }: MarkdownProps): ReactNode {
+export function Markdown({ file, documentation, showcases = _NO_SHOWCASES }: MarkdownProps): ReactNode {
   const styles = _useStyles();
-  // Kept between renders, so react-markdown doesn't remount every link and image on each one
+  const fileShowcases = useMemo(() => showcases.filter((showcase) => showcase.documentation === file.path), [showcases, file.path]);
+  const remarkPlugins = useMemo<Options['remarkPlugins']>(() => [remarkGfm, [remarkShowcaseFrames, { showcases: fileShowcases }]], [fileShowcases]);
+  // Kept between renders, so react-markdown doesn't remount every link, image and showcase frame on each one; the theme reaches showcase frames
+  // through a context, so a theme change never remounts them either
   const components = useMemo<Components>(
     () => ({
       a: ({ href, children }) => (
@@ -109,12 +123,19 @@ export function Markdown({ file, documentation }: MarkdownProps): ReactNode {
         </_MarkdownLink>
       ),
       img: ({ src, alt }) => (typeof src === 'string' && isAbsoluteUrl(src) ? <img src={src} alt={alt ?? ''} /> : <span>{alt}</span>),
+      // An element react-markdown's types don't know, as the remark plugin names it
+      ...({
+        [SHOWCASE_FRAME_ELEMENT]: (props: Record<string, unknown>) => {
+          const showcase = fileShowcases.find(({ id }) => id === props[SHOWCASE_ID_PROPERTY]);
+          return showcase ? <ShowcaseFrame showcase={showcase} /> : null;
+        },
+      } as Components),
     }),
-    [file, documentation, styles.unresolved],
+    [file, documentation, styles.unresolved, fileShowcases],
   );
   return (
     <div className={styles.markdown}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSlug, rehypeHighlight]} skipHtml components={components}>
+      <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={[rehypeSlug, rehypeHighlight]} skipHtml components={components}>
         {file.content}
       </ReactMarkdown>
     </div>

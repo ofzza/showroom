@@ -60,7 +60,8 @@ export interface CustomShowcaseAdapters {
 }
 
 /**
- * Loads and validates the custom showcase adapters a host repository lists, running the host repository's code
+ * Loads and validates the custom showcase adapters a host repository lists, running the host repository's code: each module's default export is a
+ * factory, called once per call of this function, so each run gets fresh showcase adapter objects (Node loads each module once per process)
  * @param root Path of the host repository's root
  * @param listed Custom showcase adapters' paths (relative to the root), by name, as `showroom.json`'s `customShowcaseAdapters` lists them
  * @returns The custom showcase adapters that loaded, and the errors of those that didn't
@@ -111,22 +112,31 @@ async function _load(root: string, name: string, path: string): Promise<{ adapte
     return { error: `"${path}" not found` };
   }
 
-  // Load the module, and check its default export
+  // Load the module, and create the showcase adapter with its default export
   let module: Record<string, unknown>;
   try {
     module = await import(pathToFileURL(absolute).href);
   } catch (err) {
     return { error: `"${path}" failed to load: ${(err as Error).message}` };
   }
-  const adapter = module.default as Record<string, unknown> | undefined;
+  const factory = module.default;
+  if (typeof factory !== 'function') {
+    return { error: `"${path}" must have a default export: a function returning an object implementing the showcase adapter interface` };
+  }
+  let adapter: Record<string, unknown> | undefined;
+  try {
+    adapter = await (factory as () => Record<string, unknown> | Promise<Record<string, unknown>>)();
+  } catch (err) {
+    return { error: `"${path}" failed to create its showcase adapter: ${(err as Error).message}` };
+  }
   if (typeof adapter !== 'object' || adapter === null) {
-    return { error: `"${path}" must have a default export: an object implementing the showcase adapter interface` };
+    return { error: `"${path}"'s default export must return an object implementing the showcase adapter interface` };
   }
   const missing = ['validate', 'build'].filter((method) => typeof adapter[method] !== 'function');
   const invalid = ['check', 'close'].filter((method) => adapter[method] !== undefined && typeof adapter[method] !== 'function');
   if (missing.length || invalid.length) {
     const methods = [...missing, ...invalid].map((method) => `"${method}"`).join(', ');
-    return { error: `"${path}"'s default export must implement the showcase adapter interface; check ${methods}` };
+    return { error: `"${path}"'s default export must return an object implementing the showcase adapter interface; check ${methods}` };
   }
   return { adapter: adapter as unknown as ShowcaseAdapter };
 }

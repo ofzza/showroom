@@ -64,7 +64,9 @@ src/
   adapters/showcase/       ShowcaseAdapter interface and its types (experimental), the only part re-exported
     registry/              The built-in showcase adapters' registry, and loading custom ones; never re-exported
     html/                  The html showcase adapter (its static half; its build comes with showcase frames); never re-exported
-  markdown/                Node-free Markdown scanning shared by check and the showroom: the marker grammar, showcases, virtual files, links, path resolution; never re-exported
+  markdown/                Node-free Markdown scanning: the marker grammar, showcases, virtual files, links, path resolution (the showroom uses its link resolution); never re-exported
+  showcases/               buildShowcases(): every showcase built into its showcase frame, in memory, with the frame script inserted; result checks, error positions, showcase frame paths; never re-exported
+  frame/                   The frame script and its postMessage contract (browser code, Node-free; imported by the showroom and by src/showcases/); never re-exported
   cli/                     Command line: main(), argument parsing, output
     bin.ts                 Executable entry point (the package's bin); never imported, so it has no test
     check/                 check(): walks a host repository and collects its host information and issues
@@ -72,7 +74,8 @@ src/
     serve/                 serve(): `showroom serve`, Vite's dev server and the host watcher; loaded by main() with import(), never re-exported
     build/                 build(): `showroom build`, Vite's build into the output folder, and its marker; loaded by main() with import(), never re-exported
   vite/                    The showroom's Vite configuration, shared by serve and build; never re-exported
-  testing/                 Test helpers (scratch folders, fixture copies); excluded from the build, never re-exported, but type checked and linted
+  testing/                 Test helpers (scratch folders, fixture copies, compiling the showroom); excluded from the build, never re-exported, but type checked and linted
+    setup/                 The test projects' global setups: the temporary folder (integration, e2e, serve), and the compiled showroom (e2e)
   app/                     The showroom (browser code, compiled to dist/app/, never re-exported): App, mount()
     index.html             Its static page, copied to dist/app/ by `npm run build`
     main.ts                Its entry point (loaded by index.html): mounts App with the virtual module's data; never imported, so it has no test
@@ -82,7 +85,8 @@ src/
     links/                 Link resolution in Markdown (onto src/markdown/'s path helpers)
     navigation/            The navigation items
     theme/                 The light/dark theme, and keeping the toggle's choice
-    markdown/              Markdown rendering: links, images, heading ids, highlighted code blocks
+    markdown/              Markdown rendering: links, images, heading ids, highlighted code blocks, showcase frames
+    showcases/             The remark plugin placing showcase frames, and the showcase frame's iframe
     pages/                 The home, documentation and not-found pages
     layout/                The header, the navigation drawer and the page
 test/fixtures/             Fixture host repositories the tests run against; outside src/, so never built, linted or published
@@ -137,7 +141,9 @@ Vitest, with `describe`/`it`/`expect` imported explicitly (`globals` is not enab
 
   `typecheck.spawnTimeout` is pinned to `10000`. Vitest 5 documents a default for it but never applies one, yet uses the value unguarded when spawning the checker, which leaves an intermittent race.
 
-- **`integration`** (`*.integration.test.*`: real showcase adapter builds, from _`P4.2`_ on), **`e2e`** (`*.e2e.test.*`: the command line, `main()` called in-process, on fixture copies) and **`serve`** (`*.serve.test.*`: the dev server, from _`P4.3`_ on) only execute their files, with a 60 s timeout; none of them type checks. Their files are still type checked by `unit`'s `tsc` run, which covers the whole `tsconfig.json` program, and `tsconfig.build.json`'s `*.test.ts` exclude keeps them out of the build.
+- **`integration`** (`*.integration.test.*`: real showcase adapter builds, `buildShowcases()` and `check()` with `showcases`, on the fixtures), **`e2e`** (`*.e2e.test.*`: the command line, `main()` called in-process, and `build()` with Vite, on fixture copies) and **`serve`** (`*.serve.test.*`: the dev server, from _`P4.3`_ on) only execute their files, with a 60 s timeout; none of them type checks. Their files are still type checked by `unit`'s `tsc` run, which covers the whole `tsconfig.json` program, and `tsconfig.build.json`'s `*.test.ts` exclude keeps them out of the build.
+
+  Their `TMPDIR`, `TMP` and `TEMP` point at a folder of each project's own, `node_modules/.cache/showroom-tests/tmp-<project>/` (`env` in `vite.config.ts`), which `src/testing/setup/temporary-folder.ts`, their global setup, creates and removes, so the temporary folders `showroom` makes (the showcases' build, Vite's cache) stay inside the repository. The `e2e` project's second global setup, `src/testing/setup/app.ts`, compiles `src/` once per run into a scratch folder (`compileApp()`: `tsc -p tsconfig.build.json --outDir <scratch>`, run with `process.execPath`, plus `index.html`), provided as `inject('appDir')`, so builds never depend on, or write to, `dist/`.
 
 - **`debug`** matches every file the `unit` project executes, plus files ending in `.debug.{js,jsx,ts,tsx}`. Type-only `*.test-d.*` files are not in it, as there is nothing in them to execute. It executes them at runtime only, with no type checking, and is driven by the "Debug Current Test File" config in `.vscode/launch.json`.
 
@@ -155,9 +161,11 @@ Vitest, with `describe`/`it`/`expect` imported explicitly (`globals` is not enab
 
 **`showroom check`'s showcases and links** are unit-tested in `src/markdown/` (the marker grammar and scanning, on Markdown strings), `src/adapters/showcase/` (the `html` showcase adapter, the registry, and loading the `showcase-adapters` fixture's custom showcase adapters), and `src/cli/check/` (on the `showcases`, `showcase-errors`, `showcase-adapters` and `links` fixtures), and end to end in `src/cli/index.e2e.test.ts`.
 
+**Showcase builds** are unit-tested in `src/showcases/` (the frame script's insertion, result checks, error positions and showcase frame paths, on hand-written values: `buildShowcases()` itself makes a temporary folder, so only the `integration` tests call it, on the `showcase-frames` and `showcase-build-errors` fixtures) and `src/frame/` (the frame script, run from its inserted source text with a stubbed `window`). The showroom's placement of showcase frames is tested by rendering Markdown whose showcases `scanMarkdown()` finds, so offsets are the ones `check` gives.
+
 **`showroom serve` is tested without starting a server.** The tests cover the Vite configuration and its plugin (`src/vite/`, calling the plugin's hooks directly), the watcher's `ignored` function, and the host watcher's reload decisions (`createHostWatcher()`, with a fake check and a fake reload target, and fake timers for the debounce). `serve()` and `main()`'s `serve` command are only run on a fixture whose first check fails, which returns before any temporary folder or server is created. The user checks `serve` itself in a browser.
 
-**`showroom build` is tested without running Vite.** The tests cover the output folder's resolution and ignore pattern (`src/cli/check/internal/`, and the `output-folder`, `out-dir-root` and `out-dir-outside` fixtures), the marker's decision (`getOutputFolderState()` on entry lists, as git can't hold an empty folder, and `readOutputFolderState()` on the `output-folder` fixture's folders), and the build's Vite configuration (`getBuildConfiguration()`). `build()` and `main()`'s `build` command are only run where they stop before building: a failed check, or an unmarked output folder. Builds themselves are trial runs on copies in a working-files folder, and the user checks the result in a browser.
+**`showroom build` is unit-tested without running Vite, and end to end with it.** The unit tests cover the output folder's resolution and ignore pattern (`src/cli/check/internal/`, and the `output-folder`, `out-dir-root` and `out-dir-outside` fixtures), the marker's decision (`getOutputFolderState()` on entry lists, as git can't hold an empty folder, and `readOutputFolderState()` on the `output-folder` fixture's folders), the build's Vite configuration (`getBuildConfiguration()`) and the plugin emitting showcase frames; `main()`'s `build` command is only run where it stops before building. `src/cli/build/index.e2e.test.ts` calls `build()` itself, with the compiled showroom (`inject('appDir')`), on fixture copies: a full build with showcase frames, and the cases that stop before Vite. The user still checks trial builds in a browser.
 
 After adding or changing type-level assertions, sanity-check them: break one deliberately, confirm the run fails, then revert. Vitest prints an "experimental" warning for typecheck, which is expected.
 
@@ -202,7 +210,11 @@ After adding or changing type-level assertions, sanity-check them: break one del
 - **React, React DOM and the scheduler are aliased to `showroom`'s own copies** in the Vite configuration (`getReactAliases()`), so a host's different React, next to a hoisted FluentUI, never mixes in ("Invalid hook call"). A new React package the application imports directly needs adding there.
 - **`src/app/` is browser code, not part of the library's API.** It is compiled to `dist/app/` (and so published) for Vite to bundle, but never re-exported from `src/index.ts`, and it never imports Node modules. It may import types from the rest of `src/` (e.g. `src/host/`).
 - **Markers in this repository's own documentation files are live.** `showroom.json` makes this repository a host of its own, and its `README.md` is a documentation file, so a showcase marker written in it as an example must sit inside a code block (examples of fences inside a fence of four backticks), or `showroom check` on this repository reports it.
-- **Custom showcase adapters are loaded with `import()`**, so Node caches each module for the life of the process: a long-running process (`serve`, from _`P4.3`_ on) doesn't see a changed module without a cache-busting URL. Fixtures with custom showcase adapters set `"type": "module"` in their `package.json`, as their `.js` modules are ES modules.
+- **Custom showcase adapters are loaded with `import()`**, so Node caches each module for the life of the process: a long-running process (`serve`, from _`P4.3`_ on) doesn't see a changed module without a cache-busting URL. Their default export is a factory, called once per run (`loadCustomShowcaseAdapters()`), so each run gets fresh objects, closed at its end; never reuse an object across runs. Fixtures with custom showcase adapters set `"type": "module"` in their `package.json`, as their `.js` modules are ES modules.
+- **The frame script is self-contained.** `frameScript()` (`src/frame/`) is inlined into every showcase frame page as its source text (`getFrameScript()`, `Function.prototype.toString()`), so it must reference no outer names (no imports, no module constants): everything comes from `window` and its constants argument. Its tests run the inserted string, which would fail on such a reference.
+- **`src/frame/` is browser code that Node code imports.** `src/showcases/` imports it for the script, and the showroom for the message types, so it stays Node-free and side-effect-free, like `src/markdown/`.
+- **The frame script stops reporting growth** after the content grows by the same amount 3 times in a row (`MAX_REPEATED_GROWTHS`): a showcase sized to its viewport (`100vh`) would otherwise grow its iframe forever. Shrinking is still reported.
+- **The showroom's placement of showcase frames relies on offsets.** `check` (`scanMarkdown()`) and the showroom's `react-markdown` must parse documentation files the same way (`remark-parse` with `remark-gfm`), or a showcase's offset matches no node and its showcase frame is skipped.
 - **Fixtures can't hold `node_modules`, `dist` or `coverage` folders.** `.gitignore` ignores them at any depth, so they would never be committed. Tests of those default ignore patterns check the TypeScript stack adapter's list instead (see `src/adapters/stack/typescript/index.test.ts`), and fixtures exercise ignoring with other folder names (e.g. `vendor/`).
 - **Fixture file names must differ by more than case within a folder**, or they collide on case-insensitive file systems (Windows, macOS). The case-insensitive matching is tested across folders (`test/fixtures/names/`).
 - `.gitignore` ignores `.vscode/` but re-includes `settings.json`, `tasks.json`, `launch.json` and `extensions.json`. Any other `.vscode/` file must be re-included there before it can be committed.
@@ -220,14 +232,14 @@ After adding or changing type-level assertions, sanity-check them: break one del
 
 Everything public is re-exported from `src/index.ts`:
 
-- `check(root, options?): Promise<CheckResult>` (`src/cli/check/`): checks a host repository and collects its host information, its showcases included; `options.outDir` overrides the output folder. Also `BUILT_IN_DOCUMENTATION`, and the types `CheckOptions`, `CheckResult`, `CheckIssue` (with an optional `line`), `CheckIssueSeverity`.
+- `check(root, options?): Promise<CheckResult>` (`src/cli/check/`): checks a host repository and collects its host information, its showcases included; `options.outDir` overrides the output folder, and `options.showcases` also builds every showcase (`--showcases`). Also `BUILT_IN_DOCUMENTATION`, and the types `CheckOptions`, `CheckResult`, `CheckIssue` (with an optional `line`), `CheckIssueSeverity`.
 - `main(args, output?): Promise<number>` (`src/cli/`): runs the command line, resolving to its exit code. Also `USAGE`, and the type `CliOutput`.
 - `readConfiguration(root)`, `validateConfiguration(value)` (`src/configuration/`): read and validate `showroom.json`. Also `CONFIGURATION_FILE_NAME`, `DEFAULT_OUT_DIR`, and the types `Configuration`, `ConfigurationResult`.
 - `getStackAdapter(name)`, `getStackAdapterNames()` (`src/adapters/stack/`): look up the built-in stack adapters. Also the type `StackAdapter`, and `TypeScriptStackAdapter` (`src/adapters/stack/typescript/`).
 - Types `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase`, `ShowcaseKind`, `VirtualFile` (`src/host/`): the host information.
 - Types `ShowcaseAdapter`, `ShowcaseValidation`, `ShowcaseBuildRequest`, `ShowcaseBuildResult`, `ShowcaseBuildFile`, `ShowcaseBuildError` (`src/adapters/showcase/`): the showcase adapter interface, exported and documented as experimental (it may change in any release until declared stable). The registry and the built-in showcase adapters are not exported.
 
-The showroom (`src/app/`: `App`, `mount()`, `ShownHostInformation`) is deliberately not exported: it is browser code, bundled by Vite from `dist/app/`. Neither are `src/markdown/`, `src/testing/`, `serve()` (`src/cli/serve/`), `build()` (`src/cli/build/`), the Vite configuration (`src/vite/`) and the check's internals (`src/cli/check/internal/`): `showroom serve` and `showroom build` are only available through the command line and `main()`.
+The showroom (`src/app/`: `App`, `mount()`, `ShownHostInformation`) is deliberately not exported: it is browser code, bundled by Vite from `dist/app/`. Neither are `src/markdown/`, `src/showcases/`, `src/frame/`, `src/testing/`, `serve()` (`src/cli/serve/`), `build()` (`src/cli/build/`), the Vite configuration (`src/vite/`) and the check's internals (`src/cli/check/internal/`): `showroom serve` and `showroom build` are only available through the command line and `main()`.
 
 ---
 

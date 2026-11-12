@@ -4,6 +4,8 @@
 
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import * as api from './index.js';
+import * as frame from './frame/index.js';
+import * as showcases from './showcases/index.js';
 import type {
   CheckIssue,
   CheckOptions,
@@ -39,10 +41,17 @@ describe('index', () => {
     ]);
   });
 
+  it('Never re-exports the showcase builds or the frame script', () => {
+    // Both are internal (see AGENTS.md › Exports); the exact list above already leaves them out, this names them
+    const names = [...Object.keys(showcases), ...Object.keys(frame)];
+    expect(names.filter((name) => name in api)).toEqual([]);
+  });
+
   it('Exports the types', () => {
     expectTypeOf<Awaited<ReturnType<typeof api.check>>>().toEqualTypeOf<CheckResult>();
     expectTypeOf<Parameters<typeof api.check>[1]>().toEqualTypeOf<CheckOptions | undefined>();
     expectTypeOf<CheckOptions['outDir']>().toEqualTypeOf<string | undefined>();
+    expectTypeOf<CheckOptions['showcases']>().toEqualTypeOf<boolean | undefined>();
     expectTypeOf<CheckResult['host']>().toEqualTypeOf<HostInformation | undefined>();
     expectTypeOf<Configuration['stack']>().toEqualTypeOf<string>();
     expectTypeOf<api.TypeScriptStackAdapter>().toExtend<StackAdapter>();

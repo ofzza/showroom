@@ -1,7 +1,7 @@
 /**
  * The Vite configuration of the showroom, shared by `showroom serve` and `showroom build`: Vite's root is the application's folder inside
- * the package (`dist/app/`), the shown host information is served as a virtual module, and React is always `showroom`'s own copy. Internal: not
- * re-exported.
+ * the package (`dist/app/`), the shown host information is served as a virtual module, the showcase frames are emitted into the build, and React is
+ * always `showroom`'s own copy. Internal: not re-exported.
  */
 
 import { createRequire } from 'node:module';
@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import type { Alias, InlineConfig, Plugin } from 'vite';
 import type { HostInformation } from '../host/index.js';
 import type { ShownHostInformation } from '../app/host/index.js';
+import { getShowcaseFrameUrl, type ShowcaseFrame } from '../showcases/index.js';
 
 // #region Shown host information
 
@@ -26,10 +27,15 @@ export const RESOLVED_HOST_MODULE_ID = `\0${HOST_MODULE_ID}`;
 /**
  * Gets the shown host information: the part of the host information the showroom presents
  * @param host Host information
- * @returns The project information and documentation files, without the code file index
+ * @param frames The showcase frames built, by showcase id; none when they aren't built
+ * @returns The project information and documentation files, without the code file index, and the showcases with a showcase frame
  */
-export function getShownHostInformation(host: HostInformation): ShownHostInformation {
-  return { project: host.project, documentation: host.documentation };
+export function getShownHostInformation(host: HostInformation, frames?: ReadonlyMap<string, Pick<ShowcaseFrame, 'folder' | 'page'>>): ShownHostInformation {
+  const showcases = host.showcases.flatMap(({ id, documentation, offset }) => {
+    const frame = frames?.get(id);
+    return frame ? [{ id, documentation, offset, url: getShowcaseFrameUrl(frame) }] : [];
+  });
+  return { project: host.project, documentation: host.documentation, showcases };
 }
 
 /**
@@ -52,6 +58,29 @@ export function createHostPlugin(getHost: () => ShownHostInformation): Plugin {
     resolveId: (id) => (id === HOST_MODULE_ID ? RESOLVED_HOST_MODULE_ID : undefined),
     load: (id) => (id === RESOLVED_HOST_MODULE_ID ? `export default ${JSON.stringify(getHost())};\n` : undefined),
     transformIndexHtml: (html) => html.replace(/<title>[^<]*<\/title>/, `<title>${_escapeHtml(getHost().project.name)}</title>`),
+  };
+}
+
+// #endregion
+
+// #region Showcase frames
+
+/**
+ * Creates the Vite plugin emitting the showcase frames' files into the build, each in its showcase frame's folder, so that the build's
+ * `emptyOutDir` and its marker cover them
+ * @param getFrames Gets the showcase frames to emit, by showcase id
+ * @returns The Vite plugin
+ */
+export function createShowcaseFramesPlugin(getFrames: () => ReadonlyMap<string, ShowcaseFrame>): Plugin {
+  return {
+    name: 'showroom-showcase-frames',
+    generateBundle() {
+      for (const frame of getFrames().values()) {
+        for (const file of frame.files) {
+          this.emitFile({ type: 'asset', fileName: `${frame.folder}/${file.path}`, source: file.content });
+        }
+      }
+    },
   };
 }
 
@@ -103,6 +132,10 @@ export interface ViteConfigurationOptions {
    * Gets the shown host information to serve or build
    */
   getHost: () => ShownHostInformation;
+  /**
+   * Gets the showcase frames to build, by showcase id; none if not given
+   */
+  getFrames?: () => ReadonlyMap<string, ShowcaseFrame>;
 }
 
 /**
@@ -111,7 +144,7 @@ export interface ViteConfigurationOptions {
  * @param options Options of the configuration
  * @returns Vite's inline configuration; `serve` and `build` add their own `server` and `build` options
  */
-export function getViteConfiguration({ appDir, cacheDir, getHost }: ViteConfigurationOptions): InlineConfig {
+export function getViteConfiguration({ appDir, cacheDir, getHost, getFrames = () => new Map() }: ViteConfigurationOptions): InlineConfig {
   return {
     configFile: false,
     root: appDir,
@@ -119,7 +152,7 @@ export function getViteConfiguration({ appDir, cacheDir, getHost }: ViteConfigur
     cacheDir,
     clearScreen: false,
     logLevel: 'warn',
-    plugins: [createHostPlugin(getHost)],
+    plugins: [createHostPlugin(getHost), createShowcaseFramesPlugin(getFrames)],
     resolve: { alias: getReactAliases() },
   };
 }

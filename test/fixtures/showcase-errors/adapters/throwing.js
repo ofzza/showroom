@@ -1,5 +1,5 @@
 // A custom showcase adapter whose every method throws
-export default {
+export default () => ({
   validate: () => {
     throw new Error('validate broke');
   },
@@ -12,4 +12,4 @@ export default {
   close: () => {
     throw new Error('close broke');
   },
-};
+});

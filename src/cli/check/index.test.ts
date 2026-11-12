@@ -279,8 +279,8 @@ describe('cli/check', () => {
         'showroom.json: Custom showcase adapter "missing": "./adapters/missing.js" not found',
         'showroom.json: Custom showcase adapter "typescript": "./adapters/adapter.ts" must be a .js or .mjs file',
         'showroom.json: Custom showcase adapter "folder": "./adapters" must be a .js or .mjs file',
-        'showroom.json: Custom showcase adapter "no-default": "./adapters/no-default.js" must have a default export: an object implementing the showcase adapter interface',
-        'showroom.json: Custom showcase adapter "incomplete": "./adapters/incomplete.js"\'s default export must implement the showcase adapter interface; check "build", "check"',
+        'showroom.json: Custom showcase adapter "no-default": "./adapters/no-default.js" must have a default export: a function returning an object implementing the showcase adapter interface',
+        'showroom.json: Custom showcase adapter "incomplete": "./adapters/incomplete.js"\'s default export must return an object implementing the showcase adapter interface; check "build", "check"',
         'showroom.json: Custom showcase adapter "throws": "./adapters/throws.js" failed to load: broken on purpose',
       ]);
     });

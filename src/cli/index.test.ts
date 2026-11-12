@@ -100,11 +100,29 @@ describe('cli', () => {
       expect(stderr).toMatch(/^Unknown option '--out'/);
     });
 
-    it('Lists the serve and build commands, --out-dir and --port in the help', () => {
+    it('Lists the serve and build commands, --out-dir, --port and --showcases in the help', () => {
       expect(USAGE).toMatch(/^ {2}serve {4}/m);
       expect(USAGE).toMatch(/^ {2}build {4}/m);
       expect(USAGE).toMatch(/^ {2}--out-dir <dir> /m);
       expect(USAGE).toMatch(/^ {2}--port <port> /m);
+      expect(USAGE).toMatch(/^ {2}--showcases {6}/m);
+    });
+
+    it('Fails on --showcases with serve and build, before either starts', async () => {
+      for (const command of ['serve', 'build']) {
+        const { code, stdout, stderr } = await _run([command, '--showcases', '--root', _fixture('minimal')]);
+        expect(code).toBe(1);
+        expect(stdout).toBe('');
+        expect(stderr).toBe(`--showcases only applies to check (build always builds the showcases)\n\n${USAGE}`);
+      }
+    });
+
+    it('Builds no showcase with --showcases when the static check fails', async () => {
+      // The showcases are only built once the static check passes, so this never reaches a showcase adapter's build()
+      const { code, stdout, stderr } = await _run(['check', '--showcases', '--root', _fixture('unknown-stack')]);
+      expect(code).toBe(1);
+      expect(stdout).toBe('');
+      expect(stderr).toBe('error: showroom.json: Unknown stack "cobol"; the stack adapters are: typescript\n');
     });
 
     it('Fails on an invalid port, before serving', async () => {

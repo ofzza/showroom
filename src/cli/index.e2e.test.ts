@@ -1,5 +1,5 @@
 /**
- * End-to-end tests of the command line: `showroom check` on copies of the fixture host repositories
+ * End-to-end tests of the command line: `showroom check`, with and without `--showcases`, on copies of the fixture host repositories
  */
 
 import { readFile, rm, writeFile } from 'node:fs/promises';
@@ -119,6 +119,36 @@ describe('cli (end to end)', () => {
       await writeFile(join(root, 'docs', 'missing.md'), '# Not missing any more\n');
       const { stderr } = await _run(['check', '--root', root]);
       expect(stderr).not.toContain('docs/missing.md');
+    });
+  });
+
+  describe('check --showcases', () => {
+    // `showroom check --showcases` builds every showcase once the static check passes, failing on a showcase that doesn't build.
+
+    it('Writes the host information when every showcase builds', async () => {
+      const root = await copy('showcase-frames');
+      const { code, stdout, stderr } = await _run(['check', '--showcases', '--root', root]);
+      expect(stderr).toBe('');
+      expect(code).toBe(0);
+      expect(JSON.parse(stdout).showcases).toHaveLength(4);
+    });
+
+    it('Reports every build error on stderr, and fails', async () => {
+      const root = await copy('showcase-build-errors');
+      const { code, stdout, stderr } = await _run(['check', '--showcases', '--root', root]);
+      expect(code).toBe(1);
+      expect(stdout).toBe('');
+      expect(stderr).toBe(
+        [
+          'error: README.md:7: Showcase README.md#1 (README.md:5): Unexpected token',
+          'error: README.md:5: Showcase README.md#1 (README.md:5): Something went wrong',
+          'error: README.md:5: Showcase README.md#1 (README.md:5): Not here',
+          'error: src/widget.js:2: Showcase README.md#1 (README.md:5): Widget broke',
+          'error: README.md:12: Showcase README.md#2 (README.md:12): Showcase adapter "throwing" failed to build the showcase: build broke',
+          'error: README.md:18: Showcase README.md#3 (README.md:18): Showcase adapter "invalid" returned an invalid build result: the page "missing.html" is not among the files',
+          '',
+        ].join('\n'),
+      );
     });
   });
 });

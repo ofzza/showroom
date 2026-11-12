@@ -71,7 +71,7 @@ describe('cli/build', () => {
     const configuration = getBuildConfiguration({
       appDir: '/app',
       cacheDir: '/cache',
-      getHost: () => ({ project: { name: 'host' }, documentation: [] }),
+      getHost: () => ({ project: { name: 'host' }, documentation: [], showcases: [] }),
       outDir: '/host/showroom',
     });
 

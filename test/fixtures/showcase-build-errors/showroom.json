@@ -1,0 +1,1 @@
+{ "stack": "typescript", "sourceRoot": ".", "customShowcaseAdapters": { "failing": "./adapters/failing.js", "throwing": "./adapters/throwing.js", "invalid": "./adapters/invalid.js" } }

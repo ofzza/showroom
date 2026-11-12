@@ -3,7 +3,7 @@
  * `localStorage`. Every access to `window` is guarded or in an effect, so the application also renders on the server.
  */
 
-import { useEffect } from 'react';
+import { createContext, useEffect } from 'react';
 import { webDarkTheme, webLightTheme, type Theme } from '@fluentui/react-components';
 
 // #region Themes
@@ -12,6 +12,12 @@ import { webDarkTheme, webLightTheme, type Theme } from '@fluentui/react-compone
  * Represents the name of a theme
  */
 export type ThemeName = 'light' | 'dark';
+
+/**
+ * Context holding the current theme's name, for the components that pass it on outside FluentUI (the showcase frames), without remounting them
+ * when it changes
+ */
+export const ThemeContext = createContext<ThemeName>('light');
 
 /**
  * Key under which the toggle's choice of theme is kept in `localStorage`

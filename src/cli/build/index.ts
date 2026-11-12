@@ -11,6 +11,7 @@ import { check } from '../check/index.js';
 import { formatIssues, resolveOutputFolder } from '../check/internal/index.js';
 import type { CliOutput } from '../index.js';
 import { readConfiguration } from '../../configuration/index.js';
+import { buildShowcases } from '../../showcases/index.js';
 import { getAppDir, getShownHostInformation, getViteConfiguration, type ViteConfigurationOptions } from '../../vite/index.js';
 
 // #region Output folder marker
@@ -125,9 +126,10 @@ export interface BuildOptions {
 }
 
 /**
- * Builds the showroom of a host repository into its output folder
+ * Builds the showroom of a host repository into its output folder: checks it, makes sure the output folder may be emptied, builds every showcase,
+ * then builds the showroom with the showcase frames, and marks the output folder
  * @param options Options of the command
- * @returns Exit code: 0 once built, 1 if the check fails, the output folder can't be emptied, or the build fails
+ * @returns Exit code: 0 once built, 1 if the check fails, the output folder can't be emptied, a showcase doesn't build, or the build fails
  */
 export async function build({ root, outDir, output, appDir = getAppDir() }: BuildOptions): Promise<number> {
   // Check the host repository first
@@ -136,7 +138,6 @@ export async function build({ root, outDir, output, appDir = getAppDir() }: Buil
   if (!result.passed || !result.host) {
     return 1;
   }
-  const host = getShownHostInformation(result.host);
 
   // Only empty an output folder that is empty, or holds a previous build
   const { configuration } = await readConfiguration(root);
@@ -153,10 +154,19 @@ export async function build({ root, outDir, output, appDir = getAppDir() }: Buil
     return 1;
   }
 
+  // Build every showcase, leaving the output folder untouched if any fails
+  const showcases = await buildShowcases({ root, host: result.host, configuration });
+  if (showcases.issues) {
+    output.stderr(formatIssues(showcases.issues));
+    return 1;
+  }
+  const frames = showcases.frames;
+  const host = getShownHostInformation(result.host, frames);
+
   // Build, with Vite's cache in a fresh folder of its own, removed afterwards
   const cacheDir = await mkdtemp(join(tmpdir(), 'showroom-'));
   try {
-    await viteBuild(getBuildConfiguration({ appDir, cacheDir, getHost: () => host, outDir: outputFolder.path }));
+    await viteBuild(getBuildConfiguration({ appDir, cacheDir, getHost: () => host, getFrames: () => frames, outDir: outputFolder.path }));
     await writeFile(join(outputFolder.path, OUTPUT_FOLDER_MARKER), OUTPUT_FOLDER_MARKER_CONTENT);
     output.stdout(`Built the showroom of ${host.project.name} into ${outputFolder.path}\n`);
     return 0;

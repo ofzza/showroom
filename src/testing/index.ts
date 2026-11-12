@@ -1,11 +1,26 @@
 /**
  * Testing helpers, for the tests only (excluded from the build, never re-exported): scratch folders inside this repository's
- * `node_modules/.cache/showroom-tests/`, and copies of the fixture host repositories in them
+ * `node_modules/.cache/showroom-tests/`, copies of the fixture host repositories in them, and the work of the test projects' global setups (the
+ * temporary folder, and the compiled showroom)
  */
 
+import { execFile } from 'node:child_process';
 import { cp, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
+
+declare module 'vitest' {
+  /**
+   * Values the global setups provide to the tests, read with `inject()`
+   */
+  export interface ProvidedContext {
+    /**
+     * Absolute path of the compiled showroom's folder (see compileApp()), in the `e2e` project
+     */
+    appDir: string;
+  }
+}
 
 // #region Paths
 
@@ -63,6 +78,25 @@ export async function copyFixture(name: string): Promise<ScratchFolder> {
   const scratch = await createScratchFolder(`${name}-`);
   await cp(join(FIXTURES, name), scratch.path, { recursive: true });
   return scratch;
+}
+
+// #endregion
+
+// #region Global setups
+
+/**
+ * Compiles the showroom (with the rest of `src/`) into a folder, as `npm run build` does into `dist/`, so tests can build showrooms without
+ * depending on, or writing to, `dist/`
+ * @param folder Absolute path of the folder to compile into
+ * @returns Absolute path of the compiled showroom's folder, holding its `index.html`
+ */
+export async function compileApp(folder: string): Promise<string> {
+  const tsc = join(REPOSITORY_ROOT, 'node_modules', 'typescript', 'bin', 'tsc');
+  await promisify(execFile)(process.execPath, [tsc, '-p', join(REPOSITORY_ROOT, 'tsconfig.build.json'), '--outDir', folder, '--declaration', 'false'], {
+    cwd: REPOSITORY_ROOT,
+  });
+  await cp(join(REPOSITORY_ROOT, 'src', 'app', 'index.html'), join(folder, 'app', 'index.html'));
+  return join(folder, 'app');
 }
 
 // #endregion
