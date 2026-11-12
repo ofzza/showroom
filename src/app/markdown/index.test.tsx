@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-components';
 import type { DocumentationFile } from '../../host/index.js';
-import { Markdown, UNRESOLVED_LINK_TOOLTIP } from './index.js';
+import { COLOURED_TOKEN_CLASSES, Markdown, UNCOLOURED_TOKEN_CLASSES, UNRESOLVED_LINK_TOOLTIP } from './index.js';
 
 /**
  * Renders a Markdown documentation file to HTML on the server
@@ -55,6 +55,23 @@ describe('app/markdown', () => {
     expect(html).toContain('class="hljs language-tsx"');
   });
 
+  it('Colours every token class highlight.js emits', () => {
+    // A class left out is shown in the code block's own colour: README.md's `md` examples are a single `hljs-code` token, and once weren't coloured
+    const samples = [
+      ['md', '# Title\n\n- *item* **bold** [link](x)\n\n> quote\n\n```html\n<b>x</b>\n```\n\n`code`'],
+      ['ts', 'class A extends B { m(p: number): string { return `${p}\\n` + /re/.source; } } // c\nconst f = (x) => x >= 1 && this;'],
+      ['html', '<!doctype html>\n<a href="x" class="y">t &amp;</a>'],
+      ['css', '@media (x) { a:hover, #id .c[data-x="1"] { color: #fff !important; width: 1px; } }'],
+      ['json', '{ "a": [1, true, null, "s"] }'],
+      ['bash', '#!/bin/sh\nexport A="$B" && echo $(ls) # c'],
+      ['diff', '--- a\n+++ b\n@@ -1 +1 @@\n-x\n+y'],
+    ];
+    const html = samples.map(([language, code]) => _render(`\`\`\`${language}\n${code}\n\`\`\``)).join('');
+    const emitted = new Set([...html.matchAll(/class="(hljs-[\w-]+)/g)].map((match) => match[1]!));
+    expect(emitted).toContain('hljs-code');
+    expect([...emitted].filter((name) => !COLOURED_TOKEN_CLASSES.includes(name) && !UNCOLOURED_TOKEN_CLASSES.includes(name))).toEqual([]);
+  });
+
   it('Links documentation files to their routes, and absolute URLs to a new tab', () => {
     const html = _render('[Home](../README.md) [Install](#install) [Site](https://example.com)');
     expect(html).toMatch(/<a [^>]*href="#\/"[^>]*>Home<\/a>/);
@@ -67,7 +84,7 @@ describe('app/markdown', () => {
     expect(html).not.toContain('../src/index.ts');
     expect(html).toMatch(/<span [^>]*tabindex="0"[^>]*>the code<\/span>/);
     // The tooltip itself only appears on hover or focus, through a portal, so only its trigger is rendered here
-    expect(UNRESOLVED_LINK_TOOLTIP).toBe('Not in the showcase application');
+    expect(UNRESOLVED_LINK_TOOLTIP).toBe('Not in the showroom');
   });
 
   it('Shows relative images as their alt text, and absolute ones as images', () => {

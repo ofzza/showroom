@@ -1,9 +1,9 @@
 /**
- * The showcase application's theme: FluentUI's built-in light and dark themes, starting from the browser's preference, with the toggle's choice kept in
+ * The showroom's theme: FluentUI's built-in light and dark themes, starting from the browser's preference, with the toggle's choice kept in
  * `localStorage`. Every access to `window` is guarded or in an effect, so the application also renders on the server.
  */
 
-import { useEffect } from 'react';
+import { createContext, useEffect } from 'react';
 import { webDarkTheme, webLightTheme, type Theme } from '@fluentui/react-components';
 
 // #region Themes
@@ -14,9 +14,15 @@ import { webDarkTheme, webLightTheme, type Theme } from '@fluentui/react-compone
 export type ThemeName = 'light' | 'dark';
 
 /**
+ * Context holding the current theme's name, for the components that pass it on outside FluentUI (the showcase frames), without remounting them
+ * when it changes
+ */
+export const ThemeContext = createContext<ThemeName>('light');
+
+/**
  * Key under which the toggle's choice of theme is kept in `localStorage`
  */
-export const THEME_STORAGE_KEY = 'tsshowcase-theme';
+export const THEME_STORAGE_KEY = 'showroom-theme';
 
 /**
  * Gets the FluentUI theme of a theme name

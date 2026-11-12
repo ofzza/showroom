@@ -1,0 +1,17 @@
+{
+  "stack": "typescript", "sourceRoot": ".",
+  "customShowcaseAdapters": {
+    "good": "./adapters/good.js",
+    "good-mjs": "adapters/good.mjs",
+    "html": "./adapters/good.js",
+    "react": "./adapters/good.js",
+    "Bad_Name": "./adapters/good.js",
+    "outside": "../outside.js",
+    "missing": "./adapters/missing.js",
+    "typescript": "./adapters/adapter.ts",
+    "folder": "./adapters",
+    "no-default": "./adapters/no-default.js",
+    "incomplete": "./adapters/incomplete.js",
+    "throws": "./adapters/throws.js"
+  }
+}

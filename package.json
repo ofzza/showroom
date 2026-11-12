@@ -1,20 +1,21 @@
 {
-  "name": "@ofzza/tsshowcase",
+  "name": "@ofzza/showroom",
   "version": "0.1.0",
-  "description": "Build documentation/showcase apps for TypeScript libraries.",
+  "description": "Build a showroom for a repository: its documentation, enriched by showcases.",
   "keywords": [
     "typescript",
     "cli",
+    "showroom",
     "showcase",
     "documentation"
   ],
-  "homepage": "https://github.com/ofzza/tsshowcase#readme",
+  "homepage": "https://github.com/ofzza/showroom#readme",
   "bugs": {
-    "url": "https://github.com/ofzza/tsshowcase/issues"
+    "url": "https://github.com/ofzza/showroom/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ofzza/tsshowcase.git"
+    "url": "git+https://github.com/ofzza/showroom.git"
   },
   "license": "MIT",
   "author": "ofzza",
@@ -22,7 +23,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "tsshowcase": "dist/cli/bin.js"
+    "showroom": "dist/cli/bin.js"
   },
   "exports": {
     ".": {
@@ -44,11 +45,18 @@
     "start": "node dist/cli/bin.js",
     "ci": "npm-run-all ci:*",
     "ci:build": "tsc -p tsconfig.build.json",
+    "ci:showroom": "node dist/cli/bin.js check --showcases --quiet",
     "ci:eslint": "eslint src",
     "ci:prettier": "prettier --check src",
     "ci:test-unit": "npm-run-all test:unit",
+    "ci:test-integration": "npm-run-all test:integration",
+    "ci:test-e2e": "npm-run-all test:e2e",
+    "ci:test-serve": "npm-run-all test:serve",
     "test": "npm-run-all test:*",
     "test:unit": "vitest run --passWithNoTests --project unit",
+    "test:integration": "vitest run --passWithNoTests --project integration",
+    "test:e2e": "vitest run --passWithNoTests --project e2e",
+    "test:serve": "vitest run --passWithNoTests --project serve",
     "prepare": "npm run build",
     "prepublishOnly": "npm run ci"
   },
@@ -73,13 +81,17 @@
   },
   "dependencies": {
     "@fluentui/react-components": "^9.75.1",
+    "@fluentui/react-icons": "^2.0.345",
     "ignore": "^7.0.14",
+    "json5": "^2.2.3",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5",
     "vite": "^8.3.7"
   }
 }

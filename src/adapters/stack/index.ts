@@ -10,7 +10,7 @@ export * from './typescript/index.js';
 // #region Interface
 
 /**
- * Represents a stack adapter: the implementation of tsshowcase's common interface for one kind of host repository (language or framework). New
+ * Represents a stack adapter: the implementation of `showroom`'s common interface for one kind of host repository (language or framework). New
  * capabilities are added as optional members, so existing stack adapters keep working.
  */
 export interface StackAdapter {

@@ -31,55 +31,75 @@ src/
   index.ts              Entry point and public API
   index.test.ts         Tests, colocated with the code they test
   host/                 Host information types
-  configuration/        Reading and validating tsshowcase.json
+  configuration/        Reading and validating showroom.json
   adapters/stack/       The StackAdapter interface and the built-in stack adapters
     typescript/         The TypeScript stack adapter
-  cli/                  The tsshowcase command line (bin.ts is its executable entry point)
+  adapters/showcase/    The ShowcaseAdapter interface (experimental)
+    registry/           The built-in showcase adapters, and loading custom showcase adapters
+    html/               The html showcase adapter
+  markdown/             Scanning documentation files' Markdown: showcase markers, showcases, virtual files and links (Node-free: the showroom uses its link resolution)
+  showcases/            Building every showcase into its showcase frame, in memory, with the frame script
+  frame/                The frame script and its postMessage contract with the showroom (browser code, Node-free)
+  cli/                  The showroom command line (bin.ts is its executable entry point)
     check/              check(): collecting the host information from a host repository
       internal/         The output folder, the ignore matcher and issue formatting, shared with serve and build
-    serve/              tsshowcase serve: Vite's dev server, reloading on changes
-    build/              tsshowcase build: Vite's build, into the output folder
-  vite/                 The showcase application's Vite configuration
-  app/                  The showcase application: React/FluentUI browser code, compiled to dist/app/ and bundled by Vite
+    serve/              showroom serve: Vite's dev server, building showcases, and updating the page on changes
+    build/              showroom build: Vite's build, into the output folder
+  vite/                 The showroom's Vite configuration
+  testing/              Test helpers: scratch folders, fixture copies, and the test projects' global setups (never built)
+  app/                  The showroom: React/FluentUI browser code, compiled to dist/app/ and bundled by Vite
     host/               The shown host information, and finding documentation files in it
     routing/            The hash router
     links/              Resolving links in Markdown
     navigation/         The navigation items
     theme/              The light/dark theme
     markdown/           Rendering Markdown
+    issues/             The issues bar, showing serve's current issues
+    showcases/          Placing showcase frames in rendered Markdown, and their iframes
     pages/              The home, documentation and not-found pages
-    layout/             The header and the navigation
+    layout/             The header and the navigation (inline, or an overlay on narrow viewports)
 test/fixtures/          Fixture host repositories the tests run against
+examples/               Real files behind README.md's live showcases
 ```
 
-Every module lives in `src/`, as an `index.ts` + `index.test.ts` pair, and is re-exported from `src/index.ts`, except the showcase application's modules in `src/app/`, which are browser code.
+Every module lives in `src/`, as an `index.ts` + `index.test.ts` pair, and is re-exported from `src/index.ts`, except the showroom's modules in `src/app/`, which are browser code, and the internal modules (`src/markdown/`, `src/showcases/`, `src/frame/`, `src/testing/`, the showcase adapter registry and the built-in showcase adapters, and the parts of `src/cli/` only the command line uses). Besides `unit` tests (`*.test.ts`), there are `integration` tests (`*.integration.test.ts`) of real showcase builds on the fixtures, `e2e` tests (`*.e2e.test.ts`) of the command line and of `build()`, Vite included, on copies of the fixtures, and `serve` tests (`*.serve.test.ts`) of `serve()` with its dev server, on copies of the fixtures; tests write only into scratch folders in `node_modules/.cache/showroom-tests/`, where the `integration`, `e2e` and `serve` tiers also get their own system temporary folder.
 
-`tsshowcase check` (and `check()`) reads the host repository's `tsshowcase.json`, picks the stack adapter it names, has it read the project information, then walks the host repository once, skipping ignored files and the output folder, to collect the documentation files and the code file index. Each list of patterns (`ignore`, `code`, `documentation`) works like a `.gitignore` file, matched by the `ignore` package: the built-in patterns (for documentation), then the stack adapter's, then the configuration's.
+`showroom check` (and `check()`) reads the host repository's `showroom.json`, picks the stack adapter it names, has it read the project information, then walks the host repository once, skipping ignored files and the output folder, to collect the documentation files and the code file index. It then scans the Markdown documentation files (`.md`) with `src/markdown/` (`unified` with `remark-parse` and `remark-gfm`, as the showroom parses them): showcase markers in code fences' info strings and inline links' titles give the showcases and virtual files, whose names must not collide; each showcase is validated by its showcase adapter (built-in, or a custom showcase adapter loaded from `customShowcaseAdapters`), and each showcase adapter in use checks the host repository's requirements. Broken showcases are errors; broken relative links are warnings. With `--showcases` (`showcases: true`), a check that found no errors then builds every showcase, as `build` does, and throws the showcase frames away. Each list of patterns (`ignore`, `code`, `documentation`) works like a `.gitignore` file, matched by the `ignore` package: the built-in patterns (for documentation), then the stack adapter's, then the configuration's.
 
-The showcase application (`src/app/`) presents the shown host information: the host information without the code file index. `tsc` compiles it to `dist/app/`, next to its static `index.html`, and Vite bundles it from there, with the data served as the `virtual:tsshowcase-host` module, which `main.ts` passes to `mount()`. It routes through the URL's hash (`#/` for the home page, `#/<path>` for any other documentation file, then `#<heading id>`), so it works on static hosting under any path. Markdown is rendered by `react-markdown` with `remark-gfm`, `rehype-slug` (GitHub-compatible heading ids) and `rehype-highlight`; relative links to documentation files become routes, and other relative links plain text. Styles are Griffel's `makeStyles` with FluentUI tokens, so everything, highlighted code included, follows the light or dark theme.
+The showroom (`src/app/`) presents the shown host information: the host information without the code file index, with the showcases that have a showcase frame and the frame's URL. `tsc` compiles it to `dist/app/`, next to its static `index.html`, and Vite bundles it from there, with the data served as the `virtual:showroom-host` module, which `main.ts` passes to `mount()`. It routes through the URL's hash (`#/` for the home page, `#/<path>` for any other documentation file, then `#<heading id>`), so it works on static hosting under any path. Markdown is rendered by `react-markdown` with `remark-gfm`, `rehype-slug` (GitHub-compatible heading ids) and `rehype-highlight`; relative links to documentation files become routes, and other relative links plain text. A remark plugin places each showcase frame's iframe right before the block holding its entry point (found by its offset); the iframe gets the theme in its URL at mount, and later by `postMessage` (through a React context, so a theme change never reloads it), and follows the height its showcase frame reports. Styles are Griffel's `makeStyles` with FluentUI tokens, so everything, highlighted code included, follows the light or dark theme. The layout switches to narrow viewports (below 768 px: the navigation in an overlay drawer, opened from the header) through CSS media queries alone (`NARROW_VIEWPORT`, `src/app/layout/`), so the page rendered on the server and the first paint agree.
 
-`tsshowcase serve` runs the check, then starts Vite's dev server with the configuration in `src/vite/`: Vite's root is the package's `dist/app/`, its cache a fresh temporary folder, the shown host information is served by a plugin as the virtual module, and React is aliased to tsshowcase's own copy. The server's watcher also watches the host repository, skipping what the `ignore` patterns skip; after a change, the host watcher reruns the check (debounced), and when the shown host information changed it invalidates the virtual module and fully reloads the page. `main()` imports `serve` and `build` dynamically, so only they ever load Vite.
+`showroom serve` runs the check, builds every showcase with `src/showcases/` (a showcase that doesn't build gets a showcase frame showing its build errors instead, and doesn't stop `serve`), then starts Vite's dev server with the configuration in `src/vite/`: Vite's root is the package's `dist/app/`, its cache a fresh temporary folder, the shown host information and the current issues are served by a plugin as the virtual module, a middleware hands out the showcase frames from memory (ahead of Vite's own, at the paths `build` writes them to), and React is aliased to `showroom`'s own copy. The server's watcher also watches the host repository, skipping what the `ignore` patterns skip; after a change, the host watcher (debounced) runs the check and, when it passes, builds every showcase again, as one run, then swaps the shown host information, the showcase frames and the issues together. When anything but the showcase frames' URLs changed, it invalidates the virtual module and fully reloads the page; when only showcase frames changed (each URL carries its content's hash), it sends the `showroom:showcases` event, and `main.ts` passes the new URLs to `mount()`'s updater, so only those iframes reload; changed issues are sent as the `showroom:issues` event, shown in the issues bar. Custom showcase adapters are imported by a URL carrying their content's hash, so a changed one is loaded again. `main()` imports `serve` and `build` dynamically, so only they ever load Vite.
 
-`tsshowcase build` runs the check, then Vite's `build()` with the same configuration, into the output folder, which must be inside the host repository and isn't its root. Vite empties the output folder first, so `build` only lets it when the folder is missing, empty, or holds the `.tsshowcase` marker file every build writes; anything else is refused, so a mistyped `outDir` never deletes the host repository's files. The bundler's warnings about the showcase application's own dependencies (FluentUI's `'use client'` directives, and its single large chunk) are left out, as the host repository can't act on them.
+`showroom build` runs the check, makes sure the output folder may be emptied, builds every showcase with `src/showcases/` (each with its showcase adapter, in memory, into a showcase frame, with the frame script from `src/frame/` inlined into its page; any build error stops the build before the output folder is touched), then runs Vite's `build()` with the same configuration, a plugin emitting the showcase frames' files into `showcases/<documentation file's path>/<n>/`, into the output folder, which must be inside the host repository and isn't its root. Vite empties the output folder first, so `build` only lets it when the folder is missing, empty, or holds the `.showroom` marker file every build writes; anything else is refused, so a mistyped `outDir` never deletes the host repository's files. The bundler's warnings about the showroom's own dependencies (FluentUI's `'use client'` directives, and its single large chunk) are left out, as the host repository can't act on them.
 
 ### Glossary
 
 Terms used across code, comments and documentation. Use them as defined here. A new concept is added to this list in the change that introduces it (an agent proposes it first, see [WORKFLOW.md](./WORKFLOW.md) › "Glossary").
 
-| Term                   | Meaning                                                                                                                                                                                                          |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Host repository        | The repository that uses tsshowcase, and that the showcase application presents.                                                                                                                                 |
-| Host information       | The data tsshowcase collects from a host repository (project information, documentation files, code file index), which the showcase application presents.                                                        |
-| Shown host information | The part of the host information the showcase application presents: the project information and the documentation files, without the code file index.                                                            |
-| Showcase application   | The static React/FluentUI SPA that tsshowcase builds (or serves, for previewing) for a host repository.                                                                                                          |
-| Project information    | The host repository's name, version, description, license, author, homepage and repository URL, read by its stack adapter.                                                                                       |
-| Documentation file     | A file in the host repository found by documentation discovery and the `documentation` patterns, and shown in the showcase application.                                                                          |
-| Code file index        | The sorted paths of the code files under the source root.                                                                                                                                                        |
-| Source root            | The folder under which the code file index is collected.                                                                                                                                                         |
-| Output folder          | The folder `tsshowcase build` builds the showcase application into (`outDir`, `./showcase` by default), emptied on every build.                                                                                  |
-| Stack adapter          | An implementation of the common interface for one kind of host repository (language or framework). It supplies the project information and which files count as code, and later the showcases.                   |
-| SCM adapter            | An adapter for the service where the host repository's code is kept (GitHub, GitLab, Bitbucket, …), used to link to, read or show the host repository's files from there. SCM stands for source code management. |
-| Showcase               | A demoable, renderable, possibly editable code example, embedded in the showcase application.                                                                                                                    |
+| Term                    | Meaning                                                                                                                                                                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Host repository         | The repository that uses `showroom`, and that the showroom presents.                                                                                                                                                                          |
+| Host information        | The data `showroom` collects from a host repository (project information, documentation files, code file index, showcases and virtual files), which the showroom presents.                                                                    |
+| Shown host information  | The part of the host information the showroom presents: the project information and the documentation files, without the code file index; and the showcases with a showcase frame, each with where it is placed and its showcase frame's URL. |
+| Showroom                | The static React/FluentUI SPA that `showroom` builds (or serves, for previewing) for a host repository: its documentation, enriched by the showcases embedded in it. Not to be confused with `showroom`, the tool (always written as code).   |
+| Project information     | The host repository's name, version, description, license, author, homepage and repository URL, read by its stack adapter.                                                                                                                    |
+| Documentation file      | A file in the host repository found by documentation discovery and the `documentation` patterns, and shown in the showroom.                                                                                                                   |
+| Code file index         | The sorted paths of the code files under the source root.                                                                                                                                                                                     |
+| Source root             | The folder under which the code file index is collected.                                                                                                                                                                                      |
+| Output folder           | The folder `showroom build` builds the showroom into (`outDir`, `./showroom` by default), emptied on every build.                                                                                                                             |
+| Stack adapter           | An implementation of the common interface for one kind of host repository (language or framework). It supplies the project information and which files count as code.                                                                         |
+| SCM adapter             | An adapter for the service where the host repository's code is kept (GitHub, GitLab, Bitbucket, …), used to link to, read or show the host repository's files from there. SCM stands for source code management.                              |
+| Showcase                | A component demonstrating the usage of a unit of the host repository (a service, hook, directive, component, …), embedded in a documentation file, built by a showcase adapter, and shown in the showroom through a showcase frame.           |
+| Showcase marker         | The `showcase` keyword (with its showcase adapter, options and keys) in a code fence's info string or a link's title, marking a showcase's entry point or a showcase resource.                                                                |
+| Showcase entry point    | The code block or linked file a showcase is built from, marked with its showcase adapter.                                                                                                                                                     |
+| Showcase resource       | A code block marked `showcase file=<name>`: a virtual file in its documentation file's folder that showcases can use like a real file.                                                                                                        |
+| Showcase adapter        | An implementation of the common interface for building showcase frames for one kind of code (HTML, TypeScript, React, Angular, or the host repository's own), chosen per showcase by its marker.                                              |
+| Inline showcase         | A showcase whose entry point is a code block in a documentation file.                                                                                                                                                                         |
+| Linked showcase         | A showcase whose entry point is a real file, linked from a documentation file.                                                                                                                                                                |
+| Virtual file            | A file that exists only as a code block in a documentation file (a showcase resource, or an inline showcase's entry point under a generated name), resolved as if it were in that documentation file's folder.                                |
+| Custom showcase adapter | A showcase adapter the host repository supplies as a JavaScript module, listed in `showroom.json`'s `customShowcaseAdapters` ("bring your own build"); experimental until its interface is declared stable.                                   |
+| Showcase frame          | The page that renders one showcase, in isolation, embedded in the showroom with an iframe.                                                                                                                                                    |
+| Frame script            | The small, framework-free script `showroom` adds to every showcase frame page: it reports the showcase frame's height to the showroom, and applies the theme the showroom tells it.                                                           |
 
 <!-- <@ofzza/repo-skill:contribute> Managed by the repo skill: this tag marks where its Workflow section starts. -->
 
@@ -168,5 +188,52 @@ The terms for how work is done in this repository. They change only with the wor
 | **Stray write**         | A change no one asked for, found by comparing the repository with a snapshot taken before subagents ran; it's reported to you.  |
 | **Green**               | The repository builds, its full test suite passes, and its linters and formatters pass, as far as it has them.                  |
 | **Glossary**            | The project's domain terms, for what is built, in the first section of this file with "Glossary" in its heading.                |
+
+### Advanced workflow
+
+This repository also uses the advanced workflow, for keeping a complex specification and plan traceable over time.
+
+#### How it works
+
+- **Every item is tagged**, and tags are never renumbered or reused; untagged prose is only context. In documents, tags are written as italic code (_`D3`_) so they stand out:
+
+  | Tag  | Meaning                                                               |
+  | ---- | --------------------------------------------------------------------- |
+  | `D3` | A decision: one thing a segment requires or decides                   |
+  | `S2` | A specification segment (`S2.1`, `S2.1.1`, … for its children)        |
+  | `P4` | A plan segment (`P4.1`, … for its children)                           |
+  | `O1` | An open point                                                         |
+  | `L1` | A known open issue                                                    |
+  | `R1` | A revision of an approved segment                                     |
+  | `H1` | A hard rule (the HARD RULES are a specification segment of their own) |
+  | `K1` | A pitfall                                                             |
+
+- **Approval lines**: the specification, the plan and every segment open with their status: `draft`, `approved <date>`, `revised <date> (R<n>), pending re-approval`, `implemented <date>` or `merged into P<n>`. Approving a parent segment doesn't approve its draft children.
+- **Append-only decision logs**: in normal work, decisions are never rewritten or deleted. A change adds a new decision, and the old one's status points to it: `refined by`, `changed by`, `replaced by` or `superseded by`. Only statuses, approval lines, ticks and noted wording fixes change in place. Reading the statuses tells you what's currently in force.
+- **Extracted files**: parts of the specification or plan can move into their own files when that helps, e.g. `./.workflow/PLAN-P2-uploads.md`, linked from `SPEC.md` or `PLAN.md`. Pitfalls live in `./.workflow/SPEC-pitfalls.md`.
+- **Drift and re-approval**: wording fixes to an approved segment need no re-approval, but any change in scope does. When work on a child segment changes its parent, the parent is marked `revised` and re-approved together with the child.
+- **Compaction**: once a log grows long, the agent may propose compacting it down to the decisions in force, on your go-ahead, as a commit of its own; the full history stays in git, and **stubs** keep dropped tags that are still referenced.
+
+#### Terminology (advanced)
+
+| Term                | Meaning                                                                                                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Tag**             | An item's permanent identifier (e.g. `D3`, `S2.1`), never renumbered or reused.                                   |
+| **Decision**        | A tagged bullet (`D<n>`) recording one thing a segment requires or decides.                                       |
+| **Decision log**    | An append-only document of decisions: the specification, the plan and their extracted files.                      |
+| **Decision status** | Whether a decision is in force: `live`, `refined by`, `changed by`, `replaced by` or `superseded by`.             |
+| **Approval line**   | The status line a document or segment opens with: `draft`, `approved`, `revised`, `implemented` or `merged into`. |
+| **Revision**        | A tagged note (`R<n>`) on an approved segment that a later decision changed.                                      |
+| **Drift**           | A decision in a child segment that changes its parent segment or the specification.                               |
+| **Compaction**      | Rewriting a decision log down to the decisions in force.                                                          |
+| **Stub**            | The one line left in place of a tag dropped by compaction while it's still referenced.                            |
+| **Extracted file**  | A part of the specification or plan moved into its own `SPEC-…` or `PLAN-…` file.                                 |
+| **Evidence**        | The note under a decision recording a spike's conclusions.                                                        |
+| **Next free**       | The session state's line with the next free number of each tag type.                                              |
+
+#### What to watch out for
+
+- Don't edit decisions or tags by hand; ask the agent for the change, so that it's recorded as a new decision with its relations.
+- Refer to items by their tag when asking for changes (e.g. "replace D12", "resolve O3"); tags are how the agent finds and links them.
 
 <!-- </@ofzza/repo-skill:contribute> -->

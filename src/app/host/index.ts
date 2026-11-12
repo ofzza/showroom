@@ -1,23 +1,70 @@
 /**
- * The shown host information: the part of the host information the showcase application presents, and helpers for finding its documentation files
+ * The shown host information: the part of the host information the showroom presents, and helpers for finding its documentation files
  */
 
 import type { DocumentationFile, HostInformation } from '../../host/index.js';
+import { getFolder, isMarkdownPath } from '../../markdown/index.js';
+
+export { getFolder };
 
 // #region Shown host information
 
 /**
- * Represents the shown host information: the host information's project information and documentation files, without the code file index, which the
- * showcase application doesn't show
+ * Represents a shown showcase: where the showroom places a showcase's showcase frame, and the URL it loads it by
  */
-export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentation'>;
+export interface ShownShowcase {
+  /**
+   * Identifier of the showcase (e.g. `README.md#2`)
+   */
+  id: string;
+  /**
+   * POSIX-style path of the documentation file embedding the showcase, relative to the host repository's root
+   */
+  documentation: string;
+  /**
+   * Offset of the showcase's entry point (the fence, or the link) in the documentation file's content, in characters, from 0
+   */
+  offset: number;
+  /**
+   * URL of the showcase frame's page, relative to the showroom's page, with its content's hash as its query (`?hash=<hash>`), so a changed showcase
+   * frame gets a new URL
+   */
+  url: string;
+}
+
+/**
+ * Represents the shown host information: the host information's project information and documentation files, without the code file index, which the
+ * showroom doesn't show; and the showcases with a showcase frame
+ */
+export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentation'> & {
+  /**
+   * The showcases with a showcase frame, sorted by documentation file and offset; in `serve`, a showcase that doesn't build has the showcase frame
+   * showing its build errors
+   */
+  showcases: ShownShowcase[];
+};
+
+/**
+ * Applies the new URLs of showcase frames to the shown showcases, by id: what `serve` sends when only showcase frames changed
+ * @param showcases The shown showcases
+ * @param next The shown showcases with their new URLs, every one of them
+ * @returns The shown showcases with the new URLs; the same list if no URL changed
+ */
+export function applyShowcaseUrls(showcases: ShownShowcase[], next: readonly Pick<ShownShowcase, 'id' | 'url'>[]): ShownShowcase[] {
+  const urls = new Map(next.map(({ id, url }) => [id, url]));
+  const applied = showcases.map((showcase) => {
+    const url = urls.get(showcase.id);
+    return url === undefined || url === showcase.url ? showcase : { ...showcase, url };
+  });
+  return applied.some((showcase, index) => showcase !== showcases[index]) ? applied : showcases;
+}
 
 // #endregion
 
 // #region Documentation files
 
 /**
- * Checks if a documentation file is the root `README`, which the showcase application shows on its home page
+ * Checks if a documentation file is the root `README`, which the showroom shows on its home page
  * @param file Documentation file
  * @returns True if the file is the `README` in the host repository's root
  */
@@ -40,16 +87,7 @@ export function getRootReadme(documentation: DocumentationFile[]): Documentation
  * @returns True if the file is a Markdown file
  */
 export function isMarkdown(file: DocumentationFile): boolean {
-  return file.extension.toLowerCase() === '.md';
-}
-
-/**
- * Gets the folder of a POSIX-style path relative to the host repository's root
- * @param path Path of a file
- * @returns Path of the file's folder, or an empty string for a file in the root
- */
-export function getFolder(path: string): string {
-  return path.slice(0, Math.max(path.lastIndexOf('/'), 0));
+  return isMarkdownPath(file.path);
 }
 
 /**

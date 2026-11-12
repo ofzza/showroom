@@ -1,5 +1,5 @@
 /**
- * Tests of the showcase application's hash router
+ * Tests of the showroom's hash router
  */
 
 import { describe, it, expect } from 'vitest';

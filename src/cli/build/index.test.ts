@@ -1,5 +1,5 @@
 /**
- * Tests of `tsshowcase build`
+ * Tests of `showroom build`
  */
 
 import { describe, it, expect } from 'vitest';
@@ -51,7 +51,7 @@ describe('cli/build', () => {
     it('Reads the state of output folders', async () => {
       const root = _fixture('output-folder');
       expect(await readOutputFolderState(join(root, 'missing'))).toBe('missing');
-      expect(await readOutputFolderState(join(root, 'showcase'))).toBe('marked');
+      expect(await readOutputFolderState(join(root, 'showroom'))).toBe('marked');
       expect(await readOutputFolderState(join(root, 'unmarked'))).toBe('unmarked');
     });
 
@@ -66,18 +66,18 @@ describe('cli/build', () => {
   });
 
   describe('getBuildConfiguration', () => {
-    // The Vite configuration the build adds to the showcase application's.
+    // The Vite configuration the build adds to the showroom's.
 
     const configuration = getBuildConfiguration({
       appDir: '/app',
       cacheDir: '/cache',
-      getHost: () => ({ project: { name: 'host' }, documentation: [] }),
-      outDir: '/host/showcase',
+      getHost: () => ({ project: { name: 'host' }, documentation: [], showcases: [] }),
+      outDir: '/host/showroom',
     });
 
-    it("Builds the showcase application's configuration into the output folder, emptying it", () => {
+    it("Builds the showroom's configuration into the output folder, emptying it", () => {
       expect(configuration).toMatchObject({ configFile: false, root: '/app', base: './', cacheDir: '/cache', logLevel: 'warn' });
-      expect(configuration.build).toMatchObject({ outDir: '/host/showcase', emptyOutDir: true, chunkSizeWarningLimit: CHUNK_SIZE_WARNING_LIMIT });
+      expect(configuration.build).toMatchObject({ outDir: '/host/showroom', emptyOutDir: true, chunkSizeWarningLimit: CHUNK_SIZE_WARNING_LIMIT });
     });
 
     it("Leaves out the 'use client' directive warnings, passing on every other warning", () => {
@@ -96,7 +96,7 @@ describe('cli/build', () => {
     it('Exits with 1, writing the issues, without building, when the check fails', async () => {
       const { output, written } = _capture();
       expect(await build({ root: _fixture('unknown-stack'), output })).toBe(1);
-      expect(written).toEqual({ stdout: '', stderr: 'error: tsshowcase.json: Unknown stack "cobol"; the stack adapters are: typescript\n' });
+      expect(written).toEqual({ stdout: '', stderr: 'error: showroom.json: Unknown stack "cobol"; the stack adapters are: typescript\n' });
     });
 
     it('Exits with 1, without building, when the output folder holds anything but an earlier build', async () => {
@@ -105,7 +105,7 @@ describe('cli/build', () => {
       expect(await build({ root, outDir: join(root, 'unmarked'), output })).toBe(1);
       expect(written.stdout).toBe('');
       expect(written.stderr).toBe(
-        'error: Output folder "unmarked" is not empty, and holds no .tsshowcase file from an earlier build; empty or delete it, or choose another output folder\n',
+        'error: Output folder "unmarked" is not empty, and holds no .showroom file from an earlier build; empty or delete it, or choose another output folder\n',
       );
     });
   });

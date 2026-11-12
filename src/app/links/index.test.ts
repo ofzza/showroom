@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import type { DocumentationFile } from '../../host/index.js';
-import { isAbsoluteUrl, resolveLink } from './index.js';
+import { resolveLink } from './index.js';
 
 /**
  * Creates a documentation file with empty content
@@ -25,15 +25,6 @@ describe('app/links', () => {
   const docsReadme = _file('docs/README.md', 'readme');
   const spaced = _file('docs/my notes.md');
   const documentation = [license, readme, docsReadme, guide, spaced];
-
-  it('Recognises absolute URLs', () => {
-    expect(isAbsoluteUrl('https://example.com')).toBe(true);
-    expect(isAbsoluteUrl('mailto:someone@example.com')).toBe(true);
-    expect(isAbsoluteUrl('//example.com/a')).toBe(true);
-    expect(isAbsoluteUrl('docs/guide.md')).toBe(false);
-    expect(isAbsoluteUrl('/docs/guide.md')).toBe(false);
-    expect(isAbsoluteUrl('#install')).toBe(false);
-  });
 
   it('Leaves absolute URLs unchanged', () => {
     expect(resolveLink('https://example.com/a#b', readme, documentation)).toEqual({ kind: 'external', href: 'https://example.com/a#b' });
