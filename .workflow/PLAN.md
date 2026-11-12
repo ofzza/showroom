@@ -225,6 +225,10 @@ None (_`D61`_).
 - [x] _`O12`_ From review 2026-11-09: set `build.emptyOutDir`. Set `build.emptyOutDir: true`: the output folder is outside Vite's root (_`D50`_), so Vite won't empty it otherwise. Resolved by _`D62`_.
 - [x] _`O13`_ From review 2026-11-09: check a host with a different React by hand. Check by hand, in a host repository with a different React installed, that the showcase application uses tsshowcase's own React (_`D57`_). Resolved by _`D67`_ (step 5's trial): a host with React 18 and FluentUI hoisted next to it bundled only React 19.3.1, and the user's browser check passed.
 
+## Showcases
+
+- _`P4`_ Showcases: the showcase adapter interface, `html` and "bring your own build" (draft). [See Showcases](./PLAN-P4-showcases.md)
+
 ## Known open issues
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: not yet assigned. Status: `open`.

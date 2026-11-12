@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ are implemented and committed.
-- **Next free:** _`D105`_, _`S8`_, _`P4`_, _`O20`_, _`L3`_, _`R4`_, _`H1`_, _`K15`_
-- **Working on:** nothing in progress.
-- **Next step:** planning the first showcases segment (_`D100`_: the showcase adapter interface, the `html` showcase adapter, "bring your own build"), with _`D102`_'s checks and _`S7`_ (_`D104`_) to be placed in the plan; read `./.workflow/.temp/showcases-ideas/NOTES.md` first.
+- **Next free:** _`D114`_, _`S8`_, _`P5`_, _`O22`_, _`L3`_, _`R4`_, _`H1`_, _`K15`_
+- **Working on:** planning _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`, draft): its testing strategy (_`D105`_–_`D109`_) and segmentation (_`D110`_–_`D113`_: _`P4.1`_–_`P4.3`_) are approved; _`P4.1`_–_`P4.3`_ are not yet planned.
+- **Next step:** plan _`P4.1`_ Showcase markers and documentation checks. `./.workflow/.temp/showcases-ideas/NOTES.md` holds older proposals.
 
 ## Open questions
 
@@ -14,7 +14,7 @@
 ## Waiting on me
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
-- The go-ahead to start planning the first showcases segment.
+- The go-ahead to start planning _`P4.1`_.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
 ## Running
@@ -74,3 +74,6 @@
 - 2026-11-12: Re-approval checkpoint: the user chose "Keep iterating". `questions-s6-format/` and `showcases-format-discussion/` working files deleted with the user's yes ("Delete the two").
 - 2026-11-12: `check` as a drift guard agreed ("Agreed on everything"): static checks always, building showcases with a flag (_`D102`_), type checking on by default in `ts`-based showcase adapters (_`D103`_), warnings for broken documentation links (_`D104`_, new _`S7`_); a headless third tier is an idea for later.
 - 2026-11-12: _`S6`_, _`S6.1`_, _`S6.2`_ re-approved, and _`S6.5`_, _`S6.6`_, _`S7`_ approved, with _`K14`_ and the Glossary changes (option chosen: "Approve and commit").
+- 2026-11-12: _`P4`_ Showcases planning started (go-ahead: "Lets proceed"); segmentation proposed (_`P4.1`_–_`P4.3`_), the user chose "Discuss". Testing strategy settled first ("Now, design parts"): _`D105`_ ("In memory + scratch"), _`D106`_ (scratch folder for all tests, "node_modules/.cache"), _`D107`_ ("Copy, shared deps"), _`D108`_ (broad E2E, serve included), _`D109`_ ("Four projects"); _`K12`_ taken by _`P4`_, _`O20`_, _`O21`_ added.
+- 2026-11-12: _`P4`_ segmentation choices answered as recommended ("Inside P4.1", "Whole in P4.1", "build, then serve", "P4.1"): _`D110`_–_`D113`_, _`O21`_ resolved.
+- 2026-11-12: _`P4`_'s segmentation (_`P4.1`_–_`P4.3`_), testing strategy and _`D105`_–_`D113`_ approved (option chosen: "Approve and commit").
