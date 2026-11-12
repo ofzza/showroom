@@ -398,7 +398,7 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
         if (!isValidVirtualFileName(marker.file)) {
           return error(node, `Invalid resource name "${marker.file}": use a plain file name, with no "/" or "\\"`);
         }
-        scan.virtualFiles.push({ path: virtualPath(marker.file), content: node.value ?? '', documentation: path, line: _line(node) });
+        scan.virtualFiles.push({ path: virtualPath(marker.file), kind: 'resource', content: node.value ?? '', documentation: path, line: _line(node) });
         return;
       }
       // An inline showcase's entry point, with a generated name
@@ -409,7 +409,7 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
           error(node, `The code block's language "${lang}" can't be a file extension`);
           return undefined;
         }
-        scan.virtualFiles.push({ path: virtualPath(generated), content: node.value ?? '', documentation: path, line: _line(node) });
+        scan.virtualFiles.push({ path: virtualPath(generated), kind: 'entry', content: node.value ?? '', documentation: path, line: _line(node) });
         return virtualPath(generated);
       });
       return;

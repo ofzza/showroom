@@ -10,7 +10,13 @@ A page:
 A fragment:
 
 ```html showcase
-<p class="fragment">A fragment</p>
+<p class="fragment">A fragment</p><script src="./fragment.js"></script>
 ```
 
 A [linked page](./demos/page.html 'showcase'), and the [notes](docs/my%20notes%20%231.md).
+
+A resource, next to every html showcase frame of this folder:
+
+```js showcase file=fragment.js
+document.querySelector('.fragment').textContent += ', with a resource';
+```

@@ -1,6 +1,6 @@
 # _`P4.4`_ Resources in `html` showcases, and live README examples
 
-approved 2026-11-12
+approved 2026-11-12; implemented 2026-11-12
 
 Child of _`P4`_ (PLAN-P4-showcases.md). Started 2026-11-12 from the dogfooding check (`showroom` built against its own repository): the user asked that every example in `README.md` showing how a showcase is written be followed by that showcase, live. That surfaced that an `html` showcase can't use a resource (_`D134`_, PLAN-P4.2-showcase-frames.md), which the user reconsidered: not following what a page references stays, but an explicitly declared resource should be usable. Planned before _`P4.3`_.
 
@@ -26,6 +26,10 @@ Not in _`P4.4`_: following real files from disk for `html` (_`D150`_ stays); a l
 - _`D174`_ (`live`): **Real files behind live showcases go in `./examples/`** at the repository root (the user's choice), outside `src/`, so they are never built, linted or published; the linked example's path becomes `./examples/button.html`, so the example and the live showcase match.
 - _`D175`_ (`live`; Q3 "Yes (Rec.)"): **A test keeps this repository's own showroom working**: an `integration` test runs `check()` with `showcases: true` on the repository's root and expects no issues, and at least one showcase of each kind in `README.md`; it fails when an edit breaks a README showcase. Rejected: no test (the user's dogfooding by hand only).
 
+### From the implementation (2026-11-12)
+
+- _`D176`_ (`live`; resolves _`O26`_; the user: "Own temp folder (Rec.)"): **The test that `buildShowcases()` removes its temporary folder runs its build in an OS temp folder of its own** (`TMPDIR`, `TMP` and `TEMP` pointed at a scratch folder for its build), and expects it empty afterwards: the `integration` tier's own temp folder is shared with the other test files, which may be building at the same moment. Rejected: running the `integration` tier's files one after another (slower); moving _`D175`_'s test to the `e2e` tier (leaves the race).
+
 ## Steps
 
 1. Already done (the fast path, before this segment): the live inline `html` showcase after the inline example; `AGENTS.md`'s note that `README.md` holds deliberately live showcases; _`L4`_–_`L8`_ (PLAN.md).
@@ -37,3 +41,4 @@ Not in _`P4.4`_: following real files from disk for `html` (_`D150`_ stays); a l
 ## Open points
 
 - [ ] _`O25`_ From _`D169`_. For _`P4.3`_: `serve` hands out an `html` showcase frame's resources with its page, and updates them when their code blocks change.
+- [x] _`O26`_ (resolved by _`D176`_) From _`P4.4`_'s implementation (_`D175`_). `showcases (integration)` › "Removes its temporary folder" failed now and then (seen before _`P4.4`_ too): it expected no `showroom-showcases-*` folder in the tier's shared OS temp folder while another test file was building; with _`D175`_'s build it failed about 1 run in 6.

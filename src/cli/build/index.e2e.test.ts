@@ -59,6 +59,10 @@ describe('cli/build (end to end)', () => {
     for (const n of [1, 2, 3]) {
       expect(await readFile(join(out, 'showcases', 'README.md', String(n), 'index.html'), 'utf8')).toContain(script);
     }
+    // The html showcase frames, each with the README's resource next to its page
+    for (const n of [1, 2, 3]) {
+      expect(await readFile(join(out, 'showcases', 'README.md', String(n), 'fragment.js'), 'utf8')).toContain("textContent += ', with a resource'");
+    }
     const custom = join(out, 'showcases', 'docs', 'my notes #1.md', '1');
     expect(await readFile(join(custom, 'index.html'), 'utf8')).toContain('Widget ✓');
     expect(await readFile(join(custom, 'assets', 'style.css'), 'utf8')).toBe('body { font-family: sans-serif; }');

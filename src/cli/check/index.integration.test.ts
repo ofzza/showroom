@@ -3,13 +3,14 @@
  */
 
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { FIXTURES } from '../../testing/index.js';
 import { check } from './index.js';
 
 describe('cli/check (integration)', () => {
-  // Runs check() with `showcases: true` on the `showcase-frames` fixture, whose showcases all build, and on the `showcase-build-errors` fixture,
-  // whose custom showcase adapters fail; the fixtures are only read.
+  // Runs check() with `showcases: true` on the `showcase-frames` fixture, whose showcases all build, on the `showcase-build-errors` fixture,
+  // whose custom showcase adapters fail, and on this repository itself, whose README.md holds live showcases; nothing is written to any of them.
 
   it('Passes with the host information when every showcase builds', async () => {
     const plain = await check(join(FIXTURES, 'showcase-frames'));
@@ -31,5 +32,16 @@ describe('cli/check (integration)', () => {
       'README.md:12: Showcase README.md#2 (README.md:12): Showcase adapter "throwing" failed to build the showcase: build broke',
       'README.md:18: Showcase README.md#3 (README.md:18): Showcase adapter "invalid" returned an invalid build result: the page "missing.html" is not among the files',
     ]);
+  });
+
+  it("Passes on this repository, with README.md's live showcases", async () => {
+    // Guards this repository's own showroom (dogfooding): an edit that breaks one of README.md's live examples fails here. See AGENTS.md › Markers in
+    // this repository's own documentation files are live.
+    const result = await check(fileURLToPath(new URL('../../..', import.meta.url)), { showcases: true });
+    expect(result.issues).toEqual([]);
+    const showcases = result.host!.showcases.filter((showcase) => showcase.documentation === 'README.md');
+    expect(showcases[0]).toMatchObject({ kind: 'inline', adapter: 'html', entry: 'README.showcase-1.html' });
+    expect(showcases.map((showcase) => showcase.kind)).toEqual(expect.arrayContaining(['inline', 'linked']));
+    expect(result.host!.virtualFiles.filter((file) => file.documentation === 'README.md').map((file) => file.kind)).toContain('resource');
   });
 });

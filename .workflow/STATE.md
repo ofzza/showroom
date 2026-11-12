@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** planning (_`P4`_). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_, _`P4.1`_ and _`P4.2`_ are implemented and committed.
-- **Next free:** _`D176`_, _`S8`_, _`P5`_, _`O26`_, _`L9`_, _`R11`_, _`H1`_, _`K15`_
-- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ Showcase frames in `build` implemented (`./.workflow/PLAN-P4.2-showcase-frames.md`); _`P4.4`_ Resources in `html` showcases, and live README examples approved (`./.workflow/PLAN-P4.4-html-resources.md`), to go before _`P4.3`_; _`P4.3`_ not yet planned.
-- **Next step:** implement _`P4.4`_ (its step 1, the README fast-path change, is uncommitted), then plan _`P4.3`_.
+- **Next free:** _`D177`_, _`S8`_, _`P5`_, _`O27`_, _`L9`_, _`R11`_, _`H1`_, _`K15`_
+- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ Showcase frames in `build` implemented (`./.workflow/PLAN-P4.2-showcase-frames.md`); _`P4.4`_ Resources in `html` showcases, and live README examples implemented (`./.workflow/PLAN-P4.4-html-resources.md`), to go before _`P4.3`_; _`P4.3`_ not yet planned.
+- **Next step:** plan _`P4.3`_ Showcases in `serve` (its open points include _`O22`_, _`O24`_ and _`O25`_).
 
 ## Open questions
 
@@ -19,7 +19,7 @@
 
 ## Running
 
-- HTTP server on http://127.0.0.1:8765/ serving `./.workflow/.temp/dogfood/host/showroom/` for the user's preview of the dogfooding fast path (stop it before committing).
+- Nothing.
 
 ## History
 
@@ -108,3 +108,7 @@
 - 2026-11-12: Live README examples: the user asked that every README example of how a showcase is written be followed by the live showcase (Q1 "./examples/", Q2 "No, keep it as text", Q4 "Short line (Rec.)"); `html` showcases using declared resources agreed ("Yes, as described (Rec.)"), as a new segment ("New small segment P4.4 (Rec.)"): _`P4.4`_ drafted (_`D169`_–_`D175`_, _`O25`_), _`R10`_ on _`P4.2`_.
 - 2026-11-12: _`P4.4`_ choices answered: Q1 "A: kind on VirtualFile (Rec.)" (_`D170`_), Q2 "Yes, same rule (Rec.)" (_`D171`_), Q3 "Yes (Rec.)" (_`D175`_).
 - 2026-11-12: _`P4.4`_ approved, and _`P4.2`_ re-approved with _`R10`_ (option chosen: "Approve and commit (Rec.)").
+- 2026-11-12: _`P4.4`_ implementation started (user: "Ok, let's implement all of the P4.4 steps and then review ..."); a flaky `integration` test found (_`O26`_), fixed by _`D176`_ (option chosen: "Own temp folder (Rec.)").
+- 2026-11-12: _`P4.4`_ implemented (steps 1–5): `npm run ci` green (512 unit, 6 integration, 10 end-to-end tests); dogfood build of a copy of this repository checked in Playwright (4 live showcases in `README.md`).
+- 2026-11-12: _`P4.4`_ checkpoint: approved, not committed (option chosen: "Approve, don't commit").
+- 2026-11-12: _`P4.4`_ committed at the user's request ("Before we proceed, let's first commit").

@@ -4,7 +4,7 @@
 
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import type { Showcase, VirtualFile } from '../../../host/index.js';
+import type { Showcase, VirtualFile, VirtualFileKind } from '../../../host/index.js';
 import type { ShowcaseAdapter, ShowcaseBuildRequest } from '../index.js';
 import { HtmlShowcaseAdapter, isHtmlPage, skipHtmlSpaceAndComments, wrapHtmlFragment } from './index.js';
 
@@ -50,7 +50,7 @@ describe('adapters/showcase/html', () => {
   });
 
   describe('Build', () => {
-    // Tests building showcase frames: the entry point alone, as the page, or a fragment wrapped into one.
+    // Tests building showcase frames: the entry point as the page, or a fragment wrapped into one, with the resources of its folder next to it.
 
     /**
      * Creates a build request
@@ -65,7 +65,13 @@ describe('adapters/showcase/html', () => {
       virtualFiles,
       scratchFolder: _ROOT,
     });
-    const virtual = (path: string, content: string): VirtualFile => ({ path, content, documentation: 'README.md', line: 3 });
+    const virtual = (path: string, content: string, kind: VirtualFileKind = 'entry'): VirtualFile => ({
+      path,
+      kind,
+      content,
+      documentation: 'README.md',
+      line: 3,
+    });
 
     it('Builds an inline page as it is', async () => {
       const page = '<!doctype html><html><body><p>Hi</p></body></html>';
@@ -85,6 +91,39 @@ describe('adapters/showcase/html', () => {
       expect(result.reads).toEqual(['demos/page.html']);
       expect(result.files).toHaveLength(1);
       expect(result.files![0].content).toContain('<link rel="stylesheet" href="./page.css" />');
+    });
+
+    it('Puts every resource of its folder next to the page, and no other showcase entry point', async () => {
+      const files = [
+        virtual('README.showcase-1.html', '<script src="./demo.js"></script>'),
+        virtual('README.showcase-2.html', '<p>Other</p>'),
+        virtual('demo.js', 'run();', 'resource'),
+        { path: 'unused.css', kind: 'resource' as const, content: 'p {}', documentation: 'CONTRIBUTE.md', line: 9 },
+      ];
+      const result = await adapter.build(request(_showcase('inline', 'README.showcase-1.html'), files));
+      expect(result).toEqual({
+        page: 'index.html',
+        files: [
+          { path: 'index.html', content: wrapHtmlFragment('<script src="./demo.js"></script>') },
+          { path: 'demo.js', content: 'run();' },
+          { path: 'unused.css', content: 'p {}' },
+        ],
+        reads: ['README.md', 'CONTRIBUTE.md'],
+      });
+    });
+
+    it('Puts the resources next to a linked page too, under their names', async () => {
+      const result = await adapter.build(request(_showcase('linked', 'demos/page.html'), [virtual('demos/page.css', 'p {}', 'resource')]));
+      expect(result.files?.map((file) => file.path)).toEqual(['index.html', 'page.css']);
+      expect(result.reads).toEqual(['demos/page.html', 'README.md']);
+    });
+
+    it('Fails on a resource that would replace the page, ignoring case', async () => {
+      const files = [virtual('README.showcase-1.html', '<p>Hi</p>'), virtual('INDEX.html', '<p>Mine</p>', 'resource')];
+      expect(await adapter.build(request(_showcase('inline', 'README.showcase-1.html'), files))).toEqual({
+        reads: ['README.md'],
+        errors: [{ message: 'The resource "INDEX.html" would replace the showcase frame\'s page', path: 'INDEX.html' }],
+      });
     });
 
     it('Reports an entry point it cannot find', async () => {

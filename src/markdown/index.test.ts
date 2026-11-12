@@ -130,8 +130,8 @@ describe('markdown', () => {
         },
       ]);
       expect(scan.virtualFiles).toEqual([
-        { path: 'docs/guide.showcase-1.html', content: '<p>Hi</p>', documentation: 'docs/guide.md', line: 3 },
-        { path: 'docs/guide.showcase-2.ts', content: 'log(1);', documentation: 'docs/guide.md', line: 7 },
+        { path: 'docs/guide.showcase-1.html', kind: 'entry', content: '<p>Hi</p>', documentation: 'docs/guide.md', line: 3 },
+        { path: 'docs/guide.showcase-2.ts', kind: 'entry', content: 'log(1);', documentation: 'docs/guide.md', line: 7 },
       ]);
     });
 
@@ -143,7 +143,7 @@ describe('markdown', () => {
     it('Finds resources', () => {
       const scan = scanMarkdown('docs/guide.md', ['```css showcase file=styles.css', 'p {}', '```'].join('\n'));
       expect(scan.showcases).toEqual([]);
-      expect(scan.virtualFiles).toEqual([{ path: 'docs/styles.css', content: 'p {}', documentation: 'docs/guide.md', line: 1 }]);
+      expect(scan.virtualFiles).toEqual([{ path: 'docs/styles.css', kind: 'resource', content: 'p {}', documentation: 'docs/guide.md', line: 1 }]);
     });
 
     it('Ignores fences without a marker after the language', () => {

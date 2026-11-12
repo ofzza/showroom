@@ -128,7 +128,13 @@ An **inline showcase** is a fenced code block with the marker right after its la
 ```
 ````
 
-A code block marked `showcase file=<name>` is a **resource** instead: a file other showcases can use, if their showcase adapter follows files (the planned `ts`, `react` and `angular` ones, and custom showcase adapters; the `html` one doesn't):
+Here is that block again, as a live showcase in this repository's own showroom:
+
+```html showcase
+<button style="color: rebeccapurple" onclick="this.textContent = 'Clicked'">Click me</button>
+```
+
+A code block marked `showcase file=<name>` is a **resource** instead: a file the showcases of its folder can use. Here, a stylesheet, and an inline showcase using it:
 
 ````md
 ```css showcase file=demo.css
@@ -136,15 +142,37 @@ A code block marked `showcase file=<name>` is a **resource** instead: a file oth
   color: rebeccapurple;
 }
 ```
+
+```html showcase
+<link rel="stylesheet" href="./demo.css" />
+<p class="demo">Styled by a resource</p>
+```
 ````
 
-The code blocks of inline showcases and resources are **virtual files**: they resolve like real files in their documentation file's folder, so every documentation file in that folder, and other folders through relative paths, can use them. A resource is named by its `file` key, a plain file name. An inline showcase's entry point gets a generated name, `<documentation file's name>.showcase-<n>.<extension>`, where `<n>` is its position among the showcases in its documentation file, and `<extension>` comes from the code block's language (`typescript` gives `ts`, `javascript` gives `js`, `htm` gives `html`; any other language is used as is). The showcase above, in `README.md`, is `README.showcase-1.html`. A virtual file's name may not collide, ignoring case, with another virtual file or a real file or folder in the same folder.
+Here are those blocks again, live:
+
+```css showcase file=demo.css
+.demo {
+  color: rebeccapurple;
+}
+```
+
+```html showcase
+<link rel="stylesheet" href="./demo.css" />
+<p class="demo">Styled by a resource</p>
+```
+
+The code blocks of inline showcases and resources are **virtual files**: they resolve like real files in their documentation file's folder, so every documentation file in that folder, and other folders through relative paths, can use them. A resource is named by its `file` key, a plain file name. An inline showcase's entry point gets a generated name, `<documentation file's name>.showcase-<n>.<extension>`, where `<n>` is its position among the showcases in its documentation file, and `<extension>` comes from the code block's language (`typescript` gives `ts`, `javascript` gives `js`, `htm` gives `html`; any other language is used as is). The first showcase in `README.md`, the button above, is `README.showcase-1.html`. A virtual file's name may not collide, ignoring case, with another virtual file or a real file or folder in the same folder.
 
 A **linked showcase** is a link to its entry point's file, with the marker as the link's title. The link stays an ordinary link anywhere else:
 
 ```md
-[The button demo](./demos/button.html 'showcase')
+[The button demo](./examples/button.html 'showcase')
 ```
+
+Here is that link again, live:
+
+[The button demo](./examples/button.html 'showcase')
 
 The link must be an inline link (not a reference, nor an image) with a relative path, without a query or fragment, naming a file inside the host repository that isn't a virtual file. The files the entry point uses are ordinary files too, which a showcase adapter building from disk follows; the `html` showcase adapter follows none (see below). A title is a marker when its first word is `showcase`, or starts with `showcase=`, and must then be a valid marker.
 
@@ -154,7 +182,7 @@ The built-in showcase adapters:
 | ---------------- | ----------------------------------------------------------- | ------- | ------------------------------ |
 | `html`           | an `html` or `htm` code block, or an `.html` or `.htm` file | none    | nothing                        |
 
-An `html` showcase is **self-contained**: its showcase frame is its entry point alone. An entry point that starts (after whitespace and comments) with `<!doctype`, `<html`, `<head` or `<?xml` is a complete page, used as it is; anything else is a fragment, wrapped into a page of its own. Pages are UTF-8. Relative references in it (`<script src>`, `<link href>`, `<img src>`) are neither followed nor copied, so keep an `html` showcase's styles and scripts inline (resources are of no use to it); absolute URLs work.
+An `html` showcase's showcase frame is its entry point, as the page, and **every resource of its documentation file's folder**, next to the page under its name, whether the page uses it or not. An entry point that starts (after whitespace and comments) with `<!doctype`, `<html`, `<head` or `<?xml` is a complete page, used as it is; anything else is a fragment, wrapped into a page of its own. Pages are UTF-8. Nothing else is followed or copied: the page isn't read for its relative references (`<script src>`, `<link href>`, `<img src>`), so they only reach those resources, and resolve as written for an inline showcase, or a linked page in its documentation file's folder. Keep other styles and scripts inline, or use absolute URLs. A resource named `index.html` would replace the page, and fails the build. (A script needs its closing tag, `<script src="./demo.js"></script>`: HTML has no self-closing `<script />`.)
 
 `ts`, `react` and `angular` showcase adapters are planned. A broken showcase is an error `showroom check` reports, with its documentation file and line: a broken marker, a marker anywhere else than after a code block's language or in an inline link's title, an unknown showcase adapter, options or an entry point the showcase adapter rejects, a virtual file's name that collides, a linked file that doesn't exist, and a showcase adapter's missing host requirements.
 
@@ -169,6 +197,12 @@ The showcase frame follows the showroom's light or dark theme: the script sets i
 <p style="color: light-dark(#0f6cbd, #479ef5)">A themed fragment</p>
 ```
 ````
+
+Here is that block again, live (switch the showroom's theme to see it change):
+
+```html showcase
+<p style="color: light-dark(#0f6cbd, #479ef5)">A themed fragment</p>
+```
 
 ## Custom showcase adapters (experimental)
 
@@ -215,7 +249,7 @@ export default (): ShowcaseAdapter => ({
 
 - `validate(showcase)` gets the `Showcase` with its options as the marker gives them, and returns `{ options, errors: [] }` (the options as the adapter will use them) or `{ errors: [...] }`.
 - `check?(root)` returns the host requirements that are missing (e.g. a package not installed), as messages; none means nothing is missing.
-- `build(request)` builds one showcase, called by `showroom build` and `showroom check --showcases`, one showcase at a time. It gets a `ShowcaseBuildRequest`: the host repository's absolute `root`, the `showcase`, its validated `options`, the `virtualFiles` of its documentation file's folder (in memory: they aren't on disk, so put them before your tooling yourself), and an empty `scratchFolder` for tools that must write to disk, removed after the build. It returns a `ShowcaseBuildResult`, with the files it `reads` (paths relative to the root) either way:
+- `build(request)` builds one showcase, called by `showroom build` and `showroom check --showcases`, one showcase at a time. It gets a `ShowcaseBuildRequest`: the host repository's absolute `root`, the `showcase`, its validated `options`, the `virtualFiles` of its documentation file's folder, resources and inline showcases' entry points told apart by their `kind` (in memory: they aren't on disk, so put them before your tooling yourself), and an empty `scratchFolder` for tools that must write to disk, removed after the build. It returns a `ShowcaseBuildResult`, with the files it `reads` (paths relative to the root) either way:
   - the showcase frame: its `files`, each with a `path` relative to the showcase frame's folder (POSIX-style, with no `.`, `..` or empty segments, unique ignoring case) and its `content` (a string, or bytes as a `Uint8Array`), and the `page` among them (an `.html` or `.htm` file, UTF-8 if given as bytes). `showroom` adds its frame script to the page, and writes the files into the showcase frame's folder (`showcases/<documentation file's path>/<n>/` in the output folder), so relative references between them work;
   - or `errors`, each with a `message`, and the `path` (relative to the root) and `line` it concerns, if any. An error in a virtual file is reported in its documentation file, at its code block's line plus the error's; one without a path, at the showcase's entry point. A `build()` that throws, or returns anything else, fails the showcase too.
 - `close?()` is called once at the end of a run, so an adapter can share work between its showcases.
@@ -248,11 +282,11 @@ The host information has this shape (types `HostInformation`, `ProjectInformatio
   "showcases": [
     { "id": "README.md#1", "documentation": "README.md", "line": 3, "offset": 14, "kind": "inline", "adapter": "html", "entry": "README.showcase-1.html" }
   ],
-  "virtualFiles": [{ "path": "README.showcase-1.html", "content": "<p>Hi</p>", "documentation": "README.md", "line": 3 }]
+  "virtualFiles": [{ "path": "README.showcase-1.html", "kind": "entry", "content": "<p>Hi</p>", "documentation": "README.md", "line": 3 }]
 }
 ````
 
-Documentation files have a `kind` of `readme`, `contribute`, `license`, or `other` for the files the `documentation` patterns add. A showcase has an `id` (its documentation file and its position there), the `line` and character `offset` of its entry point (the code block, or the link), its `kind` (`inline` or `linked`), its showcase `adapter`, its `options` as the showcase adapter validated them (left out when there are none), and the path of its `entry` point (a virtual file, or the linked file). Paths are POSIX-style and relative to the host repository's root. Documentation files are sorted by path, showcases and virtual files by documentation file and line.
+Documentation files have a `kind` of `readme`, `contribute`, `license`, or `other` for the files the `documentation` patterns add. A showcase has an `id` (its documentation file and its position there), the `line` and character `offset` of its entry point (the code block, or the link), its `kind` (`inline` or `linked`), its showcase `adapter`, its `options` as the showcase adapter validated them (left out when there are none), and the path of its `entry` point (a virtual file, or the linked file). A virtual file has its `path`, its `kind` (`resource`, or `entry` for an inline showcase's entry point), its `content`, and the `documentation` file and `line` of its code block. Paths are POSIX-style and relative to the host repository's root. Documentation files are sorted by path, showcases and virtual files by documentation file and line.
 
 ## `showroom serve`
 
@@ -369,7 +403,7 @@ console.log(getStackAdapterNames(), project, errors);
 - `getStackAdapter(name)` / `getStackAdapterNames()`: look up the built-in stack adapters, which implement the `StackAdapter` interface; `TypeScriptStackAdapter` is the `typescript` one.
 - `main(args, output?)`: runs the command line with the given arguments, resolving to its exit code; `USAGE` is its help text.
 - Constants: `CONFIGURATION_FILE_NAME` (`showroom.json`), `DEFAULT_OUT_DIR` (`./showroom`), and `BUILT_IN_DOCUMENTATION` (the built-in documentation patterns).
-- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase`, `ShowcaseKind`, `VirtualFile`, `Configuration`, `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.
+- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase`, `ShowcaseKind`, `VirtualFile`, `VirtualFileKind`, `Configuration`, `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.
 - Experimental types, for [custom showcase adapters](#custom-showcase-adapters-experimental): `ShowcaseAdapter`, `ShowcaseValidation`, `ShowcaseBuildRequest`, `ShowcaseBuildResult`, `ShowcaseBuildFile` and `ShowcaseBuildError`.
 
 # Development

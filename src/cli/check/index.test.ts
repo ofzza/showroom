@@ -218,10 +218,16 @@ describe('cli/check', () => {
       // docs/notes.txt holds a broken marker, ignored as the file is plain text
       const { host } = await check(_fixture('showcases'));
       expect(host?.virtualFiles).toEqual([
-        { path: 'README.showcase-1.html', content: '<p class="hello">Hello</p>', documentation: 'README.md', line: 3 },
-        { path: 'styles.css', content: '.hello { color: red; }', documentation: 'README.md', line: 7 },
-        { path: 'docs/guide.showcase-1.html', content: '<link rel="stylesheet" href="../styles.css" />', documentation: 'docs/guide.md', line: 3 },
-        { path: 'docs/guide.showcase-2.js', content: "console.log('Hi');", documentation: 'docs/guide.md', line: 7 },
+        { path: 'README.showcase-1.html', kind: 'entry', content: '<p class="hello">Hello</p>', documentation: 'README.md', line: 3 },
+        { path: 'styles.css', kind: 'resource', content: '.hello { color: red; }', documentation: 'README.md', line: 7 },
+        {
+          path: 'docs/guide.showcase-1.html',
+          kind: 'entry',
+          content: '<link rel="stylesheet" href="../styles.css" />',
+          documentation: 'docs/guide.md',
+          line: 3,
+        },
+        { path: 'docs/guide.showcase-2.js', kind: 'entry', content: "console.log('Hi');", documentation: 'docs/guide.md', line: 7 },
       ]);
     });
 

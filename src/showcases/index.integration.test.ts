@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { check } from '../cli/check/index.js';
 import { readConfiguration } from '../configuration/index.js';
 import { getFrameScript } from '../frame/index.js';
-import { FIXTURES, SCRATCH_ROOT } from '../testing/index.js';
+import { createScratchFolder, FIXTURES, SCRATCH_ROOT } from '../testing/index.js';
 import { buildShowcases } from './index.js';
 
 /**
@@ -26,9 +26,9 @@ async function _build(name: string) {
 }
 
 describe('showcases (integration)', () => {
-  // Builds the showcases of the `showcase-frames` fixture (html pages, a fragment, a linked page, and a custom showcase adapter's page with assets)
-  // and of the `showcase-build-errors` fixture (a custom showcase adapter failing with errors, one throwing, one returning an invalid result). The
-  // fixtures are only read; the build's temporary folder is in the project's own OS temp folder.
+  // Builds the showcases of the `showcase-frames` fixture (html pages, a fragment, a linked page, a resource next to each, and a custom showcase
+  // adapter's page with assets) and of the `showcase-build-errors` fixture (a custom showcase adapter failing with errors, one throwing, one
+  // returning an invalid result). The fixtures are only read; the build's temporary folder is in the project's own OS temp folder.
 
   it('Builds every showcase frame, with the frame script in its page', async () => {
     const { frames, issues } = await _build('showcase-frames');
@@ -44,15 +44,18 @@ describe('showcases (integration)', () => {
         path: 'index.html',
         content: `<!doctype html>\n<html><head><meta charset="utf-8">${script}<title>Page</title></head><body><p>A page</p></body></html>`,
       },
+      { path: 'fragment.js', content: "document.querySelector('.fragment').textContent += ', with a resource';" },
     ]);
 
     // A fragment, wrapped
     expect(frames!.get('README.md#2')!.files[0].content).toContain(`<head><meta charset="utf-8">${script}<meta name="viewport"`);
-    expect(frames!.get('README.md#2')!.files[0].content).toContain('<body><p class="fragment">A fragment</p></body>');
+    expect(frames!.get('README.md#2')!.files[0].content).toContain('<body><p class="fragment">A fragment</p><script src="./fragment.js"></script></body>');
+    expect(frames!.get('README.md#2')!.files.map((file) => file.path)).toEqual(['index.html', 'fragment.js']);
 
     // A linked page, after its own charset
     const linked = frames!.get('README.md#3')!;
-    expect(linked.reads).toEqual(['demos/page.html']);
+    expect(linked.reads).toEqual(['demos/page.html', 'README.md']);
+    expect(linked.files.map((file) => file.path)).toEqual(['index.html', 'fragment.js']);
     expect(linked.files[0].content).toContain(`<meta charset="utf-8" />${script}`);
 
     // A custom showcase adapter's page given as bytes, with its assets
@@ -90,8 +93,21 @@ describe('showcases (integration)', () => {
   });
 
   it("Removes its temporary folder, in the project's own OS temp folder", async () => {
+    // The build runs in an OS temp folder of its own: the project's is shared with the other test files, which may be building at the same moment.
     expect(tmpdir()).toBe(join(SCRATCH_ROOT, 'tmp-integration'));
-    await _build('showcase-frames');
-    expect((await readdir(tmpdir())).filter((name) => name.startsWith('showroom-showcases-'))).toEqual([]);
+    const scratch = await createScratchFolder('tmp-');
+    const saved = { TMPDIR: process.env.TMPDIR, TMP: process.env.TMP, TEMP: process.env.TEMP };
+    Object.assign(process.env, { TMPDIR: scratch.path, TMP: scratch.path, TEMP: scratch.path });
+    try {
+      expect(tmpdir()).toBe(scratch.path);
+      await _build('showcase-frames');
+      expect(await readdir(scratch.path)).toEqual([]);
+    } finally {
+      for (const [name, value] of Object.entries(saved)) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+      await scratch.remove();
+    }
   });
 });

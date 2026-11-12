@@ -1,6 +1,7 @@
 /**
- * The `html` showcase adapter: its entry point is an HTML page or fragment, self-contained (its relative references are neither resolved nor
- * copied); it takes no options and needs nothing from the host repository. Internal, never re-exported.
+ * The `html` showcase adapter: its entry point is an HTML page or fragment, built alone (its relative references are neither resolved nor copied),
+ * next to the resources of its documentation file's folder; it takes no options and needs nothing from the host repository. Internal, never
+ * re-exported.
  */
 
 import { readFile } from 'node:fs/promises';
@@ -33,10 +34,11 @@ export class HtmlShowcaseAdapter implements ShowcaseAdapter {
   }
 
   /**
-   * Builds a showcase's showcase frame: its entry point alone, as the page, a fragment wrapped into a complete page; an inline entry point comes from
-   * its virtual file, a linked one is read from disk as UTF-8
+   * Builds a showcase's showcase frame: its entry point as the page, a fragment wrapped into a complete page, and every resource of its
+   * documentation file's folder next to it, under its name, whether the page uses it or not; an inline entry point comes from its virtual file, a
+   * linked one is read from disk as UTF-8. A resource named like the page fails the build.
    * @param request What to build
-   * @returns The showcase frame's page, or the build error
+   * @returns The showcase frame's page and resources, or the build errors
    */
   public async build({ root, showcase, virtualFiles }: ShowcaseBuildRequest): Promise<ShowcaseBuildResult> {
     let content: string;
@@ -56,8 +58,33 @@ export class HtmlShowcaseAdapter implements ShowcaseAdapter {
         return { reads, errors: [{ message: `The entry point can't be read: ${(err as Error).message}`, path: showcase.entry }] };
       }
     }
-    return { page: HTML_PAGE, files: [{ path: HTML_PAGE, content: isHtmlPage(content) ? content : wrapHtmlFragment(content) }], reads };
+    const resources = virtualFiles.filter((file) => file.kind === 'resource');
+    reads = [...new Set([...reads, ...resources.map((file) => file.documentation)])];
+    const clashing = resources.filter((file) => _getName(file.path).toLowerCase() === HTML_PAGE);
+    if (clashing.length) {
+      return {
+        reads,
+        errors: clashing.map((file) => ({ message: `The resource "${_getName(file.path)}" would replace the showcase frame's page`, path: file.path })),
+      };
+    }
+    return {
+      page: HTML_PAGE,
+      files: [
+        { path: HTML_PAGE, content: isHtmlPage(content) ? content : wrapHtmlFragment(content) },
+        ...resources.map((file) => ({ path: _getName(file.path), content: file.content })),
+      ],
+      reads,
+    };
   }
+}
+
+/**
+ * Gets a virtual file's name: the last segment of its POSIX-style path
+ * @param path The virtual file's path
+ * @returns Its name
+ */
+function _getName(path: string): string {
+  return path.slice(path.lastIndexOf('/') + 1);
 }
 
 // #region Pages and fragments
