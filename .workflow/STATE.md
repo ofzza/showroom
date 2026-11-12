@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** implementation (_`P6`_ done). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_ and _`P6`_ are implemented and committed.
-- **Next free:** _`D229`_, _`S8`_, _`P7`_, _`O29`_, _`L11`_, _`R14`_, _`H1`_, _`K15`_
-- **Working on:** the React showcase format (_`O16`_, _`O19`_), back in the specification stage (_`S6`_).
-- **Next step:** discuss the React showcase format, starting from _`S6`_'s open points _`O16`_ and _`O19`_.
+- **Next free:** _`D242`_, _`S8`_, _`P7`_, _`O29`_, _`L11`_, _`R15`_, _`H1`_, _`K15`_
+- **Working on:** nothing; _`S6.7`_ (`ts`) approved and _`S6.3`_ (React) re-approved, in `SPEC-S6-showcases.md`.
+- **Next step:** planning the `ts` and `react` showcase adapters (a new plan segment), starting with the _`K10`_ spike (_`D232`_).
 
 ## Open questions
 
@@ -14,6 +14,7 @@
 ## Waiting on me
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
+- `./.workflow/.temp/questions-ts-react-format/` holds the round 2 choices, now recorded in `SPEC-S6-showcases.md`; ask to delete it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
 ## Running
@@ -153,3 +154,6 @@
 - 2026-11-12: `showcases` pushed and pull request #2 opened into `develop` (option chosen: "Push + open PR").
 - 2026-11-12: Pull request #2 (`showcases` into `develop`) and #3 (`develop` into `master`) merged; CI and the Showroom workflow passed on `master`, so the showroom is published to GitHub Pages. Dependabot's pull request #1 fails CI (not yet looked into).
 - 2026-11-12: Next: the React showcase format (option chosen: "React showcases"); session state committed and `develop` pushed (option chosen: "Record + push (Rec.)").
+- 2026-11-12: React showcase format discussion started; first round answered: Q1 "ts + react (Rec.)" (_`D229`_, new _`S6.7`_), Q2 "Default export (Rec.)" (_`D230`_), Q3 no host-wide setup and no wrapper option (the user: "No host-wide setup: each showcase wraps itself. No option to name a wrapper in its options for now!"; _`D231`_), Q4 "Spec, then spike (Rec.)" (_`D232`_); _`R14`_ on _`S6.3`_.
+- 2026-11-12: Round 2 of the `ts` and React formats answered (option chosen: "Accept all (Rec.)"): _`D233`_–_`D236`_ (_`S6.7`_), _`D237`_–_`D241`_ (_`S6.3`_); _`O16`_ resolved.
+- 2026-11-12: _`S6.7`_ approved and _`S6.3`_ re-approved with _`R14`_, without a zero-context review (option chosen: "Approve and commit (Rec.)").
