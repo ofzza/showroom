@@ -2,19 +2,20 @@
 
 ## Next session: start here
 
-- **Stage:** specification: _`S6`_ Showcases approved; _`P1`_, _`P2`_ and _`P3`_ are implemented and committed.
-- **Next free:** _`D87`_, _`S7`_, _`P4`_, _`O19`_, _`L3`_, _`R1`_, _`H1`_, _`K14`_
+- **Stage:** specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ are implemented and committed.
+- **Next free:** _`D105`_, _`S8`_, _`P4`_, _`O20`_, _`L3`_, _`R4`_, _`H1`_, _`K15`_
 - **Working on:** nothing in progress.
-- **Next step:** the user chooses: the showcase format discussion (_`O14`_–_`O18`_), or planning showcases (starting with the spikes for _`K9`_ and _`K10`_).
+- **Next step:** planning the first showcases segment (_`D100`_: the showcase adapter interface, the `html` showcase adapter, "bring your own build"), with _`D102`_'s checks and _`S7`_ (_`D104`_) to be placed in the plan; read `./.workflow/.temp/showcases-ideas/NOTES.md` first.
 
 ## Open questions
 
-- See _`S6`_'s open points _`O14`_–_`O18`_. Open pitfalls are in `./.workflow/SPEC-pitfalls.md`.
+- See _`S6`_'s open points _`O16`_–_`O19`_. Open pitfalls are in `./.workflow/SPEC-pitfalls.md`.
 
 ## Waiting on me
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
-- Confirmation that `./.workflow/.temp/questions-s6-spec/`, `./.workflow/.temp/showcases-discussion/` and `./.workflow/.temp/repo-upgrade-report.md` can be deleted (their content is in the specification and the workflow files).
+- The go-ahead to start planning the first showcases segment.
+- `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
 ## Running
 
@@ -56,7 +57,7 @@
 - 2026-11-09: S3 Build command implemented: `npm run ci` green (330 tests); trial builds of a fixture copy, a copy of `../tsstd`, and a host with React 18 installed (the bundle holds only tsshowcase's React 19.3.1).
 - 2026-11-09: S3 browser check passed (tsstd: "looks like I would expect it to"; React 18 host: "looks ok"); implementation choices 1–2 confirmed, `/showcase/` added to `.gitignore` at the user's request (B11–B13).
 - 2026-11-09: S3 checkpoint: approved and committed (option chosen: "Approve and commit"). S3 Build command is done.
-- 2026-11-09: `trial-s3/` working files deleted with the user's yes.
+- 2026-11-09: `trial-s3/` working files found deleted at session start (the uncommitted session state had already dropped the wait for confirmation).
 - 2026-11-11: Showcases discussion started (no specification draft yet). The user settled: showcases render in iframes; tsshowcase's own strict showcase format per supported framework, no third-party format (e.g. Storybook's CSF), format to be discussed in detail later; editable showcases not in the first version but on the roadmap, and the format must be designed with them in mind; requiring `angular.json`, an installed host (`npm install`) and similar host requirements is acceptable, to keep complexity down.
 - 2026-11-11: Showcases: the showcase frame contract is an internal boundary; "bring your own build" frames will be implemented and tested like the React and Angular builds, but not documented as a feature until the interface is stable (user: "A approve of your recomendation").
 - 2026-11-11: Showcases: no metadata in code files and no static extraction from them (metadata from a JSON file, Markdown embeds, or both, still open); React and Angular stack adapters extend the TypeScript one, one showcase framework per host ("I don't think we need to worry about several frameworks per host"), with the frame building a self-contained part the stack adapter supplies.
@@ -65,3 +66,11 @@
 - 2026-11-11: _`S6`_ Showcases specification drafted (`SPEC-S6-showcases.md`: _`S6`_–_`S6.4`_, _`D74`_–_`D86`_, _`O14`_–_`O18`_), with pitfalls _`K9`_–_`K13`_; 9 choices open.
 - 2026-11-11: _`S6`_ draft choices settled: 1 and 2 "As recomended", 3 "A: serve + build, mechanism open", 4–9 accepted as recommended; Glossary updated (Showcase frame added; Showcase and Stack adapter reworded).
 - 2026-11-11: _`S6`_ Showcases approved (option chosen: "Approve and commit"); _`K2`_ and _`K7`_ resolved, _`D13`_, _`D15`_, _`D19`_ refined by _`D82`_, _`D79`_, _`D80`_.
+- 2026-11-11: `questions-s6-spec/`, `showcases-discussion/` and `repo-upgrade-report.md` working files found deleted at session start (the uncommitted session state had already dropped the wait for confirmation).
+- 2026-11-11: Showcase format discussion started (user chose "Format discussion"); 11 choices listed.
+- 2026-11-11: The user chose a free-form discussion instead of answering the format choices one by one, and an order: first the broadest showcase interface, implemented as "bring your own build" frames; then React and Angular variants.
+- 2026-11-12: Showcase format discussion settled the broadest interface (embeds in documentation files, showcase markers, showcase adapters; user approved the showcase adapter concept, the link-title marker, a naked marker as html, and its non-HTML use as an error). Drafted as _`S6.5`_, _`S6.6`_ (_`D87`_–_`D100`_, _`O19`_), _`K14`_, revisions _`R1`_–_`R3`_ (_`D79`_ replaced by _`D96`_), and Glossary changes.
+- 2026-11-12: Draft choices answered: no source added or removed for now, a playground later (_`D101`_ replaces _`D95`_; user: "For now I would only want to embed the iframe with the showcase and not add or remove source in either (code-block, or link) scenario"); "bring your own build" modules JS only ("JS only"); Glossary changes accepted ("Accept all"); the remaining additions accepted ("Accept all").
+- 2026-11-12: Re-approval checkpoint: the user chose "Keep iterating". `questions-s6-format/` and `showcases-format-discussion/` working files deleted with the user's yes ("Delete the two").
+- 2026-11-12: `check` as a drift guard agreed ("Agreed on everything"): static checks always, building showcases with a flag (_`D102`_), type checking on by default in `ts`-based showcase adapters (_`D103`_), warnings for broken documentation links (_`D104`_, new _`S7`_); a headless third tier is an idea for later.
+- 2026-11-12: _`S6`_, _`S6.1`_, _`S6.2`_ re-approved, and _`S6.5`_, _`S6.6`_, _`S7`_ approved, with _`K14`_ and the Glossary changes (option chosen: "Approve and commit").
