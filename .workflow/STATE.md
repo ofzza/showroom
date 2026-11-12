@@ -150,3 +150,4 @@
 - 2026-11-12: _`P6`_ implemented (steps 1–6): `npm run ci` green (604 unit, 6 integration, 11 end-to-end, 3 serve tests, and `ci:showroom`); a trial build of a copy of this repository with the workflow's command checked in Playwright; _`O27`_ resolved.
 - 2026-11-12: _`P6`_ checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"); `trial-p6/` working files deleted.
 - 2026-11-12: The user set up GitHub Pages ("I've updated GitHub settings as instructed"); checked through the API: Pages built by GitHub Actions, `master` allowed in the `github-pages` environment.
+- 2026-11-12: `showcases` pushed and pull request #2 opened into `develop` (option chosen: "Push + open PR").
