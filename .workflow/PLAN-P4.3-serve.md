@@ -69,7 +69,7 @@ Settled after the zero-context review (2 agents): RQ1 "C: Drop edit tests", F6 w
 
 ### From the discussion of resources (2026-11-12)
 
-- _`D206`_ (`live`; the user: "No"): **Ignored files stay unwatched**: a file a showcase's build reads but the ignore patterns skip (e.g. under `dist/`) isn't watched, so `serve` doesn't pick up its changes; `README.md` says that showcases should not depend on ignored files in `serve`. A changed real file that is watched rebuilds every showcase (_`D184`_), and every showcase frame whose content changed updates (_`D195`_, _`D201`_), wherever its showcase is, without a full reload. Rejected: watching every file the latest run read, even if ignored. Not recorded (the user: "Only O28"): `build`'s caching gap, where a static host may serve a cached resource next to a newer page (_`D189`_).
+- _`D206`_ (replaced by _`D256`_ (PLAN-P7.1-ts.md); the user: "No"): **Ignored files stay unwatched**: a file a showcase's build reads but the ignore patterns skip (e.g. under `dist/`) isn't watched, so `serve` doesn't pick up its changes; `README.md` says that showcases should not depend on ignored files in `serve`. A changed real file that is watched rebuilds every showcase (_`D184`_), and every showcase frame whose content changed updates (_`D195`_, _`D201`_), wherever its showcase is, without a full reload. Rejected: watching every file the latest run read, even if ignored. Not recorded (the user: "Only O28"): `build`'s caching gap, where a static host may serve a cached resource next to a newer page (_`D189`_).
 
 ## Steps
 
