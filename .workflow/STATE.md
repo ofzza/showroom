@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning (_`P5`_ next). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ and _`P4`_ (_`P4.1`_–_`P4.4`_) are implemented and committed.
-- **Next free:** _`D207`_, _`S8`_, _`P7`_, _`O29`_, _`L10`_, _`R14`_, _`H1`_, _`K15`_
-- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ Showcase frames in `build` implemented (`./.workflow/PLAN-P4.2-showcase-frames.md`); _`P4.4`_ Resources in `html` showcases, and live README examples implemented and committed (`./.workflow/PLAN-P4.4-html-resources.md`); _`P4.3`_ Showcases in `serve` implemented and committed (`./.workflow/PLAN-P4.3-serve.md`). After _`P4.3`_: _`P5`_ Showroom layout fixes (_`L4`_–_`L9`_, `./.workflow/PLAN.md`; order set by _`D177`_).
-- **Next step:** discuss what's next with the user (planned order: plan _`P5`_ Showroom layout fixes (_`D177`_); then _`P6`_ Publishing this repository's own showroom to GitHub Pages (_`D178`_–_`D180`_, `./.workflow/PLAN.md`)).
+- **Stage:** implementation (_`P5`_ next). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ and _`P4`_ (_`P4.1`_–_`P4.4`_) are implemented and committed.
+- **Next free:** _`D216`_, _`S8`_, _`P7`_, _`O29`_, _`L10`_, _`R14`_, _`H1`_, _`K15`_
+- **Working on:** _`P5`_ Showroom layout fixes (`./.workflow/PLAN-P5-layout.md`, approved, not yet implemented; _`L4`_–_`L9`_). _`P4`_ Showcases (_`P4.1`_–_`P4.4`_) is done.
+- **Next step:** implement _`P5`_ Showroom layout fixes (`./.workflow/PLAN-P5-layout.md`, approved 2026-11-12), steps 1–5. Then plan _`P6`_ Publishing this repository's own showroom to GitHub Pages (_`D178`_–_`D180`_, `./.workflow/PLAN.md`).
 
 ## Open questions
 
@@ -14,9 +14,9 @@
 ## Waiting on me
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
-- `./.workflow/.temp/format-p4.3/` and `./.workflow/.temp/trial-p4.3/`: ask before deleting them.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
+- `./.workflow/.temp/questions-p5-plan/`: ask before deleting it.
 
 ## Running
 
@@ -132,3 +132,7 @@
 - 2026-11-12: _`P4.3`_ implementation started (user: "Please continue ...").
 - 2026-11-12: _`P4.3`_ implemented (steps 1–5): `npm run ci` green (580 unit, 6 integration, 10 end-to-end, 3 serve tests); a trial `serve` of a copy of the `showcase-frames` fixture smoke-checked in Playwright (an edited linked page updated its showcase frame only, without a page reload).
 - 2026-11-12: _`P4.3`_ browser check passed, and its checkpoint approved, committed and pushed (the user: "Reviewed, tested and it all seems to work great! Please commit and push ..."); _`P4`_ Showcases done. Trial server stopped.
+- 2026-11-12: Next: plan _`P5`_ (option chosen: "Plan P5 layout fixes (Rec.)"), in a fresh session ("Clear first (Rec.)"); no pull request from `showcases` yet ("Not yet (Rec.)"); `format-p4.3/` and `trial-p4.3/` working files deleted ("Delete both (Rec.)").
+- 2026-11-12: _`P5`_ planning started (user: "Please continue ..."); draft written with _`D207`_–_`D215`_ and 6 choices.
+- 2026-11-12: _`P5`_ choices answered: Q1 "react-icons (Rec.)" (_`D209`_), Q2–Q6 "Accept all (Rec.)" (_`D207`_, _`D208`_, _`D211`_–_`D213`_).
+- 2026-11-12: _`P5`_ approved, without a zero-context review (option chosen: "Approve and commit"); _`L4`_–_`L9`_ picked up by _`P5`_.

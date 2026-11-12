@@ -233,7 +233,7 @@ None (_`D61`_).
 
 ## Showroom layout
 
-- _`P5`_ Showroom layout fixes (draft, not yet planned): the known open issues _`L4`_–_`L9`_, found dogfooding `showroom` on its own repository (phone navigation, sideways scrolling, the navigation scrolling away, the doubled home page title, the favicon and unhighlighted code blocks, the wrapping "Dark theme" label). _`L7`_ needs a choice of what the home page shows above the README.
+- _`P5`_ Showroom layout fixes (approved 2026-11-12, [See Showroom layout fixes](./PLAN-P5-layout.md)): the known open issues _`L4`_–_`L9`_, found dogfooding `showroom` on its own repository (phone navigation, sideways scrolling, the navigation scrolling away, the doubled home page title, the favicon and unhighlighted code blocks, the wrapping "Dark theme" label). _`L7`_ needs a choice of what the home page shows above the README.
   - _`D177`_ (`live`; the user, 2026-11-12: "Please note that we do P4.3 next, then fix layout after"): **_`P4.3`_ is planned and implemented next, then _`P5`_**, before the first release. Rejected: the layout fixes first (they don't block _`P4.3`_, and nothing is published yet).
 
 ## Publishing this repository's showroom
@@ -250,9 +250,9 @@ None (_`D61`_).
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: not yet assigned. Status: `open`.
 - _`L2`_ Raw HTML in Markdown isn't rendered (_`P2`_, _`D40`_). Deferred: rendering it safely needs sanitising. Segment: not yet assigned. Status: `open`.
 - _`L3`_ Showcase frame folders of documentation files whose paths differ only in case (_`P4.2`_, _`D161`_) collide when the output folder is on a case-insensitive file system. Deferred: rare (two documentation files differing only in case, on Linux). Segment: not yet assigned. Status: `open`.
-- _`L4`_ On a narrow (phone) viewport the navigation can't be opened: the navigation drawer is 0 px wide and there is no menu button (found dogfooding, 2026-11-12). Deferred: layout polish, not showcases. Segment: _`P5`_. Status: `open`.
-- _`L5`_ On a narrow viewport the page scrolls sideways: the project information's long URLs (homepage, repository) don't wrap (found dogfooding, 2026-11-12). Deferred: layout polish. Segment: _`P5`_. Status: `open`.
-- _`L6`_ The navigation scrolls away on long pages, and its divider ends partway down the page (found dogfooding, 2026-11-12). Deferred: layout polish. Segment: _`P5`_. Status: `open`.
-- _`L7`_ The home page shows the project's name above the README's own top heading, which usually repeats it (found dogfooding, 2026-11-12). Deferred: needs a choice on what the home page shows. Segment: _`P5`_. Status: `open`.
-- _`L8`_ Smaller showroom gaps (found dogfooding, 2026-11-12): no favicon (a 404 in the console); code blocks without a language (e.g. `README.md`'s four-backtick examples) aren't highlighted. Deferred: minor. Segment: _`P5`_. Status: `open`.
-- _`L9`_ The header's "Dark theme" label wraps onto two lines when the header is narrow; it needs `white-space: nowrap` (e.g. through the FluentUI `Switch`'s `label` slot, `src/app/layout/`) (found reviewing the dogfood build, 2026-11-12). Deferred: layout polish, collected with _`L4`_–_`L8`_ (the user: "Collect for later"). Segment: _`P5`_. Status: `open`.
+- _`L4`_ On a narrow (phone) viewport the navigation can't be opened: the navigation drawer is 0 px wide and there is no menu button (found dogfooding, 2026-11-12). Deferred: layout polish, not showcases. Segment: _`P5`_. Status: picked up by _`P5`_.
+- _`L5`_ On a narrow viewport the page scrolls sideways: the project information's long URLs (homepage, repository) don't wrap (found dogfooding, 2026-11-12). Deferred: layout polish. Segment: _`P5`_. Status: picked up by _`P5`_.
+- _`L6`_ The navigation scrolls away on long pages, and its divider ends partway down the page (found dogfooding, 2026-11-12). Deferred: layout polish. Segment: _`P5`_. Status: picked up by _`P5`_.
+- _`L7`_ The home page shows the project's name above the README's own top heading, which usually repeats it (found dogfooding, 2026-11-12). Deferred: needs a choice on what the home page shows. Segment: _`P5`_. Status: picked up by _`P5`_.
+- _`L8`_ Smaller showroom gaps (found dogfooding, 2026-11-12): no favicon (a 404 in the console); code blocks without a language (e.g. `README.md`'s four-backtick examples) aren't highlighted. Deferred: minor. Segment: _`P5`_. Status: picked up by _`P5`_.
+- _`L9`_ The header's "Dark theme" label wraps onto two lines when the header is narrow; it needs `white-space: nowrap` (e.g. through the FluentUI `Switch`'s `label` slot, `src/app/layout/`) (found reviewing the dogfood build, 2026-11-12). Deferred: layout polish, collected with _`L4`_–_`L8`_ (the user: "Collect for later"). Segment: _`P5`_. Status: picked up by _`P5`_.
