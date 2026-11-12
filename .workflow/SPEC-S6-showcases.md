@@ -13,13 +13,14 @@ Showcases move from _`S5`_'s "Ideas and later" into the specification. This segm
 
 ## _`S6.1`_ Showcase frames and stack adapters
 
-approved 2026-11-11; revised 2026-11-12 (_`R1`_); re-approved 2026-11-12
+approved 2026-11-11; revised 2026-11-12 (_`R1`_); re-approved 2026-11-12; revised 2026-11-12 (_`R4`_); re-approved 2026-11-12
 
 - _`R1`_ 2026-11-12: showcase frames are built by showcase adapters chosen per showcase, not by stack adapters (_`D79`_ replaced, _`D78`_ refined), caused by _`D96`_ and _`D99`_.
+- _`R4`_ 2026-11-12: custom showcase adapters ("bring your own build") are exported and documented as experimental before the interface is stable (_`D78`_ changed), caused by _`D133`_.
 
 - _`D76`_ (`live`): **Every showcase renders in an iframe**, a showcase frame, so it is fully isolated from the showroom: its own framework and version, CSS and globals (e.g. zone.js, polyfills). Syncing the iframe's size with its content is accepted as solvable. Rejected: rendering showcases in the showroom's own bundle (the host's component needs the host's own React, and never works for Angular); mounting a separately built bundle into the page (CSS and globals leak both ways); web components (globals still shared, theming awkward).
 - _`D77`_ (`live`): **The showcase frame contract.** A showcase frame is an HTML page that renders one showcase, chosen by its URL, and loads a small, framework-free script `showroom` provides. Through `postMessage`, the frame reports its content's size to the showroom, and the showroom tells it the current theme (light or dark). Everything else (framework, compilation, styles) is the frame's own business: the showroom only knows which URL shows which showcase. The exact messages are left to planning.
-- _`D78`_ (`live`, refined by _`D99`_): **The frame contract is an internal boundary.** "Bring your own build" frames (built by the host repository, any framework, and only embedded by `showroom`) are implemented and tested like the React and Angular showcases, so they stay fully supported, but they are not documented as a feature until the interface is stable; then they are reconsidered.
+- _`D78`_ (`live`, refined by _`D99`_, changed by _`D133`_): **The frame contract is an internal boundary.** "Bring your own build" frames (built by the host repository, any framework, and only embedded by `showroom`) are implemented and tested like the React and Angular showcases, so they stay fully supported, but they are not documented as a feature until the interface is stable; then they are reconsidered.
 - _`D79`_ (replaced by _`D96`_; it refined _`D15`_, which now points to _`D96`_): **React and Angular stack adapters** (`stack: "react"`, `stack: "angular"`) extend the TypeScript stack adapter. A host repository has one showcase framework, the one its stack adapter supports. Building showcase frames is a self-contained part a stack adapter supplies, through which "bring your own build" frames (_`D78`_) work with any stack. Rejected: a separate kind of adapter for showcase frameworks (only needed for several frameworks per host, which isn't a concern).
 - _`D80`_ (`live`; refines _`D19`_): **Host requirements are acceptable** wherever they keep `showroom` simple, e.g. an Angular host repository having an `angular.json`, and the host repository's dependencies being installed (`npm install`) before showcases are built. `showroom` decides how it's used and what the host repository needs to do; it aims to be easy to use, but never grows in complexity to support every variation of host repository.
 - _`D81`_ (`live`): **Showcases are built with the host repository's own framework and tooling**, from its installed dependencies (e.g. its React, its Angular compiler), never with copies of them in `showroom`'s `dependencies`. Rejected: shipping framework tooling with `showroom` (install size, and a version that may not match the host's).
@@ -78,14 +79,17 @@ The common showcase format, independent of any framework (_`O14`_, _`O15`_).
 
 ## _`S6.6`_ Showcase adapters
 
-approved 2026-11-12
+approved 2026-11-12; revised 2026-11-12 (_`R5`_); re-approved 2026-11-12
+
+- _`R5`_ 2026-11-12: custom showcase adapters are listed under `customShowcaseAdapters`, and documented and exported as experimental (_`D99`_ changed), caused by _`D133`_.
 
 - _`D96`_ (`live`; replaces _`D79`_; refines _`D15`_ (SPEC.md), changes its "React-specific stack adapter"): **Showcase adapters build showcase frames**, independent of the stack adapter. Each showcase names its showcase adapter in its marker, so a host repository can mix them (e.g. html, React and Angular showcases in one README). A showcase adapter takes the entry point, the virtual files (_`D91`_), the documentation file's folder and its options, and returns a built showcase frame page with its assets; `showroom` adds its frame script (_`D77`_). It states what it needs from the host repository (e.g. React installed, _`D80`_), and `check` reports what's missing. There are no React or Angular stack adapters: a React or Angular host repository uses the TypeScript stack adapter. Rejected: _`D79`_'s showcase frames through the stack adapter, one framework per host repository.
 - _`D97`_ (`live`; refines _`D75`_): **Built-in showcase adapters**: `html` (the entry point is the page; an HTML fragment is wrapped into a complete page; needs nothing from the host repository), `ts` (runs the entry point in the frame, and shows what it writes to the console), `react` and `angular` (their formats are _`S6.3`_ and _`S6.4`_).
 - _`D98`_ (`live`, refined by _`D103`_): **Showcase adapter options** are defined and validated by each showcase adapter (e.g. `ts({ failOnTypeScriptErrors: true })`; whether and how an adapter type checks is decided when it is built). A showcase demonstrating an error leaves such an option off.
 - _`D103`_ (`live`; refines _`D98`_): **Type checking is on by default** in the `ts` showcase adapter and the showcase adapters building on it (`react`, `angular`), so a changed signature fails the showcases using it (_`D102`_). A showcase demonstrating a type error turns it off with an option. Such an adapter could drop the option, or change its default, but isn't expected to.
-- _`D99`_ (`live`; refines _`D78`_): **"Bring your own build" is a host-provided showcase adapter**: a JavaScript (ES) module, named in `showroom.json` under an adapter name that can't shadow a built-in one, implementing the same interface as the built-in showcase adapters, and used as `showcase=<name>`. It stays undocumented as _`D78`_ says. Rejected: a build command and the folder it writes frames to (process management; any command can still be run from such a module).
+- _`D99`_ (`live`, changed by _`D133`_; refines _`D78`_): **"Bring your own build" is a host-provided showcase adapter**: a JavaScript (ES) module, named in `showroom.json` under an adapter name that can't shadow a built-in one, implementing the same interface as the built-in showcase adapters, and used as `showcase=<name>`. It stays undocumented as _`D78`_ says. Rejected: a build command and the folder it writes frames to (process management; any command can still be run from such a module).
 - _`D100`_ (`live`): **Order of work**: the showcase adapter interface, the `html` showcase adapter and "bring your own build" first; the `ts`, `react` and `angular` showcase adapters after, refined into their own formats then.
+- _`D133`_ (`live`; changes _`D78`_, _`D99`_): **Custom showcase adapters are a documented, experimental feature**: a showcase adapter the host repository supplies ("bring your own build", _`D99`_) is listed in `showroom.json` under `customShowcaseAdapters`, and the showcase adapter interface and its types are exported and documented in `README.md` as experimental, liable to change in any release until the interface is declared stable. This replaces keeping them undocumented until then (_`D78`_, _`D99`_): without the exported interface, a third party can't reasonably write one (the user, in _`P4.1`_'s planning). Rejected: exporting the interface undocumented; keeping it unexported until it is stable.
 
 ### Open points
 
@@ -95,7 +99,7 @@ approved 2026-11-12
 
 - **Editable showcases** (_`D85`_): the template and a few function bodies editable in the browser, for React and Angular.
 - **The showcase playground** (_`D101`_): each showcase as a source editor with its showcase frame as the preview, for inline and linked showcases; it shows (_`D86`_) and later edits (_`D85`_) the source.
-- **"Bring your own build" frames documented as a feature** (_`D78`_), once the frame contract is stable.
+- **Custom showcase adapters declared stable** (_`D78`_, _`D133`_), once the interface has settled (no longer experimental).
 - Showcases for other frameworks.
 - **Anchors** (_`D88`_, _`D93`_): a showcase placed elsewhere than before its entry point, at a `<!-- showcase:<name> -->` comment it names with `anchor=<name>`.
 - **Running every showcase headless** in `check` (a third tier of _`D102`_), catching runtime errors the showcase frames report; needs a headless browser.

@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning (_`P4`_). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ are implemented and committed.
-- **Next free:** _`D114`_, _`S8`_, _`P5`_, _`O22`_, _`L3`_, _`R4`_, _`H1`_, _`K15`_
-- **Working on:** planning _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`, draft): its testing strategy (_`D105`_–_`D109`_) and segmentation (_`D110`_–_`D113`_: _`P4.1`_–_`P4.3`_) are approved; _`P4.1`_–_`P4.3`_ are not yet planned.
-- **Next step:** plan _`P4.1`_ Showcase markers and documentation checks. `./.workflow/.temp/showcases-ideas/NOTES.md` holds older proposals.
+- **Stage:** planning (_`P4`_). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ are implemented and committed; _`P4.1`_ is approved, not yet implemented.
+- **Next free:** _`D134`_, _`S8`_, _`P5`_, _`O22`_, _`L3`_, _`R6`_, _`H1`_, _`K15`_
+- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks approved (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ and _`P4.3`_ are not yet planned.
+- **Next step:** the user chooses: implement _`P4.1`_ (in a fresh session), or plan _`P4.2`_ first.
 
 ## Open questions
 
@@ -14,7 +14,8 @@
 ## Waiting on me
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
-- The go-ahead to start planning _`P4.1`_.
+- Confirmation that `./.workflow/.temp/questions-p4.1-plan/` can be deleted (its outcomes are in `PLAN-P4.1-markers-and-checks.md`, `SPEC-S6-showcases.md` and `CONTRIBUTE.md`).
+- Whether to implement _`P4.1`_ next, or plan _`P4.2`_ first.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
 ## Running
@@ -80,3 +81,8 @@
 - 2026-11-12: Fast path: renamed the tool from `tsshowcase` to `showroom` (option chosen: "Yes, fast path"): the Glossary term "Showcase application" became "Showroom" (the user: "The tool is `showroom` and it builds a \"`showroom`\" (application) featuring documentation about the host repository enriched by individual \"`showcase`s\""), the Markdown marker keyword became `showcase` (the user: "I would still go with `showcase=react`"), the default output folder `./showroom` ("./showroom (Rec.)"). One-off exception to the append-only rule for the workflow files, granted for this rename (the user: "Yes, I will list it for the rename"); the user's quoted words were kept as they were. A rename note was added to `AGENTS.md` at the user's request.
 - 2026-11-12: Rename checkpoint: the user reviewed it after "Stop here" ("Reviewed and looking good - proceed"); approved and committed (option chosen: "Approve and commit").
 - 2026-11-12: The user renamed the GitHub repository (`ofzza/showroom`), `git remote`, the project folder (`~/projects/ofzza/showroom`) and the agent's memory folder.
+- 2026-11-12: _`P4.1`_ planning started (option chosen: "Start planning P4.1"); draft written with _`D114`_–_`D132`_ and 20 choices.
+- 2026-11-12: _`P4.1`_ dependencies answered: QD1 "unified + remark-parse (Rec.)" (_`D114`_); QD2, after discussing JSON vs JSON5, "Ok, JSON5 it is" (_`D115`_, _`D88`_ unchanged).
+- 2026-11-12: _`P4.1`_ choices Q1–Q18 answered: all as recommended, except Q12 (`checkHost?` renamed `check?`), Q14 (`showcaseAdapters` renamed `customShowcaseAdapters`), Q15 ("Export, as experimental (Rec.)": _`D133`_ added to _`S6.6`_, changing _`D78`_ and _`D99`_; revisions _`R4`_, _`R5`_) and Q18 ("Custom showcase adapter (Rec.)" as the Glossary term).
+- 2026-11-12: New global rule added to `~/.claude/CLAUDE.md` at the user's request: show a file's list of choices in the conversation before asking about them.
+- 2026-11-12: _`P4.1`_ approved, and _`S6.1`_ and _`S6.6`_ re-approved with _`D133`_ and the Glossary changes, without a zero-context review (option chosen: "Approve and commit").
