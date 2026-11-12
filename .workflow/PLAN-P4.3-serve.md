@@ -81,4 +81,4 @@ Settled after the zero-context review (2 agents): RQ1 "C: Drop edit tests", F6 w
 
 ## Open points
 
-- [ ] _`O28`_ From _`D184`_. Rebuilding only the showcases a change affects (by their documentation file's folder, their `reads` and their showcase adapter's module), once a showcase adapter is slow enough to need it (the Vite-based ones). A changed resource must rebuild every showcase of its folder, in every documentation file there, not only those of its own documentation file (from the discussion of resources, 2026-11-12).
+- [ ] _`O28`_ (taken by _`P7.1`_ (PLAN-P7-ts-react.md), _`O34`_) From _`D184`_. Rebuilding only the showcases a change affects (by their documentation file's folder, their `reads` and their showcase adapter's module), once a showcase adapter is slow enough to need it (the Vite-based ones). A changed resource must rebuild every showcase of its folder, in every documentation file there, not only those of its own documentation file (from the discussion of resources, 2026-11-12).

@@ -264,6 +264,10 @@ None (_`D61`_).
   - Open points:
     - [x] _`O27`_ From the dogfooding discussion (2026-11-12). The README's example workflow is named `name: Showcase`, likely a leftover from before the rename to `showroom`: fix it with _`P6`_'s workflow. Resolved by _`D219`_: the example is named `Showroom`.
 
+## The `ts` and `react` showcase adapters
+
+- _`P7`_ Showcases: the `ts` and `react` showcase adapters (approved 2026-11-13), in two child segments, _`P7.1`_ `ts` and _`P7.2`_ `react`. [See The `ts` and `react` showcase adapters](./PLAN-P7-ts-react.md)
+
 ## Known open issues
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: not yet assigned. Status: `open`.
@@ -276,3 +280,4 @@ None (_`D61`_).
 - _`L8`_ Smaller showroom gaps (found dogfooding, 2026-11-12): no favicon (a 404 in the console); code blocks without a language (e.g. `README.md`'s four-backtick examples) aren't highlighted. Deferred: minor. Segment: _`P5`_. Status: picked up by _`P5`_.
 - _`L9`_ The header's "Dark theme" label wraps onto two lines when the header is narrow; it needs `white-space: nowrap` (e.g. through the FluentUI `Switch`'s `label` slot, `src/app/layout/`) (found reviewing the dogfood build, 2026-11-12). Deferred: layout polish, collected with _`L4`_–_`L8`_ (the user: "Collect for later"). Segment: _`P5`_. Status: picked up by _`P5`_.
 - _`L10`_ Style customization in `showroom.json` (the user, 2026-11-12: "At some point I would like to expand `showroom.json` with options for style customization"): options for at least the favicon (_`D213`_ (PLAN-P5-layout.md) gives the showroom its own), the title (the page title and the header's name, the project's name today), and the basic light and dark theme colours, passed as CSS variables into the FluentUI theme. Deferred: the user's "for later" item, after _`P6`_. Segment: not yet assigned. Status: `open`.
+- _`L11`_ A Vite dev server with hot updates for `ts` and `react` showcase frames in `serve` (_`K13`_; _`D243`_ (PLAN-P7-ts-react.md)): the _`K10`_ spike showed a second Vite dev server in middleware mode works. Deferred: rebuilding on change, as for `html`, keeps `serve` as it is. Segment: not yet assigned. Status: `open`.

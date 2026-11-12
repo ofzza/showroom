@@ -106,7 +106,7 @@ approved 2026-11-12; revised 2026-11-12 (_`R5`_); re-approved 2026-11-12
 
 ### Open points
 
-- [ ] _`O19`_ From _`O15`_. Per showcase adapter: the per-host setup (e.g. providers, global styles), and how a showcase's editable parts are located (_`D85`_).
+- [ ] _`O19`_ (the React part resolved by _`D231`_; the `ts` part taken by _`P7.1`_ (PLAN-P7-ts-react.md)) From _`O15`_. Per showcase adapter: the per-host setup (e.g. providers, global styles), and how a showcase's editable parts are located (_`D85`_).
 
 ## _`S6.7`_ Showcase format: TypeScript
 
@@ -119,6 +119,10 @@ The `ts` showcase adapter's format (_`D97`_, _`D103`_), which the `react` (and l
 - _`D234`_ (`live`; refines _`D103`_): **Type checking uses the host repository's own TypeScript** (_`D81`_) and the `tsconfig.json` nearest to the documentation file (walking up to the host repository's root). It checks the entry point and the virtual files it imports, and reports each error at its line: in the code block, for inline files, or in the linked file (_`D102`_). The option turning it off is `ts({ typeCheck: false })`. `typescript` is a host requirement (_`D96`_) only when some showcase type checks. Rejected: `showroom`'s own TypeScript (may differ from the host's); fixed compiler options (diverge from how the host's code is checked).
 - _`D235`_ (`live`): **`ts` (and the showcase adapters building on it) compile and bundle with `showroom`'s own Vite**: its built-in transform handles TypeScript and JSX without the host repository's tooling, so only framework code (e.g. React) comes from the host (_`D81`_), and `ts` needs nothing installed when type checking is off. Virtual files are served as Vite virtual modules, never written to disk (_`K14`_). Rejected: the host's own bundler (unbounded variety, _`K11`_).
 - _`D236`_ (`live`): **What a showcase can import** (narrowing _`K11`_, _`D80`_): relative paths (real and virtual files); packages installed in the host repository's `node_modules`, including the host's own package by its name, through its `exports` (so it must be built when they point at its `dist/`); and what Vite handles out of the box (CSS, assets, JSON). Not supported for now: tsconfig `paths` aliases, and anything needing the host's own bundler configuration (e.g. SCSS without `sass` installed, environment variables). Rejected: also mapping tsconfig `paths` (one more thing to map and test).
+
+### Open points
+
+- [ ] _`O43`_ From review 2026-11-12 #13 (PLAN-P7-ts-react.md). Which languages a `ts` entry point may be: ` ```ts ` fences and `.ts` files only, or `js` (and `mts`/`mjs`) too; _`D238`_ settles it for `react` only. For _`P7.1`_.
 
 ## Ideas and later
 
