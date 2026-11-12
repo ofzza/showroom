@@ -238,7 +238,7 @@ None (_`D61`_).
 
 ## Publishing this repository's showroom
 
-- _`P6`_ Publishing this repository's own showroom to GitHub Pages (approved 2026-11-12), after _`P5`_: dogfooding `showroom` on its own repository for real, the way `README.md` › Publishing to GitHub Pages documents.
+- _`P6`_ Publishing this repository's own showroom to GitHub Pages (approved 2026-11-12; implemented 2026-11-12), after _`P5`_: dogfooding `showroom` on its own repository for real, the way `README.md` › Publishing to GitHub Pages documents.
   - Goals: _`D178`_–_`D180`_; _`O27`_. Facts found while planning (2026-11-12): the repository's default branch is `develop`; `origin/master` is still at `bec26ca` (_`P3`_), so nothing is published until the next release reaches `master`; Pages isn't enabled yet; the latest action majors are `actions/checkout@v7`, `actions/setup-node@v7`, `actions/upload-pages-artifact@v5`, `actions/deploy-pages@v5`.
   - Not in _`P6`_: a custom domain; publishing from `develop` or pull requests (_`D180`_); style customization (_`L10`_).
   - Steps:
@@ -262,7 +262,7 @@ None (_`D61`_).
   - _`D179`_ (`live`; the user: "After P5 (Rec.)"): **Order: after _`P5`_**, so the first published showroom has the layout fixes; _`P4.3`_ stays next (_`D177`_). Rejected: now, as a fast path; between _`P4.3`_ and _`P5`_.
   - _`D180`_ (`live`; the user: "master (Rec.)"): **Pushes to `master` publish it**, so the published showroom matches the latest release, as the README's example does. Rejected: `develop`.
   - Open points:
-    - [ ] _`O27`_ From the dogfooding discussion (2026-11-12). The README's example workflow is named `name: Showcase`, likely a leftover from before the rename to `showroom`: fix it with _`P6`_'s workflow.
+    - [x] _`O27`_ From the dogfooding discussion (2026-11-12). The README's example workflow is named `name: Showcase`, likely a leftover from before the rename to `showroom`: fix it with _`P6`_'s workflow. Resolved by _`D219`_: the example is named `Showroom`.
 
 ## Known open issues
 

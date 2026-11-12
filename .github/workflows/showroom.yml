@@ -1,0 +1,47 @@
+name: Showroom
+
+# Builds this repository's own showroom with `showroom` itself, and publishes it to GitHub Pages, on every push to
+# master (the latest release). Needs Settings › Pages › Source set to "GitHub Actions", and master allowed to deploy to
+# the github-pages environment (see PUBLISH.md)
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and never cancel one in progress
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      # Plain `npm ci` (see ci.yml); its `prepare` script also builds `dist/`
+      - run: npm ci
+
+      # A package's own `bin` isn't linked into its own `node_modules`, so `npx showroom` doesn't resolve here: run the
+      # command line just built instead
+      - run: node dist/cli/bin.js build
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: showroom
+
+      - id: deployment
+        uses: actions/deploy-pages@v5

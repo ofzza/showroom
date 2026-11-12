@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation (_`P6`_ next). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ and _`P4`_ (_`P4.1`_–_`P4.4`_) are implemented and committed.
+- **Stage:** implementation (_`P6`_ done). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_ and _`P6`_ are implemented and committed.
 - **Next free:** _`D229`_, _`S8`_, _`P7`_, _`O29`_, _`L11`_, _`R14`_, _`H1`_, _`K15`_
-- **Working on:** _`P6`_ Publishing this repository's own showroom, approved; _`P5`_ and _`P4`_ done.
-- **Next step:** implement _`P6`_ (`./.workflow/PLAN.md`, steps 1–6).
+- **Working on:** nothing; _`P6`_ Publishing this repository's own showroom implemented and committed.
+- **Next step:** the user's GitHub settings for Pages (`PUBLISH.md` › Showroom on GitHub Pages) before the next release; then the next segment (e.g. _`L10`_), or a release.
 
 ## Open questions
 
@@ -146,3 +146,6 @@
 - 2026-11-12: _`P6`_ planning started (option chosen: "Start planning P6 (Rec.)"); draft written with _`D219`_–_`D225`_ and 7 choices.
 - 2026-11-12: _`P6`_ choices answered: Q1, Q2, Q5–Q7 as recommended ("rest are approved"); Q3 `showroom check` on pull requests, as dogfooding ("ci:showroom npm script", with a new `--quiet` flag: _`D226`_, _`D228`_); Q4 "PUBLISH.md only" (_`D227`_), after the environment's branch rule was explained.
 - 2026-11-12: _`P6`_ approved, with _`D30`_ refined by _`D228`_ (option chosen: "Approve and commit (Rec.)"); `questions-p6-plan/` working files deleted.
+- 2026-11-12: _`P6`_ implementation started (option chosen: "Implement P6 now (Rec.)").
+- 2026-11-12: _`P6`_ implemented (steps 1–6): `npm run ci` green (604 unit, 6 integration, 11 end-to-end, 3 serve tests, and `ci:showroom`); a trial build of a copy of this repository with the workflow's command checked in Playwright; _`O27`_ resolved.
+- 2026-11-12: _`P6`_ checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"); `trial-p6/` working files deleted.

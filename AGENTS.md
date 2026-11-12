@@ -99,6 +99,7 @@ eslint.config.js           ESLint flat config (typescript-eslint + prettier comp
 .prettierrc                Prettier config
 dist/                      Build output, gitignored
 .github/workflows/ci.yml   GitHub Actions CI
+.github/workflows/showroom.yml  Builds this repository's own showroom and publishes it to GitHub Pages, on pushes to master
 .github/dependabot.yml     Weekly dependency updates
 .vscode/extensions.json    Recommended VSCode extensions: ESLint, Prettier, TODO Highlight, Twoslash Query Comments
 .vscode/launch.json        Vitest debug launch configs: all tests, unit tests, current file
@@ -119,7 +120,7 @@ Each new module gets its own directory under `src/`, holding an `index.ts` + `in
 - `npm test`: runs every `test:*` script.
   - `npm run test:unit`: `vitest run --project unit`, a single invocation that both executes the tests and type checks them.
   - `npm run test:integration`, `npm run test:e2e`, `npm run test:serve`: `vitest run --project <tier>`, executing the other test tiers (see [Testing](#testing)); each passes with no tests.
-- `npm run ci`: runs every `ci:*` script (`ci:build`, `ci:eslint`, `ci:prettier`, `ci:test-unit`, `ci:test-integration`, `ci:test-e2e`, `ci:test-serve`). This is what GitHub Actions runs.
+- `npm run ci`: runs every `ci:*` script (`ci:build`, `ci:showroom`, `ci:eslint`, `ci:prettier`, `ci:test-unit`, `ci:test-integration`, `ci:test-e2e`, `ci:test-serve`). This is what GitHub Actions runs. `ci:showroom` dogfoods `showroom` on this repository: `node dist/cli/bin.js check --showcases --quiet`, with what `ci:build` just compiled (so it comes right after `ci:build`: `npm-run-all ci:*` runs the scripts in `package.json`'s order).
 - `npm run prepare`: builds. It is invoked automatically by a local `npm install`/`npm ci` and before `npm publish`, but **not** when the package is installed as a dependency.
 - `prepublishOnly`: runs `npm run ci` before `npm publish`, so a failing build is never published.
 
@@ -229,6 +230,8 @@ After adding or changing type-level assertions, sanity-check them: break one del
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs `npm ci && npm run ci` on every pull request targeting, and every push to, `master` or `develop`. It runs across a Node matrix of `[22, 24]` with `fail-fast: false`, and cancels in-progress runs only for pull requests, never for `master`.
+
+`.github/workflows/showroom.yml` builds this repository's own showroom with the command line `npm ci` just built (`node dist/cli/bin.js build`: a package's own `bin` isn't linked into its own `node_modules`, so `npx showroom` doesn't resolve here) and publishes it to GitHub Pages (`actions/upload-pages-artifact`, `actions/deploy-pages`), on every push to `master` and on demand (`workflow_dispatch`). It is `README.md` › Publishing to GitHub Pages' example, adapted: keep the two in step (Dependabot updates the workflow's actions, not the README's). The repository settings it needs are in `PUBLISH.md`. It can't be tested before it runs on GitHub.
 
 `.github/dependabot.yml` opens weekly npm and github-actions updates against `develop`. devDependencies are grouped into one pull request, and `@types/node` majors are ignored.
 

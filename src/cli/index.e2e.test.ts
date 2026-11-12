@@ -1,5 +1,5 @@
 /**
- * End-to-end tests of the command line: `showroom check`, with and without `--showcases`, on copies of the fixture host repositories
+ * End-to-end tests of the command line: `showroom check`, with and without `--showcases` (and `--quiet`), on copies of the fixture host repositories
  */
 
 import { readFile, rm, writeFile } from 'node:fs/promises';
@@ -131,6 +131,14 @@ describe('cli (end to end)', () => {
       expect(stderr).toBe('');
       expect(code).toBe(0);
       expect(JSON.parse(stdout).showcases).toHaveLength(4);
+    });
+
+    it('Writes nothing to stdout with --quiet, as npm run ci runs it on this repository', async () => {
+      const root = await copy('showcase-frames');
+      const { code, stdout, stderr } = await _run(['check', '--showcases', '--quiet', '--root', root]);
+      expect(code).toBe(0);
+      expect(stdout).toBe('');
+      expect(stderr).toBe('');
     });
 
     it('Reports every build error on stderr, and fails', async () => {

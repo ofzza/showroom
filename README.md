@@ -4,6 +4,8 @@
 
 Build a showroom for a repository: its documentation, enriched by showcases.
 
+See this repository's own showroom, built by `showroom` itself: [ofzza.github.io/showroom](https://ofzza.github.io/showroom/).
+
 `showroom` reads a host repository (the repository that uses it) and collects its host information: the project information, the documentation files (`README`, `CONTRIBUTE`, `LICENSE`, ...), an index of its code files, and the showcases its documentation files embed. `showroom check` collects and checks it, `showroom build` builds the showroom that presents it into static files, ready for static hosting such as GitHub Pages, and `showroom serve` previews it. The showroom is a React/FluentUI SPA with the project information, a page per documentation file, and a light/dark toggle.
 
 ---
@@ -261,11 +263,11 @@ export default (): ShowcaseAdapter => ({
 Checks the host repository in the current directory (or the one `--root` names):
 
 ```sh
-$ npx showroom check [--root <dir>] [--out-dir <dir>] [--showcases]
+$ npx showroom check [--root <dir>] [--out-dir <dir>] [--showcases] [--quiet]
 ```
 
 - Every issue found goes to `stderr`, one per line, as `error: <path>: <message>` or `warning: <path>: <message>`, with the line (`<path>:<line>:`) when the issue concerns one.
-- If the check passes, the host information goes to `stdout`, as indented JSON. If it fails, `stdout` stays empty.
+- If the check passes, the host information goes to `stdout`, as indented JSON, unless `--quiet` is given (e.g. in CI, where only the issues matter). If it fails, `stdout` stays empty.
 - The exit code is `0` if the check passes, and `1` if it finds any error, or the arguments are wrong. Warnings alone don't fail it.
 
 `--out-dir` overrides `showroom.json`'s `outDir`, relative to the current directory (as `--root` is); `check` takes it so it skips the same files `build` would.
@@ -335,7 +337,7 @@ The output is an `index.html`, its `assets/`, the showcase frames in `showcases/
 `showroom` only builds; publishing is up to the host repository. With `showroom` in its `devDependencies`, a GitHub Actions workflow like this one (e.g. `.github/workflows/showroom.yml`) builds and publishes the showroom on every push to `master`, once the repository's Settings › Pages › Source is set to "GitHub Actions":
 
 ```yaml
-name: Showcase
+name: Showroom
 
 on:
   push:
@@ -358,18 +360,18 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
       - run: npm ci
       - run: npx showroom build
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: showroom
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 ```
 
 Publishing this way skips Jekyll, so no `.nojekyll` file is needed. If you configured another `outDir`, change the artifact's `path` to match. Without `showroom` in `devDependencies`, run `npx --yes @ofzza/showroom build` instead of `npx showroom build`.
@@ -422,7 +424,7 @@ console.log(getStackAdapterNames(), project, errors);
   - `npm run test:integration` - real showcase adapter builds (`*.integration.test.ts`), on the fixture host repositories.
   - `npm run test:e2e` - the command line, and `build()` with Vite's build of the showroom, on copies of the fixture host repositories (`*.e2e.test.ts`). It first compiles `src/` once into a scratch folder, so it never depends on, or writes to, `dist/`. Tests copy fixtures, and create scratch folders, only inside `node_modules/.cache/showroom-tests/`, and remove them afterwards. The integration, end-to-end and dev server tests also see a temporary folder of their own there as the system's temporary folder (`TMPDIR`, `TMP`, `TEMP`).
   - `npm run test:serve` - the dev server (`*.serve.test.ts`): `serve()` on copies of the fixture host repositories, on a free port, fetching the showroom, its showcase frames and their files, with the showroom compiled as for `test:e2e`. Updates after a change are only unit-tested, as the dev server doesn't watch the copies (they are under `node_modules/`).
-- `npm run ci` - runs every `ci:*` script: build, ESLint, Prettier and the tests. This is what GitHub Actions runs on every pull request targeting, and every push to, `master` or `develop`, against Node 22 and 24. It also runs on `prepublishOnly`, so `npm publish` refuses to publish a failing build.
+- `npm run ci` - runs every `ci:*` script: build, ESLint, Prettier, the tests, and `showroom check --showcases --quiet` on this repository itself, with the command line just built (`ci:showroom`). This is what GitHub Actions runs on every pull request targeting, and every push to, `master` or `develop`, against Node 22 and 24. It also runs on `prepublishOnly`, so `npm publish` refuses to publish a failing build.
 
 # Contributing
 

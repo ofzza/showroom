@@ -30,6 +30,7 @@ Options:
   --port <port>    Port to serve on (serve only; default: 5173, or the next free one)
   --showcases      Also builds every showcase, throwing the result away (check only;
                    build always builds them)
+  --quiet          Writes no host information to stdout, only the issues (check only)
   --help           Shows this help
 `;
 
@@ -83,6 +84,10 @@ export async function main(args: string[], output: CliOutput = _processOutput())
     output.stderr(`--showcases only applies to check (build always builds the showcases)\n\n${USAGE}`);
     return 1;
   }
+  if (values.quiet && command !== 'check') {
+    output.stderr(`--quiet only applies to check\n\n${USAGE}`);
+    return 1;
+  }
 
   // Serve the showroom; Vite is only loaded here
   if (command === 'serve') {
@@ -108,7 +113,7 @@ export async function main(args: string[], output: CliOutput = _processOutput())
   // Run the check
   const result = await check(root, { outDir, ...(values.showcases ? { showcases: true } : {}) });
   output.stderr(formatIssues(result.issues));
-  if (result.host) output.stdout(`${JSON.stringify(result.host, null, 2)}\n`);
+  if (result.host && !values.quiet) output.stdout(`${JSON.stringify(result.host, null, 2)}\n`);
   return result.passed ? 0 : 1;
 }
 
@@ -131,7 +136,14 @@ function _parse(args: string[]) {
   return parseArgs({
     args,
     allowPositionals: true,
-    options: { root: { type: 'string' }, 'out-dir': { type: 'string' }, port: { type: 'string' }, showcases: { type: 'boolean' }, help: { type: 'boolean' } },
+    options: {
+      root: { type: 'string' },
+      'out-dir': { type: 'string' },
+      port: { type: 'string' },
+      showcases: { type: 'boolean' },
+      quiet: { type: 'boolean' },
+      help: { type: 'boolean' },
+    },
   });
 }
 

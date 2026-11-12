@@ -45,6 +45,7 @@
     "start": "node dist/cli/bin.js",
     "ci": "npm-run-all ci:*",
     "ci:build": "tsc -p tsconfig.build.json",
+    "ci:showroom": "node dist/cli/bin.js check --showcases --quiet",
     "ci:eslint": "eslint src",
     "ci:prettier": "prettier --check src",
     "ci:test-unit": "npm-run-all test:unit",
