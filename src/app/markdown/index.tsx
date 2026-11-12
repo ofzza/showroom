@@ -10,7 +10,8 @@ import rehypeHighlight from 'rehype-highlight';
 import rehypeSlug from 'rehype-slug';
 import { Link, Tooltip, makeStyles, tokens, type GriffelStyle } from '@fluentui/react-components';
 import type { DocumentationFile } from '../../host/index.js';
-import { isAbsoluteUrl, resolveLink } from '../links/index.js';
+import { isAbsoluteUrl } from '../../markdown/index.js';
+import { resolveLink } from '../links/index.js';
 import { scrollToAnchor } from '../routing/index.js';
 
 // #region Styles

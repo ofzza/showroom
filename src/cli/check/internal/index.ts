@@ -91,12 +91,14 @@ export async function readIgnoreMatcher(root: string, outDir?: string): Promise<
 // #region Issues
 
 /**
- * Formats check issues as lines of output, e.g. `warning: README.md: Several readme files ...`
+ * Formats check issues as lines of output, e.g. `warning: README.md: Several readme files ...`, or `error: docs/guide.md:12: Unknown showcase ...`
  * @param issues Issues to format
  * @returns One line per issue, each with its line break, or an empty string without issues
  */
 export function formatIssues(issues: CheckIssue[]): string {
-  return issues.map((issue) => `${issue.severity}: ${issue.path ? `${issue.path}: ` : ''}${issue.message}\n`).join('');
+  return issues
+    .map((issue) => `${issue.severity}: ${issue.path ? `${issue.path}${issue.line !== undefined ? `:${issue.line}` : ''}: ` : ''}${issue.message}\n`)
+    .join('');
 }
 
 // #endregion

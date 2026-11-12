@@ -48,8 +48,14 @@
     "ci:eslint": "eslint src",
     "ci:prettier": "prettier --check src",
     "ci:test-unit": "npm-run-all test:unit",
+    "ci:test-integration": "npm-run-all test:integration",
+    "ci:test-e2e": "npm-run-all test:e2e",
+    "ci:test-serve": "npm-run-all test:serve",
     "test": "npm-run-all test:*",
     "test:unit": "vitest run --passWithNoTests --project unit",
+    "test:integration": "vitest run --passWithNoTests --project integration",
+    "test:e2e": "vitest run --passWithNoTests --project e2e",
+    "test:serve": "vitest run --passWithNoTests --project serve",
     "prepare": "npm run build",
     "prepublishOnly": "npm run ci"
   },
@@ -75,12 +81,15 @@
   "dependencies": {
     "@fluentui/react-components": "^9.75.1",
     "ignore": "^7.0.14",
+    "json5": "^2.2.3",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5",
     "vite": "^8.3.7"
   }
 }

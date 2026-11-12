@@ -3,6 +3,9 @@
  */
 
 import type { DocumentationFile, HostInformation } from '../../host/index.js';
+import { getFolder, isMarkdownPath } from '../../markdown/index.js';
+
+export { getFolder };
 
 // #region Shown host information
 
@@ -40,16 +43,7 @@ export function getRootReadme(documentation: DocumentationFile[]): Documentation
  * @returns True if the file is a Markdown file
  */
 export function isMarkdown(file: DocumentationFile): boolean {
-  return file.extension.toLowerCase() === '.md';
-}
-
-/**
- * Gets the folder of a POSIX-style path relative to the host repository's root
- * @param path Path of a file
- * @returns Path of the file's folder, or an empty string for a file in the root
- */
-export function getFolder(path: string): string {
-  return path.slice(0, Math.max(path.lastIndexOf('/'), 0));
+  return isMarkdownPath(file.path);
 }
 
 /**

@@ -25,6 +25,8 @@ const _HOST: HostInformation = {
   project: { name: 'my <library> & "co"' },
   documentation: [{ path: 'README.md', kind: 'readme', extension: '.md', content: '# Hi' }],
   code: ['src/index.ts'],
+  showcases: [],
+  virtualFiles: [],
 };
 
 /**

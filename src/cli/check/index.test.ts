@@ -18,7 +18,7 @@ function _fixture(name: string): string {
 
 describe('cli/check', () => {
   // Tests check() end to end on the fixture host repositories in `test/fixtures/`, each built to exercise one area: the defaults, file name
-  // variants, duplicates, configured patterns, and every error.
+  // variants, duplicates, configured patterns, every error, the output folder, showcases and links.
 
   it('Starts the documentation patterns with README anywhere and the rest in the root only', () => {
     expect(BUILT_IN_DOCUMENTATION).toContain('README.md');
@@ -46,6 +46,12 @@ describe('cli/check', () => {
         { path: 'src/module/README.md', kind: 'readme', extension: '.md', content: '# Module\n' },
         { path: 'vendor/README.md', kind: 'readme', extension: '.md', content: '# Vendor\n' },
       ]);
+    });
+
+    it('Finds no showcases or virtual files where the documentation embeds none', async () => {
+      const { host } = await check(_fixture('minimal'));
+      expect(host?.showcases).toEqual([]);
+      expect(host?.virtualFiles).toEqual([]);
     });
 
     it('Indexes only code files under the source root', async () => {
@@ -185,6 +191,115 @@ describe('cli/check', () => {
 
     it('Accepts an overriding output folder that fixes a configured one', async () => {
       expect((await check(_fixture('out-dir-outside'), { outDir: join(_fixture('out-dir-outside'), 'site') })).passed).toBe(true);
+    });
+  });
+
+  describe('Showcases', () => {
+    // The showcases fixture embeds inline, linked and custom showcases, and resources, in Markdown documentation files, and passes; the
+    // showcase-errors fixture holds one documentation file per kind of broken showcase, and the showcase-adapters fixture lists one custom showcase
+    // adapter per way of getting it wrong.
+
+    it('Collects the showcases, with the options their showcase adapters validated', async () => {
+      const { passed, issues, host } = await check(_fixture('showcases'));
+      expect(passed).toBe(true);
+      expect(issues).toEqual([]);
+      expect(host?.showcases.map(({ id, line, kind, adapter, options, entry }) => ({ id, line, kind, adapter, options, entry }))).toEqual([
+        { id: 'README.md#1', line: 3, kind: 'inline', adapter: 'html', options: undefined, entry: 'README.showcase-1.html' },
+        { id: 'README.md#2', line: 11, kind: 'linked', adapter: 'html', options: undefined, entry: 'demos/demo.html' },
+        { id: 'README.md#3', line: 11, kind: 'linked', adapter: 'demo', options: { size: 2 }, entry: 'demos/widget.js' },
+        { id: 'docs/guide.md#1', line: 3, kind: 'inline', adapter: 'html', options: undefined, entry: 'docs/guide.showcase-1.html' },
+        { id: 'docs/guide.md#2', line: 7, kind: 'inline', adapter: 'demo', options: { size: 1 }, entry: 'docs/guide.showcase-2.js' },
+      ]);
+      // An adapter's validation may drop options the marker gave, but html takes none, so they are never set
+      expect(host?.showcases.filter((showcase) => 'options' in showcase).map((showcase) => showcase.id)).toEqual(['README.md#3', 'docs/guide.md#2']);
+    });
+
+    it('Collects the virtual files, and parses Markdown documentation files only', async () => {
+      // docs/notes.txt holds a broken marker, ignored as the file is plain text
+      const { host } = await check(_fixture('showcases'));
+      expect(host?.virtualFiles).toEqual([
+        { path: 'README.showcase-1.html', content: '<p class="hello">Hello</p>', documentation: 'README.md', line: 3 },
+        { path: 'styles.css', content: '.hello { color: red; }', documentation: 'README.md', line: 7 },
+        { path: 'docs/guide.showcase-1.html', content: '<link rel="stylesheet" href="../styles.css" />', documentation: 'docs/guide.md', line: 3 },
+        { path: 'docs/guide.showcase-2.js', content: "console.log('Hi');", documentation: 'docs/guide.md', line: 7 },
+      ]);
+    });
+
+    it('Reports every broken showcase, with its documentation file and line', async () => {
+      const result = await check(_fixture('showcase-errors'));
+      expect(result.passed).toBe(false);
+      expect(result.host).toBeUndefined();
+      expect(result.issues.map(({ path, line, message }) => `${path}:${line}: ${message}`)).toEqual([
+        // The markers, as the documentation files are scanned
+        `errors/entries.md:9: A linked showcase's entry point must be a relative path, not "https://example.com/a.html"`,
+        `errors/entries.md:11: A linked showcase's entry point "../../a.html" is outside the host repository`,
+        `errors/entries.md:13: A linked showcase's entry point can't have a query or fragment: "./linked.html?a"`,
+        'errors/markers.md:3: The showcase marker must follow the code block\'s language ("```<language> showcase=html")',
+        'errors/markers.md:6: Invalid showcase adapter name "Html" in showcase marker "showcase=Html": use lower-case letters, digits and "-", starting with a letter',
+        `errors/markers.md:9: A showcase's entry point can't have a "file" key; a resource's marker is "showcase file=<name>"`,
+        'errors/markers.md:12: Invalid resource name "a/b.css": use a plain file name, with no "/" or "\\"',
+        'errors/markers.md:15: Invalid showcase options (JSON5: invalid end of input at 1:6) in showcase marker "showcase=needy({ a: )"',
+        'errors/markers.md:18: The key "anchor" is reserved for later, in showcase marker "showcase anchor=here"',
+        "errors/markers.md:21: Only inline links can be showcases; an image can't hold a showcase marker",
+        "errors/markers.md:23: Only inline links can be showcases; a reference definition can't hold a showcase marker",
+        'errors/markers.md:25: Unknown key "of" in showcase marker "showcase of buttons"',
+        // The virtual files' names, across documentation files, on disk, and against generated names
+        'errors/collisions.md:6: Virtual file "errors/shared.css" collides with the virtual file at errors/collisions-more.md:3',
+        'errors/collisions.md:9: Virtual file "errors/Existing.TXT" collides with "errors/existing.txt" on disk',
+        'errors/collisions.md:15: Virtual file "errors/collisions.showcase-1.html" collides with the virtual file at errors/collisions.md:12',
+        // The custom showcase adapters
+        'showroom.json:undefined: Custom showcase adapter "broken": "./adapters/missing.js" not found',
+        // The showcases: unknown adapters, linked entry points, validation
+        'errors/adapters.md:3: Unknown showcase adapter "nope"; the showcase adapters are: html, needy, throwing',
+        'errors/adapters.md:12: needy takes no options',
+        'errors/adapters.md:15: Showcase adapter "throwing" failed to validate the showcase: validate broke',
+        `errors/entries.md:3: A linked showcase's entry point "errors/missing.html" not found`,
+        `errors/entries.md:5: A linked showcase's entry point "errors/folder" is a folder`,
+        'errors/entries.md:5: The html showcase adapter needs a link to an .html or .htm file, not "errors/folder"',
+        `errors/entries.md:7: A linked showcase's entry point "errors/linked-virtual.html" is a virtual file; use an inline showcase instead`,
+        'errors/html.md:3: The html showcase adapter needs an "html" or "htm" code block',
+        'errors/html.md:6: The html showcase adapter needs a link to an .html or .htm file, not "adapters/needy.js"',
+        'errors/html.md:8: The html showcase adapter takes no options',
+        // The host requirements of the showcase adapters in use, and closing them
+        'undefined:undefined: Showcase adapter "needy": needs "left-pad" installed',
+        'undefined:undefined: Showcase adapter "throwing" failed to check the host repository: check broke',
+        'undefined:undefined: Showcase adapter "throwing" failed to close: close broke',
+      ]);
+      expect(result.issues.every((issue) => issue.severity === 'error')).toBe(true);
+    });
+
+    it('Loads every custom showcase adapter, used or not, reporting those that fail', async () => {
+      const result = await check(_fixture('showcase-adapters'));
+      expect(result.passed).toBe(false);
+      expect(result.issues.map(({ path, message }) => `${path}: ${message}`)).toEqual([
+        'showroom.json: Custom showcase adapter "html": the name is taken by a built-in showcase adapter',
+        'showroom.json: Custom showcase adapter "react": the name is taken by a built-in showcase adapter',
+        'showroom.json: Custom showcase adapter "Bad_Name": invalid name: use lower-case letters, digits and "-", starting with a letter',
+        'showroom.json: Custom showcase adapter "outside": "../outside.js" is outside the host repository',
+        'showroom.json: Custom showcase adapter "missing": "./adapters/missing.js" not found',
+        'showroom.json: Custom showcase adapter "typescript": "./adapters/adapter.ts" must be a .js or .mjs file',
+        'showroom.json: Custom showcase adapter "folder": "./adapters" must be a .js or .mjs file',
+        'showroom.json: Custom showcase adapter "no-default": "./adapters/no-default.js" must have a default export: an object implementing the showcase adapter interface',
+        'showroom.json: Custom showcase adapter "incomplete": "./adapters/incomplete.js"\'s default export must implement the showcase adapter interface; check "build", "check"',
+        'showroom.json: Custom showcase adapter "throws": "./adapters/throws.js" failed to load: broken on purpose',
+      ]);
+    });
+  });
+
+  describe('Links', () => {
+    // The links fixture: working and broken links, in Markdown documentation files and a plain text one, with an ignored folder.
+
+    it('Warns about every broken relative link, without failing', async () => {
+      // Absolute URLs, fragments, images, linked showcases, ignored files and plain text documentation files are not warned about
+      const result = await check(_fixture('links'));
+      expect(result.passed).toBe(true);
+      expect(result.issues).toEqual([
+        { severity: 'warning', message: 'Broken link "docs/missing.md": nothing at "docs/missing.md"', path: 'README.md', line: 7 },
+        { severity: 'warning', message: 'Broken link "../outside.md": it leads outside the host repository', path: 'README.md', line: 7 },
+        { severity: 'warning', message: `Broken link "%E0%A4%A.md": it can't be URL-decoded`, path: 'README.md', line: 7 },
+        { severity: 'warning', message: 'Broken link "./docs/missing-reference.md": nothing at "docs/missing-reference.md"', path: 'README.md', line: 12 },
+        { severity: 'warning', message: 'Broken link "./sub/nowhere.md": nothing at "docs/sub/nowhere.md"', path: 'docs/guide.md', line: 3 },
+      ]);
     });
   });
 });

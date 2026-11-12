@@ -4,7 +4,20 @@
 
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import * as api from './index.js';
-import type { CheckOptions, CheckResult, Configuration, HostInformation, StackAdapter } from './index.js';
+import type {
+  CheckIssue,
+  CheckOptions,
+  CheckResult,
+  Configuration,
+  HostInformation,
+  Showcase,
+  ShowcaseAdapter,
+  ShowcaseBuildRequest,
+  ShowcaseBuildResult,
+  ShowcaseValidation,
+  StackAdapter,
+  VirtualFile,
+} from './index.js';
 
 describe('index', () => {
   // Tests that the entry point re-exports every module's public API: its runtime values through `expect`, and its types through `expectTypeOf`,
@@ -33,5 +46,12 @@ describe('index', () => {
     expectTypeOf<CheckResult['host']>().toEqualTypeOf<HostInformation | undefined>();
     expectTypeOf<Configuration['stack']>().toEqualTypeOf<string>();
     expectTypeOf<api.TypeScriptStackAdapter>().toExtend<StackAdapter>();
+    expectTypeOf<CheckIssue['line']>().toEqualTypeOf<number | undefined>();
+    expectTypeOf<Configuration['customShowcaseAdapters']>().toEqualTypeOf<Record<string, string> | undefined>();
+    expectTypeOf<HostInformation['showcases']>().toEqualTypeOf<Showcase[]>();
+    expectTypeOf<HostInformation['virtualFiles']>().toEqualTypeOf<VirtualFile[]>();
+    expectTypeOf<ReturnType<ShowcaseAdapter['validate']>>().toEqualTypeOf<ShowcaseValidation | Promise<ShowcaseValidation>>();
+    expectTypeOf<Parameters<ShowcaseAdapter['build']>[0]>().toEqualTypeOf<ShowcaseBuildRequest>();
+    expectTypeOf<Awaited<ReturnType<ShowcaseAdapter['build']>>>().toEqualTypeOf<ShowcaseBuildResult>();
   });
 });

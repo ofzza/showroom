@@ -3,7 +3,8 @@
  */
 
 import type { DocumentationFile } from '../../host/index.js';
-import { findDocumentationFile, findFolderReadme, getFolder } from '../host/index.js';
+import { isAbsoluteUrl, resolvePath, splitLink } from '../../markdown/index.js';
+import { findDocumentationFile, findFolderReadme } from '../host/index.js';
 import { getDocumentationRoute } from '../routing/index.js';
 
 // #region Links
@@ -44,15 +45,6 @@ export type ResolvedLink =
     };
 
 /**
- * Checks if a URL is absolute: it has a scheme (e.g. `https:`, `mailto:`), or is protocol-relative (`//`)
- * @param url URL
- * @returns True if the URL is absolute
- */
-export function isAbsoluteUrl(url: string): boolean {
-  return /^[a-z][a-z\d+.-]*:/i.test(url) || url.startsWith('//');
-}
-
-/**
  * Resolves a link in a documentation file's Markdown
  * @param href The link's target, as written in the Markdown
  * @param from The documentation file holding the link
@@ -66,42 +58,25 @@ export function resolveLink(href: string, from: DocumentationFile, documentation
   }
 
   // Split the link into its path and anchor, dropping any query, and URL-decode them
-  const hashIndex = href.indexOf('#');
-  const encodedPath = (hashIndex < 0 ? href : href.slice(0, hashIndex)).split('?')[0];
-  let path: string;
-  let anchor: string | undefined;
-  try {
-    path = decodeURIComponent(encodedPath);
-    anchor = hashIndex < 0 || hashIndex === href.length - 1 ? undefined : decodeURIComponent(href.slice(hashIndex + 1));
-  } catch {
+  const target = splitLink(href);
+  if (!target) {
     return { kind: 'unresolved' };
   }
 
   // An anchor-only (or empty) link stays on the documentation file holding it
-  if (path === '') {
-    return _route(from, anchor);
+  if (target.path === '') {
+    return _route(from, target.anchor);
   }
 
   // Resolve the path against the folder of the file holding the link, or against the root for a path starting with `/`
-  const segments = path.startsWith('/') ? [] : getFolder(from.path).split('/').filter(Boolean);
-  const parts = path.split('/');
-  for (const part of parts) {
-    if (part === '..') {
-      if (!segments.length) {
-        return { kind: 'unresolved' };
-      }
-      segments.pop();
-    } else if (part !== '' && part !== '.') {
-      segments.push(part);
-    }
+  const resolved = resolvePath(from.path, target.path);
+  if (!resolved) {
+    return { kind: 'unresolved' };
   }
-  const resolved = segments.join('/');
-  const last = parts[parts.length - 1];
-  const isFolder = last === '' || last === '.' || last === '..';
 
   // A documentation file, or a folder whose `README` is one
-  const file = (!isFolder && findDocumentationFile(documentation, resolved)) || findFolderReadme(documentation, resolved);
-  return file ? _route(file, anchor) : { kind: 'unresolved' };
+  const file = (!resolved.isFolder && findDocumentationFile(documentation, resolved.path)) || findFolderReadme(documentation, resolved.path);
+  return file ? _route(file, target.anchor) : { kind: 'unresolved' };
 }
 
 /**

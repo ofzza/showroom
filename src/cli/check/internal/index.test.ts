@@ -77,13 +77,14 @@ describe('cli/check/internal', () => {
     expect(await readIgnoreMatcher(_fixture('unknown-stack'))).toBeUndefined();
   });
 
-  it('Formats issues one per line, with their path when they have one', () => {
+  it('Formats issues one per line, with their path and line when they have them', () => {
     expect(formatIssues([])).toBe('');
     expect(
       formatIssues([
         { severity: 'error', message: 'Broken', path: 'showroom.json' },
         { severity: 'warning', message: 'Odd' },
+        { severity: 'error', message: 'Unknown', path: 'docs/guide.md', line: 12 },
       ]),
-    ).toBe('error: showroom.json: Broken\nwarning: Odd\n');
+    ).toBe('error: showroom.json: Broken\nwarning: Odd\nerror: docs/guide.md:12: Unknown\n');
   });
 });

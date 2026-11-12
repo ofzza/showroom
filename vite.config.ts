@@ -1,5 +1,16 @@
 import { defineConfig } from 'vitest/config';
 
+/**
+ * Test tiers beside `unit`, each a Vitest project of its own: real showcase adapter builds (`integration`), the command line on fixture copies
+ * (`e2e`), and the dev server (`serve`)
+ */
+const _TIERS = ['integration', 'e2e', 'serve'] as const;
+
+/**
+ * Globs of the other tiers' test files, which the `unit` project leaves out although they end in `.test.*` too
+ */
+const _OTHER_TIERS = _TIERS.map((tier) => `src/**/*.${tier}.test.{js,jsx,ts,tsx}`);
+
 export default defineConfig({
   test: {
     reporters: ['tree'],
@@ -26,17 +37,29 @@ export default defineConfig({
           name: 'unit',
           setupFiles: [],
           include: ['src/**/*.{test,unit.test,spec,unit.spec}.{js,jsx,ts,tsx}'],
-          exclude: ['node_modules/**', 'dist/**'],
+          exclude: ['node_modules/**', 'dist/**', ..._OTHER_TIERS],
           typecheck: {
             enabled: true,
             include: ['src/**/*.{test,unit.test,spec,unit.spec,test-d,spec-d}.{ts,tsx}'],
-            exclude: ['node_modules/**', 'dist/**'],
+            exclude: ['node_modules/**', 'dist/**', ..._OTHER_TIERS],
             tsconfig: './tsconfig.json',
             // Vitest 5.0.1 documents, but does not apply, a default for this, but consumes it unguarded when spawning the checker
             spawnTimeout: 10000,
           },
         },
       },
+      // The other test tiers, each told apart by its file name suffix: only executed, never type checked by Vitest (the `unit` project's `tsc` run
+      // still reports type errors in them, as it checks the whole `tsconfig.json` program)
+      ..._TIERS.map((tier) => ({
+        test: {
+          name: tier,
+          setupFiles: [],
+          include: [`src/**/*.${tier}.test.{js,jsx,ts,tsx}`],
+          exclude: ['node_modules/**', 'dist/**'],
+          testTimeout: 60000,
+          hookTimeout: 60000,
+        },
+      })),
     ],
   },
 });

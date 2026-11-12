@@ -34,12 +34,17 @@ src/
   configuration/        Reading and validating showroom.json
   adapters/stack/       The StackAdapter interface and the built-in stack adapters
     typescript/         The TypeScript stack adapter
+  adapters/showcase/    The ShowcaseAdapter interface (experimental)
+    registry/           The built-in showcase adapters, and loading custom showcase adapters
+    html/               The html showcase adapter
+  markdown/             Scanning documentation files' Markdown: showcase markers, showcases, virtual files and links (Node-free, shared with the showroom)
   cli/                  The showroom command line (bin.ts is its executable entry point)
     check/              check(): collecting the host information from a host repository
       internal/         The output folder, the ignore matcher and issue formatting, shared with serve and build
     serve/              showroom serve: Vite's dev server, reloading on changes
     build/              showroom build: Vite's build, into the output folder
   vite/                 The showroom's Vite configuration
+  testing/              Test helpers: scratch folders and fixture copies (never built)
   app/                  The showroom: React/FluentUI browser code, compiled to dist/app/ and bundled by Vite
     host/               The shown host information, and finding documentation files in it
     routing/            The hash router
@@ -52,9 +57,9 @@ src/
 test/fixtures/          Fixture host repositories the tests run against
 ```
 
-Every module lives in `src/`, as an `index.ts` + `index.test.ts` pair, and is re-exported from `src/index.ts`, except the showroom's modules in `src/app/`, which are browser code.
+Every module lives in `src/`, as an `index.ts` + `index.test.ts` pair, and is re-exported from `src/index.ts`, except the showroom's modules in `src/app/`, which are browser code, and the internal modules (`src/markdown/`, `src/testing/`, the showcase adapter registry and the built-in showcase adapters, and the parts of `src/cli/` only the command line uses). Besides `unit` tests (`*.test.ts`), there are `e2e` tests (`*.e2e.test.ts`) of the command line on copies of the fixtures, and tiers for `integration` and `serve` tests; tests write only into scratch folders in `node_modules/.cache/showroom-tests/`.
 
-`showroom check` (and `check()`) reads the host repository's `showroom.json`, picks the stack adapter it names, has it read the project information, then walks the host repository once, skipping ignored files and the output folder, to collect the documentation files and the code file index. Each list of patterns (`ignore`, `code`, `documentation`) works like a `.gitignore` file, matched by the `ignore` package: the built-in patterns (for documentation), then the stack adapter's, then the configuration's.
+`showroom check` (and `check()`) reads the host repository's `showroom.json`, picks the stack adapter it names, has it read the project information, then walks the host repository once, skipping ignored files and the output folder, to collect the documentation files and the code file index. It then scans the Markdown documentation files (`.md`) with `src/markdown/` (`unified` with `remark-parse` and `remark-gfm`, as the showroom parses them): showcase markers in code fences' info strings and inline links' titles give the showcases and virtual files, whose names must not collide; each showcase is validated by its showcase adapter (built-in, or a custom showcase adapter loaded from `customShowcaseAdapters`), and each showcase adapter in use checks the host repository's requirements. Broken showcases are errors; broken relative links are warnings. Each list of patterns (`ignore`, `code`, `documentation`) works like a `.gitignore` file, matched by the `ignore` package: the built-in patterns (for documentation), then the stack adapter's, then the configuration's.
 
 The showroom (`src/app/`) presents the shown host information: the host information without the code file index. `tsc` compiles it to `dist/app/`, next to its static `index.html`, and Vite bundles it from there, with the data served as the `virtual:showroom-host` module, which `main.ts` passes to `mount()`. It routes through the URL's hash (`#/` for the home page, `#/<path>` for any other documentation file, then `#<heading id>`), so it works on static hosting under any path. Markdown is rendered by `react-markdown` with `remark-gfm`, `rehype-slug` (GitHub-compatible heading ids) and `rehype-highlight`; relative links to documentation files become routes, and other relative links plain text. Styles are Griffel's `makeStyles` with FluentUI tokens, so everything, highlighted code included, follows the light or dark theme.
 
@@ -69,7 +74,7 @@ Terms used across code, comments and documentation. Use them as defined here. A 
 | Term                    | Meaning                                                                                                                                                                                                                                     |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Host repository         | The repository that uses `showroom`, and that the showroom presents.                                                                                                                                                                        |
-| Host information        | The data `showroom` collects from a host repository (project information, documentation files, code file index), which the showroom presents.                                                                                               |
+| Host information        | The data `showroom` collects from a host repository (project information, documentation files, code file index, showcases and virtual files), which the showroom presents.                                                                  |
 | Shown host information  | The part of the host information the showroom presents: the project information and the documentation files, without the code file index.                                                                                                   |
 | Showroom                | The static React/FluentUI SPA that `showroom` builds (or serves, for previewing) for a host repository: its documentation, enriched by the showcases embedded in it. Not to be confused with `showroom`, the tool (always written as code). |
 | Project information     | The host repository's name, version, description, license, author, homepage and repository URL, read by its stack adapter.                                                                                                                  |

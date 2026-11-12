@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, expectTypeOf } from 'vitest';
-import type { DocumentationKind, HostInformation, ProjectInformation } from './index.js';
+import type { DocumentationKind, HostInformation, ProjectInformation, ShowcaseKind } from './index.js';
 
 describe('host', () => {
   // The module only declares types: checks at compile time that they accept what the showroom relies on and reject what they
@@ -19,11 +19,20 @@ describe('host', () => {
     expectTypeOf<DocumentationKind>().toEqualTypeOf<'readme' | 'contribute' | 'license' | 'other'>();
   });
 
+  it('Limits showcase kinds to inline and linked', () => {
+    expectTypeOf<ShowcaseKind>().toEqualTypeOf<'inline' | 'linked'>();
+  });
+
   it('Survives a JSON round trip unchanged', () => {
     const host: HostInformation = {
       project: { name: 'host', version: '1.0.0' },
       documentation: [{ path: 'README.md', kind: 'readme', extension: '.md', content: '# Host\n' }],
       code: ['src/index.ts'],
+      showcases: [
+        { id: 'README.md#1', documentation: 'README.md', line: 3, offset: 9, kind: 'inline', adapter: 'html', entry: 'README.showcase-1.html' },
+        { id: 'README.md#2', documentation: 'README.md', line: 7, offset: 40, kind: 'linked', adapter: 'x', options: { a: [1] }, entry: 'demo.js' },
+      ],
+      virtualFiles: [{ path: 'README.showcase-1.html', content: '<p>Hi</p>', documentation: 'README.md', line: 3 }],
     };
     expect(JSON.parse(JSON.stringify(host))).toEqual(host);
   });

@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning (_`P4`_). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ are implemented and committed; _`P4.1`_ is approved, not yet implemented.
-- **Next free:** _`D134`_, _`S8`_, _`P5`_, _`O22`_, _`L3`_, _`R6`_, _`H1`_, _`K15`_
-- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks approved (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ and _`P4.3`_ are not yet planned.
-- **Next step:** the user chooses: implement _`P4.1`_ (in a fresh session), or plan _`P4.2`_ first.
+- **Stage:** planning (_`P4`_). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ and _`P4.1`_ are implemented and committed.
+- **Next free:** _`D134`_, _`S8`_, _`P5`_, _`O23`_, _`L3`_, _`R6`_, _`H1`_, _`K15`_
+- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ and _`P4.3`_ are not yet planned.
+- **Next step:** plan _`P4.2`_ Showcase frames in `build` (`./.workflow/PLAN-P4-showcases.md`), starting with its open points (_`K14`_, from _`P4.1`_), possibly in a fresh session.
 
 ## Open questions
 
@@ -14,8 +14,6 @@
 ## Waiting on me
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
-- Confirmation that `./.workflow/.temp/questions-p4.1-plan/` can be deleted (its outcomes are in `PLAN-P4.1-markers-and-checks.md`, `SPEC-S6-showcases.md` and `CONTRIBUTE.md`).
-- Whether to implement _`P4.1`_ next, or plan _`P4.2`_ first.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
 ## Running
@@ -86,3 +84,7 @@
 - 2026-11-12: _`P4.1`_ choices Q1–Q18 answered: all as recommended, except Q12 (`checkHost?` renamed `check?`), Q14 (`showcaseAdapters` renamed `customShowcaseAdapters`), Q15 ("Export, as experimental (Rec.)": _`D133`_ added to _`S6.6`_, changing _`D78`_ and _`D99`_; revisions _`R4`_, _`R5`_) and Q18 ("Custom showcase adapter (Rec.)" as the Glossary term).
 - 2026-11-12: New global rule added to `~/.claude/CLAUDE.md` at the user's request: show a file's list of choices in the conversation before asking about them.
 - 2026-11-12: _`P4.1`_ approved, and _`S6.1`_ and _`S6.6`_ re-approved with _`D133`_ and the Glossary changes, without a zero-context review (option chosen: "Approve and commit").
+- 2026-11-12: `questions-p4.1-plan/` working files deleted with the user's yes ("Delete it"); the user chose to implement _`P4.1`_ next, in a fresh session.
+- 2026-11-12: _`P4.1`_ implementation started (user: "Please proceed").
+- 2026-11-12: _`P4.1`_ implemented (steps 1–5): `npm run ci` green (408 unit tests, 5 end-to-end tests); _`O22`_ added to _`P4`_ for _`P4.3`_.
+- 2026-11-12: _`P4.1`_ checkpoint: approved and committed (option chosen: "Approve and commit"); implementation choices 2a–2e kept ("All OK (Rec.)"); Glossary "Host information" extended with showcases and virtual files ("Add them (Rec.)"); `trial-p4.1/` working files deleted ("Delete it (Rec.)").

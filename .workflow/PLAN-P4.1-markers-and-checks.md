@@ -1,6 +1,6 @@
 # _`P4.1`_ Showcase markers and documentation checks
 
-approved 2026-11-12
+approved 2026-11-12; implemented 2026-11-12
 
 Child of _`P4`_ (PLAN-P4-showcases.md). Static: it builds nothing. Its choices were settled 2026-11-12 (QD1, QD2 and Q1–Q18 of the planning discussion; each decision names its question).
 

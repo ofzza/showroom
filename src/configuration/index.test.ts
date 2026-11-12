@@ -23,7 +23,15 @@ describe('configuration', () => {
     // Every rule the validation enforces, one at a time.
 
     it('Accepts a configuration with every key', () => {
-      const value = { stack: 'typescript', sourceRoot: 'lib', outDir: 'out', ignore: ['a'], code: ['*.ts'], documentation: ['docs/*.md'] };
+      const value = {
+        stack: 'typescript',
+        sourceRoot: 'lib',
+        outDir: 'out',
+        ignore: ['a'],
+        code: ['*.ts'],
+        documentation: ['docs/*.md'],
+        customShowcaseAdapters: { mine: './adapters/mine.js' },
+      };
       expect(validateConfiguration(value)).toEqual({ configuration: value, errors: [] });
     });
 
@@ -55,6 +63,14 @@ describe('configuration', () => {
         'showroom.json: "code" must be an array of strings',
         'showroom.json: "documentation" must be an array of strings',
       ]);
+    });
+
+    it('Rejects custom showcase adapters that are not an object of non-empty strings', () => {
+      for (const customShowcaseAdapters of [[], 'x', null, { a: 1 }, { a: '' }]) {
+        expect(validateConfiguration({ stack: 'typescript', customShowcaseAdapters }).errors).toEqual([
+          'showroom.json: "customShowcaseAdapters" must be an object mapping showcase adapter names to paths (non-empty strings)',
+        ]);
+      }
     });
   });
 

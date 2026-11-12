@@ -40,6 +40,10 @@ export interface Configuration {
    * `.gitignore`-style patterns of documentation files, appended to the built-in ones and the stack adapter's
    */
   documentation?: string[];
+  /**
+   * Custom showcase adapters (experimental): paths of their JavaScript modules, relative to the host repository's root, by showcase adapter name
+   */
+  customShowcaseAdapters?: Record<string, string>;
 }
 
 /**
@@ -66,6 +70,7 @@ const _KEYS: Record<keyof Configuration, (value: unknown) => boolean> = {
   ignore: _isStringArray,
   code: _isStringArray,
   documentation: _isStringArray,
+  customShowcaseAdapters: _isStringRecord,
 };
 
 /**
@@ -78,6 +83,7 @@ const _EXPECTED: Record<keyof Configuration, string> = {
   ignore: 'an array of strings',
   code: 'an array of strings',
   documentation: 'an array of strings',
+  customShowcaseAdapters: 'an object mapping showcase adapter names to paths (non-empty strings)',
 };
 
 /**
@@ -87,6 +93,17 @@ const _EXPECTED: Record<keyof Configuration, string> = {
  */
 function _isStringArray(value: unknown): boolean {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
+/**
+ * Checks if a value is an object whose values are all non-empty strings
+ * @param value Value to check
+ * @returns True if the value is such an object
+ */
+function _isStringRecord(value: unknown): boolean {
+  return (
+    typeof value === 'object' && value !== null && !Array.isArray(value) && Object.values(value).every((item) => typeof item === 'string' && item.length > 0)
+  );
 }
 
 /**

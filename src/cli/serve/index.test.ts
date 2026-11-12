@@ -26,7 +26,7 @@ function _fixture(name: string): string {
  * @returns The host information
  */
 function _host(content: string, code: string[] = []): HostInformation {
-  return { project: { name: 'p' }, documentation: [{ path: 'README.md', kind: 'readme', extension: '.md', content }], code };
+  return { project: { name: 'p' }, documentation: [{ path: 'README.md', kind: 'readme', extension: '.md', content }], code, showcases: [], virtualFiles: [] };
 }
 
 /**

@@ -43,3 +43,4 @@ Settled before segmenting _`P4`_, so that every child segment inherits it (_`K12
 
 - [ ] _`O20`_ From _`K12`_ (SPEC-pitfalls.md), _`D107`_. Testing the framework showcase adapters with framework versions other than `showroom`'s own (e.g. React 18, _`K10`_): npm aliases (`react18: npm:react@18`), a cached install step, or something else. For the `react` and `angular` segments and their spikes.
 - [x] _`O21`_ (resolved by _`D113`_) From _`D109`_. Which child segment sets up the Vitest projects and the scratch folder helper (the first one whose tests need them).
+- [ ] _`O22`_ From _`P4.1`_'s implementation (_`D129`_, PLAN-P4.1-markers-and-checks.md). Custom showcase adapters are loaded with `import()`, which Node caches for the life of the process: for _`P4.3`_, `serve` must reload a changed custom showcase adapter (e.g. a cache-busting query on its URL, or a worker), and not leak a module per reload.

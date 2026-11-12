@@ -1,0 +1,1 @@
+Plain text is never checked: [missing](./missing.md)
