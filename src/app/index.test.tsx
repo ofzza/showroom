@@ -1,5 +1,5 @@
 /**
- * Tests of the showcase application
+ * Tests of the showroom
  */
 
 import { describe, it, expect } from 'vitest';
@@ -21,7 +21,7 @@ const _DATA: ShownHostInformation = {
 };
 
 /**
- * Renders the showcase application to HTML on the server
+ * Renders the showroom to HTML on the server
  * @param route URL hash of the page to show
  * @param theme Name of the theme to start with
  * @param data The shown host information
@@ -36,7 +36,7 @@ function _render(route?: string, theme?: ThemeName, data: ShownHostInformation =
 }
 
 describe('app', () => {
-  // Smoke tests of the whole showcase application, rendered to HTML with `react-dom/server` (never through mount(), which needs a DOM), with injected
+  // Smoke tests of the whole showroom, rendered to HTML with `react-dom/server` (never through mount(), which needs a DOM), with injected
   // routes and themes, so every page and both themes are covered.
 
   it('Shows the home page by default', () => {

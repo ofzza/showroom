@@ -1,5 +1,5 @@
 /**
- * Link resolution: what a link or image in a documentation file's Markdown points to inside the showcase application
+ * Link resolution: what a link or image in a documentation file's Markdown points to inside the showroom
  */
 
 import type { DocumentationFile } from '../../host/index.js';
@@ -24,7 +24,7 @@ export type ResolvedLink =
     }
   | {
       /**
-       * A page of the showcase application
+       * A page of the showroom
        */
       kind: 'route';
       /**
@@ -58,7 +58,7 @@ export function isAbsoluteUrl(url: string): boolean {
  * @param from The documentation file holding the link
  * @param documentation Documentation files
  * @returns What the link points to: an absolute URL; the page of the documentation file it names, or of the `README` of the folder it names; or
- * nothing in the showcase application
+ * nothing in the showroom
  */
 export function resolveLink(href: string, from: DocumentationFile, documentation: DocumentationFile[]): ResolvedLink {
   if (isAbsoluteUrl(href)) {

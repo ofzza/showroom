@@ -67,7 +67,7 @@ describe('app/markdown', () => {
     expect(html).not.toContain('../src/index.ts');
     expect(html).toMatch(/<span [^>]*tabindex="0"[^>]*>the code<\/span>/);
     // The tooltip itself only appears on hover or focus, through a portal, so only its trigger is rendered here
-    expect(UNRESOLVED_LINK_TOOLTIP).toBe('Not in the showcase application');
+    expect(UNRESOLVED_LINK_TOOLTIP).toBe('Not in the showroom');
   });
 
   it('Shows relative images as their alt text, and absolute ones as images', () => {

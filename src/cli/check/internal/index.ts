@@ -1,5 +1,5 @@
 /**
- * Internals of the check shared with `tsshowcase serve` and `tsshowcase build`, and so not re-exported: the output folder, the ignore matcher (which
+ * Internals of the check shared with `showroom serve` and `showroom build`, and so not re-exported: the output folder, the ignore matcher (which
  * files of a host repository are ignored), and the formatting of check issues as output
  */
 
@@ -27,7 +27,7 @@ export interface OutputFolder {
 
 /**
  * Resolves the output folder: the override if given (relative to the current directory), else the configuration's `outDir` (relative to the host
- * repository's root), else `./showcase`
+ * repository's root), else `./showroom`
  * @param root Path of the host repository's root
  * @param configuration Configuration of the host repository
  * @param override Output folder given on the command line, if any

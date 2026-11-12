@@ -4,7 +4,7 @@ implemented 2026-11-09
 
 ## Goals
 
-A first working version of the approved specification (`./.workflow/SPEC.md`): `tsshowcase build` run in a host repository using the TypeScript stack adapter produces a static React/FluentUI showcase application in `./showcase`, presenting the host repository's project information and documentation files (the code file index is collected but not shown, _`D12`_). Showcases, other stack adapters and SCM adapters are out of scope.
+A first working version of the approved specification (`./.workflow/SPEC.md`): `showroom build` run in a host repository using the TypeScript stack adapter produces a static React/FluentUI showroom in `./showroom`, presenting the host repository's project information and documentation files (the code file index is collected but not shown, _`D12`_). Showcases, other stack adapters and SCM adapters are out of scope.
 
 ## Segments
 
@@ -15,16 +15,16 @@ Segmentation approved (see the session state's history).
    - The stack adapter interface, and the TypeScript stack adapter (_`D1`_).
    - Documentation file matching (case, UK/US spelling, `.md`/`.txt`/none) and discovery (_`D6`_).
    - The code file index under the source root (_`D3`_), and the skipped files (_`D10`_).
-   - The `tsshowcase.json` configuration format, as far as scanning reads it (_`D5`_).
-   - The `tsshowcase check` command, which outputs all the collected data to `stdout` and every issue to `stderr`, so _`P1`_ is self-contained and testable on its own (_`D30`_; originally planned as temporary, now permanent).
-2. **_`P2`_ Showcase application**: the React/FluentUI SPA, kept in this repository, rendering the data _`P1`_ collects, and `tsshowcase serve` to preview it (changed 2026-11-09: the code file index is no longer shown (_`D12`_), and `serve` with the shared Vite setup moved here from _`P3`_).
+   - The `showroom.json` configuration format, as far as scanning reads it (_`D5`_).
+   - The `showroom check` command, which outputs all the collected data to `stdout` and every issue to `stderr`, so _`P1`_ is self-contained and testable on its own (_`D30`_; originally planned as temporary, now permanent).
+2. **_`P2`_ Showroom**: the React/FluentUI SPA, kept in this repository, rendering the data _`P1`_ collects, and `showroom serve` to preview it (changed 2026-11-09: the code file index is no longer shown (_`D12`_), and `serve` with the shared Vite setup moved here from _`P3`_).
    - Navigation, project information, and a page per documentation file, with syntax-highlighted code blocks (_`D12`_).
    - Hash routing, relative links inside Markdown rewritten, and the light/dark toggle (_`D9`_).
-   - The Vite configuration, and `tsshowcase serve` (_`D2`_, _`D4`_).
-   - Vite, React and FluentUI as tsshowcase's own dependencies (_`K7`_).
-3. **_`P3`_ Build command**: the `tsshowcase build` CLI tying _`P1`_ and _`P2`_ together.
+   - The Vite configuration, and `showroom serve` (_`D2`_, _`D4`_).
+   - Vite, React and FluentUI as `showroom`'s own dependencies (_`K7`_).
+3. **_`P3`_ Build command**: the `showroom build` CLI tying _`P1`_ and _`P2`_ together.
    - The `build` command and the CLI flags overriding the configuration (_`D4`_, _`D5`_).
-   - Building the showcase application with _`P2`_'s Vite configuration into `./showcase` with relative asset paths (_`D2`_, _`D7`_).
+   - Building the showroom with _`P2`_'s Vite configuration into `./showroom` with relative asset paths (_`D2`_, _`D7`_).
    - The README's usage documentation and an example GitHub Pages workflow (_`D7`_).
 
 Order: _`P1`_ first. _`P2`_ and _`P3`_ both depend only on _`P1`_'s data structure, so once it's planned they can be planned in parallel; _`P3`_ is implemented last, as it builds _`P2`_. At the user's request, _`P1`_ is implemented before _`P2`_ and _`P3`_ are planned.
@@ -43,16 +43,16 @@ _`D14`_, _`D15`_ and _`D16`_ of the specification, as far as reading the host re
    - project information (_`D23`_);
    - documentation files: their path, kind (`readme`, `contribute`, `license`, `other`), extension and raw text;
    - the code file index: a sorted list of paths relative to the host root.
-2. **Configuration** (`src/configuration/`): reading and validating the mandatory `tsshowcase.json` at the host root (_`D27`_).
+2. **Configuration** (`src/configuration/`): reading and validating the mandatory `showroom.json` at the host root (_`D27`_).
 3. **Stack adapters** (`src/adapters/stack/`): the stack adapter interface (_`D22`_), and the TypeScript stack adapter with its defaults (_`D26`_).
 4. **Checking** (`src/cli/check/`): `check()`, walking the host repository:
    - ignoring files by the stack adapter's and the configuration's patterns (_`D28`_, _`D29`_);
    - documentation file matching and discovery (_`D24`_, _`D25`_, _`D34`_);
    - the code file index under the source root.
-5. **Command** (`src/cli/`): the `tsshowcase` entry point running `check()` (_`D30`_), plus the `bin` entry in `package.json`.
+5. **Command** (`src/cli/`): the `showroom` entry point running `check()` (_`D30`_), plus the `bin` entry in `package.json`.
 6. **Public API**: `src/index.ts` re-exports the types and `check()`; the template's `hello()` is removed (_`D31`_).
 7. **Tests**: a `*.test.ts` beside each module, plus fixture host repositories (_`D32`_). The `ignore` dependency is added to `package.json`.
-8. **Documentation**: `README.md` (`# Usage`: `tsshowcase.json`, `tsshowcase check`, the exports; the `package.json` description no longer says "Enforce", per _`D8`_), `AGENTS.md` (Layout, Exports, Commands, Testing), `CONTRIBUTE.md` (project structure, the Glossary term from _`D21`_), and `PUBLISH.md` (the `bin` field).
+8. **Documentation**: `README.md` (`# Usage`: `showroom.json`, `showroom check`, the exports; the `package.json` description no longer says "Enforce", per _`D8`_), `AGENTS.md` (Layout, Exports, Commands, Testing), `CONTRIBUTE.md` (project structure, the Glossary term from _`D21`_), and `PUBLISH.md` (the `bin` field).
 
 #### Decisions
 
@@ -62,18 +62,18 @@ _`D14`_, _`D15`_ and _`D16`_ of the specification, as far as reading the host re
 - _`D24`_ (was C4; `live`): Accepted names: `README`, `LICENSE`/`LICENCE`, `CONTRIBUTE`/`CONTRIBUTING`.
 - _`D25`_ (was C5; `live`): Several matches in one folder: one is taken, by priority `.md`, then no extension, then `.txt`, with a warning.
 - _`D26`_ (was C8; `live`): TypeScript stack adapter defaults: source root `src`; code `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs` (as patterns, see _`D27`_); ignored `.git`, `node_modules`, `dist`, `coverage`.
-- _`D27`_ (was C9; `live`): Configuration (`tsshowcase.json`), as the user specified:
+- _`D27`_ (was C9; `live`): Configuration (`showroom.json`), as the user specified:
   - The file is mandatory: not finding it is an unrecoverable error.
   - `stack`: required, no default.
   - `sourceRoot`: optional; defaults to the stack adapter's.
-  - `outDir`: optional; defaults to `./showcase`.
+  - `outDir`: optional; defaults to `./showroom`.
   - `ignore` (was `skip`): patterns, extending the stack adapter's, like `.gitignore` inheritance.
   - `code` (was `codeExtensions`): patterns matching code files, instead of extensions; stack adapters define code files as patterns too.
   - `documentation` (was `markdown`): patterns, as documentation can be more than Markdown.
   - Rejected: a default `stack`, a missing file meaning all defaults, extension lists.
 - _`D28`_ (was C9a; `live`): The three pattern lists (`ignore`, `code`, `documentation`) all work like `.gitignore`: applied in order, the last match wins, `!pattern` re-includes, and a pattern without `/` matches at any depth. The stack adapter's patterns come first and the configuration's are appended. `code` patterns apply under the source root, the others from the host root. Rejected: `.gitignore` semantics for `ignore` only.
 - _`D29`_ (was C9b; `live`): Patterns are matched with the `ignore` package (MIT, no dependencies, implements the `.gitignore` spec), a new runtime `dependency`. Rejected: our own matcher on Node's `path.matchesGlob` (re-implements `.gitignore` rules; Node 22 unverified); `picomatch` with our own ordering and `!` logic.
-- _`D30`_ (was C10; `live`): The command is `tsshowcase check`: it writes every issue to `stderr`, the collected host information to `stdout`, and its exit code says whether the check passed. It's permanent: `tsshowcase build` (_`P3`_) runs the same check first. Issues are errors (e.g. a missing or invalid `tsshowcase.json`, an unknown `stack`, a missing project file) or warnings (e.g. _`D25`_'s duplicates); the exit code is 1 on any error, and warnings alone don't fail it. Rejected: `tsshowcase scan` with `--out` writing `info.json`; a temporary command; warnings failing the check.
+- _`D30`_ (was C10; `live`): The command is `showroom check`: it writes every issue to `stderr`, the collected host information to `stdout`, and its exit code says whether the check passed. It's permanent: `showroom build` (_`P3`_) runs the same check first. Issues are errors (e.g. a missing or invalid `showroom.json`, an unknown `stack`, a missing project file) or warnings (e.g. _`D25`_'s duplicates); the exit code is 1 on any error, and warnings alone don't fail it. Rejected: `showroom scan` with `--out` writing `info.json`; a temporary command; warnings failing the check.
 - _`D34`_ (was C14; `live`): Details:
   - Built-in documentation discovery (root `README`/`CONTRIBUTE`/`LICENSE`, `README` anywhere, per _`D24`_/_`D25`_) is the start of the `documentation` pattern list: the stack adapter's and the configuration's `documentation` patterns follow it, so they can add files (kind `other`) or remove built-in ones with `!`. `ignore` applies to all of it. Patterns are matched case-insensitively (`ignore`'s default), which the case-insensitive file names need.
   - Paths in the host information are POSIX-style and relative to the host root; the code file index is sorted.
@@ -87,19 +87,19 @@ _`D14`_, _`D15`_ and _`D16`_ of the specification, as far as reading the host re
 
 - [x] _`O1`_ From _`K2`_. The stack adapter interface must leave room for showcases of other frameworks (iframes or web components), without designing them now. Resolved by _`D22`_: new capabilities are added as optional members.
 
-### _`P2`_ Showcase application
+### _`P2`_ Showroom
 
 implemented 2026-11-09 (approved 2026-11-09). Reviewed 2026-11-09 (zero-context review, 2 agents); its outcomes are applied below.
 
 #### Goals
 
-_`D13`_ of the specification, except building into the output folder (_`P3`_): the showcase application presenting the project information and the documentation files (the code file index is collected but not shown, _`D12`_), with the light/dark toggle (_`D9`_) and syntax-highlighted code blocks (_`D12`_), and `tsshowcase serve` to preview it (_`D4`_).
+_`D13`_ of the specification, except building into the output folder (_`P3`_): the showroom presenting the project information and the documentation files (the code file index is collected but not shown, _`D12`_), with the light/dark toggle (_`D9`_) and syntax-highlighted code blocks (_`D12`_), and `showroom serve` to preview it (_`D4`_).
 
 #### Child segments
 
 _`P2`_ is split in two (_`D53`_), each implemented and checkpointed on its own:
 
-- **_`P2.1`_ Showcase application** (implemented 2026-11-09): steps 1 and 2, with their tests and documentation. Checked by its tests.
+- **_`P2.1`_ Showroom** (implemented 2026-11-09): steps 1 and 2, with their tests and documentation. Checked by its tests.
 - **_`P2.2`_ Serve command** (implemented 2026-11-09): steps 3 and 4, with their tests and documentation. Checked by its tests, and by the user in a browser.
 
 #### Steps
@@ -108,7 +108,7 @@ _`P2`_ is split in two (_`D53`_), each implemented and checkpointed on its own:
    - `dependencies`: `react`, `react-dom`, `@fluentui/react-components`, `react-markdown`, `remark-gfm`, `rehype-highlight`, `rehype-slug` (_`P2.1`_), and `vite` (_`P2.2`_);
    - `devDependencies`: `@types/react`, `@types/react-dom`, `eslint-plugin-react-hooks` (enabled in `eslint.config.js`);
    - `tsconfig.json` gets `jsx: react-jsx`, so `src/**/*.tsx` builds, lints and tests with the existing setup; `npm run build` also copies `src/app/index.html` to `dist/app/` (_`D50`_).
-2. **Showcase application** (`src/app/`, browser code, _`P2.1`_; _`D35`_, _`D36`_): `mount(element, data)` renders `App` into an element; `App` takes the data, and optionally the route and the initial theme (_`D56`_):
+2. **Showroom** (`src/app/`, browser code, _`P2.1`_; _`D35`_, _`D36`_): `mount(element, data)` renders `App` into an element; `App` takes the data, and optionally the route and the initial theme (_`D56`_):
    - the hash router (_`D37`_), with a not-found page;
    - the layout (_`D42`_): header, `InlineDrawer` navigation;
    - the home page: the project information and the root `README`;
@@ -117,16 +117,16 @@ _`P2`_ is split in two (_`D53`_), each implemented and checkpointed on its own:
    - the theme (_`D44`_);
    - the static `index.html` and the entry (`main.ts`: imports the virtual module and calls `mount()`, _`D50`_).
 3. **Vite configuration** (`src/vite/`, Node code, _`P2.2`_; _`D50`_): a function returning Vite's `InlineConfig` for a host repository (the app's folder is a parameter, so tests don't depend on `dist/`), the plugin serving the shown host information as a virtual module and setting `<title>` (_`D58`_), and the React aliases (_`D57`_). _`P3`_'s `build` reuses it.
-4. **`tsshowcase serve`** (`src/cli/serve/`, _`P2.2`_; _`D46`_, _`D51`_, _`D58`_): `main()` and `USAGE` get the `serve` command and `--port`; `main()` loads `serve` with a dynamic `import()`. It runs the check (_`D30`_), starts Vite's dev server, watches the host repository, and reloads when the shown host information changes.
+4. **`showroom serve`** (`src/cli/serve/`, _`P2.2`_; _`D46`_, _`D51`_, _`D58`_): `main()` and `USAGE` get the `serve` command and `--port`; `main()` loads `serve` with a dynamic `import()`. It runs the check (_`D30`_), starts Vite's dev server, watches the host repository, and reloads when the shown host information changes.
 5. **Tests** (_`D45`_, _`D52`_): a `*.test.ts(x)` beside each module.
-6. **Documentation**: `README.md` (`# Usage`: `tsshowcase serve`; `# Development`: previewing with `npm start -- serve --root <host>`), `AGENTS.md` (Layout, Commands, Testing, Exports: `mount` is not exported, and the gotchas in _`D59`_), `CONTRIBUTE.md` (project structure, and the Glossary entries in _`D60`_).
+6. **Documentation**: `README.md` (`# Usage`: `showroom serve`; `# Development`: previewing with `npm start -- serve --root <host>`), `AGENTS.md` (Layout, Commands, Testing, Exports: `mount` is not exported, and the gotchas in _`D59`_), `CONTRIBUTE.md` (project structure, and the Glossary entries in _`D60`_).
 
 #### Decisions
 
 - _`D35`_ (was A1; `live`): The app's source is `src/app/`, compiled by `tsc` to `dist/app/` (`jsx: react-jsx`); Vite only bundles JS. It's not re-exported from `src/index.ts`, being browser code. Rejected: a separate `app/` folder shipped as TSX source.
 - _`D36`_ (was A2; `live`): The app exports `mount(element, data)`, where `data` is the shown host information: the host information's `project` and `documentation` only, not its `code` (_`D12`_); the entry passes it in. Rejected: the app importing a virtual module itself; passing the whole host information (bundles the unshown code file index, and reloads on code file changes).
 - _`D37`_ (was A3; `live`): Routing: a hash router of our own (`hashchange` + `useSyncExternalStore`, with `getServerSnapshot`). `#/` is home; `#/<path>` shows any other documentation file, its path segments `encodeURIComponent`-encoded; `#/README.md` redirects to `#/`; a heading anchor follows a second hash (`#/docs/guide.md#install`); any other route shows a not-found page with a link home. Rejected: `react-router`; separate `/docs` and `/code` routes.
-- _`D38`_ (was A4; `live`): Relative links in Markdown, URL-decoded and resolved against the documentation file's folder (or the host root, for a link starting with `/`), matched against the documentation files' paths case-insensitively: a documentation file → its route, keeping the anchor; a folder whose `README` is a documentation file → that `README`'s route; anything else (code files included) → plain text with a tooltip saying it isn't in the showcase application. Anchor-only links scroll within the page; absolute URLs and `mailto:` are unchanged, opening in a new tab. Rejected: GitHub blob URLs from `repository` (SCM adapters' job, _`D11`_).
+- _`D38`_ (was A4; `live`): Relative links in Markdown, URL-decoded and resolved against the documentation file's folder (or the host root, for a link starting with `/`), matched against the documentation files' paths case-insensitively: a documentation file → its route, keeping the anchor; a folder whose `README` is a documentation file → that `README`'s route; anything else (code files included) → plain text with a tooltip saying it isn't in the showroom. Anchor-only links scroll within the page; absolute URLs and `mailto:` are unchanged, opening in a new tab. Rejected: GitHub blob URLs from `repository` (SCM adapters' job, _`D11`_).
 - _`D39`_ (was A5; `live`): Relative images in Markdown show their alt text; absolute image URLs work. See _`L1`_. Rejected: collecting images now.
 - _`D40`_ (was A6; `live`): Raw HTML in Markdown is not rendered: its tags are dropped, keeping the Markdown between them (`skipHtml`; chosen at the _`P2.1`_ checkpoint over showing them as escaped text). See _`L2`_. Rejected: `rehype-raw` + `rehype-sanitize`.
 - _`D41`_ (was A7; `live`): Documentation files that aren't `.md` are shown as plain, wrapped, monospace text. Rejected: rendering them as Markdown.
@@ -134,10 +134,10 @@ _`P2`_ is split in two (_`D53`_), each implemented and checkpointed on its own:
 - _`D43`_ (was A9; superseded by _`D12`_): Withdrawn (_`D12`_: no code file index page).
 - _`D44`_ (was A10; `live`): Theme: starts from `prefers-color-scheme`; the toggle's choice is kept in `localStorage`, guarded so it never breaks the page; `body` gets margin 0 and the theme's background. Every `window` access is guarded or in an effect, so `App` renders on the server.
 - _`D45`_ (was A11; `live`): Testing: no new test dependencies. Unit tests for the logic (routing, link resolution, navigation), and smoke tests rendering `App` (never `mount()`, which needs a DOM) with `react-dom/server`'s `renderToString`, with injected routes and themes. Rejected: `jsdom` + `@testing-library/react` for now.
-- _`D46`_ (was A12; `live`): `serve` is the only preview of the showcase application, for this repository's development too. Rejected: a development-only preview script.
+- _`D46`_ (was A12; `live`): `serve` is the only preview of the showroom, for this repository's development too. Rejected: a development-only preview script.
 - _`D47`_ (was A13; `live`): Markdown with `react-markdown` + `remark-gfm`; fenced code blocks highlighted with `rehype-highlight` (highlight.js's common languages, including `bash`, `shell`, `diff`, `csharp`, TypeScript, JSON, YAML; `jsx`/`tsx` through aliases), its token classes coloured with FluentUI tokens through Griffel, so they follow the theme with no CSS file. Changed after the review: `prism-react-renderer` was verified to lack `bash`, `shell`, `diff` and `csharp`. Rejected: `prism-react-renderer`; `marked` (HTML strings, unsafe by default); `shiki` (heavy, asynchronous).
-- _`D48`_ (was A14; `live`): React, React DOM and FluentUI are ordinary `dependencies`: on a local install, npm shares the host's copy when its version satisfies tsshowcase's range, and installs a nested one otherwise (_`D57`_ keeps the app on tsshowcase's own copy). Using the host's own React is left for showcases (_`K7`_). Rejected: `peerDependencies` (an incompatible host React would fail the install); resolving to the host's copy now.
-  - Evidence: Spike 2026-11-09 (Vite, React and FluentUI from tsshowcase's own dependencies):
+- _`D48`_ (was A14; `live`): React, React DOM and FluentUI are ordinary `dependencies`: on a local install, npm shares the host's copy when its version satisfies `showroom`'s range, and installs a nested one otherwise (_`D57`_ keeps the app on `showroom`'s own copy). Using the host's own React is left for showcases (_`K7`_). Rejected: `peerDependencies` (an incompatible host React would fail the install); resolving to the host's copy now.
+  - Evidence: Spike 2026-11-09 (Vite, React and FluentUI from `showroom`'s own dependencies):
 
     - **Tried:** a tiny package with Vite 8.3, `@vitejs/plugin-react` 6.3, React 19.3 and `@fluentui/react-components` 9.75 as its `dependencies`, and a `bin` script calling Vite's `build()` programmatically: `configFile: false`, `root` set to the app folder inside the package, `base: './'`, `outDir` set to `<cwd>/showcase`, and the host's data passed in through a virtual module. It was run from a host with `package.json` and no React, and from a host with no `package.json` at all.
     - **Worked:** every way of installing it the specification needs (_`D17`_):
@@ -150,22 +150,22 @@ _`P2`_ is split in two (_`D53`_), each implemented and checkpointed on its own:
 
     - **Didn't work / costs:**
       - **The install is 432 MB, 378 MB of it FluentUI.** Each `@fluentui/react-components` package ships several builds plus source maps. Vite and rolldown are about 25 MB. Every host pays it once per install (and per CI run, without an npm cache).
-      - Vite needs a writable cache folder (`cacheDir`). Its default sits inside `root`, which, for a global install, may not be writable. tsshowcase must choose it deliberately (e.g. under the output folder, or in a temporary folder it cleans up).
+      - Vite needs a writable cache folder (`cacheDir`). Its default sits inside `root`, which, for a global install, may not be writable. `showroom` must choose it deliberately (e.g. under the output folder, or in a temporary folder it cleans up).
       - The built app needs an HTTP server: Chrome won't run its module script from `file://`. GitHub Pages is fine.
-    - **For the plan:** _`K7`_ is settled in principle. Vite, React and FluentUI can be tsshowcase's own `dependencies`, the app is built with `configFile: false` and _`P1`_'s data passed in programmatically, and the host installs nothing else. Whether the install size is acceptable is an open point.
+    - **For the plan:** _`K7`_ is settled in principle. Vite, React and FluentUI can be `showroom`'s own `dependencies`, the app is built with `configFile: false` and _`P1`_'s data passed in programmatically, and the host installs nothing else. Whether the install size is acceptable is an open point.
 
 - _`D49`_ (was A15; `live`): The install size (about 432 MB, 378 MB of it FluentUI) is accepted: FluentUI is a must-have (_`D13`_), and the cost is once per install (see the Evidence under _`D48`_).
-- _`D50`_ (was A16; `live`): Vite's root is the app's folder inside the package (`dist/app/`, holding the static `index.html` and the compiled entry), as in the spike (see the Evidence under _`D48`_): nothing is generated. Only Vite's `cacheDir` lives outside it, in a fresh `fs.mkdtemp` folder per run (`<tmp>/tsshowcase-XXXXXX`), removed on exit, so concurrent runs and other users never share it; each `serve` start pays a few seconds of dependency pre-bundling. `server.fs.allow` and `optimizeDeps` need nothing extra (modules reached through imports are allowed; the scanner follows the entry), and `optimizeDeps.include` is not used (its ids would resolve from elsewhere). Changed after the review: a shared, predictable folder in the OS temp folder isn't writable for a second user on Linux and macOS, and another user could plant code in it. Rejected: generating the Vite project into `<tmp>/tsshowcase/<hash>/`; a per-user cache folder kept between runs (per-platform paths); a `.tsshowcase/` folder in the host repository; inside the output folder.
-- _`D51`_ (was A17; `live`): `tsshowcase serve` takes `--root` and `--port` (default 5173, or the next free port). It adds the host root to Vite's watcher, through an `ignored` wrapper around the ignore matcher of the latest successful check (so changes to `tsshowcase.json` apply without a restart): the wrapper returns false for the host root itself and for paths outside it, converts the rest to relative POSIX paths, and tests both `p` and `p/`. Any change reruns the check (debounced, about 100 ms); when the shown host information changed, it invalidates the virtual module and fully reloads the page. When the check fails, it prints the issues and keeps the last good data. Rejected: watching only the files the check read (new files need a restart); watching the whole host repository without the ignore patterns (slow start, watch limits, constant events).
+- _`D50`_ (was A16; `live`): Vite's root is the app's folder inside the package (`dist/app/`, holding the static `index.html` and the compiled entry), as in the spike (see the Evidence under _`D48`_): nothing is generated. Only Vite's `cacheDir` lives outside it, in a fresh `fs.mkdtemp` folder per run (`<tmp>/showroom-XXXXXX`), removed on exit, so concurrent runs and other users never share it; each `serve` start pays a few seconds of dependency pre-bundling. `server.fs.allow` and `optimizeDeps` need nothing extra (modules reached through imports are allowed; the scanner follows the entry), and `optimizeDeps.include` is not used (its ids would resolve from elsewhere). Changed after the review: a shared, predictable folder in the OS temp folder isn't writable for a second user on Linux and macOS, and another user could plant code in it. Rejected: generating the Vite project into `<tmp>/showroom/<hash>/`; a per-user cache folder kept between runs (per-platform paths); a `.showroom/` folder in the host repository; inside the output folder.
+- _`D51`_ (was A17; `live`): `showroom serve` takes `--root` and `--port` (default 5173, or the next free port). It adds the host root to Vite's watcher, through an `ignored` wrapper around the ignore matcher of the latest successful check (so changes to `showroom.json` apply without a restart): the wrapper returns false for the host root itself and for paths outside it, converts the rest to relative POSIX paths, and tests both `p` and `p/`. Any change reruns the check (debounced, about 100 ms); when the shown host information changed, it invalidates the virtual module and fully reloads the page. When the check fails, it prints the issues and keeps the last good data. Rejected: watching only the files the check read (new files need a restart); watching the whole host repository without the ignore patterns (slow start, watch limits, constant events).
 - _`D52`_ (was A18; `live`): `serve` is tested by unit tests of the Vite configuration, the virtual module plugin, the `ignored` wrapper and the reload decision (with a fake server), without starting a server (tests never create temporary folders); the user checks `serve` in a browser. Rejected: an integration test starting a real server.
 - _`D53`_ (was A19; `live`): _`P2`_ is split into child segments _`P2.1`_ (the app) and _`P2.2`_ (the Vite setup and `serve`). Rejected: one segment (about twice the size of the others).
 - _`D54`_ (was A20; `live`): Heading ids come from `rehype-slug` (GitHub-compatible slugs, via `github-slugger`), so links written for GitHub work. Rejected: our own slugger.
 - _`D55`_ (was A21; `live`): `@vitejs/plugin-react` is not used: `tsc` compiles the JSX, and there is no Fast Refresh for `dist/app/`. `eslint-plugin-react-hooks` checks the hand-written hooks.
 - _`D56`_ (was A22; `live`): `App`'s route and initial theme can be injected (props), so the server-rendered tests cover every page and both themes.
-- _`D57`_ (was A23; `live`): Vite aliases `react`, `react-dom`, `react/jsx-runtime`, `react-dom/client` and `scheduler` to tsshowcase's own copies, so a host's different React (e.g. one FluentUI is hoisted next to) never mixes in ("Invalid hook call").
-- _`D58`_ (was A24; `live`): Public API and `serve`'s behaviour: no new exports (`check()`'s ignore matcher stays internal; `src/index.test.ts`'s export list is unchanged); `main()` loads `serve` with a dynamic `import()`, so library users and `tsshowcase check` never load Vite. `serve` exits with 1 if the first check fails; warnings go to `stderr`, the URL to `stdout`; `main()` stays pending until the server closes, and closes it on `SIGINT`/`SIGTERM`; `main()`'s unit tests never start `serve`. The configuration-override flags (_`D5`_) are shared by `check`, `serve` and `build`, and added in _`P3`_. `index.html` has `lang="en"` and no favicon; its `<title>` is the project name, set by the plugin.
+- _`D57`_ (was A23; `live`): Vite aliases `react`, `react-dom`, `react/jsx-runtime`, `react-dom/client` and `scheduler` to `showroom`'s own copies, so a host's different React (e.g. one FluentUI is hoisted next to) never mixes in ("Invalid hook call").
+- _`D58`_ (was A24; `live`): Public API and `serve`'s behaviour: no new exports (`check()`'s ignore matcher stays internal; `src/index.test.ts`'s export list is unchanged); `main()` loads `serve` with a dynamic `import()`, so library users and `showroom check` never load Vite. `serve` exits with 1 if the first check fails; warnings go to `stderr`, the URL to `stdout`; `main()` stays pending until the server closes, and closes it on `SIGINT`/`SIGTERM`; `main()`'s unit tests never start `serve`. The configuration-override flags (_`D5`_) are shared by `check`, `serve` and `build`, and added in _`P3`_. `index.html` has `lang="en"` and no favicon; its `<title>` is the project name, set by the plugin.
 - _`D59`_ (was A25; `live`): AGENTS.md gotchas: `types: ["node"]` applies to browser code too (Node globals type-check there); `sideEffects: false` applies to the bundled app, so it never relies on import-only side effects (no CSS imports); the "JSX in them is not configured" note is replaced.
-- _`D60`_ (was A26; `live`): Glossary: new entries Documentation file, Project information, Code file index and Source root; "Showcase application" widened to cover `serve`.
+- _`D60`_ (was A26; `live`): Glossary: new entries Documentation file, Project information, Code file index and Source root; "Showroom" widened to cover `serve`.
 
 #### Review notes
 
@@ -187,7 +187,7 @@ implemented 2026-11-09 (approved 2026-11-09). Choices _`D61`_–_`D70`_ settled 
 
 #### Goals
 
-_`D13`_'s build into the output folder (_`D2`_, _`D4`_, _`D7`_), and the configuration-override flags (_`D5`_): `tsshowcase build` checks the host repository and builds the showcase application with _`P2`_'s Vite configuration into `./showcase` (or the configured output folder), with relative asset paths, ready for static hosting; the README documents it, with an example GitHub Pages workflow (_`D7`_). Resolves _`K3`_ and _`K4`_ as far as _`P3`_ goes.
+_`D13`_'s build into the output folder (_`D2`_, _`D4`_, _`D7`_), and the configuration-override flags (_`D5`_): `showroom build` checks the host repository and builds the showroom with _`P2`_'s Vite configuration into `./showroom` (or the configured output folder), with relative asset paths, ready for static hosting; the README documents it, with an example GitHub Pages workflow (_`D7`_). Resolves _`K3`_ and _`K4`_ as far as _`P3`_ goes.
 
 #### Child segments
 
@@ -196,34 +196,34 @@ None (_`D61`_).
 #### Steps
 
 1. **Output folder** (`src/configuration/`, `src/cli/check/`; _`D62`_, _`D63`_, _`D64`_): `check(root, options?)` takes the overrides (`outDir`), resolves the output folder against the host root (the flag's value against the current directory), reports an error when it is the host root, contains it, or is outside it, and adds it to the ignore patterns. `HostInformation` is unchanged.
-2. **`tsshowcase build`** (`src/cli/build/`; _`D65`_, _`D66`_): `main()` and `USAGE` get the `build` command and `--out-dir` (shared by `check`, `serve` and `build`); `main()` loads `build` with a dynamic `import()`. It runs the check, then Vite's `build()` with `getViteConfiguration()` plus `build: { outDir, emptyOutDir: true }`, guarded by the output folder marker (_`D62`_), in a fresh `mkdtemp` cache folder removed afterwards.
+2. **`showroom build`** (`src/cli/build/`; _`D65`_, _`D66`_): `main()` and `USAGE` get the `build` command and `--out-dir` (shared by `check`, `serve` and `build`); `main()` loads `build` with a dynamic `import()`. It runs the check, then Vite's `build()` with `getViteConfiguration()` plus `build: { outDir, emptyOutDir: true }`, guarded by the output folder marker (_`D62`_), in a fresh `mkdtemp` cache folder removed afterwards.
 3. **Tests** (_`D67`_): beside each changed module.
-4. **Documentation**: `README.md` (`# Usage`: `tsshowcase build`, `--out-dir`, `outDir` no longer "not used yet", the `check()` signature, the GitHub Pages workflow and running without a `package.json` (_`D68`_, _`D69`_); `# Development`), `AGENTS.md` (Layout: `src/cli/build/`; Commands; Testing; Exports; gotchas), `CONTRIBUTE.md` (project structure; Glossary entry "Output folder", _`D70`_).
-5. **Trial runs and checks by hand**: `build` on copies of a fixture and of `../tsstd` in working files; the user checks a built showcase application in a browser, served over HTTP, including one built in a host with a different React installed (open point below).
+4. **Documentation**: `README.md` (`# Usage`: `showroom build`, `--out-dir`, `outDir` no longer "not used yet", the `check()` signature, the GitHub Pages workflow and running without a `package.json` (_`D68`_, _`D69`_); `# Development`), `AGENTS.md` (Layout: `src/cli/build/`; Commands; Testing; Exports; gotchas), `CONTRIBUTE.md` (project structure; Glossary entry "Output folder", _`D70`_).
+5. **Trial runs and checks by hand**: `build` on copies of a fixture and of `../tsstd` in working files; the user checks a built showroom in a browser, served over HTTP, including one built in a host with a different React installed (open point below).
 
 #### Decisions
 
 - _`D61`_ (was B1; `live`): One segment, no child segments: it's about the size of _`P2.2`_. Rejected: splitting off the output folder and flags.
-- _`D62`_ (was B2; `live`): The output folder is emptied (`emptyOutDir: true`, as it's outside Vite's root), but only when it doesn't exist, is empty, or holds the marker file `.tsshowcase` that every build writes into it; otherwise `build` exits with 1, naming the folder, so a mistyped `outDir` (e.g. `src`, `docs`) never wipes host files. Rejected: relying on _`D63`_'s location rules alone; never emptying (stale hashed assets pile up).
+- _`D62`_ (was B2; `live`): The output folder is emptied (`emptyOutDir: true`, as it's outside Vite's root), but only when it doesn't exist, is empty, or holds the marker file `.showroom` that every build writes into it; otherwise `build` exits with 1, naming the folder, so a mistyped `outDir` (e.g. `src`, `docs`) never wipes host files. Rejected: relying on _`D63`_'s location rules alone; never emptying (stale hashed assets pile up).
 - _`D63`_ (was B3; `live`): The output folder must be inside the host repository, and not its root: the check reports an error otherwise, so `check` and `serve` report it too. Rejected: anywhere except the host root and its parents.
-- _`D64`_ (was B4; `live`): The check appends `/<output folder>/` to the ignore patterns, so a built showcase application is never scanned for code files nor watched by `serve`. Rejected: leaving it to the host's `ignore` patterns.
+- _`D64`_ (was B4; `live`): The check appends `/<output folder>/` to the ignore patterns, so a built showroom is never scanned for code files nor watched by `serve`. Rejected: leaving it to the host's `ignore` patterns.
 - _`D65`_ (was B5; `live`): One configuration-override flag, `--out-dir`, shared by `check`, `serve` and `build`, resolved against the current directory (like `--root`); the API gets `check(root, { outDir })`. Rejected: `--source-root` and `--stack` too; no flags yet.
-- _`D66`_ (was B6; `live`): `build` works like `serve`: it checks first (exit 1 on a failed check; warnings don't fail it), runs Vite's `build()` with Vite's logs at `warn`, in a fresh `mkdtemp` cache folder removed afterwards, and writes one line to `stdout`: "Built the showcase application of <name> into <folder>". `build()` is internal (not re-exported), loaded by `main()` with a dynamic `import()`. No `--strict` for now.
+- _`D66`_ (was B6; `live`): `build` works like `serve`: it checks first (exit 1 on a failed check; warnings don't fail it), runs Vite's `build()` with Vite's logs at `warn`, in a fresh `mkdtemp` cache folder removed afterwards, and writes one line to `stdout`: "Built the showroom of <name> into <folder>". `build()` is internal (not re-exported), loaded by `main()` with a dynamic `import()`. No `--strict` for now.
 - _`D67`_ (was B7; `live`): Testing: unit tests of the build's Vite options, the output folder rules (fixtures with bad `outDir`s), the ignore pattern, and the marker guard's decision (read-only fixtures: missing, empty, marked and unmarked folders); `build()` and `main()`'s `build` only run on a fixture whose first check fails. Trial runs on copies by hand, and the user's browser check. Rejected: an integration test building into a temporary folder (against the testing rules).
-- _`D68`_ (was B8; `live`): The README's GitHub Pages example: on a push to `master` and `workflow_dispatch`; `actions/checkout`, `actions/setup-node`, `npm ci`, `npx tsshowcase build`, `actions/upload-pages-artifact` (`path: showcase`), `actions/deploy-pages`, with `pages: write` and `id-token: write`. This deploy skips Jekyll, so no `.nojekyll` is written. Rejected: writing `.nojekyll` for branch-based deploys.
-- _`D69`_ (was B9; `live`): _`K3`_: the README documents `npx --package @ofzza/tsshowcase tsshowcase build`, which the spike showed works without a `package.json`; such hosts still need a stack adapter of their own (later). Rejected: leaving the pitfall open until a .NET stack adapter exists.
+- _`D68`_ (was B8; `live`): The README's GitHub Pages example: on a push to `master` and `workflow_dispatch`; `actions/checkout`, `actions/setup-node`, `npm ci`, `npx showroom build`, `actions/upload-pages-artifact` (`path: showroom`), `actions/deploy-pages`, with `pages: write` and `id-token: write`. This deploy skips Jekyll, so no `.nojekyll` is written. Rejected: writing `.nojekyll` for branch-based deploys.
+- _`D69`_ (was B9; `live`): _`K3`_: the README documents `npx --package @ofzza/showroom showroom build`, which the spike showed works without a `package.json`; such hosts still need a stack adapter of their own (later). Rejected: leaving the pitfall open until a .NET stack adapter exists.
 - _`D70`_ (was B10; `live`): Glossary: new entry "Output folder". Rejected: no new term.
-- _`D71`_ (was B11; `live`): The build leaves out the bundler's warnings about the showcase application's own dependencies: `MODULE_LEVEL_DIRECTIVE` (FluentUI's and Griffel's `'use client'`, about 1900 lines per build) and the chunk-size warning (limit raised to 2048 kB); every other warning still shows. Chosen at the _`P3`_ checkpoint (implementation choice 1). Rejected: showing them (noise the host can't act on).
+- _`D71`_ (was B11; `live`): The build leaves out the bundler's warnings about the showroom's own dependencies: `MODULE_LEVEL_DIRECTIVE` (FluentUI's and Griffel's `'use client'`, about 1900 lines per build) and the chunk-size warning (limit raised to 2048 kB); every other warning still shows. Chosen at the _`P3`_ checkpoint (implementation choice 1). Rejected: showing them (noise the host can't act on).
 - _`D72`_ (was B12; `live`): `main()` resolves `--out-dir` against the current directory before the check, so its error messages, like the success line, name the absolute path. Confirmed at the _`P3`_ checkpoint (implementation choice 2).
-- _`D73`_ (was B13; `live`): This repository's `.gitignore` ignores `/showcase/`, as its own `tsshowcase.json` lets it build itself. Added at the _`P3`_ checkpoint at the user's request.
+- _`D73`_ (was B13; `live`): This repository's `.gitignore` ignores `/showroom/`, as its own `showroom.json` lets it build itself. Added at the _`P3`_ checkpoint at the user's request.
 
 #### Open points
 
 - [x] _`O9`_ From _`K3`_. Running in a host repository without Node tooling (e.g. through `npx`). Resolved by _`D69`_.
 - [x] _`O10`_ From _`K4`_. Relative asset paths (Vite `base: './'`). Resolved by _`P2.2`_'s `getViteConfiguration()` (`base: './'`), which _`D66`_ reuses.
-- [x] _`O11`_ From _`K7`_. Where Vite, React and FluentUI come from. The spike shows they can be tsshowcase's own `dependencies` (see the Evidence under _`D48`_). Moved to _`P2`_ (_`D48`_), with the install size and `cacheDir` open points.
+- [x] _`O11`_ From _`K7`_. Where Vite, React and FluentUI come from. The spike shows they can be `showroom`'s own `dependencies` (see the Evidence under _`D48`_). Moved to _`P2`_ (_`D48`_), with the install size and `cacheDir` open points.
 - [x] _`O12`_ From review 2026-11-09: set `build.emptyOutDir`. Set `build.emptyOutDir: true`: the output folder is outside Vite's root (_`D50`_), so Vite won't empty it otherwise. Resolved by _`D62`_.
-- [x] _`O13`_ From review 2026-11-09: check a host with a different React by hand. Check by hand, in a host repository with a different React installed, that the showcase application uses tsshowcase's own React (_`D57`_). Resolved by _`D67`_ (step 5's trial): a host with React 18 and FluentUI hoisted next to it bundled only React 19.3.1, and the user's browser check passed.
+- [x] _`O13`_ From review 2026-11-09: check a host with a different React by hand. Check by hand, in a host repository with a different React installed, that the showroom uses `showroom`'s own React (_`D57`_). Resolved by _`D67`_ (step 5's trial): a host with React 18 and FluentUI hoisted next to it bundled only React 19.3.1, and the user's browser check passed.
 
 ## Showcases
 

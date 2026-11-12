@@ -5,7 +5,7 @@
 - **Stage:** specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ are implemented and committed.
 - **Next free:** _`D114`_, _`S8`_, _`P5`_, _`O22`_, _`L3`_, _`R4`_, _`H1`_, _`K15`_
 - **Working on:** planning _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`, draft): its testing strategy (_`D105`_–_`D109`_) and segmentation (_`D110`_–_`D113`_: _`P4.1`_–_`P4.3`_) are approved; _`P4.1`_–_`P4.3`_ are not yet planned.
-- **Next step:** plan _`P4.1`_ Showcase markers and documentation checks. `./.workflow/.temp/showcases-ideas/NOTES.md` holds older proposals.
+- **Next step:** the user renames the GitHub repository, `git remote`, the project folder and the agent's memory folder (commands given in the conversation); then plan _`P4.1`_ Showcase markers and documentation checks. `./.workflow/.temp/showcases-ideas/NOTES.md` holds older proposals.
 
 ## Open questions
 
@@ -14,6 +14,7 @@
 ## Waiting on me
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
+- Renaming the GitHub repository, `git remote`, the project folder and the agent's memory folder (the user runs them).
 - The go-ahead to start planning _`P4.1`_.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
@@ -25,40 +26,40 @@
 
 - 2026-11-09: Specification stage entered. The user chose to start the specification fresh, without the earlier `REQUIREMENT.md` and decisions D1–D4 from commit `8b915b0` (option chosen: "Start fresh").
 - 2026-11-09: First specification draft written from the user's description, with 6 pitfalls and 10 open questions.
-- 2026-11-09: The user answered the 10 initial questions; recorded as D1–D9 in the specification. Glossary terms added to `CONTRIBUTE.md` (Host repository, Showcase application, Stack adapter, Showcase), with "Stack adapter" renamed at the user's request.
+- 2026-11-09: The user answered the 10 initial questions; recorded as D1–D9 in the specification. Glossary terms added to `CONTRIBUTE.md` (Host repository, Showroom, Stack adapter, Showcase), with "Stack adapter" renamed at the user's request.
 - 2026-11-09: Stop and report: the agent deleted `./.workflow/.temp/questions-initial-spec/` without the user's confirmation ("Working files" rule). The user declined recreating it and said to continue.
 - 2026-11-09: D10 recorded (stack adapter lists skipped files, configuration overrides). `./.workflow/.temp/repo-init-report.md` deleted with the user's yes.
 - 2026-11-09: D11 recorded ("SCM adapter"), and the term added to the Glossary.
 - 2026-11-09: Specification approved as the basis for planning (option chosen: "Approve").
 - 2026-11-09: Planning stage entered; segmentation drafted (S1–S3).
-- 2026-11-09: Segmentation approved (S1 Host scanning, S2 Showcase application, S3 Build command), with S1 given a temporary way to output the collected data (user: "Otherwise agreed"). Must-have 5 (global or local install, `npx`) added to the specification at the user's request. Go-ahead for the pitfall 7 spike.
-- 2026-11-09: Pitfall 7 spike run: Vite, React and FluentUI work as tsshowcase's own dependencies for local, `npx` and global installs; install size 432 MB. Conclusions written into S3.
+- 2026-11-09: Segmentation approved (S1 Host scanning, S2 Showroom, S3 Build command), with S1 given a temporary way to output the collected data (user: "Otherwise agreed"). Must-have 5 (global or local install, `npx`) added to the specification at the user's request. Go-ahead for the pitfall 7 spike.
+- 2026-11-09: Pitfall 7 spike run: Vite, React and FluentUI work as `showroom`'s own dependencies for local, `npx` and global installs; install size 432 MB. Conclusions written into S3.
 - 2026-11-09: Specification updated to match S1 (D1, D5, D8, D10, must-haves 2–4), at the user's request ("Update the spec").
 - 2026-11-09: S1 Host scanning approved (user: "I approve S1, and we can commit it"), to be implemented before S2 and S3 are planned.
 - 2026-11-09: S1 Host scanning implemented: `npm run ci` green (104 tests); smoke-tested on copies of `../tsstd` and `../tsschema`.
 - 2026-11-09: S1 checkpoint: approved and committed (option chosen: "Approve and commit"), with implementation choices 1–4 confirmed ("All four OK").
-- 2026-11-09: S2 planning started (the user chose S2 before S3). Choices A1–A14 settled: no code file index page (D12), `tsshowcase serve` moved into S2 (D4 updated), syntax highlighting added as a must-have (D12), React/FluentUI as ordinary `dependencies`. Specification updated accordingly.
+- 2026-11-09: S2 planning started (the user chose S2 before S3). Choices A1–A14 settled: no code file index page (D12), `showroom serve` moved into S2 (D4 updated), syntax highlighting added as a must-have (D12), React/FluentUI as ordinary `dependencies`. Specification updated accordingly.
 - 2026-11-09: S2 choices A15–A18 settled: install size accepted, generated Vite project and `cacheDir` in the OS temp folder, `serve` watching the whole host through the ignore matcher, `serve` unit-tested without starting a server.
 - 2026-11-09: Go-ahead for a zero-context review of the S2 plan segment (2 agents).
 - 2026-11-09: S2 zero-context review run (2 agents): 0 blockers; triaged into 7 questions, 22 fixes, 2 later, 1 skip. Stray-write check clean.
 - 2026-11-09: S2 review triage answered (options chosen: "Package root + mkdtemp", "Both yes", "rehype-highlight", "All as recommended"); applied as A16 (changed), A2, A13 (changed), A19–A26, two S3 open points, and Glossary entries.
-- 2026-11-09: S2 Showcase application approved (option chosen: "Approve and commit"); specification pitfalls 4, 5 and 7 updated.
+- 2026-11-09: S2 Showroom approved (option chosen: "Approve and commit"); specification pitfalls 4, 5 and 7 updated.
 - 2026-11-09: `review-s2-plan/` and `questions-s2-plan/` working files deleted with the user's yes; the user chose to implement S2.1 next, in a fresh session.
-- 2026-11-09: S2.1 Showcase application implemented: `npm run ci` green (226 tests); not yet checked in a browser (needs S2.2's Vite setup).
+- 2026-11-09: S2.1 Showroom implemented: `npm run ci` green (226 tests); not yet checked in a browser (needs S2.2's Vite setup).
 - 2026-11-09: S2.1 checkpoint: approved and committed (option chosen: "Approve and commit"); raw HTML tags dropped ("Drop tags", recorded in A6), Glossary term "Shown host information" added ("Add it"), implementation choices 3a–3g confirmed ("All OK").
 - 2026-11-09: S2.2 Serve command implemented: `npm run ci` green (280 tests); trial runs on a fixture copy and a copy of `../tsstd` served, reloaded and cleaned up as planned.
-- 2026-11-09: S2.2 checkpoint: approved and committed (option chosen: "Approve and commit"); the user's browser check passed ("All work"), implementation choices a–f confirmed ("All OK"). S2 Showcase application is done.
+- 2026-11-09: S2.2 checkpoint: approved and committed (option chosen: "Approve and commit"); the user's browser check passed ("All work"), implementation choices a–f confirmed ("All OK"). S2 Showroom is done.
 - 2026-11-09: Fast path: navigation labels README / CONTRIBUTING / LICENSE for the home page and the root's contribute and license files, listed first (A8 changed; options chosen: "Fast path", "Always README", "Fixed first").
-- 2026-11-09: Stop and report: commit `96c6e51` also included the user's uncommitted `tsshowcase.json` (staged with `git add -A`). The user said it's intended, for serving this repository with itself, and to proceed; kept in the commit.
+- 2026-11-09: Stop and report: commit `96c6e51` also included the user's uncommitted `showroom.json` (staged with `git add -A`). The user said it's intended, for serving this repository with itself, and to proceed; kept in the commit.
 - 2026-11-09: S3 planning started: segment drafted, with choices B1–B10 open.
 - 2026-11-09: S3 choices B1–B10 settled (option chosen: "Accept all ★"); pitfalls 3 and 4 ticked off; Glossary term "Output folder" added.
 - 2026-11-09: S3 Build command approved (option chosen: "Approve and commit"), without a zero-context review.
 - 2026-11-09: `questions-s3-plan/` working files deleted with the user's yes; the user chose to implement S3 in a fresh session.
-- 2026-11-09: S3 Build command implemented: `npm run ci` green (330 tests); trial builds of a fixture copy, a copy of `../tsstd`, and a host with React 18 installed (the bundle holds only tsshowcase's React 19.3.1).
-- 2026-11-09: S3 browser check passed (tsstd: "looks like I would expect it to"; React 18 host: "looks ok"); implementation choices 1–2 confirmed, `/showcase/` added to `.gitignore` at the user's request (B11–B13).
+- 2026-11-09: S3 Build command implemented: `npm run ci` green (330 tests); trial builds of a fixture copy, a copy of `../tsstd`, and a host with React 18 installed (the bundle holds only `showroom`'s React 19.3.1).
+- 2026-11-09: S3 browser check passed (tsstd: "looks like I would expect it to"; React 18 host: "looks ok"); implementation choices 1–2 confirmed, `/showroom/` added to `.gitignore` at the user's request (B11–B13).
 - 2026-11-09: S3 checkpoint: approved and committed (option chosen: "Approve and commit"). S3 Build command is done.
 - 2026-11-09: `trial-s3/` working files found deleted at session start (the uncommitted session state had already dropped the wait for confirmation).
-- 2026-11-11: Showcases discussion started (no specification draft yet). The user settled: showcases render in iframes; tsshowcase's own strict showcase format per supported framework, no third-party format (e.g. Storybook's CSF), format to be discussed in detail later; editable showcases not in the first version but on the roadmap, and the format must be designed with them in mind; requiring `angular.json`, an installed host (`npm install`) and similar host requirements is acceptable, to keep complexity down.
+- 2026-11-11: Showcases discussion started (no specification draft yet). The user settled: showcases render in iframes; `showroom`'s own strict showcase format per supported framework, no third-party format (e.g. Storybook's CSF), format to be discussed in detail later; editable showcases not in the first version but on the roadmap, and the format must be designed with them in mind; requiring `angular.json`, an installed host (`npm install`) and similar host requirements is acceptable, to keep complexity down.
 - 2026-11-11: Showcases: the showcase frame contract is an internal boundary; "bring your own build" frames will be implemented and tested like the React and Angular builds, but not documented as a feature until the interface is stable (user: "A approve of your recomendation").
 - 2026-11-11: Showcases: no metadata in code files and no static extraction from them (metadata from a JSON file, Markdown embeds, or both, still open); React and Angular stack adapters extend the TypeScript one, one showcase framework per host ("I don't think we need to worry about several frameworks per host"), with the frame building a self-contained part the stack adapter supplies.
 - 2026-11-11: Stop and report: during `/ig-repo upgrade`'s reconcile step, the agent's conversion script emptied `./.workflow/PLAN.md` (opened for writing before reading). The user said to restore it and proceed ("Restore PLAN.md and proceed"); restored with `git restore`.
@@ -77,3 +78,5 @@
 - 2026-11-12: _`P4`_ Showcases planning started (go-ahead: "Lets proceed"); segmentation proposed (_`P4.1`_–_`P4.3`_), the user chose "Discuss". Testing strategy settled first ("Now, design parts"): _`D105`_ ("In memory + scratch"), _`D106`_ (scratch folder for all tests, "node_modules/.cache"), _`D107`_ ("Copy, shared deps"), _`D108`_ (broad E2E, serve included), _`D109`_ ("Four projects"); _`K12`_ taken by _`P4`_, _`O20`_, _`O21`_ added.
 - 2026-11-12: _`P4`_ segmentation choices answered as recommended ("Inside P4.1", "Whole in P4.1", "build, then serve", "P4.1"): _`D110`_–_`D113`_, _`O21`_ resolved.
 - 2026-11-12: _`P4`_'s segmentation (_`P4.1`_–_`P4.3`_), testing strategy and _`D105`_–_`D113`_ approved (option chosen: "Approve and commit").
+- 2026-11-12: Fast path: renamed the tool from `tsshowcase` to `showroom` (option chosen: "Yes, fast path"): the Glossary term "Showcase application" became "Showroom" (the user: "The tool is `showroom` and it builds a \"`showroom`\" (application) featuring documentation about the host repository enriched by individual \"`showcase`s\""), the Markdown marker keyword became `showcase` (the user: "I would still go with `showcase=react`"), the default output folder `./showroom` ("./showroom (Rec.)"). One-off exception to the append-only rule for the workflow files, granted for this rename (the user: "Yes, I will list it for the rename"); the user's quoted words were kept as they were. A rename note was added to `AGENTS.md` at the user's request.
+- 2026-11-12: Rename checkpoint: the user reviewed it after "Stop here" ("Reviewed and looking good - proceed"); approved and committed (option chosen: "Approve and commit").

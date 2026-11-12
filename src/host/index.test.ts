@@ -6,8 +6,8 @@ import { describe, it, expect, expectTypeOf } from 'vitest';
 import type { DocumentationKind, HostInformation, ProjectInformation } from './index.js';
 
 describe('host', () => {
-  // The module only declares types: checks at compile time that they accept what the showcase application relies on and reject what they
-  // shouldn't, and at runtime that a value survives being serialised to JSON unchanged (it's printed by `tsshowcase check`).
+  // The module only declares types: checks at compile time that they accept what the showroom relies on and reject what they
+  // shouldn't, and at runtime that a value survives being serialised to JSON unchanged (it's printed by `showroom check`).
 
   it('Requires only a name in the project information', () => {
     expectTypeOf<{ name: string }>().toExtend<ProjectInformation>();

@@ -1,5 +1,5 @@
 /**
- * Tests of the showcase application's pages
+ * Tests of the showroom's pages
  */
 
 import { describe, it, expect } from 'vitest';

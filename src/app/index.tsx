@@ -1,5 +1,5 @@
 /**
- * The showcase application: a React/FluentUI SPA presenting the shown host information. It is browser code, compiled to `dist/app/` and bundled by Vite, and
+ * The showroom: a React/FluentUI SPA presenting the shown host information. It is browser code, compiled to `dist/app/` and bundled by Vite, and
  * not re-exported from the package's entry point.
  */
 
@@ -19,7 +19,7 @@ export type { ShownHostInformation } from './host/index.js';
 // #region App
 
 /**
- * Represents the properties of the showcase application
+ * Represents the properties of the showroom
  */
 export interface AppProps {
   /**
@@ -37,7 +37,7 @@ export interface AppProps {
 }
 
 /**
- * Renders the showcase application
+ * Renders the showroom
  * @param props Properties of the component
  * @returns The rendered application
  */
@@ -104,7 +104,7 @@ export function App({ data, route, theme: initialTheme }: AppProps): ReactNode {
 // #region Mount
 
 /**
- * Mounts the showcase application into an element of the page
+ * Mounts the showroom into an element of the page
  * @param element Element to render the application into
  * @param data The shown host information
  */

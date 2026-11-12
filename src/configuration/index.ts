@@ -1,5 +1,5 @@
 /**
- * Configuration: reading and validating a host repository's mandatory `tsshowcase.json` file
+ * Configuration: reading and validating a host repository's mandatory `showroom.json` file
  */
 
 import { readFile } from 'node:fs/promises';
@@ -10,10 +10,10 @@ import { join } from 'node:path';
 /**
  * Name of the configuration file, expected in the host repository's root
  */
-export const CONFIGURATION_FILE_NAME = 'tsshowcase.json';
+export const CONFIGURATION_FILE_NAME = 'showroom.json';
 
 /**
- * Represents a host repository's configuration, as written in its `tsshowcase.json` file
+ * Represents a host repository's configuration, as written in its `showroom.json` file
  */
 export interface Configuration {
   /**
@@ -25,7 +25,7 @@ export interface Configuration {
    */
   sourceRoot?: string;
   /**
-   * Output directory of the showcase application, relative to the host repository's root; defaults to `./showcase`
+   * Output directory of the showroom, relative to the host repository's root; defaults to `./showroom`
    */
   outDir?: string;
   /**
@@ -43,9 +43,9 @@ export interface Configuration {
 }
 
 /**
- * Default output directory of the showcase application
+ * Default output directory of the showroom
  */
-export const DEFAULT_OUT_DIR = './showcase';
+export const DEFAULT_OUT_DIR = './showroom';
 
 /**
  * Represents the outcome of reading a configuration: either the configuration, or the errors that prevented reading it

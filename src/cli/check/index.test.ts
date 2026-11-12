@@ -121,13 +121,13 @@ describe('cli/check', () => {
     // A fixture per error: each fails the check, reports the error, and gives no host information.
 
     it.each([
-      ['no-configuration', /^tsshowcase\.json not found in /, 'tsshowcase.json'],
-      ['invalid-configuration', /^tsshowcase\.json is not valid JSON: /, 'tsshowcase.json'],
-      ['wrong-configuration', /^tsshowcase\.json: /, 'tsshowcase.json'],
-      ['unknown-stack', /^Unknown stack "cobol"; the stack adapters are: typescript$/, 'tsshowcase.json'],
+      ['no-configuration', /^showroom\.json not found in /, 'showroom.json'],
+      ['invalid-configuration', /^showroom\.json is not valid JSON: /, 'showroom.json'],
+      ['wrong-configuration', /^showroom\.json: /, 'showroom.json'],
+      ['unknown-stack', /^Unknown stack "cobol"; the stack adapters are: typescript$/, 'showroom.json'],
       ['no-project', /^package\.json not found in /, undefined],
       ['no-source-root', /^Source root "lib" is not a directory$/, undefined],
-      ['outside-source-root', /^Source root "\.\.\/minimal" is outside the host repository$/, 'tsshowcase.json'],
+      ['outside-source-root', /^Source root "\.\.\/minimal" is outside the host repository$/, 'showroom.json'],
     ])('Fails on %s', async (name, message, path) => {
       const result = await check(_fixture(name));
       expect(result.passed).toBe(false);
@@ -138,17 +138,17 @@ describe('cli/check', () => {
     it('Reports every configuration error at once', async () => {
       const result = await check(_fixture('wrong-configuration'));
       expect(result.issues.map(({ message }) => message)).toEqual([
-        'tsshowcase.json: "sourceRoot" must be a non-empty string',
-        'tsshowcase.json: "ignore" must be an array of strings',
-        'tsshowcase.json: unknown key "extra"',
-        'tsshowcase.json: "stack" is required',
+        'showroom.json: "sourceRoot" must be a non-empty string',
+        'showroom.json: "ignore" must be an array of strings',
+        'showroom.json: unknown key "extra"',
+        'showroom.json: "stack" is required',
       ]);
     });
   });
 
   describe('Output folder', () => {
-    // The output folder fixture (source root `.`) holds a built showcase application in `showcase/` and another folder, `unmarked/`, each with a README
-    // and a JavaScript file; the out-dir fixtures configure an output folder that isn't allowed. The override is passed as `tsshowcase build` passes it.
+    // The output folder fixture (source root `.`) holds a built showroom in `showroom/` and another folder, `unmarked/`, each with a README
+    // and a JavaScript file; the out-dir fixtures configure an output folder that isn't allowed. The override is passed as `showroom build` passes it.
 
     it('Never collects anything in the default output folder', async () => {
       const { passed, host } = await check(_fixture('output-folder'));
@@ -160,18 +160,18 @@ describe('cli/check', () => {
     it('Never collects anything in an overriding output folder', async () => {
       const { passed, host } = await check(_fixture('output-folder'), { outDir: join(_fixture('output-folder'), 'unmarked') });
       expect(passed).toBe(true);
-      expect(host?.documentation.map((file) => file.path)).toEqual(['README.md', 'showcase/README.md']);
-      expect(host?.code).toEqual(['showcase/assets/index.js', 'src/index.ts']);
+      expect(host?.documentation.map((file) => file.path)).toEqual(['README.md', 'showroom/README.md']);
+      expect(host?.code).toEqual(['showroom/assets/index.js', 'src/index.ts']);
     });
 
     it("Fails on a configured output folder that is the host repository's root, or outside it", async () => {
       expect(await check(_fixture('out-dir-root'))).toEqual({
         passed: false,
-        issues: [{ severity: 'error', message: `Output folder "./" is the host repository's root`, path: 'tsshowcase.json' }],
+        issues: [{ severity: 'error', message: `Output folder "./" is the host repository's root`, path: 'showroom.json' }],
       });
       expect(await check(_fixture('out-dir-outside'))).toEqual({
         passed: false,
-        issues: [{ severity: 'error', message: 'Output folder "../site" is outside the host repository', path: 'tsshowcase.json' }],
+        issues: [{ severity: 'error', message: 'Output folder "../site" is outside the host repository', path: 'showroom.json' }],
       });
     });
 

@@ -1,20 +1,21 @@
 {
-  "name": "@ofzza/tsshowcase",
+  "name": "@ofzza/showroom",
   "version": "0.1.0",
-  "description": "Build documentation/showcase apps for TypeScript libraries.",
+  "description": "Build a showroom for a repository: its documentation, enriched by showcases.",
   "keywords": [
     "typescript",
     "cli",
+    "showroom",
     "showcase",
     "documentation"
   ],
-  "homepage": "https://github.com/ofzza/tsshowcase#readme",
+  "homepage": "https://github.com/ofzza/showroom#readme",
   "bugs": {
-    "url": "https://github.com/ofzza/tsshowcase/issues"
+    "url": "https://github.com/ofzza/showroom/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ofzza/tsshowcase.git"
+    "url": "git+https://github.com/ofzza/showroom.git"
   },
   "license": "MIT",
   "author": "ofzza",
@@ -22,7 +23,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "tsshowcase": "dist/cli/bin.js"
+    "showroom": "dist/cli/bin.js"
   },
   "exports": {
     ".": {

@@ -1,6 +1,6 @@
 /**
- * Build: `tsshowcase build`, building the showcase application of a host repository with Vite into its output folder, as static files. Internal: loaded
- * by main() with a dynamic `import()`, so library users and `tsshowcase check` never load Vite, and not re-exported.
+ * Build: `showroom build`, building the showroom of a host repository with Vite into its output folder, as static files. Internal: loaded
+ * by main() with a dynamic `import()`, so library users and `showroom check` never load Vite, and not re-exported.
  */
 
 import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
@@ -18,13 +18,12 @@ import { getAppDir, getShownHostInformation, getViteConfiguration, type ViteConf
 /**
  * Name of the marker file every build writes into the output folder; a non-empty output folder is only emptied when it holds one
  */
-export const OUTPUT_FOLDER_MARKER = '.tsshowcase';
+export const OUTPUT_FOLDER_MARKER = '.showroom';
 
 /**
  * Content of the marker file
  */
-export const OUTPUT_FOLDER_MARKER_CONTENT =
-  'This folder is the output folder of `tsshowcase build`: its whole content is deleted and rebuilt on every build.\n';
+export const OUTPUT_FOLDER_MARKER_CONTENT = 'This folder is the output folder of `showroom build`: its whole content is deleted and rebuilt on every build.\n';
 
 /**
  * Represents the state of an output folder, before building: missing, empty, holding a previous build (marked), or holding anything else (unmarked)
@@ -70,7 +69,7 @@ export interface BuildConfigurationOptions extends ViteConfigurationOptions {
 }
 
 /**
- * Size of the showcase application's single chunk above which Vite warns, in kB: above the application's own size (about 760 kB), which isn't the host
+ * Size of the showroom's single chunk above which Vite warns, in kB: above the application's own size (about 760 kB), which isn't the host
  * repository's to change
  */
 export const CHUNK_SIZE_WARNING_LIMIT = 2048;
@@ -82,7 +81,7 @@ export const CHUNK_SIZE_WARNING_LIMIT = 2048;
 export const SILENCED_WARNINGS: readonly string[] = ['MODULE_LEVEL_DIRECTIVE'];
 
 /**
- * Gets the Vite configuration of the build: the showcase application's, building into the output folder and emptying it first (it is outside Vite's
+ * Gets the Vite configuration of the build: the showroom's, building into the output folder and emptying it first (it is outside Vite's
  * root, so Vite wouldn't empty it otherwise), without the warnings about the application's own dependencies
  * @param options Options of the configuration
  * @returns Vite's inline configuration
@@ -104,7 +103,7 @@ export function getBuildConfiguration({ outDir, ...options }: BuildConfiguration
 }
 
 /**
- * Represents the options of `tsshowcase build`
+ * Represents the options of `showroom build`
  */
 export interface BuildOptions {
   /**
@@ -120,13 +119,13 @@ export interface BuildOptions {
    */
   output: CliOutput;
   /**
-   * Folder of the showcase application (see getAppDir())
+   * Folder of the showroom (see getAppDir())
    */
   appDir?: string;
 }
 
 /**
- * Builds the showcase application of a host repository into its output folder
+ * Builds the showroom of a host repository into its output folder
  * @param options Options of the command
  * @returns Exit code: 0 once built, 1 if the check fails, the output folder can't be emptied, or the build fails
  */
@@ -155,11 +154,11 @@ export async function build({ root, outDir, output, appDir = getAppDir() }: Buil
   }
 
   // Build, with Vite's cache in a fresh folder of its own, removed afterwards
-  const cacheDir = await mkdtemp(join(tmpdir(), 'tsshowcase-'));
+  const cacheDir = await mkdtemp(join(tmpdir(), 'showroom-'));
   try {
     await viteBuild(getBuildConfiguration({ appDir, cacheDir, getHost: () => host, outDir: outputFolder.path }));
     await writeFile(join(outputFolder.path, OUTPUT_FOLDER_MARKER), OUTPUT_FOLDER_MARKER_CONTENT);
-    output.stdout(`Built the showcase application of ${host.project.name} into ${outputFolder.path}\n`);
+    output.stdout(`Built the showroom of ${host.project.name} into ${outputFolder.path}\n`);
     return 0;
   } catch (err) {
     output.stderr(`error: ${(err as Error).message}\n`);

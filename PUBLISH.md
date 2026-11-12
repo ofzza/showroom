@@ -16,7 +16,7 @@ How to release a new version of this package to NPM. Releases are cut from `deve
 
 ### Consumer smoke test
 
-Install the packed tarball into a throwaway project, and check that its types resolve under both `nodenext` and `bundler` module resolution, that it imports at runtime, and that its `tsshowcase` command line (the `bin` in `package.json`) runs:
+Install the packed tarball into a throwaway project, and check that its types resolve under both `nodenext` and `bundler` module resolution, that it imports at runtime, and that its `showroom` command line (the `bin` in `package.json`) runs:
 
 ```sh
 $ npm pack --pack-destination /tmp/<package>-smoke
@@ -30,7 +30,7 @@ TS
 $ npx tsc --noEmit --strict --module nodenext --moduleResolution nodenext smoke.ts
 $ npx tsc --noEmit --strict --module esnext --moduleResolution bundler smoke.ts
 $ node -e "import('<package>').then(() => console.log('ok'))"
-$ npx tsshowcase --help
+$ npx showroom --help
 ```
 
 ## Packaging and publishing

@@ -1,5 +1,5 @@
 /**
- * Host information: the data tsshowcase collects from a host repository, which the showcase application presents
+ * Host information: the data `showroom` collects from a host repository, which the showroom presents
  */
 
 // #region Project information
@@ -74,7 +74,7 @@ export interface DocumentationFile {
 // #region Host information
 
 /**
- * Represents the host information: everything tsshowcase collects from a host repository
+ * Represents the host information: everything `showroom` collects from a host repository
  */
 export interface HostInformation {
   /**

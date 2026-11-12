@@ -1,5 +1,5 @@
 /**
- * The showcase application's pages: the home page, a documentation file's page, and the not-found page
+ * The showroom's pages: the home page, a documentation file's page, and the not-found page
  */
 
 import type { ReactNode } from 'react';
@@ -174,7 +174,7 @@ export function DocumentationPage({ file, documentation }: DocumentationPageProp
 // #region Not-found page
 
 /**
- * Renders the not-found page, for a route that isn't a page of the showcase application
+ * Renders the not-found page, for a route that isn't a page of the showroom
  * @returns The rendered page
  */
 export function NotFoundPage(): ReactNode {
@@ -183,7 +183,7 @@ export function NotFoundPage(): ReactNode {
     <div className={styles.page}>
       <Title2 as="h1">Page not found</Title2>
       <Body1>
-        This page isn&apos;t in the showcase application. <Link href={formatRoute()}>Go to the home page</Link>
+        This page isn&apos;t in the showroom. <Link href={formatRoute()}>Go to the home page</Link>
       </Body1>
     </div>
   );

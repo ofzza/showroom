@@ -14,7 +14,7 @@ export default ts.config(
   { files: ['**/*.{js,jsx,ts,tsx}'] },
   js.configs.recommended,
   ...ts.configs.recommended,
-  // The rules of hooks, for the showcase application's hand-written hooks (`@vitejs/plugin-react` is not used, so nothing else checks them)
+  // The rules of hooks, for the showroom's hand-written hooks (`@vitejs/plugin-react` is not used, so nothing else checks them)
   reactHooks.configs.flat.recommended,
   prettier,
   {

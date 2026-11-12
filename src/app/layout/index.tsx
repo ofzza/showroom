@@ -1,5 +1,5 @@
 /**
- * The showcase application's layout: a header with the project's name and version and the theme toggle, the navigation in an inline drawer, and the page
+ * The showroom's layout: a header with the project's name and version and the theme toggle, the navigation in an inline drawer, and the page
  */
 
 import type { ReactNode } from 'react';

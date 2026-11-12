@@ -1,5 +1,5 @@
 /**
- * Tests of the showcase application's Vite configuration
+ * Tests of the showroom's Vite configuration
  */
 
 import { describe, it, expect } from 'vitest';
@@ -75,13 +75,13 @@ describe('vite', () => {
 
     it("Sets the page's title to the project's name, escaped", () => {
       const plugin = createHostPlugin(() => getShownHostInformation(_HOST));
-      expect(_call(plugin, 'transformIndexHtml', '<head><title>tsshowcase</title></head>')).toBe(
+      expect(_call(plugin, 'transformIndexHtml', '<head><title>showroom</title></head>')).toBe(
         '<head><title>my &lt;library&gt; &amp; &quot;co&quot;</title></head>',
       );
     });
   });
 
-  it("Aliases React, React DOM and the scheduler, with their subpaths, to tsshowcase's own copies", () => {
+  it("Aliases React, React DOM and the scheduler, with their subpaths, to showroom's own copies", () => {
     const require = createRequire(import.meta.url);
     const react = dirname(require.resolve('react/package.json'));
     const reactDom = dirname(require.resolve('react-dom/package.json'));
@@ -95,7 +95,7 @@ describe('vite', () => {
     expect(_alias(aliases, '@fluentui/react-components')).toBeUndefined();
   });
 
-  it("Gets the showcase application's folder beside this module's", () => {
+  it("Gets the showroom's folder beside this module's", () => {
     // From `src/vite/` this is `src/app/`, and from `dist/vite/` it is `dist/app/`: both hold the static `index.html`
     expect(existsSync(join(getAppDir(), 'index.html'))).toBe(true);
   });
@@ -104,7 +104,7 @@ describe('vite', () => {
     const getHost = () => getShownHostInformation(_HOST);
     const configuration = getViteConfiguration({ appDir: '/app', cacheDir: '/cache', getHost });
     expect(configuration).toMatchObject({ configFile: false, root: '/app', base: './', cacheDir: '/cache', clearScreen: false, logLevel: 'warn' });
-    expect((configuration.plugins as Plugin[]).map((plugin) => plugin.name)).toEqual(['tsshowcase-host']);
+    expect((configuration.plugins as Plugin[]).map((plugin) => plugin.name)).toEqual(['showroom-host']);
     expect(configuration.resolve?.alias).toEqual(getReactAliases());
   });
 });

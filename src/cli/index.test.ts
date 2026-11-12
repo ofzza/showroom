@@ -1,5 +1,5 @@
 /**
- * Tests of the `tsshowcase` command line
+ * Tests of the `showroom` command line
  */
 
 import { describe, it, expect } from 'vitest';
@@ -57,14 +57,14 @@ describe('cli', () => {
       const { code, stdout, stderr } = await _run(['check', '--root', _fixture('unknown-stack')]);
       expect(code).toBe(1);
       expect(stdout).toBe('');
-      expect(stderr).toBe('error: tsshowcase.json: Unknown stack "cobol"; the stack adapters are: typescript\n');
+      expect(stderr).toBe('error: showroom.json: Unknown stack "cobol"; the stack adapters are: typescript\n');
     });
 
     it('Overrides the output folder with --out-dir, relative to the current directory', async () => {
       const outDir = relative(process.cwd(), join(_fixture('output-folder'), 'unmarked'));
       const { code, stdout } = await _run(['check', '--root', _fixture('output-folder'), '--out-dir', outDir]);
       expect(code).toBe(0);
-      expect(JSON.parse(stdout).documentation.map((file: { path: string }) => file.path)).toEqual(['README.md', 'showcase/README.md']);
+      expect(JSON.parse(stdout).documentation.map((file: { path: string }) => file.path)).toEqual(['README.md', 'showroom/README.md']);
     });
 
     it("Fails on an --out-dir that is the host repository's root", async () => {
@@ -137,7 +137,7 @@ describe('cli', () => {
       const { code, stdout, stderr } = await _run(['serve', '--root', _fixture('unknown-stack'), '--port', '8080']);
       expect(code).toBe(1);
       expect(stdout).toBe('');
-      expect(stderr).toBe('error: tsshowcase.json: Unknown stack "cobol"; the stack adapters are: typescript\n');
+      expect(stderr).toBe('error: showroom.json: Unknown stack "cobol"; the stack adapters are: typescript\n');
     });
 
     it('Passes --out-dir on to serve', async () => {
@@ -156,7 +156,7 @@ describe('cli', () => {
       const { code, stdout, stderr } = await _run(['build', '--root', _fixture('unknown-stack')]);
       expect(code).toBe(1);
       expect(stdout).toBe('');
-      expect(stderr).toBe('error: tsshowcase.json: Unknown stack "cobol"; the stack adapters are: typescript\n');
+      expect(stderr).toBe('error: showroom.json: Unknown stack "cobol"; the stack adapters are: typescript\n');
     });
 
     it('Passes --out-dir on to build', async () => {

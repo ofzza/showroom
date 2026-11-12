@@ -1,5 +1,5 @@
 /**
- * The shown host information: the part of the host information the showcase application presents, and helpers for finding its documentation files
+ * The shown host information: the part of the host information the showroom presents, and helpers for finding its documentation files
  */
 
 import type { DocumentationFile, HostInformation } from '../../host/index.js';
@@ -8,7 +8,7 @@ import type { DocumentationFile, HostInformation } from '../../host/index.js';
 
 /**
  * Represents the shown host information: the host information's project information and documentation files, without the code file index, which the
- * showcase application doesn't show
+ * showroom doesn't show
  */
 export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentation'>;
 
@@ -17,7 +17,7 @@ export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentat
 // #region Documentation files
 
 /**
- * Checks if a documentation file is the root `README`, which the showcase application shows on its home page
+ * Checks if a documentation file is the root `README`, which the showroom shows on its home page
  * @param file Documentation file
  * @returns True if the file is the `README` in the host repository's root
  */

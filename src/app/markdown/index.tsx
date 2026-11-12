@@ -16,9 +16,9 @@ import { scrollToAnchor } from '../routing/index.js';
 // #region Styles
 
 /**
- * Tooltip of a link that points to nothing in the showcase application
+ * Tooltip of a link that points to nothing in the showroom
  */
-export const UNRESOLVED_LINK_TOOLTIP = 'Not in the showcase application';
+export const UNRESOLVED_LINK_TOOLTIP = 'Not in the showroom';
 
 /**
  * Colours of highlight.js's token classes, as FluentUI tokens, so code blocks follow the theme
@@ -137,7 +137,7 @@ interface _MarkdownLinkProps {
    */
   documentation: DocumentationFile[];
   /**
-   * Class name of a link that points to nothing in the showcase application
+   * Class name of a link that points to nothing in the showroom
    */
   unresolvedClassName: string;
   /**
@@ -147,8 +147,8 @@ interface _MarkdownLinkProps {
 }
 
 /**
- * Renders a link in rendered Markdown: to an absolute URL in a new tab, to a page of the showcase application, or as plain text with a tooltip when it
- * points to nothing in the showcase application
+ * Renders a link in rendered Markdown: to an absolute URL in a new tab, to a page of the showroom, or as plain text with a tooltip when it
+ * points to nothing in the showroom
  * @param props Properties of the component
  * @returns The rendered link
  */

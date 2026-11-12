@@ -32,12 +32,14 @@ Any code sample added to `README.md` must be verified against `tsc` before it is
 
 ## Project
 
-`@ofzza/tsshowcase`: build documentation/showcase apps for TypeScript libraries. A CLI (`tsshowcase`, the `bin` in `package.json`) and a library. It is MIT licensed, built from `src/` to `dist/`, and published to NPM as `@ofzza/tsshowcase` (source: [github.com/ofzza/tsshowcase](https://github.com/ofzza/tsshowcase)).
+`@ofzza/showroom`: build a showroom for a repository: its documentation, enriched by showcases. A CLI (`showroom`, the `bin` in `package.json`) and a library. It is MIT licensed, built from `src/` to `dist/`, and published to NPM as `@ofzza/showroom` (source: [github.com/ofzza/showroom](https://github.com/ofzza/showroom)).
 
 Template: ts from ofzza/.templates @ develop@35c447a
 
+**Renamed from `tsshowcase` to `showroom` on 2026-11-12**, in the commit right after `d17d05e` (the last one with the old name). Commits up to and including `d17d05e` say `tsshowcase` (the package `@ofzza/tsshowcase`, `tsshowcase.json`, the `.tsshowcase` marker file, the default output folder `./showcase`), and "showcase application" for what the Glossary now calls the Showroom; their Markdown showcase marker `tsshowcase=<adapter>` is now `showcase=<adapter>`. The workflow files under `./.workflow/` were renamed in place, except the user's words quoted in `STATE.md`'s history.
+
 - **ESM only** (`"type": "module"`). The entry point is the `exports` map (`.` → `types: ./dist/index.d.ts`, `default: ./dist/index.js`, plus `./package.json`). `main` and `types` mirror it for older tooling.
-- **The `tsshowcase` command line** is `bin: { tsshowcase: dist/cli/bin.js }`, built from `src/cli/bin.ts`, which keeps its `#!/usr/bin/env node` line through `tsc`.
+- **The `showroom` command line** is `bin: { showroom: dist/cli/bin.js }`, built from `src/cli/bin.ts`, which keeps its `#!/usr/bin/env node` line through `tsc`.
 - **Only `dist/` is published** (`files: ["dist"]`; npm adds `README.md`, `LICENSE.md` and `package.json` itself). The package also sets `sideEffects: false`, and `publishConfig.access: public` because scoped packages otherwise publish as restricted.
 - Toolchain last verified against: Node 24, TypeScript 5.9, Vitest 5.0, ESLint 10, Prettier 3.8, React 19.3, FluentUI 9.75.
 
@@ -56,20 +58,20 @@ src/
   index.ts                 Entry point and public API; re-exports every module (`export * from './<module>/index.js';`)
   index.test.ts            Tests, colocated (one beside every index.ts)
   host/                    Host information types: project information, documentation files, code file index
-  configuration/           Reading and validating the host repository's tsshowcase.json
+  configuration/           Reading and validating the host repository's showroom.json
   adapters/stack/          StackAdapter interface and the registry of built-in stack adapters
     typescript/            The TypeScript stack adapter (package.json; TS/JS code)
   cli/                     Command line: main(), argument parsing, output
     bin.ts                 Executable entry point (the package's bin); never imported, so it has no test
     check/                 check(): walks a host repository and collects its host information and issues
       internal/            The output folder, the ignore matcher and issue formatting, shared with serve and build; never re-exported
-    serve/                 serve(): `tsshowcase serve`, Vite's dev server and the host watcher; loaded by main() with import(), never re-exported
-    build/                 build(): `tsshowcase build`, Vite's build into the output folder, and its marker; loaded by main() with import(), never re-exported
-  vite/                    The showcase application's Vite configuration, shared by serve and build; never re-exported
-  app/                     The showcase application (browser code, compiled to dist/app/, never re-exported): App, mount()
+    serve/                 serve(): `showroom serve`, Vite's dev server and the host watcher; loaded by main() with import(), never re-exported
+    build/                 build(): `showroom build`, Vite's build into the output folder, and its marker; loaded by main() with import(), never re-exported
+  vite/                    The showroom's Vite configuration, shared by serve and build; never re-exported
+  app/                     The showroom (browser code, compiled to dist/app/, never re-exported): App, mount()
     index.html             Its static page, copied to dist/app/ by `npm run build`
     main.ts                Its entry point (loaded by index.html): mounts App with the virtual module's data; never imported, so it has no test
-    virtual.d.ts           Type of the `virtual:tsshowcase-host` module the Vite plugin serves
+    virtual.d.ts           Type of the `virtual:showroom-host` module the Vite plugin serves
     host/                  The shown host information type, and helpers finding documentation files
     routing/               The hash router: parsing, formatting and resolving routes, useHash()
     links/                 Link resolution in Markdown
@@ -94,7 +96,7 @@ CONTRIBUTE.md              Contributor guide: reporting issues, workflow, branch
 PUBLISH.md                 Pre-publish checklist and release steps
 ```
 
-Each new module gets its own directory under `src/`, holding an `index.ts` + `index.test.ts` pair, and is re-exported from `src/index.ts`. The exception is `src/app/`: its modules (`index.ts(x)` + `index.test.ts(x)` pairs too) are only imported by the showcase application, never re-exported.
+Each new module gets its own directory under `src/`, holding an `index.ts` + `index.test.ts` pair, and is re-exported from `src/index.ts`. The exception is `src/app/`: its modules (`index.ts(x)` + `index.test.ts(x)` pairs too) are only imported by the showroom, never re-exported.
 
 ## Commands
 
@@ -102,7 +104,7 @@ Each new module gets its own directory under `src/`, holding an `index.ts` + `in
 - `npm run build`: runs `tsc -p tsconfig.build.json`, compiling `src/` to `dist/` with declarations, then `copy-app`. `prebuild` runs `clean` first, so renamed or removed modules never leave stale output behind to be published.
 - `npm run dev`: `copy-app`, then the compilation in watch mode (a change to `src/app/index.html` needs a restart).
 - `npm run copy-app`: copies `src/app/index.html`, which `tsc` doesn't emit, to `dist/app/`. `ci:build` only compiles, and doesn't run it.
-- `npm start`: runs the built command line, `node dist/cli/bin.js`. Pass arguments after `--`, e.g. `npm start -- check --root test/fixtures/minimal`. `npm start -- serve --root <host>` previews the showcase application of a host repository; with `npm run dev` running alongside, reload the page to see changes to `src/app/`. Never serve a fixture in `test/fixtures/` while editing its files: work on a copy in a working-files folder. Likewise, run `npm start -- build --root <host>` only on a copy, as it writes the output folder into the host repository; serve the result over HTTP (browsers won't run it from `file://`).
+- `npm start`: runs the built command line, `node dist/cli/bin.js`. Pass arguments after `--`, e.g. `npm start -- check --root test/fixtures/minimal`. `npm start -- serve --root <host>` previews the showroom of a host repository; with `npm run dev` running alongside, reload the page to see changes to `src/app/`. Never serve a fixture in `test/fixtures/` while editing its files: work on a copy in a working-files folder. Likewise, run `npm start -- build --root <host>` only on a copy, as it writes the output folder into the host repository; serve the result over HTTP (browsers won't run it from `file://`).
 - `npm test`: runs every `test:*` script.
   - `npm run test:unit`: `vitest run --project unit`, a single invocation that both executes the tests and type checks them.
 - `npm run ci`: runs every `ci:*` script (`ci:build`, `ci:eslint`, `ci:prettier`, `ci:test-unit`). This is what GitHub Actions runs.
@@ -139,11 +141,11 @@ Vitest, with `describe`/`it`/`expect` imported explicitly (`globals` is not enab
 
 **JSX is configured for React.** `tsconfig.json` sets `jsx: react-jsx`, so `.tsx` files are type checked and built by `tsc` like any other file, and Vitest's default transform runs them through React's JSX runtime. ESLint checks them with `eslint-plugin-react-hooks`'s recommended rules.
 
-**The showcase application is tested by rendering it on the server**, with `react-dom/server`'s `renderToString`, and asserting on the HTML: there is no DOM in the tests (no `jsdom`), so effects never run, and `mount()` is never called. Wrap what is rendered in FluentUI's `SSRProvider` (otherwise FluentUI warns on `stderr`), and strip the `<!-- -->` comments React puts between adjacent text nodes before matching text. `App` takes the route and the theme as props for this. Anything that touches `window` or `document` has to be guarded or inside an effect, or the render throws; `getInitialTheme()` is tested with a stubbed `window` (`vi.stubGlobal`).
+**The showroom is tested by rendering it on the server**, with `react-dom/server`'s `renderToString`, and asserting on the HTML: there is no DOM in the tests (no `jsdom`), so effects never run, and `mount()` is never called. Wrap what is rendered in FluentUI's `SSRProvider` (otherwise FluentUI warns on `stderr`), and strip the `<!-- -->` comments React puts between adjacent text nodes before matching text. `App` takes the route and the theme as props for this. Anything that touches `window` or `document` has to be guarded or inside an effect, or the render throws; `getInitialTheme()` is tested with a stubbed `window` (`vi.stubGlobal`).
 
-**`tsshowcase serve` is tested without starting a server.** The tests cover the Vite configuration and its plugin (`src/vite/`, calling the plugin's hooks directly), the watcher's `ignored` function, and the host watcher's reload decisions (`createHostWatcher()`, with a fake check and a fake reload target, and fake timers for the debounce). `serve()` and `main()`'s `serve` command are only run on a fixture whose first check fails, which returns before any temporary folder or server is created. The user checks `serve` itself in a browser.
+**`showroom serve` is tested without starting a server.** The tests cover the Vite configuration and its plugin (`src/vite/`, calling the plugin's hooks directly), the watcher's `ignored` function, and the host watcher's reload decisions (`createHostWatcher()`, with a fake check and a fake reload target, and fake timers for the debounce). `serve()` and `main()`'s `serve` command are only run on a fixture whose first check fails, which returns before any temporary folder or server is created. The user checks `serve` itself in a browser.
 
-**`tsshowcase build` is tested without running Vite.** The tests cover the output folder's resolution and ignore pattern (`src/cli/check/internal/`, and the `output-folder`, `out-dir-root` and `out-dir-outside` fixtures), the marker's decision (`getOutputFolderState()` on entry lists, as git can't hold an empty folder, and `readOutputFolderState()` on the `output-folder` fixture's folders), and the build's Vite configuration (`getBuildConfiguration()`). `build()` and `main()`'s `build` command are only run where they stop before building: a failed check, or an unmarked output folder. Builds themselves are trial runs on copies in a working-files folder, and the user checks the result in a browser.
+**`showroom build` is tested without running Vite.** The tests cover the output folder's resolution and ignore pattern (`src/cli/check/internal/`, and the `output-folder`, `out-dir-root` and `out-dir-outside` fixtures), the marker's decision (`getOutputFolderState()` on entry lists, as git can't hold an empty folder, and `readOutputFolderState()` on the `output-folder` fixture's folders), and the build's Vite configuration (`getBuildConfiguration()`). `build()` and `main()`'s `build` command are only run where they stop before building: a failed check, or an unmarked output folder. Builds themselves are trial runs on copies in a working-files folder, and the user checks the result in a browser.
 
 After adding or changing type-level assertions, sanity-check them: break one deliberately, confirm the run fails, then revert. Vitest prints an "experimental" warning for typecheck, which is expected.
 
@@ -178,14 +180,14 @@ After adding or changing type-level assertions, sanity-check them: break one del
 - **`@types/node` is pinned to the lowest supported Node major** (currently `^22`), so type checking cannot silently rely on APIs newer than the CI matrix floor. `.github/dependabot.yml` ignores its semver-major updates for this reason, so bump it by hand together with the matrix.
 - **`@eslint/js` must be a direct devDependency.** `eslint.config.js` imports it, and since ESLint 10 `eslint` no longer pulls it in transitively.
 - **`tsconfig.build.json` excludes test files**, so `npm run build` never reports a type error in a test, and never emits one to `dist/`. Its `exclude` lists each test suffix (`.test`, `.spec`, `.test-d`, `.spec-d`) for both `.ts` and `.tsx`, as tsconfig globs have no `{a,b}` braces. A new test naming convention must be added there, or its files ship in the package. Use `npm test` (the `unit` project type checks them) or `tsc --noEmit -p tsconfig.json`.
-- **Only `src/cli/bin.ts` and `src/app/main.ts` have side effects** (they run the command line, and mount the showcase application, on import), which is why nothing imports them, and why `sideEffects: false` stays truthful: every other module, `src/index.ts` included, only declares.
-- **`sideEffects: false` also applies to the bundled showcase application**, so the app never relies on an import that is only there for its side effects: no CSS imports (styles are Griffel's `makeStyles`, with FluentUI tokens), no polyfills.
-- **`types: ["node"]` applies to the showcase application's browser code too**, so Node globals (`process`, `Buffer`, …) type check in `src/app/` although they don't exist in the browser. Don't use them there. The DOM types come from TypeScript's default `lib`.
-- **`main()` loads `serve` and `build` with a dynamic `import()`**, so `tsshowcase check` and library users never load Vite. Never import `src/cli/serve/`, `src/cli/build/` or `src/vite/` statically from anything `src/index.ts` reaches, and never re-export them: they are internal, like `src/cli/check/internal/` (`src/index.test.ts`'s export list guards this).
-- **Vite's root is `dist/app/` inside the package, and its `cacheDir` a fresh `mkdtemp` folder** (`<tmp>/tsshowcase-XXXXXX`), removed when `serve` exits. Nothing is generated into the host repository or the package, so a global install works. `getAppDir()` resolves `../app/` from the module itself, which is `src/app/` in the tests (holding `index.html`, but no compiled `main.js`).
-- **`build` empties the output folder, guarded by the `.tsshowcase` marker.** Vite's `emptyOutDir` deletes everything in it, so `build` only lets it when the folder is missing, empty or marked (`readOutputFolderState()`), and writes the marker after every build. Never bypass this check, and never let the output folder be the host root or outside it (`resolveOutputFolder()`, which the check enforces).
-- **The build leaves out the bundler's warnings about the showcase application's own dependencies**: `MODULE_LEVEL_DIRECTIVE` (FluentUI's and Griffel's `'use client'`, once per file, about 1900 lines) and the chunk size (`CHUNK_SIZE_WARNING_LIMIT`, above the app's single chunk of about 760 kB). A new warning of that kind goes into `SILENCED_WARNINGS` in `src/cli/build/`; warnings the host can act on must still show.
-- **React, React DOM and the scheduler are aliased to tsshowcase's own copies** in the Vite configuration (`getReactAliases()`), so a host's different React, next to a hoisted FluentUI, never mixes in ("Invalid hook call"). A new React package the application imports directly needs adding there.
+- **Only `src/cli/bin.ts` and `src/app/main.ts` have side effects** (they run the command line, and mount the showroom, on import), which is why nothing imports them, and why `sideEffects: false` stays truthful: every other module, `src/index.ts` included, only declares.
+- **`sideEffects: false` also applies to the bundled showroom**, so the app never relies on an import that is only there for its side effects: no CSS imports (styles are Griffel's `makeStyles`, with FluentUI tokens), no polyfills.
+- **`types: ["node"]` applies to the showroom's browser code too**, so Node globals (`process`, `Buffer`, …) type check in `src/app/` although they don't exist in the browser. Don't use them there. The DOM types come from TypeScript's default `lib`.
+- **`main()` loads `serve` and `build` with a dynamic `import()`**, so `showroom check` and library users never load Vite. Never import `src/cli/serve/`, `src/cli/build/` or `src/vite/` statically from anything `src/index.ts` reaches, and never re-export them: they are internal, like `src/cli/check/internal/` (`src/index.test.ts`'s export list guards this).
+- **Vite's root is `dist/app/` inside the package, and its `cacheDir` a fresh `mkdtemp` folder** (`<tmp>/showroom-XXXXXX`), removed when `serve` exits. Nothing is generated into the host repository or the package, so a global install works. `getAppDir()` resolves `../app/` from the module itself, which is `src/app/` in the tests (holding `index.html`, but no compiled `main.js`).
+- **`build` empties the output folder, guarded by the `.showroom` marker.** Vite's `emptyOutDir` deletes everything in it, so `build` only lets it when the folder is missing, empty or marked (`readOutputFolderState()`), and writes the marker after every build. Never bypass this check, and never let the output folder be the host root or outside it (`resolveOutputFolder()`, which the check enforces).
+- **The build leaves out the bundler's warnings about the showroom's own dependencies**: `MODULE_LEVEL_DIRECTIVE` (FluentUI's and Griffel's `'use client'`, once per file, about 1900 lines) and the chunk size (`CHUNK_SIZE_WARNING_LIMIT`, above the app's single chunk of about 760 kB). A new warning of that kind goes into `SILENCED_WARNINGS` in `src/cli/build/`; warnings the host can act on must still show.
+- **React, React DOM and the scheduler are aliased to `showroom`'s own copies** in the Vite configuration (`getReactAliases()`), so a host's different React, next to a hoisted FluentUI, never mixes in ("Invalid hook call"). A new React package the application imports directly needs adding there.
 - **`src/app/` is browser code, not part of the library's API.** It is compiled to `dist/app/` (and so published) for Vite to bundle, but never re-exported from `src/index.ts`, and it never imports Node modules. It may import types from the rest of `src/` (e.g. `src/host/`).
 - **Fixtures can't hold `node_modules`, `dist` or `coverage` folders.** `.gitignore` ignores them at any depth, so they would never be committed. Tests of those default ignore patterns check the TypeScript stack adapter's list instead (see `src/adapters/stack/typescript/index.test.ts`), and fixtures exercise ignoring with other folder names (e.g. `vendor/`).
 - **Fixture file names must differ by more than case within a folder**, or they collide on case-insensitive file systems (Windows, macOS). The case-insensitive matching is tested across folders (`test/fixtures/names/`).
@@ -206,11 +208,11 @@ Everything public is re-exported from `src/index.ts`:
 
 - `check(root, options?): Promise<CheckResult>` (`src/cli/check/`): checks a host repository and collects its host information; `options.outDir` overrides the output folder. Also `BUILT_IN_DOCUMENTATION`, and the types `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity`.
 - `main(args, output?): Promise<number>` (`src/cli/`): runs the command line, resolving to its exit code. Also `USAGE`, and the type `CliOutput`.
-- `readConfiguration(root)`, `validateConfiguration(value)` (`src/configuration/`): read and validate `tsshowcase.json`. Also `CONFIGURATION_FILE_NAME`, `DEFAULT_OUT_DIR`, and the types `Configuration`, `ConfigurationResult`.
+- `readConfiguration(root)`, `validateConfiguration(value)` (`src/configuration/`): read and validate `showroom.json`. Also `CONFIGURATION_FILE_NAME`, `DEFAULT_OUT_DIR`, and the types `Configuration`, `ConfigurationResult`.
 - `getStackAdapter(name)`, `getStackAdapterNames()` (`src/adapters/stack/`): look up the built-in stack adapters. Also the type `StackAdapter`, and `TypeScriptStackAdapter` (`src/adapters/stack/typescript/`).
 - Types `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind` (`src/host/`): the host information.
 
-The showcase application (`src/app/`: `App`, `mount()`, `ShownHostInformation`) is deliberately not exported: it is browser code, bundled by Vite from `dist/app/`. Neither are `serve()` (`src/cli/serve/`), `build()` (`src/cli/build/`), the Vite configuration (`src/vite/`) and the check's internals (`src/cli/check/internal/`): `tsshowcase serve` and `tsshowcase build` are only available through the command line and `main()`.
+The showroom (`src/app/`: `App`, `mount()`, `ShownHostInformation`) is deliberately not exported: it is browser code, bundled by Vite from `dist/app/`. Neither are `serve()` (`src/cli/serve/`), `build()` (`src/cli/build/`), the Vite configuration (`src/vite/`) and the check's internals (`src/cli/check/internal/`): `showroom serve` and `showroom build` are only available through the command line and `main()`.
 
 ---
 

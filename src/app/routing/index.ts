@@ -1,5 +1,5 @@
 /**
- * The showcase application's hash router: routes are read from, and written to, the URL's hash, so the application works on static hosting under any path
+ * The showroom's hash router: routes are read from, and written to, the URL's hash, so the application works on static hosting under any path
  */
 
 import { useSyncExternalStore } from 'react';

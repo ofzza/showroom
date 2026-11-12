@@ -1,5 +1,5 @@
 /**
- * Tests of `tsshowcase serve`
+ * Tests of `showroom serve`
  */
 
 import { afterEach, describe, it, expect, vi } from 'vitest';
@@ -75,7 +75,7 @@ describe('cli/serve', () => {
     });
 
     it('Never ignores the root itself, or paths outside it', () => {
-      // The dev server's watcher also watches the showcase application's own folder, outside the host repository
+      // The dev server's watcher also watches the showroom's own folder, outside the host repository
       expect(ignored(root)).toBe(false);
       expect(ignored(join(process.cwd(), 'vendor'))).toBe(false);
       expect(ignored(join(process.cwd(), 'elsewhere', 'debug.log'))).toBe(false);
@@ -114,12 +114,12 @@ describe('cli/serve', () => {
 
     it('Keeps the last good data, and writes the issues, when the check fails', async () => {
       const matcher = ignore().add('old/');
-      const { watcher, record } = _watcher([{ passed: false, issues: [{ severity: 'error', message: 'Broken', path: 'tsshowcase.json' }] }], { matcher });
+      const { watcher, record } = _watcher([{ passed: false, issues: [{ severity: 'error', message: 'Broken', path: 'showroom.json' }] }], { matcher });
       await watcher.update();
       expect(record.reloads).toBe(0);
       expect(watcher.getHost().documentation[0].content).toBe('first');
       expect(watcher.getMatcher()).toBe(matcher);
-      expect(record.stderr).toBe('error: tsshowcase.json: Broken\n');
+      expect(record.stderr).toBe('error: showroom.json: Broken\n');
     });
 
     it('Writes the issues only when they changed', async () => {
@@ -191,7 +191,7 @@ describe('cli/serve', () => {
     const code = await serve({ root: _fixture('unknown-stack'), output: { stdout: (text) => (stdout += text), stderr: (text) => (stderr += text) } });
     expect(code).toBe(1);
     expect(stdout).toBe('');
-    expect(stderr).toBe('error: tsshowcase.json: Unknown stack "cobol"; the stack adapters are: typescript\n');
+    expect(stderr).toBe('error: showroom.json: Unknown stack "cobol"; the stack adapters are: typescript\n');
   });
 
   it('Checks with the overriding output folder, without serving when it fails', async () => {

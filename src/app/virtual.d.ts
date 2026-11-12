@@ -1,8 +1,8 @@
 /**
- * Type of the virtual module serving the shown host information, which tsshowcase's Vite plugin provides when serving or building the showcase application
+ * Type of the virtual module serving the shown host information, which `showroom`'s Vite plugin provides when serving or building the showroom
  */
 
-declare module 'virtual:tsshowcase-host' {
+declare module 'virtual:showroom-host' {
   /**
    * The shown host information of the host repository being served or built
    */

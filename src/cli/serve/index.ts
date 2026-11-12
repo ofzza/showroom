@@ -1,6 +1,6 @@
 /**
- * Serve: `tsshowcase serve`, previewing the showcase application with Vite's dev server, and reloading it when the shown host information changes.
- * Internal: loaded by main() with a dynamic `import()`, so library users and `tsshowcase check` never load Vite, and not re-exported.
+ * Serve: `showroom serve`, previewing the showroom with Vite's dev server, and reloading it when the shown host information changes.
+ * Internal: loaded by main() with a dynamic `import()`, so library users and `showroom check` never load Vite, and not re-exported.
  */
 
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -33,7 +33,7 @@ function _relativeToRoot(root: string, path: string): string | undefined {
 /**
  * Creates the `ignored` function of the dev server's watcher, which keeps it from watching the host repository's ignored files and folders
  * @param root Path of the host repository's root
- * @param getMatcher Gets the ignore matcher of the latest successful check, so changes to `tsshowcase.json` apply without a restart
+ * @param getMatcher Gets the ignore matcher of the latest successful check, so changes to `showroom.json` apply without a restart
  * @returns A function telling if a path is ignored: never the root itself nor a path outside it; otherwise, if the matcher ignores it as a file or a folder
  */
 export function createIgnored(root: string, getMatcher: () => Ignore | undefined): (path: string) => boolean {
@@ -215,7 +215,7 @@ export function createHostWatcher(options: HostWatcherOptions): HostWatcher {
 export const DEFAULT_PORT = 5173;
 
 /**
- * Represents the options of `tsshowcase serve`
+ * Represents the options of `showroom serve`
  */
 export interface ServeOptions {
   /**
@@ -235,7 +235,7 @@ export interface ServeOptions {
    */
   output: CliOutput;
   /**
-   * Folder of the showcase application (see getAppDir())
+   * Folder of the showroom (see getAppDir())
    */
   appDir?: string;
 }
@@ -260,7 +260,7 @@ function _waitForStop(server: ViteDevServer): Promise<void> {
 }
 
 /**
- * Serves the showcase application of a host repository with Vite's dev server, until the process is asked to stop
+ * Serves the showroom of a host repository with Vite's dev server, until the process is asked to stop
  * @param options Options of the command
  * @returns Exit code: 0 once stopped, 1 if the first check fails or the server can't start
  */
@@ -273,7 +273,7 @@ export async function serve({ root, port = DEFAULT_PORT, outDir, output, appDir 
   }
 
   // Vite's cache lives in a fresh folder of its own, removed on exit
-  const cacheDir = await mkdtemp(join(tmpdir(), 'tsshowcase-'));
+  const cacheDir = await mkdtemp(join(tmpdir(), 'showroom-'));
   let server: ViteDevServer | undefined;
   let watcher: HostWatcher | undefined;
   try {
@@ -307,7 +307,7 @@ export async function serve({ root, port = DEFAULT_PORT, outDir, output, appDir 
     });
     await server.listen();
     const url = server.resolvedUrls?.local[0] ?? `http://localhost:${server.config.server.port}/`;
-    output.stdout(`Serving the showcase application of ${first.host.project.name} at ${url}\nPress Ctrl+C to stop.\n`);
+    output.stdout(`Serving the showroom of ${first.host.project.name} at ${url}\nPress Ctrl+C to stop.\n`);
 
     await _waitForStop(server);
     return 0;

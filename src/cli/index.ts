@@ -1,5 +1,5 @@
 /**
- * CLI: the `tsshowcase` command line, parsing its arguments and running the requested command
+ * CLI: the `showroom` command line, parsing its arguments and running the requested command
  */
 
 import { resolve } from 'node:path';
@@ -12,21 +12,21 @@ export * from './check/index.js';
 // #region Usage
 
 /**
- * Usage text of the `tsshowcase` command line
+ * Usage text of the `showroom` command line
  */
-export const USAGE = `Usage: tsshowcase <command> [options]
+export const USAGE = `Usage: showroom <command> [options]
 
 Commands:
   check    Checks the host repository, writing every issue to stderr and, if the
            check passes, the collected host information (JSON) to stdout
-  serve    Serves the showcase application for previewing, reloading it when the
+  serve    Serves the showroom for previewing, reloading it when the
            host repository's documentation changes; stop it with Ctrl+C
-  build    Builds the showcase application into the output folder, as static files
+  build    Builds the showroom into the output folder, as static files
 
 Options:
   --root <dir>     Root of the host repository (default: the current directory)
-  --out-dir <dir>  Output folder, overriding tsshowcase.json's outDir (default:
-                   ./showcase in the host repository)
+  --out-dir <dir>  Output folder, overriding showroom.json's outDir (default:
+                   ./showroom in the host repository)
   --port <port>    Port to serve on (serve only; default: 5173, or the next free one)
   --help           Shows this help
 `;
@@ -50,7 +50,7 @@ export interface CliOutput {
 // #region Command line
 
 /**
- * Runs the `tsshowcase` command line
+ * Runs the `showroom` command line
  * @param args Command line arguments, without the `node` executable and script paths
  * @param output Output streams to write to; defaults to the process's
  * @returns Exit code: 0 on success, 1 on a failed check, a failed build or invalid arguments
@@ -77,7 +77,7 @@ export async function main(args: string[], output: CliOutput = _processOutput())
   const root = resolve(values.root ?? '.');
   const outDir = values['out-dir'] === undefined ? undefined : resolve(values['out-dir']);
 
-  // Serve the showcase application; Vite is only loaded here
+  // Serve the showroom; Vite is only loaded here
   if (command === 'serve') {
     const port = values.port === undefined ? undefined : _parsePort(values.port);
     if (port === null) {
@@ -92,7 +92,7 @@ export async function main(args: string[], output: CliOutput = _processOutput())
     return 1;
   }
 
-  // Build the showcase application; Vite is only loaded here
+  // Build the showroom; Vite is only loaded here
   if (command === 'build') {
     const { build } = await import('./build/index.js');
     return build({ root, outDir, output });

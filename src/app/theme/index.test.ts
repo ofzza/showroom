@@ -1,5 +1,5 @@
 /**
- * Tests of the showcase application's theme
+ * Tests of the showroom's theme
  */
 
 import { afterEach, describe, it, expect, vi } from 'vitest';
