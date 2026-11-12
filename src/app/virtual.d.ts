@@ -8,4 +8,8 @@ declare module 'virtual:showroom-host' {
    */
   const host: import('./host/index.js').ShownHostInformation;
   export default host;
+  /**
+   * The current issues of the host repository being served (the check's, and the showcases' build errors); none when building
+   */
+  export const issues: import('../cli/check/index.js').CheckIssue[];
 }

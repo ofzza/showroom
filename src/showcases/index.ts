@@ -4,6 +4,7 @@
  * --showcases` and `build`. Node code, internal, never re-exported.
  */
 
+import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -55,12 +56,37 @@ export function getShowcaseFrameFolder(showcase: Pick<Showcase, 'id' | 'document
 }
 
 /**
- * Gets the URL of a showcase frame's page, relative to the showroom's page, each path segment URL-encoded
+ * Name of the query parameter of a showcase frame's URL carrying its content's hash (not `v`, which Vite's dev server treats as a dependency's
+ * version, and serves as immutable)
+ */
+export const HASH_PARAMETER = 'hash';
+
+/**
+ * Gets the hash of a showcase frame's content: the SHA-256 of its files, sorted by path, each path and content preceded by its length in bytes
+ * @param files Files of the showcase frame, its page with the frame script
+ * @returns The first 8 hexadecimal digits of the hash
+ */
+export function getShowcaseFrameHash(files: readonly ShowcaseBuildFile[]): string {
+  const hash = createHash('sha256');
+  const encoder = new TextEncoder();
+  for (const file of [...files].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))) {
+    for (const part of [encoder.encode(file.path), typeof file.content === 'string' ? encoder.encode(file.content) : file.content]) {
+      hash.update(`${part.byteLength}:`);
+      hash.update(part);
+    }
+  }
+  return hash.digest('hex').slice(0, 8);
+}
+
+/**
+ * Gets the URL of a showcase frame's page, relative to the showroom's page, each path segment URL-encoded, with its content's hash as its query,
+ * so a changed showcase frame gets a new URL, and a browser never shows a cached earlier page
  * @param frame The showcase frame
  * @returns The relative URL
  */
-export function getShowcaseFrameUrl(frame: Pick<ShowcaseFrame, 'folder' | 'page'>): string {
-  return `${frame.folder}/${frame.page}`.split('/').map(encodeURIComponent).join('/');
+export function getShowcaseFrameUrl(frame: Pick<ShowcaseFrame, 'folder' | 'page' | 'files'>): string {
+  const path = `${frame.folder}/${frame.page}`.split('/').map(encodeURIComponent).join('/');
+  return `${path}?${HASH_PARAMETER}=${getShowcaseFrameHash(frame.files)}`;
 }
 
 // #endregion
@@ -245,6 +271,48 @@ export function getBuildErrorIssue(
 
 // #endregion
 
+// #region Error frames
+
+/**
+ * Escapes text for HTML
+ * @param text Text to escape
+ * @returns The text with `&`, `<`, `>`, `"` and `'` escaped
+ */
+function _escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/**
+ * Gets the showcase frame showing a showcase's build errors, which `serve` shows in place of a showcase that doesn't build: a page listing each
+ * error's message, and its file and line, with the frame script, so it is sized and follows the theme like any showcase frame
+ * @param showcase The showcase
+ * @param issues The showcase's build errors, as check issues (see getBuildErrorIssue())
+ * @returns The showcase frame, in the showcase's showcase frame folder
+ */
+export function getErrorFrame(showcase: Pick<Showcase, 'id' | 'documentation'>, issues: readonly CheckIssue[]): ShowcaseFrame {
+  const items = issues
+    .map(({ message, path, line }) => {
+      const location = path ? `<div class="location">${_escapeHtml(line ? `${path}:${line}` : path)}</div>` : '';
+      return `<li><div class="message">${_escapeHtml(message)}</div>${location}</li>`;
+    })
+    .join('');
+  const html =
+    '<!doctype html>\n<html><head><meta charset="utf-8"><title>Build errors</title><style>' +
+    // The frame script sets the root's color-scheme to the theme, which light-dark() follows
+    'body{margin:0;padding:12px 16px;font:14px/1.4 system-ui,sans-serif;color:light-dark(#a4262c,#f1707b);background:transparent}' +
+    'h1{font-size:14px;margin:0 0 8px}ul{margin:0;padding-left:20px}li{margin:4px 0}' +
+    '.message{white-space:pre-wrap}.location{font-family:ui-monospace,monospace;font-size:12px;opacity:.8}' +
+    `</style></head><body><h1>Showcase ${_escapeHtml(showcase.id)} doesn't build</h1><ul>${items}</ul></body></html>`;
+  return {
+    folder: getShowcaseFrameFolder(showcase),
+    page: 'index.html',
+    files: [{ path: 'index.html', content: insertFrameScript(html, getFrameScript()) }],
+    reads: [],
+  };
+}
+
+// #endregion
+
 // #region Build
 
 /**
@@ -266,19 +334,42 @@ export interface BuildShowcasesOptions {
 }
 
 /**
- * Represents the outcome of building the showcases: every showcase frame, by showcase id; or the issues that prevented building some
+ * Represents the outcome of building the showcases
  */
-export type BuildShowcasesResult = { frames: Map<string, ShowcaseFrame>; issues?: undefined } | { frames?: undefined; issues: CheckIssue[] };
+export interface BuildShowcasesResult {
+  /**
+   * The showcase frames of the showcases that built, by showcase id
+   */
+  frames: Map<string, ShowcaseFrame>;
+  /**
+   * The build errors of the showcases that didn't build, by showcase id, each placed where it is in the documentation
+   */
+  errors: Map<string, CheckIssue[]>;
+  /**
+   * The issues of the run that belong to no single showcase: a custom showcase adapter that doesn't load, one failing to close
+   */
+  issues: CheckIssue[];
+}
+
+/**
+ * Gets every issue of building the showcases, in one list: the run's own issues first, then each showcase's build errors, in showcase order
+ * @param result The outcome of buildShowcases()
+ * @returns The issues; none if every showcase built
+ */
+export function getBuildShowcasesIssues(result: Pick<BuildShowcasesResult, 'errors' | 'issues'>): CheckIssue[] {
+  return [...result.issues, ...[...result.errors.values()].flat()];
+}
 
 /**
  * Builds every showcase of a host repository with its showcase adapter, one at a time, each with a scratch folder of its own inside one temporary
  * folder per run (removed afterwards), and adds the frame script to each showcase frame page. Custom showcase adapters are loaded again, so the
- * run gets fresh showcase adapter objects, each closed at its end.
+ * run gets fresh showcase adapter objects, each closed at its end. A showcase that doesn't build never stops the others.
  * @param options What to build
- * @returns The showcase frames, or every issue found
+ * @returns The showcase frames of the showcases that built, the build errors of those that didn't, and the run's own issues
  */
 export async function buildShowcases({ root, host, configuration }: BuildShowcasesOptions): Promise<BuildShowcasesResult> {
   const issues: CheckIssue[] = [];
+  const errors = new Map<string, CheckIssue[]>();
   const frames = new Map<string, ShowcaseFrame>();
   const absoluteRoot = resolve(root);
   const script = getFrameScript();
@@ -292,7 +383,7 @@ export async function buildShowcases({ root, host, configuration }: BuildShowcas
   try {
     for (const [index, showcase] of host.showcases.entries()) {
       const fail = (error: Pick<ShowcaseBuildError, 'message'> & Partial<ShowcaseBuildError>) =>
-        void issues.push(getBuildErrorIssue(showcase, host.virtualFiles, error));
+        void errors.set(showcase.id, [...(errors.get(showcase.id) ?? []), getBuildErrorIssue(showcase, host.virtualFiles, error)]);
 
       // Its showcase adapter
       if (!adapters.has(showcase.adapter)) {
@@ -345,7 +436,7 @@ export async function buildShowcases({ root, host, configuration }: BuildShowcas
     }
     await rm(scratch, { recursive: true, force: true });
   }
-  return issues.length ? { issues } : { frames };
+  return { frames, errors, issues };
 }
 
 // #endregion

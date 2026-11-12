@@ -2,8 +2,11 @@
  * Tests of the showcase adapter registry
  */
 
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { copyFixture } from '../../../testing/index.js';
 import { HtmlShowcaseAdapter } from '../html/index.js';
 import { createShowcaseAdapter, getShowcaseAdapterNames, loadCustomShowcaseAdapters, PLANNED_SHOWCASE_ADAPTER_NAMES } from './index.js';
 
@@ -36,11 +39,29 @@ describe('adapters/showcase/registry', () => {
   });
 
   it('Creates fresh custom showcase adapter objects on every load', async () => {
-    // Each run gets its own objects, so one closed at the end of a run is never used again; the module itself is only loaded once
+    // Each run gets its own objects, so one closed at the end of a run is never used again; the unchanged module itself is only loaded once
     const first = await loadCustomShowcaseAdapters(_ROOT, { good: './adapters/good.js' });
     const second = await loadCustomShowcaseAdapters(_ROOT, { good: './adapters/good.js' });
     expect(first.adapters.get('good')).not.toBe(second.adapters.get('good'));
     expect(first.adapters.get('good')!.build).not.toBe(second.adapters.get('good')!.build);
+  });
+
+  it('Loads a custom showcase adapter module again once it changed', async () => {
+    // A long-running `serve` picks up an edited custom showcase adapter without a restart; on a scratch copy, as the fixtures are never written to
+    const scratch = await copyFixture('showcase-adapters');
+    try {
+      const listed = { good: './adapters/good.js' };
+      const first = await loadCustomShowcaseAdapters(scratch.path, listed);
+      expect(await first.adapters.get('good')!.check!(scratch.path)).toEqual(['good needs nothing, but says so']);
+      await writeFile(
+        join(scratch.path, 'adapters', 'good.js'),
+        "export default () => ({ validate: (s) => ({ options: s.options, errors: [] }), check: () => ['edited'], build: async () => ({ errors: [{ message: 'x' }] }) });\n",
+      );
+      const second = await loadCustomShowcaseAdapters(scratch.path, listed);
+      expect(await second.adapters.get('good')!.check!(scratch.path)).toEqual(['edited']);
+    } finally {
+      await scratch.remove();
+    }
   });
 
   it('Reports every custom showcase adapter that does not load', async () => {

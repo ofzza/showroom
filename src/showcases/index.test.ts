@@ -3,8 +3,19 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { getFrameScript } from '../frame/index.js';
 import type { Showcase, VirtualFile } from '../host/index.js';
-import { checkBuildResult, getBuildErrorIssue, getShowcaseFrameFolder, getShowcaseFrameUrl, insertFrameScript, isValidBuildPath } from './index.js';
+import {
+  checkBuildResult,
+  getBuildErrorIssue,
+  getBuildShowcasesIssues,
+  getErrorFrame,
+  getShowcaseFrameFolder,
+  getShowcaseFrameHash,
+  getShowcaseFrameUrl,
+  insertFrameScript,
+  isValidBuildPath,
+} from './index.js';
 
 /**
  * Script inserted in the insertion tests, short so that the expected pages stay readable
@@ -26,17 +37,88 @@ describe('showcases', () => {
   // the integration tests, as it creates a temporary folder.
 
   describe('Showcase frame paths', () => {
-    // Tests the showcase frame's folder in the output folder, and the URL the showroom loads it by.
+    // Tests the showcase frame's folder in the output folder, and the URL the showroom loads it by, with its content's hash.
 
     it("Puts a showcase frame in its documentation file's folder, by its position", () => {
       expect(getShowcaseFrameFolder({ id: 'README.md#2', documentation: 'README.md' })).toBe('showcases/README.md/2');
       expect(getShowcaseFrameFolder({ id: 'docs/my notes #1.md#3', documentation: 'docs/my notes #1.md' })).toBe('showcases/docs/my notes #1.md/3');
     });
 
-    it('Encodes each path segment of the URL', () => {
-      expect(getShowcaseFrameUrl({ folder: 'showcases/docs/my notes #1.md/3', page: 'pages/index.html' })).toBe(
-        'showcases/docs/my%20notes%20%231.md/3/pages/index.html',
+    it('Encodes each path segment of the URL, and adds the hash as its query', () => {
+      const files = [{ path: 'pages/index.html', content: '<p>x</p>' }];
+      expect(getShowcaseFrameUrl({ folder: 'showcases/docs/my notes #1.md/3', page: 'pages/index.html', files })).toBe(
+        `showcases/docs/my%20notes%20%231.md/3/pages/index.html?hash=${getShowcaseFrameHash(files)}`,
       );
+    });
+
+    it("Hashes a showcase frame's files, whatever their order", () => {
+      const files = [
+        { path: 'index.html', content: '<p>x</p>' },
+        { path: 'a.png', content: new Uint8Array([1, 2]) },
+      ];
+      const hash = getShowcaseFrameHash(files);
+      expect(hash).toMatch(/^[0-9a-f]{8}$/);
+      expect(getShowcaseFrameHash([...files].reverse())).toBe(hash);
+      // The same bytes, as a string or as bytes, hash the same
+      expect(getShowcaseFrameHash([files[0], { path: 'a.png', content: '\x01\x02' }])).toBe(hash);
+    });
+
+    it('Changes the hash with any path or content', () => {
+      const hash = getShowcaseFrameHash([{ path: 'index.html', content: '<p>x</p>' }]);
+      expect(getShowcaseFrameHash([{ path: 'index.html', content: '<p>y</p>' }])).not.toBe(hash);
+      expect(getShowcaseFrameHash([{ path: 'page.html', content: '<p>x</p>' }])).not.toBe(hash);
+      expect(
+        getShowcaseFrameHash([
+          { path: 'index.html', content: '<p>x</p>' },
+          { path: 'a.js', content: '' },
+        ]),
+      ).not.toBe(hash);
+      // Each length is hashed, so moving text between a path and its content changes the hash
+      expect(getShowcaseFrameHash([{ path: 'a', content: 'bc' }])).not.toBe(getShowcaseFrameHash([{ path: 'ab', content: 'c' }]));
+    });
+  });
+
+  describe('Error frames', () => {
+    // Tests the page `serve` shows in place of a showcase that doesn't build, on hand-written build errors.
+
+    const showcase = { id: 'docs/a.md#2', documentation: 'docs/a.md' };
+
+    it("Puts the error frame in the showcase's showcase frame folder, with the frame script", () => {
+      const frame = getErrorFrame(showcase, [{ severity: 'error', message: 'Broke', path: 'docs/a.md', line: 3 }]);
+      expect(frame).toMatchObject({ folder: 'showcases/docs/a.md/2', page: 'index.html', reads: [] });
+      expect(frame.files.map((file) => file.path)).toEqual(['index.html']);
+      expect(frame.files[0].content).toContain(`<head><meta charset="utf-8"><script>${getFrameScript()}</script>`);
+    });
+
+    it('Lists every build error, with its file and line', () => {
+      const content = getErrorFrame(showcase, [
+        { severity: 'error', message: 'First', path: 'docs/a.md', line: 3 },
+        { severity: 'error', message: 'Second', path: 'src/b.js' },
+        { severity: 'error', message: 'Third' },
+      ]).files[0].content as string;
+      expect(content).toContain('<li><div class="message">First</div><div class="location">docs/a.md:3</div></li>');
+      expect(content).toContain('<li><div class="message">Second</div><div class="location">src/b.js</div></li>');
+      expect(content).toContain('<li><div class="message">Third</div></li>');
+    });
+
+    it('Escapes the messages, paths and showcase id', () => {
+      const content = getErrorFrame({ id: '<b>.md#1', documentation: '<b>.md' }, [
+        { severity: 'error', message: `Expected "<" & '>'`, path: '<b>.md', line: 1 },
+      ]).files[0].content as string;
+      expect(content).toContain('Showcase &lt;b&gt;.md#1');
+      expect(content).toContain('Expected &quot;&lt;&quot; &amp; &#39;&gt;&#39;');
+      expect(content).toContain('&lt;b&gt;.md:1');
+      expect(content).not.toContain('<b>');
+    });
+
+    it("Gets every issue of a run, the run's own first", () => {
+      const issue = (message: string) => ({ severity: 'error' as const, message });
+      const errors = new Map([
+        ['README.md#1', [issue('a'), issue('b')]],
+        ['README.md#2', [issue('c')]],
+      ]);
+      expect(getBuildShowcasesIssues({ errors, issues: [issue('run')] }).map(({ message }) => message)).toEqual(['run', 'a', 'b', 'c']);
+      expect(getBuildShowcasesIssues({ errors: new Map(), issues: [] })).toEqual([]);
     });
   });
 

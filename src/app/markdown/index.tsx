@@ -3,7 +3,7 @@
  * showroom, relative images shown as their alt text, showcase frames placed before their entry points, and no raw HTML
  */
 
-import { useMemo, type ComponentProps, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, type ComponentProps, type ReactNode } from 'react';
 import ReactMarkdown, { type Components, type Options } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -113,8 +113,8 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES }: Mar
   const styles = _useStyles();
   const fileShowcases = useMemo(() => showcases.filter((showcase) => showcase.documentation === file.path), [showcases, file.path]);
   const remarkPlugins = useMemo<Options['remarkPlugins']>(() => [remarkGfm, [remarkShowcaseFrames, { showcases: fileShowcases }]], [fileShowcases]);
-  // Kept between renders, so react-markdown doesn't remount every link, image and showcase frame on each one; the theme reaches showcase frames
-  // through a context, so a theme change never remounts them either
+  // Kept between renders, so react-markdown doesn't remount every link, image and showcase frame on each one; the theme and the showcases reach
+  // showcase frames through contexts, so neither a theme change nor a showcase frame's new URL remounts them
   const components = useMemo<Components>(
     () => ({
       a: ({ href, children }) => (
@@ -125,21 +125,35 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES }: Mar
       img: ({ src, alt }) => (typeof src === 'string' && isAbsoluteUrl(src) ? <img src={src} alt={alt ?? ''} /> : <span>{alt}</span>),
       // An element react-markdown's types don't know, as the remark plugin names it
       ...({
-        [SHOWCASE_FRAME_ELEMENT]: (props: Record<string, unknown>) => {
-          const showcase = fileShowcases.find(({ id }) => id === props[SHOWCASE_ID_PROPERTY]);
-          return showcase ? <ShowcaseFrame showcase={showcase} /> : null;
-        },
+        [SHOWCASE_FRAME_ELEMENT]: (props: Record<string, unknown>) => <PlacedShowcaseFrame id={props[SHOWCASE_ID_PROPERTY]} />,
       } as Components),
     }),
-    [file, documentation, styles.unresolved, fileShowcases],
+    [file, documentation, styles.unresolved],
   );
   return (
     <div className={styles.markdown}>
-      <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={[rehypeSlug, rehypeHighlight]} skipHtml components={components}>
-        {file.content}
-      </ReactMarkdown>
+      <_ShowcasesContext.Provider value={fileShowcases}>
+        <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={[rehypeSlug, rehypeHighlight]} skipHtml components={components}>
+          {file.content}
+        </ReactMarkdown>
+      </_ShowcasesContext.Provider>
     </div>
   );
+}
+
+/**
+ * Context holding the shown showcases of the documentation file being rendered, which its placed showcase frames look themselves up in
+ */
+const _ShowcasesContext = createContext<ShownShowcase[]>(_NO_SHOWCASES);
+
+/**
+ * Renders a showcase frame the remark plugin placed, looking its showcase up by id in the documentation file's showcases
+ * @param props Properties of the component: the showcase's id
+ * @returns The showcase frame, or nothing if no showcase has that id
+ */
+export function PlacedShowcaseFrame({ id }: { id: unknown }): ReactNode {
+  const showcase = useContext(_ShowcasesContext).find((candidate) => candidate.id === id);
+  return showcase ? <ShowcaseFrame showcase={showcase} /> : null;
 }
 
 /**

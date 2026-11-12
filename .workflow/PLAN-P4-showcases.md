@@ -1,6 +1,6 @@
 # _`P4`_ Showcases: the showcase adapter interface, `html` and "bring your own build"
 
-draft; segmentation, testing strategy and _`D105`_–_`D113`_ approved 2026-11-12; revised 2026-11-12 (_`R8`_); re-approved 2026-11-12; revised 2026-11-12 (_`R13`_), pending re-approval; re-approved 2026-11-12
+draft; segmentation, testing strategy and _`D105`_–_`D113`_ approved 2026-11-12; revised 2026-11-12 (_`R8`_); re-approved 2026-11-12; revised 2026-11-12 (_`R13`_), pending re-approval; re-approved 2026-11-12; implemented 2026-11-12 (all of _`P4.1`_–_`P4.4`_)
 
 - _`R8`_ 2026-11-12: end-to-end tests of a real build call `build()` directly, not the command line (_`D108`_ changed), caused by _`D151`_ (PLAN-P4.2-showcase-frames.md).
 - _`R13`_ 2026-11-12: `serve`'s tests start the dev server, but change no files (_`D108`_ changed), caused by _`D190`_, _`D192`_ (PLAN-P4.3-serve.md).

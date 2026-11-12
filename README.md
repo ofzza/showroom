@@ -112,7 +112,7 @@ The `typescript` stack adapter reads the `name` (required), `version`, `descript
 
 A showcase demonstrates a unit of the host repository (a component, a service, ...) live, in the showroom, right where its documentation describes it. Showcases are embedded in Markdown documentation files (`.md`), so the documentation still reads as plain Markdown anywhere else, e.g. on GitHub. A showcase adapter, which the showcase's marker names, builds each showcase into a showcase frame.
 
-> Showcases are shown by `showroom build`, each in its [showcase frame](#showcase-frames). `showroom serve` checks them, but doesn't show them yet: it will in a later version.
+> Showcases are shown by `showroom build` and `showroom serve`, each in its [showcase frame](#showcase-frames). `showroom serve` also updates them as you edit them.
 
 The **showcase marker** is `showcase`, `showcase=<adapter>`, or `showcase=<adapter>(<options>)`, followed by space-separated keys:
 
@@ -190,6 +190,8 @@ An `html` showcase's showcase frame is its entry point, as the page, and **every
 
 Each showcase is shown in its own iframe, a showcase frame, right before the block holding its entry point: before an inline showcase's code block, or before the paragraph (or heading, or table) holding a linked showcase's link. The code blocks and links stay as they are. A showcase frame is as wide as the text, and as high as its content, which `showroom` measures with a small script it adds to every showcase frame page: down to the bottom margin of `<body>`, or of its lowest element if that reaches further. Don't size a showcase to its viewport (`100vh`, or `height: 100%` on `html` and `body`): it would grow with its own iframe, which `showroom` stops after a few steps.
 
+The showroom loads a showcase frame's page by a URL whose query carries a hash of the showcase frame's content (`index.html?hash=<hash>&theme=<theme>`), so a changed showcase frame gets a new URL, and a browser never shows a cached earlier page. Its other files keep their names: a static host may still serve a cached earlier version of one of them after a new build.
+
 The showcase frame follows the showroom's light or dark theme: the script sets it as the `data-showroom-theme` attribute (`light` or `dark`) and the `color-scheme` of the page's `<html>`, from the first paint on, and whenever the theme changes. A showcase can follow it with `[data-showroom-theme='dark']` selectors, or with CSS's `light-dark()`:
 
 ````md
@@ -221,7 +223,7 @@ A host repository can bring its own showcase adapter: a JavaScript (ES) module w
 [My widget](./src/widget.js 'showcase=my-frames({ "size": 2 })')
 ```
 
-Names follow the marker's rules, and can't be a built-in showcase adapter's (or a planned one's: `ts`, `react`, `angular`). Paths are relative to the host repository's root, inside it, to a `.js` or `.mjs` file. Every listed module is loaded by every `showroom check`, used or not, so each listed module runs the host repository's code; one that doesn't load, or doesn't implement the interface, is an error. Each module is loaded once per process, and its default export is called once per run (a `check`, then the showcases' build in `build` or `check --showcases`), so every run gets a fresh showcase adapter object, closed at the end of that run.
+Names follow the marker's rules, and can't be a built-in showcase adapter's (or a planned one's: `ts`, `react`, `angular`). Paths are relative to the host repository's root, inside it, to a `.js` or `.mjs` file. Every listed module is loaded by every `showroom check`, used or not, so each listed module runs the host repository's code; one that doesn't load, or doesn't implement the interface, is an error. Each module is loaded once per process, and once more whenever its content changes (in `serve`; the modules it imports are not loaded again), and its default export is called once per run (a `check`, then the showcases' build in `build`, `serve` or `check --showcases`; `serve` runs both again after every change), so every run gets a fresh showcase adapter object, closed at the end of that run.
 
 ```ts
 import type { ShowcaseAdapter } from '@ofzza/showroom';
@@ -296,9 +298,13 @@ Serves the showroom of the host repository in the current directory (or the one 
 $ npx showroom serve [--root <dir>] [--port <port>] [--out-dir <dir>]
 ```
 
-- It checks the host repository first, as `showroom check` does, writing the issues to `stderr`. If the check fails, it exits with `1` without serving. It doesn't show showcases yet.
-- It then serves the showroom with Vite's dev server on `--port` (default: `5173`, or the next free port), writing its URL to `stdout`, until you stop it with Ctrl+C.
-- It watches the host repository, skipping the files the `ignore` patterns skip, and the output folder (`--out-dir`, as for `check`). After any change it checks the host repository again, and reloads the page when the project information or a documentation file changed. A failed check writes its issues and keeps showing the last good data. Changes to `showroom.json` apply without a restart.
+- It checks the host repository first, as `showroom check` does. If the check fails, it writes the issues to `stderr` and exits with `1` without serving.
+- It then builds every showcase, and writes the check's issues and the showcases' build errors to `stderr`. A showcase that doesn't build doesn't stop it: its showcase frame shows its build errors instead (with each error's file and line), and every other showcase is shown as usual.
+- It then serves the showroom with Vite's dev server on `--port` (default: `5173`, or the next free port), writing its URL to `stdout`, until you stop it with Ctrl+C. The showcase frames are served from memory, at the same paths `build` writes them to; nothing is written into the host repository.
+- It watches the host repository, skipping the files the `ignore` patterns skip, and the output folder (`--out-dir`, as for `check`). After any change it checks the host repository again and, when the check passes, builds every showcase again. It reloads the page when the project information or a documentation file changed, or a showcase was added, removed or moved; when only showcase frames changed (e.g. a linked showcase's page, or another file a build reads), only their iframes reload, and the page stays where it is. An inline showcase's code and a resource are part of their documentation file, which the page shows too, so editing them reloads the page. A failed check keeps showing the last good data. Changes to `showroom.json` apply without a restart, custom showcase adapters included.
+- The current issues (the check's errors and warnings, and the showcases' build errors) are shown in a bar at the top of the page, which you can collapse, and are written to `stderr` whenever they change. The bar is gone once there are none.
+- A changed [custom showcase adapter](#custom-showcase-adapters-experimental) module is loaded again, but the modules it imports aren't: restart `serve` after changing them.
+- Files the `ignore` patterns skip (e.g. under `dist/`) aren't watched, so a showcase that depends on one isn't updated when it changes: in `serve`, showcases shouldn't depend on ignored files.
 
 The showroom has a page per documentation file, its address in the URL's hash (e.g. `#/docs/guide.md`), and a home page with the project information and the root `README`. The navigation lists `README` (the home page), `CONTRIBUTING` and `LICENSE` first, whatever the root files' actual names (e.g. `CONTRIBUTE.md`, `LICENCE.txt`), then every other documentation file by its path. `.md` files are rendered as GitHub-flavoured Markdown, with syntax-highlighted code blocks and the same heading ids as on GitHub; other documentation files are shown as plain text. In Markdown:
 
@@ -415,7 +421,7 @@ console.log(getStackAdapterNames(), project, errors);
   - `npm run test:unit` - a single Vitest invocation that executes test files (`*.test.ts(x)`), runs their runtime expectations, and type checks them, reporting type errors as test failures. Tests run against the fixture host repositories in `test/fixtures/`; the showroom's tests render it to HTML with `react-dom/server`.
   - `npm run test:integration` - real showcase adapter builds (`*.integration.test.ts`), on the fixture host repositories.
   - `npm run test:e2e` - the command line, and `build()` with Vite's build of the showroom, on copies of the fixture host repositories (`*.e2e.test.ts`). It first compiles `src/` once into a scratch folder, so it never depends on, or writes to, `dist/`. Tests copy fixtures, and create scratch folders, only inside `node_modules/.cache/showroom-tests/`, and remove them afterwards. The integration, end-to-end and dev server tests also see a temporary folder of their own there as the system's temporary folder (`TMPDIR`, `TMP`, `TEMP`).
-  - `npm run test:serve` - the dev server (`*.serve.test.ts`); none yet.
+  - `npm run test:serve` - the dev server (`*.serve.test.ts`): `serve()` on copies of the fixture host repositories, on a free port, fetching the showroom, its showcase frames and their files, with the showroom compiled as for `test:e2e`. Updates after a change are only unit-tested, as the dev server doesn't watch the copies (they are under `node_modules/`).
 - `npm run ci` - runs every `ci:*` script: build, ESLint, Prettier and the tests. This is what GitHub Actions runs on every pull request targeting, and every push to, `master` or `develop`, against Node 22 and 24. It also runs on `prepublishOnly`, so `npm publish` refuses to publish a failing build.
 
 # Contributing

@@ -11,7 +11,7 @@ import { getStackAdapter, getStackAdapterNames } from '../../adapters/stack/inde
 import { readConfiguration, CONFIGURATION_FILE_NAME, type Configuration } from '../../configuration/index.js';
 import type { DocumentationFile, DocumentationKind, HostInformation, ProjectInformation, Showcase, VirtualFile } from '../../host/index.js';
 import { getFolder, isMarkdownPath, resolvePath, scanMarkdown, splitLink, type MarkdownLink } from '../../markdown/index.js';
-import { buildShowcases } from '../../showcases/index.js';
+import { buildShowcases, getBuildShowcasesIssues } from '../../showcases/index.js';
 import { createIgnoreMatcher, resolveOutputFolder } from './internal/index.js';
 
 // #region Types
@@ -215,9 +215,9 @@ export async function check(root: string, options: CheckOptions = {}): Promise<C
 
   // Build every showcase, if asked to, throwing the showcase frames away
   if (options.showcases) {
-    const built = await buildShowcases({ root, host, configuration });
-    if (built.issues) {
-      issues.push(...built.issues);
+    const built = getBuildShowcasesIssues(await buildShowcases({ root, host, configuration }));
+    if (built.length) {
+      issues.push(...built);
       return fail();
     }
   }

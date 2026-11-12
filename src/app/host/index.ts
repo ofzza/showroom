@@ -26,7 +26,8 @@ export interface ShownShowcase {
    */
   offset: number;
   /**
-   * URL of the showcase frame's page, relative to the showroom's page, without a query
+   * URL of the showcase frame's page, relative to the showroom's page, with its content's hash as its query (`?hash=<hash>`), so a changed showcase
+   * frame gets a new URL
    */
   url: string;
 }
@@ -37,10 +38,26 @@ export interface ShownShowcase {
  */
 export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentation'> & {
   /**
-   * The showcases with a showcase frame, sorted by documentation file and offset; none where showcase frames aren't built (`serve`, for now)
+   * The showcases with a showcase frame, sorted by documentation file and offset; in `serve`, a showcase that doesn't build has the showcase frame
+   * showing its build errors
    */
   showcases: ShownShowcase[];
 };
+
+/**
+ * Applies the new URLs of showcase frames to the shown showcases, by id: what `serve` sends when only showcase frames changed
+ * @param showcases The shown showcases
+ * @param next The shown showcases with their new URLs, every one of them
+ * @returns The shown showcases with the new URLs; the same list if no URL changed
+ */
+export function applyShowcaseUrls(showcases: ShownShowcase[], next: readonly Pick<ShownShowcase, 'id' | 'url'>[]): ShownShowcase[] {
+  const urls = new Map(next.map(({ id, url }) => [id, url]));
+  const applied = showcases.map((showcase) => {
+    const url = urls.get(showcase.id);
+    return url === undefined || url === showcase.url ? showcase : { ...showcase, url };
+  });
+  return applied.some((showcase, index) => showcase !== showcases[index]) ? applied : showcases;
+}
 
 // #endregion
 

@@ -134,7 +134,8 @@ export interface ShowcaseFrameProps {
 
 /**
  * Renders a showcase frame's iframe: the width of the text, as high as the showcase frame reports, in the theme of the ThemeContext. Its URL is set
- * once, with the theme at mount; later themes are only posted to it, so a theme change never reloads it.
+ * with the theme of the moment: at mount, and again when the showcase's URL changes (a rebuilt showcase frame in `serve`), keeping its height until
+ * the showcase frame reports its new one; later themes are only posted to it, so a theme change never reloads it.
  * @param props Properties of the component
  * @returns The iframe
  */
@@ -142,7 +143,12 @@ export function ShowcaseFrame({ showcase }: ShowcaseFrameProps): ReactNode {
   const styles = _useStyles();
   const theme = useContext(ThemeContext);
   const frame = useRef<HTMLIFrameElement>(null);
-  const [src] = useState(() => getThemedFrameUrl(showcase.url, theme));
+  const [loaded, setLoaded] = useState(() => ({ url: showcase.url, src: getThemedFrameUrl(showcase.url, theme) }));
+  if (loaded.url !== showcase.url) {
+    // Adjusting state while rendering, as React recommends for state derived from a changed prop
+    setLoaded({ url: showcase.url, src: getThemedFrameUrl(showcase.url, theme) });
+  }
+  const src = loaded.src;
   const [height, setHeight] = useState<number>();
 
   // Tell the showcase frame the theme on every change, and whenever it is (re)loaded or ready

@@ -7,6 +7,7 @@ import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, describe, expect, inject, it } from 'vitest';
 import { getFrameScript } from '../../frame/index.js';
+import { getShowcaseFrameHash } from '../../showcases/index.js';
 import { copyFixture, type ScratchFolder } from '../../testing/index.js';
 import { OUTPUT_FOLDER_MARKER, OUTPUT_FOLDER_MARKER_CONTENT, build } from './index.js';
 
@@ -70,10 +71,13 @@ describe('cli/build (end to end)', () => {
       ...Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'),
     ]);
 
-    // The bundle's shown host information places them, by URL-encoded relative URLs
+    // The bundle's shown host information places them, by URL-encoded relative URLs with their content's hash
     const bundle = (await Promise.all((await readdir(join(out, 'assets'))).map((name) => readFile(join(out, 'assets', name), 'utf8')))).join('\n');
-    expect(bundle).toContain('showcases/README.md/1/index.html');
-    expect(bundle).toContain('showcases/docs/my%20notes%20%231.md/1/index.html');
+    const first = await Promise.all(
+      ['index.html', 'fragment.js'].map(async (path) => ({ path, content: await readFile(join(out, 'showcases', 'README.md', '1', path)) })),
+    );
+    expect(bundle).toContain(`showcases/README.md/1/index.html?hash=${getShowcaseFrameHash(first)}`);
+    expect(bundle).toMatch(/showcases\/docs\/my%20notes%20%231\.md\/1\/index\.html\?hash=[0-9a-f]{8}/);
   });
 
   it('Leaves the output folder untouched when a showcase does not build', async () => {

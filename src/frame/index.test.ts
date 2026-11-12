@@ -173,6 +173,7 @@ describe('frame', () => {
     it('Creates the theme message and the themed URL', () => {
       expect(createThemeMessage('dark')).toEqual({ source: SHOWROOM_MESSAGE_SOURCE, type: 'theme', theme: 'dark' });
       expect(getThemedFrameUrl('showcases/README.md/1/index.html', 'light')).toBe('showcases/README.md/1/index.html?theme=light');
+      expect(getThemedFrameUrl('showcases/README.md/1/index.html?hash=0123abcd', 'dark')).toBe('showcases/README.md/1/index.html?hash=0123abcd&theme=dark');
     });
   });
 

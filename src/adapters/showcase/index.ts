@@ -113,7 +113,8 @@ export type ShowcaseBuildResult =
 
 /**
  * Represents a showcase adapter: what builds the showcases whose marker names it (`showcase=<name>`) into showcase frames. One showcase adapter
- * object lives for one run of `check`, `build` or `serve`, so it can share work between its showcases, cleaning it up in `close()`.
+ * object lives for one run of `check` or `build`, or for one rerun of `serve` after a change, so it can share work between its showcases, cleaning
+ * it up in `close()`.
  *
  * Experimental: this interface may change in any release until it is declared stable.
  */

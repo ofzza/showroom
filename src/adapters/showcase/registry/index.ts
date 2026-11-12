@@ -3,7 +3,8 @@
  * `showroom.json`. Internal, never re-exported.
  */
 
-import { stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { readFile, stat } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { SHOWCASE_ADAPTER_NAME } from '../../../markdown/index.js';
@@ -61,7 +62,9 @@ export interface CustomShowcaseAdapters {
 
 /**
  * Loads and validates the custom showcase adapters a host repository lists, running the host repository's code: each module's default export is a
- * factory, called once per call of this function, so each run gets fresh showcase adapter objects (Node loads each module once per process)
+ * factory, called once per call of this function, so each run gets fresh showcase adapter objects. Node keeps every module it loads for the life of
+ * the process, so each module is imported by a URL carrying its content's hash: an unchanged module is reused, and a changed one loaded once more,
+ * which a long-running `serve` needs. The modules it imports are not reloaded.
  * @param root Path of the host repository's root
  * @param listed Custom showcase adapters' paths (relative to the root), by name, as `showroom.json`'s `customShowcaseAdapters` lists them
  * @returns The custom showcase adapters that loaded, and the errors of those that didn't
@@ -112,10 +115,14 @@ async function _load(root: string, name: string, path: string): Promise<{ adapte
     return { error: `"${path}" not found` };
   }
 
-  // Load the module, and create the showcase adapter with its default export
+  // Load the module, by a URL carrying its content's hash, and create the showcase adapter with its default export
   let module: Record<string, unknown>;
   try {
-    module = await import(pathToFileURL(absolute).href);
+    const hash = createHash('sha256')
+      .update(await readFile(absolute))
+      .digest('hex')
+      .slice(0, 16);
+    module = await import(`${pathToFileURL(absolute).href}?v=${hash}`);
   } catch (err) {
     return { error: `"${path}" failed to load: ${(err as Error).message}` };
   }

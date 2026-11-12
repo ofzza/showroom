@@ -85,12 +85,12 @@ export function createThemeMessage(theme: FrameTheme): ShowroomMessage {
 
 /**
  * Gets the URL of a showcase frame, with its initial theme
- * @param url URL of the showcase frame's page, with no query
+ * @param url URL of the showcase frame's page, with or without a query (e.g. its hash)
  * @param theme The initial theme
- * @returns The URL with the theme as its query
+ * @returns The URL with the theme added to its query
  */
 export function getThemedFrameUrl(url: string, theme: FrameTheme): string {
-  return `${url}?${THEME_PARAMETER}=${theme}`;
+  return `${url}${url.includes('?') ? '&' : '?'}${THEME_PARAMETER}=${theme}`;
 }
 
 // #endregion

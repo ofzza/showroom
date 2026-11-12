@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning (_`P4`_). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_, _`P4.1`_, _`P4.2`_ and _`P4.4`_ are implemented and committed.
+- **Stage:** planning (_`P5`_ next). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_ and _`P4`_ (_`P4.1`_–_`P4.4`_) are implemented and committed.
 - **Next free:** _`D207`_, _`S8`_, _`P7`_, _`O29`_, _`L10`_, _`R14`_, _`H1`_, _`K15`_
-- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ Showcase frames in `build` implemented (`./.workflow/PLAN-P4.2-showcase-frames.md`); _`P4.4`_ Resources in `html` showcases, and live README examples implemented and committed (`./.workflow/PLAN-P4.4-html-resources.md`); _`P4.3`_ Showcases in `serve` approved (`./.workflow/PLAN-P4.3-serve.md`), not yet implemented. After _`P4.3`_: _`P5`_ Showroom layout fixes (_`L4`_–_`L9`_, `./.workflow/PLAN.md`; order set by _`D177`_).
-- **Next step:** implement _`P4.3`_ (steps 1–5); then plan _`P5`_ Showroom layout fixes (_`D177`_); then _`P6`_ Publishing this repository's own showroom to GitHub Pages (_`D178`_–_`D180`_, `./.workflow/PLAN.md`).
+- **Working on:** _`P4`_ Showcases (`./.workflow/PLAN-P4-showcases.md`): _`P4.1`_ Showcase markers and documentation checks implemented (`./.workflow/PLAN-P4.1-markers-and-checks.md`); _`P4.2`_ Showcase frames in `build` implemented (`./.workflow/PLAN-P4.2-showcase-frames.md`); _`P4.4`_ Resources in `html` showcases, and live README examples implemented and committed (`./.workflow/PLAN-P4.4-html-resources.md`); _`P4.3`_ Showcases in `serve` implemented and committed (`./.workflow/PLAN-P4.3-serve.md`). After _`P4.3`_: _`P5`_ Showroom layout fixes (_`L4`_–_`L9`_, `./.workflow/PLAN.md`; order set by _`D177`_).
+- **Next step:** discuss what's next with the user (planned order: plan _`P5`_ Showroom layout fixes (_`D177`_); then _`P6`_ Publishing this repository's own showroom to GitHub Pages (_`D178`_–_`D180`_, `./.workflow/PLAN.md`)).
 
 ## Open questions
 
@@ -14,9 +14,9 @@
 ## Waiting on me
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
+- `./.workflow/.temp/format-p4.3/` and `./.workflow/.temp/trial-p4.3/`: ask before deleting them.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
-- `./.workflow/.temp/review-p4.3-plan/` and `./.workflow/.temp/questions-p4.3-plan/`: their outcomes are in `./.workflow/PLAN-P4.3-serve.md`; ask before deleting them.
 
 ## Running
 
@@ -128,3 +128,7 @@
 - 2026-11-12: _`P4.3`_ review triage answered: RQ1 "C: Drop edit tests"; F6 with an issues bar in the showroom (the user's addition; "A: Issues bar (Rec.)"); the other fixes "Apply them (Rec.)": _`D192`_–_`D205`_, revisions _`R11`_ (_`P2`_), _`R12`_ (_`P4.2`_), _`R13`_ (_`P4`_); _`K13`_ taken by _`P4.3`_.
 - 2026-11-12: Resources and real files in `serve` discussed: ignored files stay unwatched (_`D206`_; the user: "No"); _`O28`_ extended with the resource rule; `build`'s resource caching gap not recorded (the user: "Only O28").
 - 2026-11-12: _`P4.3`_ approved, and _`P2`_ (_`R11`_), _`P4.2`_ (_`R12`_) and _`P4`_ (_`R13`_) re-approved (option chosen: "Approve and commit (Rec.)"); _`O22`_, _`O24`_, _`O25`_ resolved.
+- 2026-11-12: `review-p4.3-plan/` and `questions-p4.3-plan/` working files deleted with the user's yes ("Delete both (Rec.)"); the user chose to implement _`P4.3`_ in a fresh session.
+- 2026-11-12: _`P4.3`_ implementation started (user: "Please continue ...").
+- 2026-11-12: _`P4.3`_ implemented (steps 1–5): `npm run ci` green (580 unit, 6 integration, 10 end-to-end, 3 serve tests); a trial `serve` of a copy of the `showcase-frames` fixture smoke-checked in Playwright (an edited linked page updated its showcase frame only, without a page reload).
+- 2026-11-12: _`P4.3`_ browser check passed, and its checkpoint approved, committed and pushed (the user: "Reviewed, tested and it all seems to work great! Please commit and push ..."); _`P4`_ Showcases done. Trial server stopped.

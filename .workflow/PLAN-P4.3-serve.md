@@ -1,6 +1,6 @@
 # _`P4.3`_ Showcases in `serve`
 
-approved 2026-11-12; reviewed 2026-11-12 (zero-context review, 2 agents)
+approved 2026-11-12; reviewed 2026-11-12 (zero-context review, 2 agents); implemented 2026-11-12
 
 Child of _`P4`_ (PLAN-P4-showcases.md). Planned after _`P4.4`_ (_`D177`_, PLAN.md). Its choices were settled 2026-11-12 (Q1–Q10 of the planning discussion, all as recommended; each decision names its question).
 

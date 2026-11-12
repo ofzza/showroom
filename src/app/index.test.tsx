@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { SSRProvider, webDarkTheme, webLightTheme } from '@fluentui/react-components';
 import type { ThemeName } from './theme/index.js';
-import { App, mount, type ShownHostInformation } from './index.js';
+import { App, MountedShowroom, applyUpdate, createShowroomStore, mount, type ShownHostInformation } from './index.js';
 
 /**
  * Shown host information of a small host repository
@@ -87,14 +87,69 @@ describe('app', () => {
     const data: ShownHostInformation = {
       ..._DATA,
       documentation: [..._DATA.documentation.slice(0, 2), { path: 'docs/guide.md', kind: 'other', extension: '.md', content }],
-      showcases: [{ id: 'docs/guide.md#1', documentation: 'docs/guide.md', offset: content.indexOf('```'), url: 'showcases/docs/guide.md/1/index.html' }],
+      showcases: [
+        { id: 'docs/guide.md#1', documentation: 'docs/guide.md', offset: content.indexOf('```'), url: 'showcases/docs/guide.md/1/index.html?hash=0123abcd' },
+      ],
     };
-    expect(_render('#/docs/guide.md', 'dark', data)).toMatch(/<iframe [^>]*src="showcases\/docs\/guide.md\/1\/index.html\?theme=dark"/);
+    expect(_render('#/docs/guide.md', 'dark', data)).toMatch(/<iframe [^>]*src="showcases\/docs\/guide.md\/1\/index.html\?hash=0123abcd&amp;theme=dark"/);
     expect(_render(undefined, 'dark', data)).not.toContain('<iframe');
   });
 
   it('Exports mount()', () => {
     // mount() needs a DOM, which the tests don't have (see AGENTS.md › Testing); this only guards its export, which `main.ts` relies on
     expect(typeof mount).toBe('function');
+  });
+
+  it('Shows the issues bar above the page, only with issues', () => {
+    const html = _render(undefined, undefined, _DATA);
+    expect(html).not.toContain('role="group"');
+    const withIssues = renderToString(
+      <SSRProvider>
+        <App data={_DATA} issues={[{ severity: 'error', message: 'Broke', path: 'README.md', line: 3 }]} />
+      </SSRProvider>,
+    ).replaceAll('<!-- -->', '');
+    expect(withIssues).toContain('1 error');
+    expect(withIssues.indexOf('Broke')).toBeLessThan(withIssues.indexOf('<h1 id="welcome">'));
+  });
+
+  describe('Updates', () => {
+    // What serve's events change in the mounted showroom: the store's state, and the showroom rendered from it.
+
+    const showcase = { id: 'README.md#1', documentation: 'README.md', offset: 0, url: 'showcases/README.md/1/index.html?hash=00000001' };
+    const state = { data: { ..._DATA, showcases: [showcase] }, issues: [] };
+
+    it("Applies showcase frames' new URLs, keeping the rest", () => {
+      const next = applyUpdate(state, { showcases: [{ id: 'README.md#1', url: 'showcases/README.md/1/index.html?hash=00000002' }] });
+      expect(next.data.showcases).toEqual([{ ...showcase, url: 'showcases/README.md/1/index.html?hash=00000002' }]);
+      expect(next.data.documentation).toBe(state.data.documentation);
+      expect(next.issues).toBe(state.issues);
+    });
+
+    it('Applies the new issues', () => {
+      const issues = [{ severity: 'warning' as const, message: 'Several' }];
+      expect(applyUpdate(state, { issues })).toEqual({ ...state, issues });
+    });
+
+    it('Keeps the state when nothing changed', () => {
+      expect(applyUpdate(state, { showcases: [{ id: 'README.md#1', url: showcase.url }] })).toBe(state);
+      expect(applyUpdate(state, {})).toBe(state);
+    });
+
+    it('Renders the latest state of the store, and tells its listeners of changes', () => {
+      const store = createShowroomStore(state);
+      let told = 0;
+      const unsubscribe = store.subscribe(() => told++);
+      store.set({ ...state, issues: [{ severity: 'error', message: 'Broke' }] });
+      unsubscribe();
+      store.set(state);
+      expect(told).toBe(1);
+      store.set({ ...state, issues: [{ severity: 'error', message: 'Broke' }] });
+      const html = renderToString(
+        <SSRProvider>
+          <MountedShowroom store={store} />
+        </SSRProvider>,
+      );
+      expect(html).toContain('Broke');
+    });
   });
 });

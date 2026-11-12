@@ -11,7 +11,7 @@ import { check } from '../check/index.js';
 import { formatIssues, resolveOutputFolder } from '../check/internal/index.js';
 import type { CliOutput } from '../index.js';
 import { readConfiguration } from '../../configuration/index.js';
-import { buildShowcases } from '../../showcases/index.js';
+import { buildShowcases, getBuildShowcasesIssues } from '../../showcases/index.js';
 import { getAppDir, getShownHostInformation, getViteConfiguration, type ViteConfigurationOptions } from '../../vite/index.js';
 
 // #region Output folder marker
@@ -156,8 +156,9 @@ export async function build({ root, outDir, output, appDir = getAppDir() }: Buil
 
   // Build every showcase, leaving the output folder untouched if any fails
   const showcases = await buildShowcases({ root, host: result.host, configuration });
-  if (showcases.issues) {
-    output.stderr(formatIssues(showcases.issues));
+  const issues = getBuildShowcasesIssues(showcases);
+  if (issues.length) {
+    output.stderr(formatIssues(issues));
     return 1;
   }
   const frames = showcases.frames;

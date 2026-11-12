@@ -27,7 +27,7 @@ function _showcases(content: string): ShownShowcase[] {
     id,
     documentation,
     offset,
-    url: `showcases/${id.replace('#', '/')}/index.html`,
+    url: `showcases/${id.replace('#', '/')}/index.html?hash=0123abcd`,
   }));
 }
 
@@ -106,7 +106,7 @@ describe('app/showcases', () => {
       id: 'docs/my notes.md#2',
       documentation: 'docs/my notes.md',
       offset: 0,
-      url: 'showcases/docs/my%20notes.md/2/index.html',
+      url: 'showcases/docs/my%20notes.md/2/index.html?hash=0123abcd',
     };
 
     /**
@@ -125,16 +125,16 @@ describe('app/showcases', () => {
         </SSRProvider>,
       );
 
-    it('Renders a lazily loaded iframe with the theme in its URL', () => {
+    it('Renders a lazily loaded iframe with the theme added to its URL', () => {
       const html = render('dark');
-      expect(html).toContain('src="showcases/docs/my%20notes.md/2/index.html?theme=dark"');
+      expect(html).toContain('src="showcases/docs/my%20notes.md/2/index.html?hash=0123abcd&amp;theme=dark"');
       expect(html).toContain('title="Showcase 2 of docs/my notes.md"');
       expect(html).toContain('loading="lazy"');
       expect(html).toContain(`height:calc(${DEFAULT_FRAME_HEIGHT}px + 2 * var(--strokeWidthThin))`);
       expect(html).toContain('color-scheme:dark');
       // The showcase is the host repository's own code, so it isn't sandboxed, and keeps its storage and cookies
       expect(html).not.toContain('sandbox');
-      expect(render('light')).toContain('?theme=light');
+      expect(render('light')).toContain('&amp;theme=light');
     });
 
     it('Titles a showcase frame by its position and documentation file', () => {
