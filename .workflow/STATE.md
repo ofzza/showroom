@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning stage, _`S8`_ (showcase adapter examples, `SPEC.md`), approved 2026-11-13; to be planned and implemented before _`P7.2`_ (_`D304`_). _`P7.1`_ (`PLAN-P7.1-ts.md`) is implemented and committed; _`P7`_ (`PLAN-P7-ts-react.md`) approved, _`P7.2`_ (the `react` showcase adapter) not yet planned. Specification: _`S6`_ (with _`S6.5`_, _`S6.6`_, and _`S6.7`_ re-approved 2026-11-13) and _`S7`_ approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_, _`P6`_ and _`P7.1`_ are implemented and committed.
-- **Next free:** _`D312`_, _`S9`_, _`P8`_, _`O53`_, _`L13`_, _`R18`_, _`H1`_, _`K17`_
+- **Stage:** planning stage, _`S8`_ (showcase adapter examples, `SPEC.md`), approved 2026-11-13, re-approved with _`R18`_; to be planned and implemented before _`P7.2`_ (_`D304`_). _`P7.1`_ (`PLAN-P7.1-ts.md`) is implemented and committed; _`P7`_ (`PLAN-P7-ts-react.md`) approved, _`P7.2`_ (the `react` showcase adapter) not yet planned. Specification: _`S6`_ (with _`S6.5`_, _`S6.6`_, and _`S6.7`_ re-approved 2026-11-13) and _`S7`_ approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_, _`P6`_ and _`P7.1`_ are implemented and committed.
+- **Next free:** _`D316`_, _`S9`_, _`P8`_, _`O53`_, _`L14`_, _`R19`_, _`H1`_, _`K17`_
 - **Working on:** nothing; the user clears the context before continuing.
-- **Next step:** plan _`S8`_ (a new plan segment, _`P8`_), starting with the user's navigation check on a served copy (_`D310`_), and settling where `examples/button.html` goes (_`D309`_); then _`P7.2`_.
+- **Next step:** go on planning _`P8`_ (its choices: guarding `README.md`'s links into the examples, `examples/button.html`, the custom showcase adapter, the examples' contents); then _`P7.2`_.
 
 ## Open questions
 
@@ -190,3 +190,5 @@
 - 2026-11-13: _`S8`_ (showcase adapter examples) recorded as a draft specification segment from the user's proposal ("per showcase adapter `./examples/<adapter type>/README.md`s which will show up in the main `showroom`"), with _`D302`_–_`D304`_ and the agent's assessment as open points _`O46`_–_`O52`_; the user: "Let's proceed with the examples before react adapter. Let's document and commit what we discussed, mark it as next step".
 - 2026-11-13: _`S8`_'s open points _`O46`_–_`O52`_ resolved: _`D305`_ ("Keep, shortened (Rec.)"), _`D306`_ ("Both (Rec.)"), _`D307`_ ("Repo deps + own tsconfig (Rec.)"), _`D308`_ ("Accept it (Rec.)"), _`D309`_ (the user: "Move to `examples/html/` if it is also being used by the `examples/html/README.md`. Ideally, let's make all the adapter specific links in the root README.md link to particular example showcases from the broader example README.md files ..."), _`D310`_ ("You check a served copy (Rec.)"), _`D311`_ ("Add it (Rec.)": "Showcase adapter example" added to the Glossary).
 - 2026-11-13: _`S8`_ approved (option chosen: "Approve and commit (Rec.)").
+- 2026-11-13: _`P8`_ planning started. The user's navigation check on a served copy (_`D310`_): "Fine as is for now. We'll need to address the ability to customize the menu at some later point ..." (_`L13`_). The user's direction for the examples, and the agent's suggestions ("Agreed across the board"): _`D312`_–_`D315`_, revising _`S8`_ (_`R18`_), pending re-approval.
+- 2026-11-13: _`S8`_ re-approved with _`R18`_ (option chosen: "Re-approve and commit (Rec.)").
