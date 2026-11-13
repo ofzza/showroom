@@ -19,6 +19,7 @@ const _DATA: ShownHostInformation = {
     { path: 'docs/guide.md', kind: 'other', extension: '.md', content: '# Guide\n\n## Install' },
   ],
   showcases: [],
+  linkedFiles: [],
 };
 
 /**
@@ -78,7 +79,7 @@ describe('app', () => {
   });
 
   it('Shows only the project information without a root README', () => {
-    const html = _render(undefined, undefined, { project: { name: 'bare' }, documentation: [], showcases: [] });
+    const html = _render(undefined, undefined, { project: { name: 'bare' }, documentation: [], showcases: [], linkedFiles: [] });
     expect(html).toMatch(/<h1 [^>]*>bare<\/h1>/);
     expect(html).not.toContain('<h1 id=');
   });

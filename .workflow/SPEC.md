@@ -127,7 +127,7 @@ From the discussion of 2026-11-13 (the agent's assessment), raised when specifyi
 
 ## _`S9`_ Linked files
 
-approved 2026-11-13; revised 2026-11-13 (_`R20`_); re-approved 2026-11-13
+approved 2026-11-13; revised 2026-11-13 (_`R20`_); re-approved 2026-11-13; implemented 2026-11-13
 
 - _`R20`_ 2026-11-13: a link into the output folder isn't copied, an exception to _`D324`_, caused by _`D334`_ (PLAN-P9-linked-files.md).
 

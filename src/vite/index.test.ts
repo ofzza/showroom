@@ -7,18 +7,22 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Alias, Plugin } from 'vite';
-import type { HostInformation } from '../host/index.js';
+import type { HostInformation, LinkedFile } from '../host/index.js';
 import { getShowcaseFrameHash, type ShowcaseFrame } from '../showcases/index.js';
 import {
   HOST_MODULE_ID,
   RESOLVED_HOST_MODULE_ID,
   createHostPlugin,
+  createLinkedFilesMiddleware,
+  createLinkedFilesPlugin,
   createShowcaseFramesMiddleware,
   createShowcaseFramesPlugin,
   getAppDir,
   getContentType,
+  getLinkedFileContentType,
   getReactAliases,
   getShownHostInformation,
   getViteConfiguration,
@@ -36,7 +40,22 @@ const _HOST: HostInformation = {
     { id: 'my docs/a #1.md#2', documentation: 'my docs/a #1.md', line: 5, offset: 40, kind: 'linked', adapter: 'x', entry: 'demo.html' },
   ],
   virtualFiles: [],
+  linkedFiles: [{ path: 'src/index.ts', size: 75, text: true }],
 };
+
+/**
+ * Root of the linked-files fixture, whose files the linked files plugin reads
+ */
+const _LINKED_ROOT = fileURLToPath(new URL('../../test/fixtures/linked-files', import.meta.url));
+
+/**
+ * Linked files of the linked-files fixture: a part of them, as check() collects them
+ */
+const _LINKED: LinkedFile[] = [
+  { path: 'Makefile', size: 19, text: true },
+  { path: 'assets/logo.png', size: 70, text: false },
+  { path: 'src/index.ts', size: 75, text: true },
+];
 
 /**
  * Showcase frames of the host repository's showcases
@@ -106,7 +125,12 @@ describe('vite', () => {
   // Tests the Vite configuration and its plugin by calling them directly, without starting Vite.
 
   it('Gets the shown host information, without the code file index, nor showcases without showcase frames', () => {
-    expect(getShownHostInformation(_HOST)).toEqual({ project: _HOST.project, documentation: _HOST.documentation, showcases: [] });
+    expect(getShownHostInformation(_HOST)).toEqual({
+      project: _HOST.project,
+      documentation: _HOST.documentation,
+      showcases: [],
+      linkedFiles: _HOST.linkedFiles,
+    });
   });
 
   it('Gets the shown showcases with their showcase frames, by URL-encoded relative URLs', () => {
@@ -210,6 +234,85 @@ describe('vite', () => {
     });
   });
 
+  describe('Linked files', () => {
+    // The linked files plugin and its middleware, called with fake requests and responses, on the linked-files fixture's files (read, never written).
+
+    /**
+     * Requests a path from the middleware, which answers once it has read the file
+     * @param url URL of the request
+     * @param method Method of the request
+     * @param linkedFiles The linked files it serves
+     * @returns The response's status, headers and body, or `next` if the request went on to Vite
+     */
+    const request = (url: string, method = 'GET', linkedFiles = _LINKED) =>
+      new Promise<'next' | { statusCode: number; headers: Record<string, unknown>; body?: Buffer | string }>((resolve) => {
+        const response = { statusCode: 0, headers: {} as Record<string, unknown>, body: undefined as Buffer | string | undefined };
+        createLinkedFilesMiddleware(_LINKED_ROOT, () => linkedFiles)(
+          { url, method } as IncomingMessage,
+          {
+            set statusCode(code: number) {
+              response.statusCode = code;
+            },
+            setHeader: (name: string, value: unknown) => void (response.headers[name] = value),
+            end: (body?: Buffer | string) => {
+              response.body = body;
+              resolve(response);
+            },
+          } as unknown as ServerResponse,
+          () => resolve('next'),
+        );
+      });
+
+    it('Serves a linked file from the host repository, never cached', async () => {
+      const code = await request('/files/src/index.ts?x=1');
+      expect(code).toMatchObject({ statusCode: 200, headers: { 'Cache-Control': 'no-store', 'Content-Length': 75 } });
+      expect(String((code as { body: Buffer }).body)).toBe(await readFile(join(_LINKED_ROOT, 'src', 'index.ts'), 'utf8'));
+      expect(await request('/files/assets/logo.png')).toMatchObject({ statusCode: 200, headers: { 'Content-Type': 'image/png' } });
+      expect(await request('/files/Makefile', 'HEAD')).toMatchObject({ statusCode: 200, body: undefined });
+    });
+
+    it('Serves a text file whose extension says nothing as plain text', () => {
+      expect(getLinkedFileContentType({ path: 'Makefile', size: 1, text: true })).toBe('text/plain; charset=utf-8');
+      expect(getLinkedFileContentType({ path: 'data.bin', size: 1, text: false })).toBe('application/octet-stream');
+      expect(getLinkedFileContentType({ path: 'index.html', size: 1, text: true })).toBe('text/html; charset=utf-8');
+    });
+
+    it("Answers anything else in the linked files' folder with a 404", async () => {
+      // `serve` hands out only what `build` publishes: README.md is in the fixture, but no linked file
+      expect(await request('/files/README.md')).toMatchObject({ statusCode: 404, headers: { 'Cache-Control': 'no-store' } });
+      expect(await request('/files/src/INDEX.ts')).toMatchObject({ statusCode: 404 });
+      // A linked file gone from disk since the check
+      expect(await request('/files/gone.txt', 'GET', [{ path: 'gone.txt', size: 1, text: true }])).toMatchObject({ statusCode: 404 });
+    });
+
+    it('Passes every other request on to Vite', async () => {
+      expect(await request('/')).toBe('next');
+      expect(await request('/filesystem.js')).toBe('next');
+      expect(await request('/files/src/index.ts', 'POST')).toBe('next');
+      expect(await request('/files/%E0%A4%A')).toBe('next');
+    });
+
+    it('Copies the linked files into the build, each at files/<path>', async () => {
+      const emitted: unknown[] = [];
+      await _callWith(
+        { emitFile: (file: unknown) => emitted.push(file) },
+        createLinkedFilesPlugin(_LINKED_ROOT, () => _LINKED),
+        'generateBundle',
+      );
+      expect(emitted).toEqual(
+        await Promise.all(_LINKED.map(async ({ path }) => ({ type: 'asset', fileName: `files/${path}`, source: await readFile(join(_LINKED_ROOT, path)) }))),
+      );
+    });
+
+    it('Is added to the dev server by the plugin', () => {
+      const used: unknown[] = [];
+      (createLinkedFilesPlugin(_LINKED_ROOT, () => _LINKED).configureServer as (server: unknown) => void)({
+        middlewares: { use: (middleware: unknown) => used.push(middleware) },
+      });
+      expect(used).toHaveLength(1);
+    });
+  });
+
   describe('createHostPlugin', () => {
     // The plugin's hooks, called as Vite would.
 
@@ -270,9 +373,9 @@ describe('vite', () => {
 
   it('Gets the Vite configuration', () => {
     const getHost = () => getShownHostInformation(_HOST);
-    const configuration = getViteConfiguration({ appDir: '/app', cacheDir: '/cache', getHost });
+    const configuration = getViteConfiguration({ appDir: '/app', cacheDir: '/cache', hostRoot: '/host', getHost });
     expect(configuration).toMatchObject({ configFile: false, root: '/app', base: './', cacheDir: '/cache', clearScreen: false, logLevel: 'warn' });
-    expect((configuration.plugins as Plugin[]).map((plugin) => plugin.name)).toEqual(['showroom-host', 'showroom-showcase-frames']);
+    expect((configuration.plugins as Plugin[]).map((plugin) => plugin.name)).toEqual(['showroom-host', 'showroom-showcase-frames', 'showroom-linked-files']);
     expect(configuration.resolve?.alias).toEqual(getReactAliases());
   });
 });

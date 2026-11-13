@@ -33,6 +33,7 @@ describe('host', () => {
         { id: 'README.md#2', documentation: 'README.md', line: 7, offset: 40, kind: 'linked', adapter: 'x', options: { a: [1] }, entry: 'demo.js' },
       ],
       virtualFiles: [{ path: 'README.showcase-1.html', kind: 'entry', content: '<p>Hi</p>', documentation: 'README.md', line: 3 }],
+      linkedFiles: [{ path: 'src/index.ts', size: 12, text: true }],
     };
     expect(JSON.parse(JSON.stringify(host))).toEqual(host);
   });

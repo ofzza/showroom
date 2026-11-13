@@ -278,7 +278,7 @@ None (_`D61`_).
 
 ## Known open issues
 
-- _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: _`P9`_. Status: picked up by _`P9`_.
+- _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: _`P9`_. Status: picked up by _`P9`_; resolved by _`D323`_ (SPEC.md), implemented by _`P9`_ 2026-11-13.
 - _`L2`_ Raw HTML in Markdown isn't rendered (_`P2`_, _`D40`_). Deferred: rendering it safely needs sanitising. Segment: not yet assigned. Status: `open`.
 - _`L3`_ Showcase frame folders of documentation files whose paths differ only in case (_`P4.2`_, _`D161`_) collide when the output folder is on a case-insensitive file system. Deferred: rare (two documentation files differing only in case, on Linux). Segment: not yet assigned. Status: `open`.
 - _`L4`_ On a narrow (phone) viewport the navigation can't be opened: the navigation drawer is 0 px wide and there is no menu button (found dogfooding, 2026-11-12). Deferred: layout polish, not showcases. Segment: _`P5`_. Status: picked up by _`P5`_.

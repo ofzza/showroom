@@ -185,6 +185,22 @@ describe('cli/serve (serve)', () => {
     expect(await (await fetch(new URL(`showcases/README.md/1/assets/${lazy}`, url))).text()).toContain('"later"');
   });
 
+  it('Serves the linked files from the host repository, and nothing else in their folder', async () => {
+    const { url } = await start('linked-files');
+    const source = await fetchHostModule(url);
+    expect(source).toContain('"linkedFiles":[{"path":"Makefile","size":19,"text":true}');
+    const code = await fetch(new URL('files/src/index.ts', url));
+    expect(code.status).toBe(200);
+    expect(code.headers.get('cache-control')).toBe('no-store');
+    expect(await code.text()).toContain('export function greet');
+    // An ignored linked file, and a binary one
+    expect(await (await fetch(new URL('files/vendor/data.json', url))).text()).toBe('{ "data": [1, 2, 3] }\n');
+    expect((await fetch(new URL('files/assets/logo.png', url))).headers.get('content-type')).toBe('image/png');
+    // Files in the host repository that aren't linked files
+    expect((await fetch(new URL('files/README.md', url))).status).toBe(404);
+    expect((await fetch(new URL('files/out/stale.txt', url))).status).toBe(404);
+  });
+
   it('Stops at once with a signal aborted before it listens', async () => {
     const copy = await copyFixture('minimal');
     copies.push(copy);

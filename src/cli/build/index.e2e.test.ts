@@ -4,7 +4,7 @@
 
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import { afterEach, describe, expect, inject, it } from 'vitest';
 import { getFrameScript } from '../../frame/index.js';
 import { getShowcaseFrameHash } from '../../showcases/index.js';
@@ -80,6 +80,39 @@ describe('cli/build (end to end)', () => {
     );
     expect(bundle).toContain(`showcases/README.md/1/index.html?hash=${getShowcaseFrameHash(first)}`);
     expect(bundle).toMatch(/showcases\/docs\/my%20notes%20%231\.md\/1\/index\.html\?hash=[0-9a-f]{8}/);
+  });
+
+  it('Copies exactly the linked files into the output folder, at files/<path>', async () => {
+    const root = await copy('linked-files');
+    const { code, stderr } = await run(root);
+    expect(code).toBe(0);
+    expect(stderr).toBe(
+      [
+        'warning: README.md:9: Broken link "missing.txt": nothing at "missing.txt"',
+        'warning: README.md:9: Linked file "out/stale.txt" is in the output folder, which `showroom build` empties; it isn\'t copied into the showroom',
+        '',
+      ].join('\n'),
+    );
+    const files = join(root, 'out', 'files');
+    const copied = (await readdir(files, { recursive: true, withFileTypes: true })).filter((entry) => entry.isFile());
+    const paths = copied
+      .map((entry) =>
+        join(entry.parentPath, entry.name)
+          .slice(files.length + 1)
+          .split(sep)
+          .join('/'),
+      )
+      .sort();
+    expect(paths).toEqual(['Makefile', 'assets/logo.png', 'demo/demo.html', 'notes.txt', 'src/index.ts', 'vendor/data.json']);
+    for (const path of paths) {
+      expect(await readFile(join(files, path))).toEqual(await readFile(join(root, path)));
+    }
+    // The earlier build's files are gone, and the bundle's shown host information lists the linked files
+    expect(existsSync(join(root, 'out', 'stale.txt'))).toBe(false);
+    const bundle = (await Promise.all((await readdir(join(root, 'out', 'assets'))).map((name) => readFile(join(root, 'out', 'assets', name), 'utf8')))).join(
+      '\n',
+    );
+    expect(bundle).toContain('{path:`assets/logo.png`,size:70,text:!1}');
   });
 
   it('Builds ts showcases into their showcase frames, and writes build warnings without failing', async () => {

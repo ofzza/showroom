@@ -2,7 +2,8 @@
  * Link resolution: what a link or image in a documentation file's Markdown points to inside the showroom
  */
 
-import type { DocumentationFile } from '../../host/index.js';
+import type { DocumentationFile, LinkedFile } from '../../host/index.js';
+import { getLinkedFileUrl } from '../../linked-files/index.js';
 import { isAbsoluteUrl, resolvePath, splitLink } from '../../markdown/index.js';
 import { findDocumentationFile, findFolderReadme } from '../host/index.js';
 import { getDocumentationRoute } from '../routing/index.js';
@@ -39,7 +40,21 @@ export type ResolvedLink =
     }
   | {
       /**
-       * Anything else (e.g. a code file), shown as plain text
+       * A linked file: a text file up to 1 MB opens in the modal, any other file in a new tab
+       */
+      kind: 'file';
+      /**
+       * URL of the copied file, relative to the showroom's page
+       */
+      href: string;
+      /**
+       * The linked file
+       */
+      file: LinkedFile;
+    }
+  | {
+      /**
+       * Anything else (e.g. a folder with no `README`, or a missing file), shown as plain text
        */
       kind: 'unresolved';
     };
@@ -49,10 +64,11 @@ export type ResolvedLink =
  * @param href The link's target, as written in the Markdown
  * @param from The documentation file holding the link
  * @param documentation Documentation files
- * @returns What the link points to: an absolute URL; the page of the documentation file it names, or of the `README` of the folder it names; or
- * nothing in the showroom
+ * @param linkedFiles Linked files
+ * @returns What the link points to: an absolute URL; the page of the documentation file it names, or of the `README` of the folder it names; the
+ * linked file it names, by its exact path; or nothing in the showroom
  */
-export function resolveLink(href: string, from: DocumentationFile, documentation: DocumentationFile[]): ResolvedLink {
+export function resolveLink(href: string, from: DocumentationFile, documentation: DocumentationFile[], linkedFiles: readonly LinkedFile[] = []): ResolvedLink {
   if (isAbsoluteUrl(href)) {
     return { kind: 'external', href };
   }
@@ -76,7 +92,31 @@ export function resolveLink(href: string, from: DocumentationFile, documentation
 
   // A documentation file, or a folder whose `README` is one
   const file = (!resolved.isFolder && findDocumentationFile(documentation, resolved.path)) || findFolderReadme(documentation, resolved.path);
-  return file ? _route(file, target.anchor) : { kind: 'unresolved' };
+  if (file) {
+    return _route(file, target.anchor);
+  }
+
+  // A linked file; its fragment is ignored
+  const linked = resolved.isFolder ? undefined : linkedFiles.find((candidate) => candidate.path === resolved.path);
+  return linked ? { kind: 'file', href: getLinkedFileUrl(linked.path), file: linked } : { kind: 'unresolved' };
+}
+
+/**
+ * Resolves an image's source in a documentation file's Markdown
+ * @param src The image's source, as written in the Markdown
+ * @param from The documentation file holding the image
+ * @param linkedFiles Linked files
+ * @returns The URL to show the image from: an absolute URL unchanged, or the URL of the linked file a relative source names; or undefined if the
+ * image isn't in the showroom
+ */
+export function resolveImage(src: string, from: DocumentationFile, linkedFiles: readonly LinkedFile[]): string | undefined {
+  if (isAbsoluteUrl(src)) {
+    return src;
+  }
+  const target = splitLink(src);
+  const resolved = target?.path ? resolvePath(from.path, target.path) : undefined;
+  const linked = resolved && !resolved.isFolder ? linkedFiles.find((candidate) => candidate.path === resolved.path) : undefined;
+  return linked && getLinkedFileUrl(linked.path);
 }
 
 /**

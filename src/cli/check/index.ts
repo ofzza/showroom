@@ -3,13 +3,14 @@
  */
 
 import ignore from 'ignore';
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { open, readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { ShowcaseAdapter } from '../../adapters/showcase/index.js';
 import { checkHostCheckResult, createShowcaseAdapter, getShowcaseAdapterNames, loadCustomShowcaseAdapters } from '../../adapters/showcase/registry/index.js';
 import { getStackAdapter, getStackAdapterNames } from '../../adapters/stack/index.js';
 import { readConfiguration, CONFIGURATION_FILE_NAME, type Configuration } from '../../configuration/index.js';
-import type { DocumentationFile, DocumentationKind, HostInformation, ProjectInformation, Showcase, VirtualFile } from '../../host/index.js';
+import type { DocumentationFile, DocumentationKind, HostInformation, LinkedFile, ProjectInformation, Showcase, VirtualFile } from '../../host/index.js';
+import { isText, LINKED_FILE_MODAL_LIMIT } from '../../linked-files/index.js';
 import { getFolder, isMarkdownPath, resolvePath, scanMarkdown, splitLink, type MarkdownLink } from '../../markdown/index.js';
 import { buildShowcases, getBuildShowcasesIssues } from '../../showcases/index.js';
 import { createIgnoreMatcher, resolveOutputFolder } from './internal/index.js';
@@ -195,23 +196,26 @@ export async function check(root: string, options: CheckOptions = {}): Promise<C
     documentation.push({ path, kind: _getKind(name, extension), extension, content: await readFile(join(root, path), 'utf8') });
   }
 
-  // Find the showcases, virtual files and links in the Markdown documentation files, and check them
+  // Find the showcases, virtual files, links and images in the Markdown documentation files, and check them
   const showcases: Showcase[] = [];
   const virtualFiles: VirtualFile[] = [];
-  const links: (MarkdownLink & { documentation: string })[] = [];
+  const links: _FoundLink[] = [];
   for (const file of documentation.filter((file) => isMarkdownPath(file.path))) {
     const scan = scanMarkdown(file.path, file.content);
     showcases.push(...scan.showcases);
     virtualFiles.push(...scan.virtualFiles);
-    links.push(...scan.links.map((link) => ({ ...link, documentation: file.path })));
+    links.push(...scan.links.map((link) => ({ ...link, documentation: file.path, image: false })));
+    links.push(...scan.images.map((link) => ({ ...link, documentation: file.path, image: true })));
     issues.push(...scan.errors.map(({ line, message }) => ({ severity: 'error' as const, message, path: file.path, line })));
   }
+  links.sort((a, b) => _compare(a.documentation, b.documentation) || a.line - b.line);
   await _checkVirtualFiles(root, virtualFiles, issues);
   await _checkShowcases(root, configuration, showcases, virtualFiles, issues);
   await _checkLinks(root, links, issues);
+  const linkedFiles = await _collectLinkedFiles(root, documentation, links, showcases, outputFolder.relativePath, issues);
 
   if (!project || issues.some((issue) => issue.severity === 'error')) return fail();
-  const host: HostInformation = { project, documentation, code, showcases, virtualFiles };
+  const host: HostInformation = { project, documentation, code, showcases, virtualFiles, linkedFiles };
 
   // Build every showcase, if asked to, throwing the showcase frames away; build warnings fail nothing
   if (options.showcases) {
@@ -385,27 +389,123 @@ async function _getEntryKind(path: string): Promise<'file' | 'folder' | 'missing
 // #region Links
 
 /**
- * Checks every link with a relative target in the Markdown documentation files, warning about those leading outside the host repository, or to
- * nothing on disk
+ * Represents a link, reference definition or image with a relative target, found in a Markdown documentation file
+ */
+interface _FoundLink extends MarkdownLink {
+  /**
+   * POSIX-style path of the documentation file holding it
+   */
+  documentation: string;
+  /**
+   * True for an image
+   */
+  image: boolean;
+}
+
+/**
+ * Checks every link and image with a relative target in the Markdown documentation files, warning about those leading outside the host repository,
+ * or to nothing on disk
  * @param root Path of the host repository's root
- * @param links Links, with the documentation file holding each
+ * @param links Links and images, with the documentation file holding each
  * @param issues Issues to add the warnings to
  */
-async function _checkLinks(root: string, links: (MarkdownLink & { documentation: string })[], issues: CheckIssue[]): Promise<void> {
+async function _checkLinks(root: string, links: _FoundLink[], issues: CheckIssue[]): Promise<void> {
   for (const link of links) {
-    const warn = (message: string): void => void issues.push({ severity: 'warning', message, path: link.documentation, line: link.line });
+    const broken = (reason: string): void =>
+      void issues.push({
+        severity: 'warning',
+        message: `Broken ${link.image ? 'image' : 'link'} "${link.href}": ${reason}`,
+        path: link.documentation,
+        line: link.line,
+      });
     const target = splitLink(link.href);
     if (!target) {
-      warn(`Broken link "${link.href}": it can't be URL-decoded`);
+      broken(`it can't be URL-decoded`);
       continue;
     }
     if (!target.path) continue; // Only a query: the documentation file itself
     const resolved = resolvePath(link.documentation, target.path);
     if (!resolved) {
-      warn(`Broken link "${link.href}": it leads outside the host repository`);
+      broken('it leads outside the host repository');
     } else if ((await _getEntryKind(join(root, resolved.path))) === 'missing') {
-      warn(`Broken link "${link.href}": nothing at "${resolved.path}"`);
+      broken(`nothing at "${resolved.path}"`);
     }
+  }
+}
+
+// #endregion
+
+// #region Linked files
+
+/**
+ * Collects the linked files: the files the links, images and linked showcases' entry points name, ignored or not, except documentation files, folders
+ * and missing files (warned or errored about already). A file in the output folder, which `build` empties, and a file whose real path (following
+ * symbolic links) is outside the host repository are warned about, and left out. Each file's text-ness is decided from its content, read only up
+ * to the modal's limit.
+ * @param root Path of the host repository's root
+ * @param documentation Documentation files
+ * @param links Links and images, with the documentation file holding each
+ * @param showcases Showcases
+ * @param outputFolder POSIX-style path of the output folder, relative to the root
+ * @param issues Issues to add the warnings to
+ * @returns The linked files, sorted by path
+ */
+async function _collectLinkedFiles(
+  root: string,
+  documentation: DocumentationFile[],
+  links: _FoundLink[],
+  showcases: Showcase[],
+  outputFolder: string,
+  issues: CheckIssue[],
+): Promise<LinkedFile[]> {
+  // The paths named, with where each was first named
+  const named = new Map<string, { documentation: string; line: number }>();
+  const documentationPaths = new Set(documentation.map((file) => file.path.toLowerCase()));
+  for (const link of links) {
+    const target = splitLink(link.href);
+    const resolved = target?.path ? resolvePath(link.documentation, target.path) : undefined;
+    if (resolved && !resolved.isFolder && resolved.path && !named.has(resolved.path)) named.set(resolved.path, link);
+  }
+  for (const showcase of showcases) {
+    if (showcase.kind === 'linked' && !named.has(showcase.entry)) named.set(showcase.entry, { documentation: showcase.documentation, line: showcase.line });
+  }
+
+  // The files among them
+  const linkedFiles: LinkedFile[] = [];
+  const realRoot = await realpath(root);
+  for (const [path, { documentation: from, line }] of named) {
+    const warn = (message: string): void => void issues.push({ severity: 'warning', message, path: from, line });
+    if (documentationPaths.has(path.toLowerCase())) continue;
+    const info = await stat(join(root, path)).catch(() => undefined);
+    if (!info?.isFile()) continue;
+    if (path === outputFolder || path.startsWith(`${outputFolder}/`)) {
+      warn(`Linked file "${path}" is in the output folder, which \`showroom build\` empties; it isn't copied into the showroom`);
+      continue;
+    }
+    const real = relative(realRoot, await realpath(join(root, path)));
+    if (real === '..' || real.startsWith(`..${sep}`) || isAbsolute(real)) {
+      warn(`Linked file "${path}" is outside the host repository (through a symbolic link); it isn't copied into the showroom`);
+      continue;
+    }
+    linkedFiles.push({ path, size: info.size, text: info.size <= LINKED_FILE_MODAL_LIMIT && isText(await _readStart(join(root, path), info.size)) });
+  }
+  return linkedFiles.sort((a, b) => _compare(a.path, b.path));
+}
+
+/**
+ * Reads a file's content, up to a size
+ * @param path Path of the file
+ * @param size Number of bytes to read at most
+ * @returns The bytes read
+ */
+async function _readStart(path: string, size: number): Promise<Uint8Array> {
+  const handle = await open(path, 'r');
+  try {
+    const buffer = new Uint8Array(size);
+    const { bytesRead } = await handle.read(buffer, 0, size, 0);
+    return buffer.subarray(0, bytesRead);
+  } finally {
+    await handle.close();
   }
 }
 

@@ -1,6 +1,6 @@
 # _`P9`_ Linked files
 
-approved 2026-11-13
+approved 2026-11-13; implemented 2026-11-13
 
 ## Goals
 
@@ -26,6 +26,8 @@ Facts found while planning (2026-11-13):
 - _`D336`_ (`live`; Q5, option chosen: "Watch them (Rec.)"): **`serve` watches the linked files the host repository ignores**, along with the showcases' reads (`getWatchTargets()`), so a change of their size or text-ness reloads the page. Rejected: not watching them (the modal fetches with `Cache-Control: no-store` on every open anyway).
 - _`D337`_ (`live`; Q6, option chosen: "Same as code blocks (Rec.)"): **The modal highlights through the same `react-markdown` and `rehype-highlight` as code blocks**, from a fence built around the content (longer than any backtick run in it), with the same colours (`COLOURED_TOKEN_CLASSES`); the language is the extension, or the lowercased file name when it has none (`Makefile`, `Dockerfile`), plain text when highlight.js doesn't know it; line numbers in a gutter beside it. Rejected: `lowlight` directly (a new direct dependency).
 - _`D338`_ (`live`): **Linked files are copied to, and served at, `files/<path>`** in the output folder, so they never collide with `index.html`, `assets/` or `showcases/`; their URLs encode each path segment. `serve` answers every request under `files/`: a linked file from disk (`Cache-Control: no-store`), anything else a 404 (_`D328`_ (SPEC.md)). A link resolves to a linked file by its exact path, as `check` found it.
+
+- _`D339`_ (`live`; from _`P9`_'s checkpoint, option chosen: "Approve and commit"; and "Keep as linked files (Rec.)"): **_`P9`_'s deviations from its steps, approved**: highlight.js's token colours and the highlighted code block moved into a new `src/app/code/`, shared by `src/app/markdown/` and `src/app/files/`, so those two never import each other; the `linked-files` fixture's `out/` holds a `.showroom` marker, so `build` runs on it; this repository links 9 linked files, not 11; the `links` fixture's missing image is now warned about (_`D335`_). This repository's `PUBLISH.md` and `WORKFLOW.md` stay linked files (opened as Markdown source in the modal), not documentation files. Rejected: adding them to `showroom.json`'s documentation patterns.
 
 ## Steps
 

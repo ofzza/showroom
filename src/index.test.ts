@@ -12,6 +12,7 @@ import type {
   CheckResult,
   Configuration,
   HostInformation,
+  LinkedFile,
   Showcase,
   ShowcaseAdapter,
   ShowcaseBuildRequest,
@@ -59,6 +60,7 @@ describe('index', () => {
     expectTypeOf<Configuration['customShowcaseAdapters']>().toEqualTypeOf<Record<string, string> | undefined>();
     expectTypeOf<HostInformation['showcases']>().toEqualTypeOf<Showcase[]>();
     expectTypeOf<HostInformation['virtualFiles']>().toEqualTypeOf<VirtualFile[]>();
+    expectTypeOf<HostInformation['linkedFiles']>().toEqualTypeOf<LinkedFile[]>();
     expectTypeOf<ReturnType<ShowcaseAdapter['validate']>>().toEqualTypeOf<ShowcaseValidation | Promise<ShowcaseValidation>>();
     expectTypeOf<Parameters<ShowcaseAdapter['build']>[0]>().toEqualTypeOf<ShowcaseBuildRequest>();
     expectTypeOf<Awaited<ReturnType<ShowcaseAdapter['build']>>>().toEqualTypeOf<ShowcaseBuildResult>();

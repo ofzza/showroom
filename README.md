@@ -400,6 +400,19 @@ The [`number-table` example](./examples/number-table/README.md) ([live](https://
 
 See the rest in the example: [its options](./examples/number-table/README.md#options) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md#options)), checked by `validate()`, its [errors and warnings](./examples/number-table/README.md#errors-and-warnings) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md#errors-and-warnings)), and [the module](./examples/number-table/README.md#the-module) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md#the-module)).
 
+## Linked files
+
+A file that a Markdown documentation file links to by a relative path, and that isn't a documentation file, is a **linked file**: a code file, an image, any other file in the host repository. Links to linked files work in the showroom, which copies each of them, and only them, never whole folders:
+
+- a text file up to 1 MB opens in a modal, its content syntax highlighted (by its extension, or its name when it has none, e.g. `Makefile`; plain text for a language highlight.js doesn't know) with line numbers, under its path, with a link opening the file in a new tab;
+- any other file (a binary file, or a text file over 1 MB) opens in a new tab;
+- a relative image (`![logo](./docs/logo.png)`) is shown from its linked file;
+- a linked showcase's entry point is a linked file too: its link, below its showcase frame, opens its source in the modal.
+
+Whether a file is text is decided from its content (UTF-8 with no NUL byte), whatever its name. A link's fragment (e.g. `#L10`) is ignored. A linked file is copied even when the `ignore` patterns skip it (e.g. a file in `dist/`): the link states the intent, but a file missing where `showroom` runs (e.g. a build output not built in CI) is a broken link. It isn't copied when it is in the output folder, which `build` empties first, or when its real path leads outside the host repository through a symbolic link; `check` warns about both. A link to a folder with no `README` stays plain text.
+
+`serve` and `build` hand out the linked files at `files/<path>`, next to the showroom's page: `build` copies them into the output folder, and `serve` answers only them there, from the host repository, so what you preview is what gets published.
+
 ## `showroom check`
 
 Checks the host repository in the current directory (or the one `--root` names):
@@ -416,9 +429,9 @@ $ npx showroom check [--root <dir>] [--out-dir <dir>] [--showcases] [--quiet]
 
 `--showcases` also builds every showcase, as `showroom build` does, and throws the result away, once the rest of the check finds no errors. A showcase that doesn't build is an error, naming the showcase and its entry point (e.g. `error: README.md:16: Showcase README.md#2 (README.md:14): <message>`), placed where the build error is. A build's warnings are reported the same way, as warnings. Without it, `check` builds nothing, so it stays fast, and works without the host repository's dependencies installed; run `check --showcases` in CI to catch showcases that no longer build.
 
-Errors are: a missing or invalid `showroom.json`, an unknown `stack`, project information that can't be read, a source root that doesn't exist or is outside the host repository, an output folder that is the host repository's root or outside it, a [broken showcase](#showcases), and a [custom showcase adapter](#custom-showcase-adapters-experimental) that doesn't load. Warnings are: several documentation files of the same kind in one folder, and broken links. A link (or reference definition) in a Markdown documentation file is broken when its relative target, URL-decoded and without its query and fragment, leads outside the host repository, or to nothing on disk; links to fragments only, absolute URLs and images are not checked.
+Errors are: a missing or invalid `showroom.json`, an unknown `stack`, project information that can't be read, a source root that doesn't exist or is outside the host repository, an output folder that is the host repository's root or outside it, a [broken showcase](#showcases), and a [custom showcase adapter](#custom-showcase-adapters-experimental) that doesn't load. Warnings are: several documentation files of the same kind in one folder, broken links and images, and [linked files](#linked-files) that aren't copied (in the output folder, or outside the host repository through a symbolic link). A link (or reference definition, or image) in a Markdown documentation file is broken when its relative target, URL-decoded and without its query and fragment, leads outside the host repository, or to nothing on disk; links to fragments only, and absolute URLs, are not checked.
 
-The host information has this shape (types `HostInformation`, `ProjectInformation`, `DocumentationFile`, `Showcase` and `VirtualFile`):
+The host information has this shape (types `HostInformation`, `ProjectInformation`, `DocumentationFile`, `Showcase`, `VirtualFile` and `LinkedFile`):
 
 ````json
 {
@@ -428,11 +441,12 @@ The host information has this shape (types `HostInformation`, `ProjectInformatio
   "showcases": [
     { "id": "README.md#1", "documentation": "README.md", "line": 3, "offset": 14, "kind": "inline", "adapter": "html", "entry": "README.showcase-1.html" }
   ],
-  "virtualFiles": [{ "path": "README.showcase-1.html", "kind": "entry", "content": "<p>Hi</p>", "documentation": "README.md", "line": 3 }]
+  "virtualFiles": [{ "path": "README.showcase-1.html", "kind": "entry", "content": "<p>Hi</p>", "documentation": "README.md", "line": 3 }],
+  "linkedFiles": [{ "path": "src/index.ts", "size": 1024, "text": true }]
 }
 ````
 
-Documentation files have a `kind` of `readme`, `contribute`, `license`, or `other` for the files the `documentation` patterns add. A showcase has an `id` (its documentation file and its position there), the `line` and character `offset` of its entry point (the code block, or the link), its `kind` (`inline` or `linked`), its showcase `adapter`, its `options` as the showcase adapter validated them (left out when there are none), and the path of its `entry` point (a virtual file, or the linked file). A virtual file has its `path`, its `kind` (`resource`, or `entry` for an inline showcase's entry point), its `content`, and the `documentation` file and `line` of its code block. Paths are POSIX-style and relative to the host repository's root. Documentation files are sorted by path, showcases and virtual files by documentation file and line.
+Documentation files have a `kind` of `readme`, `contribute`, `license`, or `other` for the files the `documentation` patterns add. A showcase has an `id` (its documentation file and its position there), the `line` and character `offset` of its entry point (the code block, or the link), its `kind` (`inline` or `linked`), its showcase `adapter`, its `options` as the showcase adapter validated them (left out when there are none), and the path of its `entry` point (a virtual file, or the linked file). A virtual file has its `path`, its `kind` (`resource`, or `entry` for an inline showcase's entry point), its `content`, and the `documentation` file and `line` of its code block. A linked file has its `path`, its `size` in bytes, and whether it is `text` (UTF-8 with no NUL byte, and no larger than 1 MB, so the showroom shows it in the modal). Paths are POSIX-style and relative to the host repository's root. Documentation files and linked files are sorted by path, showcases and virtual files by documentation file and line.
 
 ## `showroom serve`
 
@@ -444,16 +458,16 @@ $ npx showroom serve [--root <dir>] [--port <port>] [--out-dir <dir>]
 
 - It checks the host repository first, as `showroom check` does. If the check fails, it writes the issues to `stderr` and exits with `1` without serving.
 - It then builds every showcase, in development mode, and writes the check's issues and the showcases' build errors and warnings to `stderr`. A showcase that doesn't build doesn't stop it: its showcase frame shows its build errors instead (with each error's file and line), and every other showcase is shown as usual.
-- It then serves the showroom with Vite's dev server on `--port` (default: `5173`, or the next free port), writing its URL to `stdout`, until you stop it with Ctrl+C. The showcase frames are served from memory, at the same paths `build` writes them to; nothing is written into the host repository.
-- It watches the host repository, skipping the files the `ignore` patterns skip, and the output folder (`--out-dir`, as for `check`). After any change it checks the host repository again and, when the check passes, builds every showcase again. It reloads the page when the project information or a documentation file changed, or a showcase was added, removed or moved; when only showcase frames changed (e.g. a linked showcase's page, or another file a build reads), only their iframes reload, and the page stays where it is. An inline showcase's code and a resource are part of their documentation file, which the page shows too, so editing them reloads the page. A failed check keeps showing the last good data. Changes to `showroom.json` apply without a restart, custom showcase adapters included.
+- It then serves the showroom with Vite's dev server on `--port` (default: `5173`, or the next free port), writing its URL to `stdout`, until you stop it with Ctrl+C. The showcase frames are served from memory, and the [linked files](#linked-files) from the host repository, at the same paths `build` writes them to; nothing is written into the host repository.
+- It watches the host repository, skipping the files the `ignore` patterns skip, and the output folder (`--out-dir`, as for `check`). After any change it checks the host repository again and, when the check passes, builds every showcase again. It reloads the page when the project information or a documentation file changed, a showcase was added, removed or moved, or a linked file was added or removed, or changed its size; when only showcase frames changed (e.g. a linked showcase's page, or another file a build reads), only their iframes reload, and the page stays where it is. An inline showcase's code and a resource are part of their documentation file, which the page shows too, so editing them reloads the page. A failed check keeps showing the last good data. Changes to `showroom.json` apply without a restart, custom showcase adapters included.
 - The current issues (the check's errors and warnings, and the showcases' build errors and warnings) are shown in a bar at the top of the page, which you can collapse, and are written to `stderr` whenever they change. The bar is gone once there are none.
 - A changed [custom showcase adapter](#custom-showcase-adapters-experimental) module is loaded again, but the modules it imports aren't: restart `serve` after changing them.
-- Files the `ignore` patterns skip (e.g. under `dist/`) aren't watched, except the files the latest showcase builds read (e.g. the host's own package's `dist/`, which a `ts` showcase imports by the package's name) and the custom showcase adapter modules: a change to one checks and builds again, as any change does, so `tsc --watch` running alongside `serve` updates the showcases. While a showcase doesn't build, the files earlier builds read stay watched too, so it recovers once they're back (e.g. after `dist/` is deleted and built again). They never become documentation or code files, and files under `node_modules` or `.git` are never watched.
+- Files the `ignore` patterns skip (e.g. under `dist/`) aren't watched, except the files the latest showcase builds read (e.g. the host's own package's `dist/`, which a `ts` showcase imports by the package's name), the custom showcase adapter modules, and the linked files: a change to one checks and builds again, as any change does, so `tsc --watch` running alongside `serve` updates the showcases. While a showcase doesn't build, the files earlier builds read stay watched too, so it recovers once they're back (e.g. after `dist/` is deleted and built again). They never become documentation or code files, and files under `node_modules` or `.git` are never watched.
 
 The showroom has a page per documentation file, its address in the URL's hash (e.g. `#/docs/guide.md`), and a home page with the project information and the root `README` (when the `README` opens with a level-1 heading, that heading is the home page's title, and the project information follows it). The navigation lists `README` (the home page), `CONTRIBUTING` and `LICENSE` first, whatever the root files' actual names (e.g. `CONTRIBUTE.md`, `LICENCE.txt`), then every other documentation file by its path. `.md` files are rendered as GitHub-flavoured Markdown, with syntax-highlighted code blocks and the same heading ids as on GitHub; other documentation files are shown as plain text. The navigation stays in view as a page scrolls; on a narrow (phone) viewport, below 768 px, it opens from the header's menu button instead. In Markdown:
 
-- relative links to documentation files (or to folders whose `README` is one) open their page; other relative links (e.g. to code files) are shown as plain text;
-- relative images are shown as their alt text, as images aren't collected yet; absolute image URLs work;
+- relative links to documentation files (or to folders whose `README` is one) open their page; relative links to [linked files](#linked-files) open them in the modal, or in a new tab; other relative links (e.g. to a folder with no `README`, or a missing file) are shown as plain text;
+- relative images are shown from their linked files, or as their alt text when they're missing; absolute image URLs work;
 - raw HTML tags are left out, keeping the Markdown between them.
 
 Each run keeps Vite's cache in a fresh folder in the system's temporary folder, and removes it on exit; starting takes a few seconds while Vite prepares the dependencies.
@@ -472,7 +486,7 @@ $ npx showroom build [--root <dir>] [--out-dir <dir>]
 - **The output folder is emptied before every build.** To keep a mistyped `outDir` from deleting your files, every build writes a `.showroom` marker file into it, and `build` refuses (exiting with `1`) to empty a folder that holds anything but a `.showroom` file from an earlier build. A missing or empty folder is fine.
 - It writes the output folder's path to `stdout` once built, and exits with `0`. Warnings from the check don't fail it.
 
-The output is an `index.html`, its `assets/`, the showcase frames in `showcases/` (one folder per showcase, `showcases/<documentation file's path>/<n>/`) and the `.showroom` marker, with relative paths throughout, so it works wherever it's hosted, under any path (e.g. GitHub Pages' `https://<user>.github.io/<repo>/`). Pages are addressed in the URL's hash, so the host needs no rewrite rules. It needs to be served over HTTP: browsers won't run it from `file://`. Add the output folder to your `.gitignore`, unless you mean to commit it.
+The output is an `index.html`, its `assets/`, the showcase frames in `showcases/` (one folder per showcase, `showcases/<documentation file's path>/<n>/`), the [linked files](#linked-files) in `files/` (each at `files/<path>`) and the `.showroom` marker, with relative paths throughout, so it works wherever it's hosted, under any path (e.g. GitHub Pages' `https://<user>.github.io/<repo>/`). Pages are addressed in the URL's hash, so the host needs no rewrite rules. It needs to be served over HTTP: browsers won't run it from `file://`. Add the output folder to your `.gitignore`, unless you mean to commit it.
 
 ## Publishing to GitHub Pages
 
@@ -553,7 +567,7 @@ console.log(getStackAdapterNames(), project, errors);
 - `getStackAdapter(name)` / `getStackAdapterNames()`: look up the built-in stack adapters, which implement the `StackAdapter` interface; `TypeScriptStackAdapter` is the `typescript` one.
 - `main(args, output?)`: runs the command line with the given arguments, resolving to its exit code; `USAGE` is its help text.
 - Constants: `CONFIGURATION_FILE_NAME` (`showroom.json`), `DEFAULT_OUT_DIR` (`./showroom`), and `BUILT_IN_DOCUMENTATION` (the built-in documentation patterns).
-- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase`, `ShowcaseKind`, `VirtualFile`, `VirtualFileKind`, `Configuration`, `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.
+- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase`, `ShowcaseKind`, `VirtualFile`, `VirtualFileKind`, `LinkedFile`, `Configuration`, `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.
 - Experimental types, for [custom showcase adapters](#custom-showcase-adapters-experimental): `ShowcaseAdapter`, `ShowcaseValidation`, `ShowcaseHostCheck`, `ShowcaseBuildRequest`, `ShowcaseBuildResult`, `ShowcaseBuildFile` and `ShowcaseBuildError`.
 
 # Development

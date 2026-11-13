@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { DocumentationFile } from '../../host/index.js';
-import { resolveLink } from './index.js';
+import type { DocumentationFile, LinkedFile } from '../../host/index.js';
+import { resolveImage, resolveLink } from './index.js';
 
 /**
  * Creates a documentation file with empty content
@@ -17,7 +17,8 @@ function _file(path: string, kind: DocumentationFile['kind'] = 'other'): Documen
 }
 
 describe('app/links', () => {
-  // Tests resolveLink() on links written in hand-made documentation files, as they would appear in the Markdown.
+  // Tests resolveLink() and resolveImage() on links and images written in hand-made documentation files and linked files, as they would appear in
+  // the Markdown.
 
   const readme = _file('README.md', 'readme');
   const license = _file('LICENSE', 'license');
@@ -25,6 +26,9 @@ describe('app/links', () => {
   const docsReadme = _file('docs/README.md', 'readme');
   const spaced = _file('docs/my notes.md');
   const documentation = [license, readme, docsReadme, guide, spaced];
+  const code: LinkedFile = { path: 'src/index.ts', size: 10, text: true };
+  const logo: LinkedFile = { path: 'docs/my logo.png', size: 70, text: false };
+  const linkedFiles = [logo, code];
 
   it('Leaves absolute URLs unchanged', () => {
     expect(resolveLink('https://example.com/a#b', readme, documentation)).toEqual({ kind: 'external', href: 'https://example.com/a#b' });
@@ -66,5 +70,23 @@ describe('app/links', () => {
     expect(resolveLink('src/', readme, documentation)).toEqual({ kind: 'unresolved' });
     expect(resolveLink('../../outside.md', guide, documentation)).toEqual({ kind: 'unresolved' });
     expect(resolveLink('%E0%A4%A.md', readme, documentation)).toEqual({ kind: 'unresolved' });
+  });
+
+  it('Resolves links to linked files by their exact path, ignoring the fragment', () => {
+    expect(resolveLink('src/index.ts#L2', readme, documentation, linkedFiles)).toEqual({ kind: 'file', href: 'files/src/index.ts', file: code });
+    expect(resolveLink('../src/index.ts', guide, documentation, linkedFiles)).toEqual({ kind: 'file', href: 'files/src/index.ts', file: code });
+    expect(resolveLink('my%20logo.png', guide, documentation, linkedFiles)).toEqual({ kind: 'file', href: 'files/docs/my%20logo.png', file: logo });
+    // The path as check() found it: a link in another case, or as a folder, names no linked file
+    expect(resolveLink('src/INDEX.ts', readme, documentation, linkedFiles)).toEqual({ kind: 'unresolved' });
+    expect(resolveLink('src/index.ts/', readme, documentation, linkedFiles)).toEqual({ kind: 'unresolved' });
+  });
+
+  it('Resolves images to absolute URLs and linked files, and nothing else', () => {
+    expect(resolveImage('https://example.com/a.png', readme, linkedFiles)).toBe('https://example.com/a.png');
+    expect(resolveImage('./docs/my%20logo.png', readme, linkedFiles)).toBe('files/docs/my%20logo.png');
+    expect(resolveImage('/docs/my%20logo.png?v=1', guide, linkedFiles)).toBe('files/docs/my%20logo.png');
+    expect(resolveImage('missing.png', readme, linkedFiles)).toBeUndefined();
+    expect(resolveImage('%E0%A4%A.png', readme, linkedFiles)).toBeUndefined();
+    expect(resolveImage('#top', readme, linkedFiles)).toBeUndefined();
   });
 });

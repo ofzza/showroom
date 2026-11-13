@@ -181,7 +181,7 @@ describe('markdown', () => {
         'README.md',
         ['```js title="showcase"', '```', '```js', '```', '    showcase indented', '```js highlight showcase', '```'].join('\n'),
       );
-      expect(scan).toEqual({ showcases: [], virtualFiles: [], links: [], errors: [] });
+      expect(scan).toEqual({ showcases: [], virtualFiles: [], links: [], images: [], errors: [] });
     });
 
     it('Reports markers in the wrong place, or broken', () => {
@@ -273,6 +273,19 @@ describe('markdown', () => {
         { href: '../f.md', line: 3 },
         { href: './ref.md', line: 5 },
       ]);
+    });
+
+    it('Collects images with relative sources', () => {
+      const scan = scanMarkdown(
+        'README.md',
+        ['![a](./a.png) ![b](https://example.com/b.png) ![c](#c) ![d][ref]', '', 'Text ![e](docs/e%20f.svg "a title")', '', '[ref]: ./ref.png'].join('\n'),
+      );
+      // An image reference's source is its reference definition, collected as a link
+      expect(scan.images).toEqual([
+        { href: './a.png', line: 1 },
+        { href: 'docs/e%20f.svg', line: 3 },
+      ]);
+      expect(scan.links).toEqual([{ href: './ref.png', line: 5 }]);
     });
   });
 });

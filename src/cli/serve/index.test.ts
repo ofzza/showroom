@@ -7,7 +7,7 @@ import ignore from 'ignore';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CheckIssue, CheckResult } from '../check/index.js';
-import type { HostInformation } from '../../host/index.js';
+import type { HostInformation, LinkedFile } from '../../host/index.js';
 import { getErrorFrame, getShowcaseFrameFolder, type ShowcaseFrame } from '../../showcases/index.js';
 import { getShownHostInformation } from '../../vite/index.js';
 import {
@@ -55,6 +55,7 @@ function _host(content: string, code: string[] = [], showcases = 0): HostInforma
       entry: 'a.html',
     })),
     virtualFiles: [],
+    linkedFiles: [],
   };
 }
 
@@ -212,15 +213,23 @@ describe('cli/serve', () => {
       expect(built.watched).toEqual(['dist/index.js']);
       expect(built.issues).toEqual([{ severity: 'error', message: 'The showcases failed to build: no configuration' }]);
     });
+
+    it("Watches the linked files along with the showcases' reads, whether the build passes or throws", async () => {
+      const host = { ..._host('x', [], 1), linkedFiles: [{ path: 'vendor/data.json', size: 2, text: true }] };
+      expect((await runBuild(host, _build('ok', [], ['dist/a.js', 'vendor/data.json']), new Map())).watched).toEqual(['dist/a.js', 'vendor/data.json']);
+      const thrown = await runBuild(host, () => Promise.reject(new Error('no configuration')), new Map(), ['dist/index.js']);
+      expect(thrown.watched).toEqual(['dist/index.js', 'vendor/data.json']);
+    });
   });
 
   describe('getShownChange', () => {
     // What a change of the shown host information needs: nothing, the changed showcase frames, or a full reload.
 
-    const shown = (content: string, urls: string[]) => ({
+    const shown = (content: string, urls: string[], linkedFiles: LinkedFile[] = []) => ({
       project: { name: 'p' },
       documentation: _host(content).documentation,
       showcases: urls.map((url, index) => ({ id: `README.md#${index + 1}`, documentation: 'README.md', offset: index, url })),
+      linkedFiles,
     });
 
     it('Needs nothing when nothing changed', () => {
@@ -235,6 +244,7 @@ describe('cli/serve', () => {
       expect(getShownChange(shown('a', ['u1']), shown('b', ['u1']))).toBe('reload');
       expect(getShownChange(shown('a', ['u1']), shown('a', ['u1', 'u2']))).toBe('reload');
       expect(getShownChange(shown('a', ['u1']), { ...shown('a', ['u1']), project: { name: 'q' } })).toBe('reload');
+      expect(getShownChange(shown('a', ['u1']), shown('a', ['u1'], [{ path: 'a.ts', size: 1, text: true }]))).toBe('reload');
     });
   });
 

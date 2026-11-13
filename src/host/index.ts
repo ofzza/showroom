@@ -151,6 +151,30 @@ export interface VirtualFile {
 
 // #endregion
 
+// #region Linked files
+
+/**
+ * Represents a linked file: a file that isn't a documentation file, which a documentation file links to (or shows as an image, or names as a linked
+ * showcase's entry point) by a relative path, and which the showroom copies
+ */
+export interface LinkedFile {
+  /**
+   * POSIX-style path of the file, relative to the host repository's root, as the link resolves it
+   */
+  path: string;
+  /**
+   * Size of the file, in bytes
+   */
+  size: number;
+  /**
+   * True if the file is text (valid UTF-8 with no NUL byte) and no larger than 1 MB, so the showroom shows it in a modal; false for a binary file,
+   * or any file larger than 1 MB, which the showroom opens directly
+   */
+  text: boolean;
+}
+
+// #endregion
+
 // #region Host information
 
 /**
@@ -177,6 +201,10 @@ export interface HostInformation {
    * Virtual files of the documentation files, sorted by documentation file and line
    */
   virtualFiles: VirtualFile[];
+  /**
+   * Linked files, sorted by path
+   */
+  linkedFiles: LinkedFile[];
 }
 
 // #endregion
