@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** _`P7.1.1`_ (building `ts` showcases, `PLAN-P7.1-ts.md`) implemented and committed; _`P7.1.2`_ (type checking) not yet planned. _`P7.1`_ is split by _`D246`_; _`P7`_ (`PLAN-P7-ts-react.md`) approved; implementation is done up to _`P7.1.1`_. Specification: _`S6`_ (with _`S6.5`_, _`S6.6`_, and _`S6.7`_ re-approved 2026-11-13) and _`S7`_ approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_, _`P6`_ and _`P7.1.1`_ are implemented and committed.
-- **Next free:** _`D273`_, _`S8`_, _`P8`_, _`O45`_, _`L12`_, _`R16`_, _`H1`_, _`K16`_
-- **Working on:** nothing; _`P7.1.1`_ done.
-- **Next step:** plan _`P7.1.2`_ (type checking `ts` showcases), preferably in a fresh session.
+- **Stage:** _`P7.1.1`_ (building `ts` showcases, `PLAN-P7.1-ts.md`) implemented and committed; _`P7.1.2`_ (type checking) approved, not yet implemented. _`P7.1`_ is split by _`D246`_; _`P7`_ (`PLAN-P7-ts-react.md`) approved; implementation is done up to _`P7.1.1`_. Specification: _`S6`_ (with _`S6.5`_, _`S6.6`_, and _`S6.7`_ re-approved 2026-11-13) and _`S7`_ approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_, _`P6`_ and _`P7.1.1`_ are implemented and committed.
+- **Next free:** _`D300`_, _`S8`_, _`P8`_, _`O46`_, _`L13`_, _`R18`_, _`H1`_, _`K17`_
+- **Working on:** nothing; _`P7.1.2`_ (type checking `ts` showcases) approved (`PLAN-P7.1-ts.md`, _`D273`_–_`D299`_), with _`S6.7`_ re-approved.
+- **Next step:** implement _`P7.1.2`_, preferably in a fresh session.
 
 ## Open questions
 
@@ -176,3 +176,9 @@
 - 2026-11-13: _`P7.1.1`_'s by-hand check: all but step 5 work; step 5's failure (a rebuilt `dist/` never seen) fixed by Q2 "Keep while failing (Rec.)" (_`D272`_).
 - 2026-11-13: _`P7.1.1`_'s by-hand step 5 rechecked after _`D272`_: the user: "That worked".
 - 2026-11-13: _`P7.1.1`_ approved at its checkpoint and committed (option chosen: "Approve and commit"); `check-p7.1.1/` working files deleted ("Delete it (Rec.)").
+- 2026-11-13: _`P7.1.2`_ planning started (option chosen: "Plan P7.1.2 (Rec.)"); TypeScript 7 found without the classic compiler API: recorded as _`K16`_ ("Record K16 (Rec.)"), with _`O45`_; go-ahead for a spike ("Spike all three (Rec.)").
+- 2026-11-13: _`K16`_ spike run (`./.workflow/.temp/spike-ts-typecheck/SPIKE.md`): the classic API works on 5.9 and 6.0; TypeScript 7's unstable API works on 7.0 and, with changed code, on 7.1's beta; `tsc` as a subprocess works only with the virtual files mirrored inside the host's `node_modules/.cache/`.
+- 2026-11-13: _`P7.1.2`_'s choices decided (Q1–Q14): the user chose "Let's not support TS7 for now" after the spike (_`D273`_, _`L12`_), TypeScript's defaults (_`D280`_), every error outside `node_modules` (_`D282`_, _`R16`_ on _`S6.7`_), one issue per showcase, `check?()` always returning `{ errors, warnings }` (_`D286`_), and Vite's types left to the host (_`D287`_); the rest as recommended ("Accept the nine (Rec.)").
+- 2026-11-13: _`P7.1.2`_ zero-context review started (option chosen: "Review first (Rec.)").
+- 2026-11-13: _`P7.1.2`_ zero-context review run (one agent, "approve with fixes", 17 findings; stray-write check clean; its `FINDINGS.md` refused by the harness, recorded in `review-p7.1.2/REVIEW.md`). After a pause to retrace the tsconfig decisions, the user chose the whole tsconfig ("Whole tsconfig (Rec.)", _`D288`_, replacing _`D279`_), errors only in reached files ("Files the showcase reaches (Rec.)", _`D289`_), a `ts({ allowJs })` option (the user's proposal, _`D290`_), and the 15 fixes ("Apply all (Rec.)", _`D291`_–_`D299`_); _`S6.7`_ revised again (_`R17`_).
+- 2026-11-13: _`P7.1.2`_ approved, and _`S6.7`_ re-approved (_`R16`_, _`R17`_) (option chosen: "Approve and commit (Rec.)"); `spike-ts-typecheck/`, `questions-p7.1.2/` and `review-p7.1.2/` working files deleted ("Delete them (Rec.)").
