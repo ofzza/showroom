@@ -13,7 +13,6 @@
 
 ## Waiting on me
 
-- `./.workflow/.temp/p9-check/` (the copy of `AGENTS.md` before formatting, and the built copy of this repository) can be deleted; ask first.
 - `./.workflow/.temp/spike-react-host/` (the _`K10`_ spike, written into `PLAN-P7-ts-react.md`) is kept until _`P7.2`_, at the user's request ("Keep until P7.2"); ask again then.
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
@@ -208,3 +207,4 @@
 - 2026-11-13: _`P9`_ Linked files approved, and _`S9`_ re-approved with _`R20`_ (option chosen: "Approve and commit (Rec.)"), without a zero-context review; `questions-p9-plan/` working files deleted with it.
 - 2026-11-13: _`P9`_ implemented (steps 1–6: collection, copying and serving, links and images, the modal, tests, documentation); the full test suite passed; awaiting the browser check and the checkpoint.
 - 2026-11-13: _`P9`_'s browser check passed ("Works great!"); _`P9`_ approved and committed (option chosen: "Approve and commit"), with _`D339`_ recording its deviations, and `PUBLISH.md` and `WORKFLOW.md` kept as linked files ("Keep as linked files (Rec.)"); _`L1`_ resolved, _`S9`_ implemented.
+- 2026-11-13: `p9-check/` working files deleted ("Delete it (Rec.)").
