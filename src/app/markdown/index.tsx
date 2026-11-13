@@ -13,7 +13,7 @@ import { Link, Tooltip, makeStyles, tokens } from '@fluentui/react-components';
 import type { DocumentationFile, LinkedFile } from '../../host/index.js';
 import { getOpeningTitleOffset } from '../../markdown/index.js';
 import { TOKEN_STYLES } from '../code/index.js';
-import { LinkedFileDialog } from '../files/index.js';
+import { LinkedFileDialog } from '../file-modal/index.js';
 import type { ShownShowcase } from '../host/index.js';
 import { resolveImage, resolveLink } from '../links/index.js';
 import { scrollToAnchor } from '../routing/index.js';

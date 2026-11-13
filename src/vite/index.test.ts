@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Alias, Plugin } from 'vite';
 import type { HostInformation, LinkedFile } from '../host/index.js';
+import { LINKED_FILES_FOLDER } from '../linked-files/index.js';
 import { getShowcaseFrameHash, type ShowcaseFrame } from '../showcases/index.js';
 import {
   HOST_MODULE_ID,
@@ -310,6 +311,15 @@ describe('vite', () => {
         middlewares: { use: (middleware: unknown) => used.push(middleware) },
       });
       expect(used).toHaveLength(1);
+    });
+
+    it("Never hides one of the showroom's own modules", () => {
+      // In serve, Vite serves the showroom's modules unbundled from its root, and the middleware answers every request in the linked files' folder:
+      // a folder of src/app/ named like it would be answered with a 404, leaving a blank page. See AGENTS.md › Linked files are handed out at
+      // `files/<path>`
+      const folders = readdirSync(fileURLToPath(new URL('../app/', import.meta.url)), { withFileTypes: true }).filter((entry) => entry.isDirectory());
+      expect(folders.length).toBeGreaterThan(0);
+      expect(folders.map((entry) => entry.name)).not.toContain(LINKED_FILES_FOLDER);
     });
   });
 

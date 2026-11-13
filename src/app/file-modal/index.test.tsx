@@ -26,7 +26,7 @@ function _render(element: React.ReactElement): string {
  */
 const _FILE: LinkedFile = { path: 'src/my index.ts', size: 30, text: true };
 
-describe('app/files', () => {
+describe('app/file-modal', () => {
   // Tests the modal's content by rendering it on the server with given content (effects don't run, and FluentUI's dialog renders through a portal,
   // so nothing of it is rendered on the server), and fetching a linked file with a stubbed `fetch`.
 

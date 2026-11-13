@@ -212,6 +212,8 @@ describe('cli/serve (serve)', () => {
     // Files in the host repository that aren't linked files
     expect((await fetch(new URL('files/README.md', url))).status).toBe(404);
     expect((await fetch(new URL('files/out/stale.txt', url))).status).toBe(404);
+    // The showroom's own modules, served unbundled, are never in the linked files' folder: the modal's module loads
+    expect((await fetch(new URL('file-modal/index.js', url))).status).toBe(200);
   });
 
   it('Stops at once with a signal aborted before it listens', async () => {
