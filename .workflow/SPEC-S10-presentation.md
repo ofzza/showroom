@@ -1,8 +1,12 @@
 # _`S10`_ Presenting showcases
 
-approved 2026-11-13 (option chosen: "Approve and commit (Rec.)"), after its zero-context review; edited 2026-11-13 after its zero-context review, before approval (`./.workflow/.temp/review-s10/`: Q1–Q12 settled, the user: "Discuss some", then "Yes, apply (Rec.)"; _`D352`_, _`D354`_, _`D360`_, _`D361`_, _`D363`_, _`D365`_, _`D368`_–_`D371`_ narrowed or completed; _`D372`_–_`D381`_ added; the decisions _`S10`_ changes marked)
+re-approved 2026-11-13 with _`R25`_ (option chosen: "Approve and commit (Rec.)"); approved 2026-11-13 (option chosen: "Approve and commit (Rec.)"), after its zero-context review; edited 2026-11-13 after its zero-context review, before approval (`./.workflow/.temp/review-s10/`: Q1–Q12 settled, the user: "Discuss some", then "Yes, apply (Rec.)"; _`D352`_, _`D354`_, _`D360`_, _`D361`_, _`D363`_, _`D365`_, _`D368`_–_`D371`_ narrowed or completed; _`D372`_–_`D381`_ added; the decisions _`S10`_ changes marked)
 
 How a showcase and its code are presented in the showroom: the code beside the showcase, link showcases shown as blocks, extra files shown (and made available to the build) with `include=`, every code block highlighted the same way, the console apart from what a showcase renders, and a cheat-sheet of the syntax. From the user's proposal of 2026-11-13, critiqued and iterated on freely ("Don't show a dialog until I say we're done iterating"), then settled.
+
+## Revisions
+
+- _`R25`_ 2026-11-13: the copy button is hidden where `navigator.clipboard` is missing (outside secure contexts), instead of being on every code block and tab everywhere, caused by _`D387`_ (PLAN-P10.2-code-blocks.md).
 
 ## Decisions
 
@@ -32,7 +36,7 @@ How a showcase and its code are presented in the showroom: the code beside the s
 ### Code blocks and links to files
 
 - _`D366`_ (`live`; the user's proposal 2026-11-13, #2: "All the code-blocks are presented using the exact same presentation that we're currently using in link showcase modals"; the user: "Always show line numbers so blocks next to each other remain aligned"): **Every code block is highlighted as the modal highlights**, with line numbers, whatever its length: ordinary code blocks, resources, and the code pane's tabs.
-- _`D367`_ (`live`; refines _`D366`_; the agent's re-evaluation, "As proposed (Rec.)"): **Line numbers are never copied**: they sit in a gutter that can't be selected, and every code block and tab has a copy button.
+- _`D367`_ (`live`, changed by _`D387`_ (PLAN-P10.2-code-blocks.md); refines _`D366`_; the agent's re-evaluation, "As proposed (Rec.)"): **Line numbers are never copied**: they sit in a gutter that can't be selected, and every code block and tab has a copy button.
 - _`D368`_ (`live`; the user's proposal 2026-11-13, #2: "A slight styling change to how the link showcases are rendered"; the review's Q8, the user: "I might prefer a \"code\"/\"syntax\" icon to a \"file\" icon. Otherwise agreed"): **Links to linked files are marked with a "code" icon** after the link, so they read differently from links to pages: every link to a linked file, including a linked showcase's shown inline; never an image.
 
 ### The console
