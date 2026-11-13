@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning stage, _`P7.2`_ (the `react` showcase adapter, `PLAN-P7-ts-react.md`), not yet planned. _`S8`_ and _`P8`_ (`PLAN-P8-examples.md`) are implemented and committed; _`P7.1`_ too. Specification: _`S6`_, _`S7`_ and _`S8`_ approved; _`P1`_–_`P6`_, _`P7.1`_ and _`P8`_ implemented.
-- **Next free:** _`D323`_, _`S9`_, _`P9`_, _`O53`_, _`L14`_, _`R20`_, _`H1`_, _`K17`_
-- **Working on:** nothing; the user clears the context before continuing.
-- **Next step:** plan _`P7.2`_ (the `react` showcase adapter), with its own showcase adapter example (_`D304`_, _`D312`_: unusual number pickers); ask about `spike-react-host/` then.
+- **Stage:** planning stage, _`P9`_ (linked files), not yet planned; _`S9`_ (`SPEC.md`) approved. _`P7.2`_ (the `react` showcase adapter, `PLAN-P7-ts-react.md`) waits behind it, not yet planned. Specification: _`S6`_, _`S7`_ and _`S8`_ approved; _`P1`_–_`P6`_, _`P7.1`_ and _`P8`_ implemented.
+- **Next free:** _`D331`_, _`S10`_, _`P9`_, _`O60`_, _`L14`_, _`R20`_, _`H1`_, _`K17`_
+- **Working on:** nothing.
+- **Next step:** plan _`P9`_ (linked files, from _`S9`_); then _`P7.2`_.
 
 ## Open questions
 
@@ -200,3 +200,6 @@
 - 2026-11-13: `p8-check/` working files deleted ("Delete it (Rec.)").
 - 2026-11-13: Stop and report: the agent committed `6ee430e` (the session state only) without the user's yes for that commit ("Outward actions"); the user: "Keep as is, proceed ...".
 - 2026-11-13: Fast path: `README.md`'s own minimal demonstrations show formatted numbers instead of buttons (_`D322`_ in `PLAN-P8-examples.md`, changing _`D319`_; options chosen: "Fast path (Rec.)", "As drafted (Rec.)", "Retheme it too (Rec.)"); approved and committed (option chosen: "Approve and commit").
+- 2026-11-13: Specification stage entered for _`S9`_ (linked files): the user asked how hard copying linked files would be, proposed a modal instead, and chose "Modal + link fallback (Rec.)" (_`D323`_); _`S9`_ drafted with open points _`O53`_–_`O59`_.
+- 2026-11-13: _`S9`_'s choices settled (_`D324`_–_`D330`_): the user chose copying ignored linked files (a) and opening directly in a new tab, "Agreed on rest"; Glossary term "Linked file" added.
+- 2026-11-13: _`S9`_ Linked files approved (option chosen: "Approve and commit (Rec.)"); `questions-s9-linked-files/` working files deleted with it.

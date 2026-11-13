@@ -125,6 +125,38 @@ From the discussion of 2026-11-13 (the agent's assessment), raised when specifyi
 - [x] _`O51`_ (resolved by _`D310`_) How nested `README.md` files show in the showroom's navigation (titles, grouping) with several examples: check it in a browser (e.g. on a copy, with one example dropped in) before writing them all.
 - [x] _`O52`_ (resolved by _`D311`_) Whether an example is a domain concept for the Glossary (e.g. "Showcase adapter example").
 
+## _`S9`_ Linked files
+
+approved 2026-11-13
+
+Keeping a documentation file's relative links to files that aren't documentation files (code files, images, any other file in the host repository) working in the showroom, instead of showing them as plain text (_`D38`_, _`D39`_, PLAN.md).
+
+- _`D323`_ (`live`, refined by _`D324`_–_`D330`_; changes _`D38`_, _`D39`_ (PLAN.md), _`D3`_, _`D12`_; picks up _`L1`_ (PLAN.md); from the agent's assessment of 2026-11-13, the user: "Alternatively, instead of linking them, in the showroom page, we make the links clickable, on click load the file content and display it syntax-highlighted in a modal?", then option chosen: "Modal + link fallback (Rec.)"): **Files that documentation files link to by a relative path are copied into the showroom**, and their links work there: a text file opens in a modal, syntax highlighted, its content loaded when the link is clicked; any other file (binary) opens directly, as the copied file. Relative images in Markdown are shown, from the copied files. Only linked files are copied, never whole folders. This is the first part of code browsing (_`D3`_, _`D12`_): showing a linked file's content, not the code file index. Rejected: embedding the files' content in the shown host information (every page load carries every linked file); a plain link to every copied file (static hosts send code files with content types browsers download or misread, e.g. `.ts` as `video/mp2t` on GitHub Pages).
+
+- _`D324`_ (`live`; refines _`D323`_, resolves _`O53`_; the user: "If someone wants to use `showroom` only locally it should still work. If it doesn't work in CI env due to `.gitignore` configuration that is a user-error, same as trying to run it in a env with no `node` installed."): **A linked file is copied even when the host repository ignores it** (_`D10`_): the link states the intent. A file that is missing where `showroom` runs (e.g. a build output not built in CI) is a broken link, warned about by `check` (_`D104`_). Rejected: not copying ignored files, with a warning; a `check` error.
+- _`D325`_ (`live`; refines _`D323`_, resolves _`O54`_; "Agreed on rest"): **Text or binary is decided by `check`, from the content**: valid UTF-8 with no NUL byte is text, whatever the file's name, and recorded in the host information. The highlighting language comes from the extension (or the file name), plain text when highlight.js doesn't know it. Rejected: a list of text extensions (misses `LICENSE`, `Makefile`, `.env.example`, and needs upkeep).
+- _`D326`_ (`live`; refines _`D323`_, resolves _`O55`_; the user: "Agreed, but 'open directly' should open in new tab - with the 'open in modal' being the default behavior, user won't expect to navigate away"): **Every linked file is copied, whatever its size; a text file over 1 MB opens directly instead of in the modal**, as highlighting it would freeze the page. **Opening a linked file directly (a binary file, a text file over 1 MB, or the modal's own link) opens it in a new tab**, so the reader never leaves the showroom. Rejected: a `check` warning above a size; no limit on the modal.
+- _`D327`_ (`live`; refines _`D323`_, resolves _`O56`_; "Agreed on rest"): **A link to a folder with no `README` stays plain text**, as before (_`D38`_, PLAN.md). Rejected: a listing of the folder (nothing linked its files).
+- _`D328`_ (`live`; refines _`D323`_, resolves _`O57`_; "Agreed on rest"): **`serve` hands out only the linked files, at the paths `build` writes them to**, so it shows what `build` publishes. Rejected: any file in the host repository.
+- _`D329`_ (`live`; refines _`D323`_, resolves _`O58`_; "Agreed on rest"): **The modal shows the linked file's path as its title, its content highlighted with line numbers, a link opening the file directly (_`D326`_), and a close button.** A link's fragment is ignored for now; GitHub-style line fragments (`#L10`, `#L10-L20`) are in "Ideas and later". Rejected: handling line fragments now.
+- _`D330`_ (`live`; refines _`D323`_, resolves _`O59`_; "Agreed on rest"): **"Linked file" is a Glossary term** (`CONTRIBUTE.md`).
+
+### Ideas and later
+
+- GitHub-style line fragments in links to linked files (`#L10`, `#L10-L20`): scrolling to and marking the lines in the modal (_`D329`_).
+
+### Open points
+
+From the specification of _`S9`_ (2026-11-13), discussed in `./.workflow/.temp/questions-s9-linked-files/QUESTIONS.md`:
+
+- [x] _`O53`_ (resolved by _`D324`_) Linked files the host repository ignores (_`D10`_), e.g. `.env` or `dist/`.
+- [x] _`O54`_ (resolved by _`D325`_) How a text file is told apart from a binary one.
+- [x] _`O55`_ (resolved by _`D326`_) Large files: a size limit, a warning, or the modal only up to a size.
+- [x] _`O56`_ (resolved by _`D327`_) Links to folders with no `README`.
+- [x] _`O57`_ (resolved by _`D328`_) What `serve` hands out: only the linked files, or any file in the host repository.
+- [x] _`O58`_ (resolved by _`D329`_) What the modal holds besides the highlighted content, and a link's fragment (e.g. `#L10`).
+- [x] _`O59`_ (resolved by _`D330`_) Whether "Linked file" is a Glossary term.
+
 ## Pitfalls
 
 [See Pitfalls](./SPEC-pitfalls.md)
