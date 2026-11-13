@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning stage, _`P9`_ (linked files), not yet planned; _`S9`_ (`SPEC.md`) approved. _`P7.2`_ (the `react` showcase adapter, `PLAN-P7-ts-react.md`) waits behind it, not yet planned. Specification: _`S6`_, _`S7`_ and _`S8`_ approved; _`P1`_–_`P6`_, _`P7.1`_ and _`P8`_ implemented.
-- **Next free:** _`D331`_, _`S10`_, _`P9`_, _`O60`_, _`L14`_, _`R20`_, _`H1`_, _`K17`_
+- **Stage:** implementation stage, _`P9`_ (linked files, `PLAN-P9-linked-files.md`), approved, not yet started; _`S9`_ (`SPEC.md`) re-approved. _`P7.2`_ (the `react` showcase adapter, `PLAN-P7-ts-react.md`) waits behind it, not yet planned. Specification: _`S6`_, _`S7`_ and _`S8`_ approved; _`P1`_–_`P6`_, _`P7.1`_ and _`P8`_ implemented.
+- **Next free:** _`D339`_, _`S10`_, _`P10`_, _`O60`_, _`L14`_, _`R21`_, _`H1`_, _`K17`_
 - **Working on:** nothing.
-- **Next step:** plan _`P9`_ (linked files, from _`S9`_); then _`P7.2`_.
+- **Next step:** implement _`P9`_ (steps 1–7); then _`P7.2`_.
 
 ## Open questions
 
@@ -203,3 +203,5 @@
 - 2026-11-13: Specification stage entered for _`S9`_ (linked files): the user asked how hard copying linked files would be, proposed a modal instead, and chose "Modal + link fallback (Rec.)" (_`D323`_); _`S9`_ drafted with open points _`O53`_–_`O59`_.
 - 2026-11-13: _`S9`_'s choices settled (_`D324`_–_`D330`_): the user chose copying ignored linked files (a) and opening directly in a new tab, "Agreed on rest"; Glossary term "Linked file" added.
 - 2026-11-13: _`S9`_ Linked files approved (option chosen: "Approve and commit (Rec.)"); `questions-s9-linked-files/` working files deleted with it.
+- 2026-11-13: _`P9`_ Linked files drafted; choices Q1–Q6 settled as recommended (_`D331`_–_`D337`_); _`S9`_ revised (_`R20`_, by _`D334`_); statuses of _`D3`_, _`D12`_, _`D38`_, _`D39`_ and _`L1`_ updated for _`D323`_.
+- 2026-11-13: _`P9`_ Linked files approved, and _`S9`_ re-approved with _`R20`_ (option chosen: "Approve and commit (Rec.)"), without a zero-context review; `questions-p9-plan/` working files deleted with it.

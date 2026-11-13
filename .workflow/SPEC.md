@@ -58,7 +58,7 @@ approved 2026-11-09
 
 - _`D1`_ (`live`): First stack adapter: a TypeScript stack adapter (`package.json`; TypeScript and JavaScript files as code). Rejected: a React-only adapter (nothing React-specific to do yet), and no adapter (postpones the interface).
 - _`D2`_ (`live`): The showroom is a generated Vite project, built against the host repository. Rejected: a prebuilt SPA shipped in the package with a data file (simpler now, but showcases would need a bundler anyway; see _`K1`_).
-- _`D3`_ (`live`): Code files: only an index of their paths for now, no contents. Showing contents can come later, through SCM adapters. Rejected: a source browser, and API docs extracted from the code.
+- _`D3`_ (`live`, changed by _`D323`_): Code files: only an index of their paths for now, no contents. Showing contents can come later, through SCM adapters. Rejected: a source browser, and API docs extracted from the code.
 - _`D4`_ (`live`): A one-shot `showroom build` CLI command, plus `showroom serve`, a dev server reloading on documentation changes (updated 2026-11-09: the user asked for `serve`, replacing a development-only preview script; originally no watch mode or dev server).
 - _`D5`_ (`live`): Configuration: a JSON config file at the host root, `showroom.json`, plus CLI flags overriding it. The file is mandatory, and `stack` is required in it (updated 2026-11-09, from _`P1`_'s _`D27`_). A typed `showroom.{js,ts}` may come later.
 - _`D6`_ (`live`): Markdown: root `README`/`CONTRIBUTE`/`LICENSE`, `README` anywhere, plus files the stack adapter or the configuration adds. Rejected: root only; source root only.
@@ -67,7 +67,7 @@ approved 2026-11-09
 - _`D9`_ (`live`): Theming: FluentUI's built-in light and dark themes, with a toggle; no custom theming for now.
 - _`D10`_ (`live`): Which files are ignored, which count as code, and which are documentation are each set by a list of `.gitignore`-style patterns: the stack adapter's (e.g. ignoring `node_modules` for TypeScript, `bin` and `obj` for .NET) come first, and the configuration's extend them, re-including files with `!` (updated 2026-11-09, from _`P1`_'s _`D28`_ and _`D34`_). Rejected: the host's `.gitignore`; only git-tracked files; configuration-only exclusions.
 - _`D11`_ (`live`): The adapters for where the host repository's code is kept are called SCM adapters (source code management). Rejected: "SVC adapter" (not an established abbreviation), "Hosting adapter" (confusable with where the showroom is published), "Repository adapter" (confusable with the host repository).
-- _`D12`_ (`live`; supersedes _`D43`_ (PLAN.md)): The showroom shows the project information and the documentation files only; the code file index is collected but not shown yet (code browsing comes later). Code blocks in rendered Markdown are syntax highlighted (a must-have the user added, 2026-11-09).
+- _`D12`_ (`live`, changed by _`D323`_; supersedes _`D43`_ (PLAN.md)): The showroom shows the project information and the documentation files only; the code file index is collected but not shown yet (code browsing comes later). Code blocks in rendered Markdown are syntax highlighted (a must-have the user added, 2026-11-09).
 
 ## _`S6`_ Showcases
 
@@ -81,7 +81,7 @@ approved 2026-11-12
 
 Keeping the documentation itself from drifting, alongside its showcases (_`D102`_, SPEC-S6-showcases.md).
 
-- _`D104`_ (`live`): **`check` warns about broken relative links in documentation files**: a link whose target file or folder doesn't exist in the host repository. They stay shown as plain text (_`D38`_, PLAN.md); the warning makes them visible in CI. Checking a link's heading fragment against the target's heading ids is in "Ideas and later".
+- _`D104`_ (`live`, refined by _`D335`_ (PLAN-P9-linked-files.md)): **`check` warns about broken relative links in documentation files**: a link whose target file or folder doesn't exist in the host repository. They stay shown as plain text (_`D38`_, PLAN.md); the warning makes them visible in CI. Checking a link's heading fragment against the target's heading ids is in "Ideas and later".
 
 ### Ideas and later
 
@@ -127,13 +127,15 @@ From the discussion of 2026-11-13 (the agent's assessment), raised when specifyi
 
 ## _`S9`_ Linked files
 
-approved 2026-11-13
+approved 2026-11-13; revised 2026-11-13 (_`R20`_); re-approved 2026-11-13
+
+- _`R20`_ 2026-11-13: a link into the output folder isn't copied, an exception to _`D324`_, caused by _`D334`_ (PLAN-P9-linked-files.md).
 
 Keeping a documentation file's relative links to files that aren't documentation files (code files, images, any other file in the host repository) working in the showroom, instead of showing them as plain text (_`D38`_, _`D39`_, PLAN.md).
 
 - _`D323`_ (`live`, refined by _`D324`_–_`D330`_; changes _`D38`_, _`D39`_ (PLAN.md), _`D3`_, _`D12`_; picks up _`L1`_ (PLAN.md); from the agent's assessment of 2026-11-13, the user: "Alternatively, instead of linking them, in the showroom page, we make the links clickable, on click load the file content and display it syntax-highlighted in a modal?", then option chosen: "Modal + link fallback (Rec.)"): **Files that documentation files link to by a relative path are copied into the showroom**, and their links work there: a text file opens in a modal, syntax highlighted, its content loaded when the link is clicked; any other file (binary) opens directly, as the copied file. Relative images in Markdown are shown, from the copied files. Only linked files are copied, never whole folders. This is the first part of code browsing (_`D3`_, _`D12`_): showing a linked file's content, not the code file index. Rejected: embedding the files' content in the shown host information (every page load carries every linked file); a plain link to every copied file (static hosts send code files with content types browsers download or misread, e.g. `.ts` as `video/mp2t` on GitHub Pages).
 
-- _`D324`_ (`live`; refines _`D323`_, resolves _`O53`_; the user: "If someone wants to use `showroom` only locally it should still work. If it doesn't work in CI env due to `.gitignore` configuration that is a user-error, same as trying to run it in a env with no `node` installed."): **A linked file is copied even when the host repository ignores it** (_`D10`_): the link states the intent. A file that is missing where `showroom` runs (e.g. a build output not built in CI) is a broken link, warned about by `check` (_`D104`_). Rejected: not copying ignored files, with a warning; a `check` error.
+- _`D324`_ (`live`, changed by _`D334`_ (PLAN-P9-linked-files.md); refines _`D323`_, resolves _`O53`_; the user: "If someone wants to use `showroom` only locally it should still work. If it doesn't work in CI env due to `.gitignore` configuration that is a user-error, same as trying to run it in a env with no `node` installed."): **A linked file is copied even when the host repository ignores it** (_`D10`_): the link states the intent. A file that is missing where `showroom` runs (e.g. a build output not built in CI) is a broken link, warned about by `check` (_`D104`_). Rejected: not copying ignored files, with a warning; a `check` error.
 - _`D325`_ (`live`; refines _`D323`_, resolves _`O54`_; "Agreed on rest"): **Text or binary is decided by `check`, from the content**: valid UTF-8 with no NUL byte is text, whatever the file's name, and recorded in the host information. The highlighting language comes from the extension (or the file name), plain text when highlight.js doesn't know it. Rejected: a list of text extensions (misses `LICENSE`, `Makefile`, `.env.example`, and needs upkeep).
 - _`D326`_ (`live`; refines _`D323`_, resolves _`O55`_; the user: "Agreed, but 'open directly' should open in new tab - with the 'open in modal' being the default behavior, user won't expect to navigate away"): **Every linked file is copied, whatever its size; a text file over 1 MB opens directly instead of in the modal**, as highlighting it would freeze the page. **Opening a linked file directly (a binary file, a text file over 1 MB, or the modal's own link) opens it in a new tab**, so the reader never leaves the showroom. Rejected: a `check` warning above a size; no limit on the modal.
 - _`D327`_ (`live`; refines _`D323`_, resolves _`O56`_; "Agreed on rest"): **A link to a folder with no `README` stays plain text**, as before (_`D38`_, PLAN.md). Rejected: a listing of the folder (nothing linked its files).
