@@ -195,10 +195,27 @@ A `ts` showcase's entry point is a TypeScript or JavaScript module, which `showr
 
 ````md
 ```ts showcase=ts
-const button = document.createElement('button');
-let clicks = 0;
+enum Mood {
+  Calm = 'calm',
+  Busy = 'busy',
+  Frantic = 'frantic',
+}
+
+interface Click {
+  count: number;
+  mood: Mood;
+  at: string;
+}
+
+const moodOf = (count: number): Mood => (count < 3 ? Mood.Calm : count < 6 ? Mood.Busy : Mood.Frantic);
+
+const button: HTMLButtonElement = document.createElement('button');
+let clicks: number = 0;
 button.textContent = 'Click me';
-button.onclick = () => console.log('Clicked', ++clicks, { at: new Date().toISOString() });
+button.onclick = (): void => {
+  const click: Click = { count: ++clicks, mood: moodOf(clicks), at: new Date().toISOString() };
+  console.log('Clicked', click);
+};
 document.getElementById('root')!.append(button);
 console.info('Ready');
 ```
@@ -207,10 +224,27 @@ console.info('Ready');
 > Here is that block again, live (click the button to see the console panel grow):
 >
 > ```ts showcase=ts
-> const button = document.createElement('button');
-> let clicks = 0;
+> enum Mood {
+>   Calm = 'calm',
+>   Busy = 'busy',
+>   Frantic = 'frantic',
+> }
+>
+> interface Click {
+>   count: number;
+>   mood: Mood;
+>   at: string;
+> }
+>
+> const moodOf = (count: number): Mood => (count < 3 ? Mood.Calm : count < 6 ? Mood.Busy : Mood.Frantic);
+>
+> const button: HTMLButtonElement = document.createElement('button');
+> let clicks: number = 0;
 > button.textContent = 'Click me';
-> button.onclick = () => console.log('Clicked', ++clicks, { at: new Date().toISOString() });
+> button.onclick = (): void => {
+>   const click: Click = { count: ++clicks, mood: moodOf(clicks), at: new Date().toISOString() };
+>   console.log('Clicked', click);
+> };
 > document.getElementById('root')!.append(button);
 > console.info('Ready');
 > ```
