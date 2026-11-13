@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning stage; _`P10`_ Presenting showcases (`PLAN-P10-presentation.md`) approved for its split into _`P10.1`_–_`P10.5`_ and their order (_`D382`_–_`D385`_). _`P1`_–_`P9`_ implemented.
+- **Stage:** implementation stage (_`P10.1`_); _`P10`_ Presenting showcases (`PLAN-P10-presentation.md`) approved for its split into _`P10.1`_–_`P10.5`_ and their order (_`D382`_–_`D385`_). _`P1`_–_`P9`_ implemented.
 - **Next free:** _`D386`_, _`S11`_, _`P11`_, _`O67`_, _`L14`_, _`R25`_, _`H1`_, _`K20`_
-- **Working on:** nothing.
-- **Next step:** plan _`P10.1`_ The rename (`PLAN-P10.1-rename.md`).
+- **Working on:** _`P10.1`_ The rename (`PLAN-P10.1-rename.md`), approved; implementation stage.
+- **Next step:** implement _`P10.1`_, then its checkpoint.
 
 ## Open questions
 
@@ -221,3 +221,5 @@
 - 2026-11-13: _`S10`_ Presenting showcases approved, and _`S6.5`_, _`S6.7`_ and _`S9`_ re-approved with _`R22`_–_`R24`_ (option chosen: "Approve and commit (Rec.)"); Glossary changes applied to `CONTRIBUTE.md` ("Code block showcase", "Code pane", "Included file", and four entries updated); `review-s10/` working files deleted ("Delete it (Rec.)").
 - 2026-11-13: Planning stage entered for _`P10`_ Presenting showcases: `PLAN-P10-presentation.md` drafted; its 4 choices settled as recommended (_`D382`_–_`D385`_: "Five children (Rec.)", "As listed (Rec.)", "One at a time (Rec.)", "Spike before P10.4 (Rec.)"); _`O61`_, _`O66`_ and _`K19`_ resolved.
 - 2026-11-13: _`P10`_ Presenting showcases approved, for its split and order (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
+- 2026-11-13: _`P10.1`_ The rename drafted (`PLAN-P10.1-rename.md`), with no choices left beyond _`D371`_ and _`D381`_.
+- 2026-11-13: _`P10.1`_ The rename approved (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
