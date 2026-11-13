@@ -1,6 +1,6 @@
 /**
- * Internals of the check shared with `showroom serve` and `showroom build`, and so not re-exported: the output folder, the ignore matcher (which
- * files of a host repository are ignored), and the formatting of check issues as output
+ * Internals of the check shared with `showroom serve`, `showroom build` and the `ts` showcase adapter, and so not re-exported: the output folder,
+ * the ignore matcher (which files of a host repository are ignored), the formatting of check issues as output, and the bundler warnings left out
  */
 
 import ignore, { type Ignore } from 'ignore';
@@ -100,5 +100,15 @@ export function formatIssues(issues: CheckIssue[]): string {
     .map((issue) => `${issue.severity}: ${issue.path ? `${issue.path}${issue.line !== undefined ? `:${issue.line}` : ''}: ` : ''}${issue.message}\n`)
     .join('');
 }
+
+// #endregion
+
+// #region Silenced warnings
+
+/**
+ * Codes of the bundler warnings left out of the output of `build`, and of the `ts` showcase adapter's build warnings: FluentUI's and Griffel's
+ * `'use client'` directives (and any other package's), which only matter to server-side React frameworks, and are warned about once per file
+ */
+export const SILENCED_WARNINGS: readonly string[] = ['MODULE_LEVEL_DIRECTIVE'];
 
 // #endregion

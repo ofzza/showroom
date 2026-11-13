@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation (_`P6`_ done). Specification: _`S6`_ Showcases (with _`S6.5`_ Showcases in Markdown and _`S6.6`_ Showcase adapters) and _`S7`_ Documentation checks approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_ and _`P6`_ are implemented and committed.
-- **Next free:** _`D229`_, _`S8`_, _`P7`_, _`O29`_, _`L11`_, _`R14`_, _`H1`_, _`K15`_
-- **Working on:** nothing; _`P6`_ Publishing this repository's own showroom implemented and committed.
-- **Next step:** the next segment (e.g. _`L10`_), or a release (the showroom is first published when it reaches `master`).
+- **Stage:** planning stage, _`P7.2`_ (the `react` showcase adapter, `PLAN-P7-ts-react.md`), not yet planned. _`S8`_ and _`P8`_ (`PLAN-P8-examples.md`) are implemented and committed; _`P7.1`_ too. Specification: _`S6`_, _`S7`_ and _`S8`_ approved; _`P1`_–_`P6`_, _`P7.1`_ and _`P8`_ implemented.
+- **Next free:** _`D323`_, _`S9`_, _`P9`_, _`O53`_, _`L14`_, _`R20`_, _`H1`_, _`K17`_
+- **Working on:** nothing; the user clears the context before continuing.
+- **Next step:** plan _`P7.2`_ (the `react` showcase adapter), with its own showcase adapter example (_`D304`_, _`D312`_: unusual number pickers); ask about `spike-react-host/` then.
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/spike-react-host/` (the _`K10`_ spike, written into `PLAN-P7-ts-react.md`) is kept until _`P7.2`_, at the user's request ("Keep until P7.2"); ask again then.
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
@@ -150,3 +151,52 @@
 - 2026-11-12: _`P6`_ implemented (steps 1–6): `npm run ci` green (604 unit, 6 integration, 11 end-to-end, 3 serve tests, and `ci:showroom`); a trial build of a copy of this repository with the workflow's command checked in Playwright; _`O27`_ resolved.
 - 2026-11-12: _`P6`_ checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"); `trial-p6/` working files deleted.
 - 2026-11-12: The user set up GitHub Pages ("I've updated GitHub settings as instructed"); checked through the API: Pages built by GitHub Actions, `master` allowed in the `github-pages` environment.
+- 2026-11-12: `showcases` pushed and pull request #2 opened into `develop` (option chosen: "Push + open PR").
+- 2026-11-12: Pull request #2 (`showcases` into `develop`) and #3 (`develop` into `master`) merged; CI and the Showroom workflow passed on `master`, so the showroom is published to GitHub Pages. Dependabot's pull request #1 fails CI (not yet looked into).
+- 2026-11-12: Next: the React showcase format (option chosen: "React showcases"); session state committed and `develop` pushed (option chosen: "Record + push (Rec.)").
+- 2026-11-12: React showcase format discussion started; first round answered: Q1 "ts + react (Rec.)" (_`D229`_, new _`S6.7`_), Q2 "Default export (Rec.)" (_`D230`_), Q3 no host-wide setup and no wrapper option (the user: "No host-wide setup: each showcase wraps itself. No option to name a wrapper in its options for now!"; _`D231`_), Q4 "Spec, then spike (Rec.)" (_`D232`_); _`R14`_ on _`S6.3`_.
+- 2026-11-12: Round 2 of the `ts` and React formats answered (option chosen: "Accept all (Rec.)"): _`D233`_–_`D236`_ (_`S6.7`_), _`D237`_–_`D241`_ (_`S6.3`_); _`O16`_ resolved.
+- 2026-11-12: _`S6.7`_ approved and _`S6.3`_ re-approved with _`R14`_, without a zero-context review (option chosen: "Approve and commit (Rec.)").
+- 2026-11-12: `questions-ts-react-format/` working files deleted ("Delete it (Rec.)"); _`P7`_ (the `ts` and `react` showcase adapters) to be planned in a fresh session (option chosen: "Plan in fresh session (Rec.)").
+- 2026-11-12: _`P7`_ planning started (option chosen: "Start planning P7 (Rec.)"); _`K10`_ spike go-ahead with the _`O20`_ npm alias ("Spike + O20 alias (Rec.)"), its fake hosts in the session scratch directory ("Session scratch dir (Rec.)").
+- 2026-11-12: _`K10`_ spike run: a host's React 18 (and 19) built and served by `showroom`'s Vite 8 from virtual files, in Chromium; the npm alias for React 18 (_`O20`_) fails to install (peer conflict), a fixture's own install works. Results in `spike-react-host/RESULTS.md`.
+- 2026-11-12: Spike conclusions accepted ("Accept (Rec.)"); _`P7`_ segmented into _`P7.1`_ `ts` and _`P7.2`_ `react` ("P7.1 ts, P7.2 react (Rec.)", _`D242`_); `serve` rebuilds them on change ("Rebuild, as html (Rec.)", _`D243`_, _`L11`_); _`K10`_, _`K14`_ and _`O20`_ resolved (_`D244`_, _`D245`_).
+- 2026-11-12: _`P7`_ zero-context review started before approval (option chosen: "Review first"); _`P7.1`_ to be planned in a fresh session ("Plan P7.1 in fresh session (Rec.)").
+- 2026-11-12: _`P7`_ zero-context review run (one subagent; verdict "approve with fixes"; stray-write check clean): 18 findings, triage applied (option chosen: "Apply all (Rec.)"): 10 fixes (_`D244`_ narrowed to bundling, _`K10`_, _`K14`_ and _`O20`_ reopened in part, statuses and file names), 8 open points (_`O30`_–_`O43`_).
+- 2026-11-13: _`P7`_ approved (option chosen: "Approve and commit (Rec.)"); `review-p7/` working files deleted ("Delete it (Rec.)").
+- 2026-11-13: _`P7.1`_ planning started; split into _`P7.1.1`_ building and _`P7.1.2`_ type checking, `ts` showcases staying in the browser (option chosen: "Browser, 2 children (Rec.)", _`D246`_; _`O37`_ resolved).
+- 2026-11-13: _`P7.1.1`_'s choices decided (_`D247`_–_`D258`_): Q1–Q9 and Q11 as recommended ("Discuss some", only Q10 named); Q10 "B + custom modules (Rec.)" (_`D256`_ replaces _`D206`_ (PLAN-P4.3-serve.md)); Q13 "Showcase frame root (Rec.)" and "Keep 'Console panel' (Rec.)" (_`D258`_); _`S6.7`_ revised (_`R15`_), pending re-approval with _`P7.1.1`_; pitfall _`K15`_ raised.
+- 2026-11-13: _`K15`_ spike run ("Spike now (Rec.)"): Vite 8.3.7 resolves a host's own package by its name through `exports`; _`K15`_ and _`O44`_ resolved (_`D259`_). Results in `spike-self-reference/RESULTS.md`.
+- 2026-11-13: Q14 decided ("mode in the request (Rec.)", _`D260`_); _`P7.1.1`_ drafted (goals, steps, documentation and tests).
+- 2026-11-13: _`P7.1.1`_ zero-context review started (option chosen: "Review first (Rec.)").
+- 2026-11-13: _`P7.1.1`_ zero-context review run (one subagent; "approve with fixes"; stray-write check clean): 14 findings; 11 fixes ("Apply all (Rec.)"), and 3 questions: the console panel's growth ("Both"), virtual CSS by `@import` ("Document, not support (Rec.)"), build warnings ("Add it now"); recorded as _`D261`_–_`D270`_.
+- 2026-11-13: _`P7.1.1`_ approved, and _`S6.7`_ re-approved (_`R15`_) (option chosen: "Approve and commit (Rec.)"); `questions-p7.1.1/`, `spike-self-reference/` and `review-p7.1.1/` working files deleted ("Delete them (Rec.)").
+- 2026-11-13: _`P7.1.1`_ implemented (steps 1–8, documentation and tests); 10 `ts` showcases build in about 0.1 s (_`D255`_: below 2 s, so _`O28`_ (PLAN-P4.3-serve.md) stays open); awaiting its checkpoint.
+- 2026-11-13: _`P7.1.1`_'s checkpoint: Q1 "Typed data: URL (Rec.)" (_`D271`_, applied); checkpoint answer "Discuss".
+- 2026-11-13: _`P7.1.1`_'s by-hand check: all but step 5 work; step 5's failure (a rebuilt `dist/` never seen) fixed by Q2 "Keep while failing (Rec.)" (_`D272`_).
+- 2026-11-13: _`P7.1.1`_'s by-hand step 5 rechecked after _`D272`_: the user: "That worked".
+- 2026-11-13: _`P7.1.1`_ approved at its checkpoint and committed (option chosen: "Approve and commit"); `check-p7.1.1/` working files deleted ("Delete it (Rec.)").
+- 2026-11-13: _`P7.1.2`_ planning started (option chosen: "Plan P7.1.2 (Rec.)"); TypeScript 7 found without the classic compiler API: recorded as _`K16`_ ("Record K16 (Rec.)"), with _`O45`_; go-ahead for a spike ("Spike all three (Rec.)").
+- 2026-11-13: _`K16`_ spike run (`./.workflow/.temp/spike-ts-typecheck/SPIKE.md`): the classic API works on 5.9 and 6.0; TypeScript 7's unstable API works on 7.0 and, with changed code, on 7.1's beta; `tsc` as a subprocess works only with the virtual files mirrored inside the host's `node_modules/.cache/`.
+- 2026-11-13: _`P7.1.2`_'s choices decided (Q1–Q14): the user chose "Let's not support TS7 for now" after the spike (_`D273`_, _`L12`_), TypeScript's defaults (_`D280`_), every error outside `node_modules` (_`D282`_, _`R16`_ on _`S6.7`_), one issue per showcase, `check?()` always returning `{ errors, warnings }` (_`D286`_), and Vite's types left to the host (_`D287`_); the rest as recommended ("Accept the nine (Rec.)").
+- 2026-11-13: _`P7.1.2`_ zero-context review started (option chosen: "Review first (Rec.)").
+- 2026-11-13: _`P7.1.2`_ zero-context review run (one agent, "approve with fixes", 17 findings; stray-write check clean; its `FINDINGS.md` refused by the harness, recorded in `review-p7.1.2/REVIEW.md`). After a pause to retrace the tsconfig decisions, the user chose the whole tsconfig ("Whole tsconfig (Rec.)", _`D288`_, replacing _`D279`_), errors only in reached files ("Files the showcase reaches (Rec.)", _`D289`_), a `ts({ allowJs })` option (the user's proposal, _`D290`_), and the 15 fixes ("Apply all (Rec.)", _`D291`_–_`D299`_); _`S6.7`_ revised again (_`R17`_).
+- 2026-11-13: _`P7.1.2`_ approved, and _`S6.7`_ re-approved (_`R16`_, _`R17`_) (option chosen: "Approve and commit (Rec.)"); `spike-ts-typecheck/`, `questions-p7.1.2/` and `review-p7.1.2/` working files deleted ("Delete them (Rec.)").
+- 2026-11-13: Fast path: this repository's TypeScript upgraded from 5.9.3 to 6.0.3 (the user: "Let's fastpath the upgrade to 6.0.3"): no code changes needed, `npm run ci` green; `AGENTS.md`'s toolchain line updated; _`D300`_ changes _`D275`_ (tests on 6.0), _`P7.1.2`_ revised, pending re-approval; awaiting the checkpoint.
+- 2026-11-13: The TypeScript 6.0.3 fast path approved and committed, and _`P7.1.2`_ re-approved with _`D300`_ (option chosen: "Approve and commit").
+- 2026-11-13: _`P7.1.2`_ implemented (option chosen: "Implement P7.1.2 (Rec.)"): `check?(root, showcases)` returning `{ errors, warnings }`, type checking with the host's TypeScript (`src/adapters/showcase/ts/typecheck/`), the `allowJs` option; `showcase-ts-types` and `showcase-ts-defaults` fixtures; `npm run ci` green; _`K10`_ and _`K14`_ updated; awaiting the checkpoint.
+- 2026-11-13: _`P7.1.2`_ approved and committed (option chosen: "Approve and commit"), with _`D301`_ recorded for the fixtures' TypeScript 6.0 deviation (option chosen: "Record D301 (Rec.)") and re-approved with it, and "Host requirement" added to the Glossary (option chosen: "Add it (Rec.)"); _`P7.1`_ implemented.
+- 2026-11-13: Fast path: `README.md`'s `ts` showcase example (and its live copy) typed throughout, with an `enum` and an `interface` (option chosen: "Fast path, as drafted (Rec.)"); `npm run ci` green; approved and committed (option chosen: "Approve and commit").
+- 2026-11-13: _`S8`_ (showcase adapter examples) recorded as a draft specification segment from the user's proposal ("per showcase adapter `./examples/<adapter type>/README.md`s which will show up in the main `showroom`"), with _`D302`_–_`D304`_ and the agent's assessment as open points _`O46`_–_`O52`_; the user: "Let's proceed with the examples before react adapter. Let's document and commit what we discussed, mark it as next step".
+- 2026-11-13: _`S8`_'s open points _`O46`_–_`O52`_ resolved: _`D305`_ ("Keep, shortened (Rec.)"), _`D306`_ ("Both (Rec.)"), _`D307`_ ("Repo deps + own tsconfig (Rec.)"), _`D308`_ ("Accept it (Rec.)"), _`D309`_ (the user: "Move to `examples/html/` if it is also being used by the `examples/html/README.md`. Ideally, let's make all the adapter specific links in the root README.md link to particular example showcases from the broader example README.md files ..."), _`D310`_ ("You check a served copy (Rec.)"), _`D311`_ ("Add it (Rec.)": "Showcase adapter example" added to the Glossary).
+- 2026-11-13: _`S8`_ approved (option chosen: "Approve and commit (Rec.)").
+- 2026-11-13: _`P8`_ planning started. The user's navigation check on a served copy (_`D310`_): "Fine as is for now. We'll need to address the ability to customize the menu at some later point ..." (_`L13`_). The user's direction for the examples, and the agent's suggestions ("Agreed across the board"): _`D312`_–_`D315`_, revising _`S8`_ (_`R18`_), pending re-approval.
+- 2026-11-13: _`S8`_ re-approved with _`R18`_ (option chosen: "Re-approve and commit (Rec.)").
+- 2026-11-13: _`P8`_ drafted (`PLAN-P8-examples.md`): _`D316`_ ("One segment"), _`D317`_ ("Integration test (Rec.)"), _`D318`_ ("Same, in examples/number-table/"), _`D319`_ ("Keep as they are (Rec.)"), _`D320`_ ("Go with these (Rec.)"; changes _`D313`_, revising _`S8`_, _`R19`_).
+- 2026-11-13: _`P8`_ approved, and _`S8`_ re-approved with _`R19`_, without a zero-context review (option chosen: "Approve and commit").
+- 2026-11-13: Stop and report: the agent deleted the working-files folder `.workflow/.temp/nav-check-s8/` without asking first ("Working files"); nothing in it was unique; the user: "Resume ...".
+- 2026-11-13: _`P8`_ implemented: the `html` (`numerals`), `ts` (`tempo`) and `number-table` showcase adapter examples, `README.md` restructured around them, the link guard (_`D317`_); `npm run ci` green; awaiting the checkpoint.
+- 2026-11-13: _`P8`_ approved and committed (option chosen: "Approve and commit"), with _`D321`_ recording its four deviations; _`S8`_ implemented.
+- 2026-11-13: `p8-check/` working files deleted ("Delete it (Rec.)").
+- 2026-11-13: Stop and report: the agent committed `6ee430e` (the session state only) without the user's yes for that commit ("Outward actions"); the user: "Keep as is, proceed ...".
+- 2026-11-13: Fast path: `README.md`'s own minimal demonstrations show formatted numbers instead of buttons (_`D322`_ in `PLAN-P8-examples.md`, changing _`D319`_; options chosen: "Fast path (Rec.)", "As drafted (Rec.)", "Retheme it too (Rec.)"); approved and committed (option chosen: "Approve and commit").

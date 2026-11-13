@@ -1,0 +1,10 @@
+[
+  { "planet": "Mercury", "distance from the Sun (km)": 57909227, "moons": 0, "day (hours)": 4222.6 },
+  { "planet": "Venus", "distance from the Sun (km)": 108209475, "moons": 0, "day (hours)": 2802 },
+  { "planet": "Earth", "distance from the Sun (km)": 149598262, "moons": 1, "day (hours)": 24 },
+  { "planet": "Mars", "distance from the Sun (km)": 227943824, "moons": 2, "day (hours)": 24.7 },
+  { "planet": "Jupiter", "distance from the Sun (km)": 778340821, "moons": 95, "day (hours)": 9.9 },
+  { "planet": "Saturn", "distance from the Sun (km)": 1426666422, "moons": 146, "day (hours)": 10.7 },
+  { "planet": "Uranus", "distance from the Sun (km)": 2870658186, "moons": 28, "day (hours)": 17.2 },
+  { "planet": "Neptune", "distance from the Sun (km)": 4498396441, "moons": 16, "day (hours)": 16.1 }
+]

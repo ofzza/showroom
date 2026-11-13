@@ -9,7 +9,8 @@ import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { SHOWCASE_ADAPTER_NAME } from '../../../markdown/index.js';
 import { HtmlShowcaseAdapter } from '../html/index.js';
-import type { ShowcaseAdapter } from '../index.js';
+import type { ShowcaseAdapter, ShowcaseHostCheck } from '../index.js';
+import { TsShowcaseAdapter } from '../ts/index.js';
 
 // #region Built-in showcase adapters
 
@@ -18,12 +19,13 @@ import type { ShowcaseAdapter } from '../index.js';
  */
 const _SHOWCASE_ADAPTERS: Record<string, () => ShowcaseAdapter> = {
   html: () => new HtmlShowcaseAdapter(),
+  ts: () => new TsShowcaseAdapter(),
 };
 
 /**
  * Names of the showcase adapters planned as built-in ones, which custom showcase adapters can't take either
  */
-export const PLANNED_SHOWCASE_ADAPTER_NAMES: readonly string[] = ['ts', 'react', 'angular'];
+export const PLANNED_SHOWCASE_ADAPTER_NAMES: readonly string[] = ['react', 'angular'];
 
 /**
  * Gets the names of the built-in showcase adapters
@@ -146,6 +148,27 @@ async function _load(root: string, name: string, path: string): Promise<{ adapte
     return { error: `"${path}"'s default export must return an object implementing the showcase adapter interface; check ${methods}` };
   }
   return { adapter: adapter as unknown as ShowcaseAdapter };
+}
+
+// #endregion
+
+// #region Host checks
+
+/**
+ * Checks what a showcase adapter's `check()` returned: `{ errors, warnings }`, two lists of strings, either of them empty
+ * @param result What `check()` returned (awaited)
+ * @returns The host check, or a description of what is wrong with the result
+ */
+export function checkHostCheckResult(result: unknown): ShowcaseHostCheck | { problem: string } {
+  const isStrings = (value: unknown): value is string[] => Array.isArray(value) && value.every((item) => typeof item === 'string');
+  if (Array.isArray(result)) {
+    return { problem: 'it returned a list; since the host check returns { errors, warnings }, return the list as "errors", with "warnings: []"' };
+  }
+  if (typeof result !== 'object' || result === null) return { problem: 'it must return { errors, warnings }, two lists of strings' };
+  const { errors, warnings } = result as Record<string, unknown>;
+  if (!isStrings(errors)) return { problem: '"errors" must be a list of strings' };
+  if (!isStrings(warnings)) return { problem: '"warnings" must be a list of strings' };
+  return { errors, warnings };
 }
 
 // #endregion

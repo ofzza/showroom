@@ -38,6 +38,12 @@ export const THEME_ATTRIBUTE = 'data-showroom-theme';
 export const MAX_REPEATED_GROWTHS = 3;
 
 /**
+ * Name of the window event a showcase frame's console panel dispatches each time it grows, with its growth in pixels as its `detail`, so the frame
+ * script never counts the console panel's own growth as a repeated growth (see MAX_REPEATED_GROWTHS)
+ */
+export const CONSOLE_GROWTH_EVENT = 'showroom:console-growth';
+
+/**
  * Represents a message a showcase frame posts to the showroom: `ready` once loaded, and `resize` whenever its content's height changes
  */
 export type FrameMessage = { source: typeof FRAME_MESSAGE_SOURCE; type: 'ready' } | { source: typeof FRAME_MESSAGE_SOURCE; type: 'resize'; height: number };
@@ -121,6 +127,10 @@ export interface FrameScriptConstants {
    * See MAX_REPEATED_GROWTHS
    */
   maxRepeatedGrowths: number;
+  /**
+   * See CONSOLE_GROWTH_EVENT
+   */
+  consoleGrowthEvent: string;
 }
 
 /**
@@ -132,11 +142,13 @@ export const FRAME_SCRIPT_CONSTANTS: FrameScriptConstants = {
   themeParameter: THEME_PARAMETER,
   themeAttribute: THEME_ATTRIBUTE,
   maxRepeatedGrowths: MAX_REPEATED_GROWTHS,
+  consoleGrowthEvent: CONSOLE_GROWTH_EVENT,
 };
 
 /**
  * The frame script, run in a showcase frame: it applies the theme (from the URL's query, then from the showroom's messages) to `<html>`, posts
- * `ready` once the document is loaded, and `resize` whenever its content's height changes. It is inlined into each showcase frame page as its source
+ * `ready` once the document is loaded, and `resize` whenever its content's height changes; growth by the same amount again and again stops being
+ * reported, unless the console panel says it is its own. It is inlined into each showcase frame page as its source
  * text, so it references no outer names: everything it uses comes from `window`, and its constants from its argument.
  * @param constants The frame script's constants
  */
@@ -172,6 +184,12 @@ export function frameScript(constants: FrameScriptConstants): void {
   let lastGrowth = 0;
   let growths = 0;
   let growing = true;
+  // The console panel's growth not yet measured, in pixels: a growth within it is the panel's own, never a repeated growth
+  let consoleGrowth = 0;
+  window.addEventListener(constants.consoleGrowthEvent, (event: Event) => {
+    const detail = (event as CustomEvent<unknown>).detail;
+    if (typeof detail === 'number' && Number.isFinite(detail) && detail > 0) consoleGrowth += detail;
+  });
   const measure = () => {
     const body = window.document.body;
     if (!body) return;
@@ -188,13 +206,21 @@ export function frameScript(constants: FrameScriptConstants): void {
     if (height === last) return;
     // Growing by the same amount again and again means the content follows the iframe's own height: stop reporting growth then
     if (last >= 0 && height > last) {
-      if (!growing) return;
       const growth = height - last;
-      growths = growth === lastGrowth ? growths + 1 : 1;
-      lastGrowth = growth;
-      if (growths >= constants.maxRepeatedGrowths) {
-        growing = false;
-        return;
+      if (growth <= consoleGrowth) {
+        // The console panel's own growth
+        consoleGrowth -= growth;
+        growths = 0;
+        lastGrowth = 0;
+      } else {
+        if (!growing) return;
+        consoleGrowth = 0;
+        growths = growth === lastGrowth ? growths + 1 : 1;
+        lastGrowth = growth;
+        if (growths >= constants.maxRepeatedGrowths) {
+          growing = false;
+          return;
+        }
       }
     } else if (height < last) {
       growths = 0;

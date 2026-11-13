@@ -1,0 +1,1 @@
+{ "stack": "typescript", "sourceRoot": ".", "documentation": ["docs/**/*.md"] }

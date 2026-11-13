@@ -37,6 +37,15 @@ export interface ShowcaseBuildRequest {
    */
   virtualFiles: VirtualFile[];
   /**
+   * Every virtual file of the host repository, in any folder, which resolve like real files where they are (e.g. by a relative path to another
+   * folder)
+   */
+  hostVirtualFiles: VirtualFile[];
+  /**
+   * Mode to build in: `development` in `serve` (e.g. unminified, with source maps), `production` in `build` and `check --showcases`
+   */
+  mode: 'development' | 'production';
+  /**
    * Absolute path of an empty scratch folder `showroom` created for this build, and removes after it, for tools that must write to disk
    */
   scratchFolder: string;
@@ -57,7 +66,7 @@ export interface ShowcaseBuildFile {
 }
 
 /**
- * Represents an error building a showcase
+ * Represents an error building a showcase, or a warning
  */
 export interface ShowcaseBuildError {
   /**
@@ -76,7 +85,7 @@ export interface ShowcaseBuildError {
 
 /**
  * Represents the outcome of building a showcase: either the showcase frame's files, or the errors that prevented building it; with the files the
- * build read either way, so that they can be watched for changes
+ * build read either way, so that they can be watched for changes, and the build's warnings, which fail nothing
  */
 export type ShowcaseBuildResult =
   | {
@@ -92,6 +101,10 @@ export type ShowcaseBuildResult =
        * POSIX-style paths, relative to the host repository's root, of the files the build read
        */
       reads: string[];
+      /**
+       * Warnings of the build, which `showroom` reports without failing anything
+       */
+      warnings?: ShowcaseBuildError[];
       errors?: undefined;
     }
   | {
@@ -102,10 +115,33 @@ export type ShowcaseBuildResult =
        */
       reads: string[];
       /**
+       * Warnings of the build, which `showroom` reports without failing anything
+       */
+      warnings?: ShowcaseBuildError[];
+      /**
        * Errors that prevented building the showcase
        */
       errors: ShowcaseBuildError[];
     };
+
+// #endregion
+
+// #region Host check
+
+/**
+ * Represents the outcome of checking the host repository for what a showcase adapter needs: the host requirements that are missing, which fail the
+ * check, and warnings, which don't; either may be empty
+ */
+export interface ShowcaseHostCheck {
+  /**
+   * Descriptions of the host requirements that are missing
+   */
+  errors: string[];
+  /**
+   * Warnings about the host repository, which `showroom` reports without failing anything
+   */
+  warnings: string[];
+}
 
 // #endregion
 
@@ -129,9 +165,10 @@ export interface ShowcaseAdapter {
    * Checks the host repository for what the showcase adapter needs (e.g. a package installed), statically; called once per run, only when some
    * showcase uses the showcase adapter
    * @param root Absolute path of the host repository's root
-   * @returns Descriptions of the host requirements that are missing, or none
+   * @param showcases The showcases using the showcase adapter whose validation passed, each with its options as `validate()` returned them
+   * @returns The host requirements that are missing, and warnings
    */
-  check?(root: string): string[] | Promise<string[]>;
+  check?(root: string, showcases: Showcase[]): ShowcaseHostCheck | Promise<ShowcaseHostCheck>;
   /**
    * Builds one showcase's showcase frame, in memory
    * @param request What to build, and where it may write scratch files

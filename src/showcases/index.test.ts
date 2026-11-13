@@ -111,14 +111,15 @@ describe('showcases', () => {
       expect(content).not.toContain('<b>');
     });
 
-    it("Gets every issue of a run, the run's own first", () => {
+    it("Gets every issue of a run, the run's own first, the warnings last", () => {
       const issue = (message: string) => ({ severity: 'error' as const, message });
       const errors = new Map([
         ['README.md#1', [issue('a'), issue('b')]],
         ['README.md#2', [issue('c')]],
       ]);
-      expect(getBuildShowcasesIssues({ errors, issues: [issue('run')] }).map(({ message }) => message)).toEqual(['run', 'a', 'b', 'c']);
-      expect(getBuildShowcasesIssues({ errors: new Map(), issues: [] })).toEqual([]);
+      const warnings = [{ severity: 'warning' as const, message: 'w' }];
+      expect(getBuildShowcasesIssues({ errors, warnings, issues: [issue('run')] }).map(({ message }) => message)).toEqual(['run', 'a', 'b', 'c', 'w']);
+      expect(getBuildShowcasesIssues({ errors: new Map(), warnings: [], issues: [] })).toEqual([]);
     });
   });
 
@@ -172,11 +173,13 @@ describe('showcases', () => {
         page: 'index.html',
         files: [page, { path: 'a/b.png', content: new Uint8Array([1]) }],
         reads: ['x'],
+        warnings: [],
       });
       expect(checkBuildResult({ page: 'p.htm', files: [{ path: 'p.htm', content: new TextEncoder().encode('✓') }] })).toEqual({
         page: 'p.htm',
         files: [{ path: 'p.htm', content: '✓' }],
         reads: [],
+        warnings: [],
       });
     });
 
@@ -184,6 +187,19 @@ describe('showcases', () => {
       expect(checkBuildResult({ errors: [{ message: 'x', path: 'a.js', line: 2 }], reads: [] })).toEqual({
         errors: [{ message: 'x', path: 'a.js', line: 2 }],
         reads: [],
+        warnings: [],
+      });
+    });
+
+    it('Accepts warnings with either outcome, and rejects invalid ones', () => {
+      const warnings = [{ message: 'w', path: 'a.js', line: 3 }];
+      expect(checkBuildResult({ errors: [{ message: 'x' }], warnings })).toEqual({ errors: [{ message: 'x' }], reads: [], warnings });
+      expect(checkBuildResult({ page: 'index.html', files: [page], warnings })).toEqual({ page: 'index.html', files: [page], reads: [], warnings });
+      expect(checkBuildResult({ page: 'index.html', files: [page], warnings: 'w' })).toEqual({
+        problem: '"warnings" must be a list of build errors, each with a message',
+      });
+      expect(checkBuildResult({ page: 'index.html', files: [page], warnings: [{ path: 'a.js' }] })).toEqual({
+        problem: '"warnings" must be a list of build errors, each with a message',
       });
     });
 
@@ -233,6 +249,20 @@ describe('showcases', () => {
         line: 23,
       });
       expect(getBuildErrorIssue(showcase, virtualFiles, { message: 'Broke', path: 'docs/style.css' })).toMatchObject({ path: 'docs/other.md', line: 20 });
+    });
+
+    it('Places a warning as an error, as a warning', () => {
+      expect(getBuildErrorIssue(showcase, virtualFiles, { message: 'Broke', path: 'docs/style.css', line: 3 }, 'warning')).toEqual({
+        severity: 'warning',
+        message,
+        path: 'docs/other.md',
+        line: 23,
+      });
+      expect(getBuildErrorIssue(showcase, virtualFiles, { message: 'Broke' }, 'warning')).toMatchObject({
+        severity: 'warning',
+        path: 'docs/guide.md',
+        line: 10,
+      });
     });
 
     it('Places an error in a real file there', () => {

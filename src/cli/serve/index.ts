@@ -35,20 +35,59 @@ function _relativeToRoot(root: string, path: string): string | undefined {
 }
 
 /**
- * Creates the `ignored` function of the dev server's watcher, which keeps it from watching the host repository's ignored files and folders
+ * Checks if the ignore matcher ignores a path, as a file or as a folder
+ * @param matcher The ignore matcher
+ * @param path POSIX-style path, relative to the host repository's root
+ * @returns True if it is ignored
+ */
+function _isIgnored(matcher: Ignore, path: string): boolean {
+  return matcher.ignores(path) || matcher.ignores(`${path}/`);
+}
+
+/**
+ * Creates the `ignored` function of the dev server's watcher, which keeps it from watching the host repository's ignored files and folders, except
+ * the files to watch that the showcases read (see BuildShowcasesResult's `watched`), and the folders leading to them
  * @param root Path of the host repository's root
  * @param getMatcher Gets the ignore matcher of the latest successful check, so changes to `showroom.json` apply without a restart
- * @returns A function telling if a path is ignored: never the root itself nor a path outside it; otherwise, if the matcher ignores it as a file or a folder
+ * @param getWatched Gets the POSIX-style paths, relative to the root, of the files to watch, from the latest run; none if not given
+ * @returns A function telling if a path is ignored: never the root itself, a path outside it, a file to watch or a folder leading to one; otherwise,
+ * if the matcher ignores it as a file or a folder
  */
-export function createIgnored(root: string, getMatcher: () => Ignore | undefined): (path: string) => boolean {
+export function createIgnored(root: string, getMatcher: () => Ignore | undefined, getWatched: () => readonly string[] = () => []): (path: string) => boolean {
   return (path) => {
     const relativePath = _relativeToRoot(root, path);
     const matcher = getMatcher();
     if (!relativePath || !matcher) {
       return false;
     }
-    return matcher.ignores(relativePath) || matcher.ignores(`${relativePath}/`);
+    if (getWatched().some((watched) => watched === relativePath || watched.startsWith(`${relativePath}/`))) {
+      return false;
+    }
+    return _isIgnored(matcher, relativePath);
   };
+}
+
+/**
+ * Gets what to add to the dev server's watcher so that it sees the files to watch under ignored paths: for each, the topmost ignored folder holding
+ * it (so a folder deleted and built again is seen), or the file itself when only it is ignored; files to watch that aren't ignored need nothing
+ * @param watched POSIX-style paths, relative to the host repository's root, of the files to watch
+ * @param matcher The ignore matcher
+ * @returns POSIX-style paths, relative to the root, of the folders and files to add, sorted, without duplicates
+ */
+export function getWatchTargets(watched: readonly string[], matcher: Ignore | undefined): string[] {
+  if (!matcher) return [];
+  const targets = new Set<string>();
+  for (const path of watched) {
+    const segments = path.split('/');
+    for (let count = 1; count <= segments.length; count++) {
+      const target = segments.slice(0, count).join('/');
+      if (_isIgnored(matcher, target)) {
+        targets.add(target);
+        break;
+      }
+    }
+  }
+  return [...targets].sort();
 }
 
 // #endregion
@@ -134,9 +173,13 @@ export interface ServedState {
    */
   frames: ReadonlyMap<string, ShowcaseFrame>;
   /**
-   * The current issues: the latest check's, and the showcases' build errors
+   * The current issues: the latest check's, and the showcases' build errors and warnings
    */
   issues: CheckIssue[];
+  /**
+   * POSIX-style paths, relative to the host repository's root, of the files to watch, from the latest build (see BuildShowcasesResult's `watched`)
+   */
+  watched: readonly string[];
 }
 
 /**
@@ -175,6 +218,12 @@ export interface HostWatcherOptions {
    * Time to wait after the last change before checking again, in milliseconds
    */
   delay?: number;
+  /**
+   * Called with the files to watch after each run that changes them, and with the latest ignore matcher (see getWatchTargets())
+   * @param watched POSIX-style paths, relative to the host repository's root, of the files to watch
+   * @param matcher The ignore matcher of the latest successful check
+   */
+  watch?: (watched: readonly string[], matcher: Ignore | undefined) => void;
 }
 
 /**
@@ -208,6 +257,10 @@ export interface HostWatcher {
    */
   getMatcher: () => Ignore | undefined;
   /**
+   * Gets the files to watch, from the latest successful build
+   */
+  getWatched: () => readonly string[];
+  /**
    * Stops the watcher, cancelling a pending run; nothing is written or sent after it
    * @returns Resolves once a running run is done
    */
@@ -220,22 +273,31 @@ export interface HostWatcher {
 export const DEFAULT_WATCH_DELAY = 100;
 
 /**
- * Runs the first build of `serve`, or a later one: builds the showcases of a passed check, and gets the state to serve
+ * Runs the first build of `serve`, or a later one: builds the showcases of a passed check, and gets the state to serve. The files to watch are the
+ * build's when every showcase builds; when any doesn't, the previous ones are kept as well, as a failed build only reads what it reached (e.g. a
+ * deleted `dist/` it imports isn't among its reads, yet its rebuild must rerun it)
  * @param host Host information of the passed check
  * @param build Builds the showcases
  * @param previous The showcase frames to keep if the build throws
- * @returns The showcase frames to serve, and the build's issues (or the error it threw)
+ * @param previousWatched The files to watch to keep if the build throws, or a showcase doesn't build
+ * @returns The showcase frames to serve, the build's issues (or the error it threw), and the files to watch
  */
 export async function runBuild(
   host: HostInformation,
   build: (host: HostInformation) => Promise<BuildShowcasesResult>,
   previous: ReadonlyMap<string, ShowcaseFrame>,
-): Promise<{ frames: ReadonlyMap<string, ShowcaseFrame>; issues: CheckIssue[] }> {
+  previousWatched: readonly string[] = [],
+): Promise<{ frames: ReadonlyMap<string, ShowcaseFrame>; issues: CheckIssue[]; watched: readonly string[] }> {
   try {
     const built = await build(host);
-    return { frames: getServedFrames(host, built), issues: getBuildShowcasesIssues(built) };
+    const watched = built.errors.size ? [...new Set([...previousWatched, ...built.watched])].sort() : built.watched;
+    return { frames: getServedFrames(host, built), issues: getBuildShowcasesIssues(built), watched };
   } catch (err) {
-    return { frames: previous, issues: [{ severity: 'error', message: `The showcases failed to build: ${(err as Error).message}` }] };
+    return {
+      frames: previous,
+      issues: [{ severity: 'error', message: `The showcases failed to build: ${(err as Error).message}` }],
+      watched: previousWatched,
+    };
   }
 }
 
@@ -264,10 +326,15 @@ export function createHostWatcher(options: HostWatcherOptions): HostWatcher {
     let next: ServedState;
     if (result.passed && result.host) {
       // A passed check: build its showcases
-      const built = await runBuild(result.host, options.build, state.frames);
+      const built = await runBuild(result.host, options.build, state.frames, state.watched);
       if (closed) return;
       matcher = (await options.readMatcher()) ?? matcher;
-      next = { host: getShownHostInformation(result.host, built.frames), frames: built.frames, issues: [...result.issues, ...built.issues] };
+      next = {
+        host: getShownHostInformation(result.host, built.frames),
+        frames: built.frames,
+        issues: [...result.issues, ...built.issues],
+        watched: built.watched,
+      };
     } else {
       // A failed check keeps the last good data, and shows its issues
       next = { ...state, issues: result.issues };
@@ -281,7 +348,9 @@ export function createHostWatcher(options: HostWatcherOptions): HostWatcher {
     }
     const change = getShownChange(state.host, next.host);
     const issuesChanged = JSON.stringify(next.issues) !== JSON.stringify(state.issues);
+    const watchedChanged = JSON.stringify(next.watched) !== JSON.stringify(state.watched);
     state = next;
+    if (watchedChanged) options.watch?.(state.watched, matcher);
     if (change === 'reload') {
       options.target.reload();
       return;
@@ -319,6 +388,7 @@ export function createHostWatcher(options: HostWatcherOptions): HostWatcher {
     getFrames: () => state.frames,
     getIssues: () => state.issues,
     getMatcher: () => matcher,
+    getWatched: () => state.watched,
     close: async () => {
       closed = true;
       clearTimeout(timer);
@@ -394,7 +464,8 @@ function _waitForStop(server: ViteDevServer, signal?: AbortSignal): Promise<void
 }
 
 /**
- * Builds the showcases of a passed check, reading the configuration again, so a change to its custom showcase adapters applies without a restart
+ * Builds the showcases of a passed check, in development mode, reading the configuration again, so a change to its custom showcase adapters applies
+ * without a restart
  * @param root Path of the host repository's root
  * @param host Host information of the passed check
  * @returns The outcome of building them; throws if the configuration can't be read
@@ -402,7 +473,7 @@ function _waitForStop(server: ViteDevServer, signal?: AbortSignal): Promise<void
 async function _buildShowcases(root: string, host: HostInformation): Promise<BuildShowcasesResult> {
   const { configuration, errors } = await readConfiguration(root);
   if (!configuration) throw new Error(errors?.join('; ') ?? 'The configuration could not be read');
-  return buildShowcases({ root, host, configuration });
+  return buildShowcases({ root, host, configuration, mode: 'development' });
 }
 
 /**
@@ -424,6 +495,7 @@ export async function serve({ root, port = DEFAULT_PORT, outDir, output, appDir 
     host: getShownHostInformation(first.host, built.frames),
     frames: built.frames,
     issues: [...first.issues, ...built.issues],
+    watched: built.watched,
   };
   output.stderr(formatIssues(initial.issues));
 
@@ -440,12 +512,27 @@ export async function serve({ root, port = DEFAULT_PORT, outDir, output, appDir 
       const module = environment?.moduleGraph.getModuleById(RESOLVED_HOST_MODULE_ID);
       if (module) environment!.moduleGraph.invalidateModule(module);
     };
+    // The folders and files added to the dev server's watcher for the files to watch under ignored paths
+    let targets: string[] = [];
+    /**
+     * Adds the folders and files holding the files to watch to the dev server's watcher, and removes those no longer needed
+     * @param next POSIX-style paths, relative to the root, of the folders and files to watch (see getWatchTargets())
+     */
+    const watchTargets = (next: string[]) => {
+      if (!server) return;
+      const added = next.filter((target) => !targets.includes(target));
+      const removed = targets.filter((target) => !next.includes(target));
+      targets = next;
+      if (removed.length) void server.watcher.unwatch(removed.map((target) => join(resolve(root), target)));
+      if (added.length) server.watcher.add(added.map((target) => join(resolve(root), target)));
+    };
     const current = createHostWatcher({
       initial,
       matcher: await readIgnoreMatcher(root, outDir),
       check: () => check(root, { outDir }),
       build,
       readMatcher: () => readIgnoreMatcher(root, outDir),
+      watch: (paths, matcher) => watchTargets(getWatchTargets(paths, matcher)),
       output,
       target: {
         reload: () => {
@@ -464,9 +551,10 @@ export async function serve({ root, port = DEFAULT_PORT, outDir, output, appDir 
     const configuration = getViteConfiguration({ appDir, cacheDir, getHost: current.getHost, getFrames: current.getFrames, getIssues: current.getIssues });
     server = await createServer({
       ...configuration,
-      server: { port, strictPort: false, watch: { ignored: [createIgnored(root, current.getMatcher)] } },
+      server: { port, strictPort: false, watch: { ignored: [createIgnored(root, current.getMatcher, current.getWatched)] } },
     });
     server.watcher.add(resolve(root));
+    watchTargets(getWatchTargets(current.getWatched(), current.getMatcher()));
     server.watcher.on('all', (_event, path) => {
       if (_relativeToRoot(root, path) !== undefined) current.notify();
     });

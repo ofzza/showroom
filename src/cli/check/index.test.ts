@@ -196,8 +196,22 @@ describe('cli/check', () => {
 
   describe('Showcases', () => {
     // The showcases fixture embeds inline, linked and custom showcases, and resources, in Markdown documentation files, and passes; the
-    // showcase-errors fixture holds one documentation file per kind of broken showcase, and the showcase-adapters fixture lists one custom showcase
-    // adapter per way of getting it wrong.
+    // showcase-errors fixture holds one documentation file per kind of broken showcase, the showcase-adapters fixture lists one custom showcase
+    // adapter per way of getting it wrong, and the showcase-ts-invalid fixture holds ts showcases the ts showcase adapter rejects.
+
+    it('Reports ts showcases in other languages, or with invalid options, and accepts every language of the ts showcase adapter', async () => {
+      // The showcase-ts-invalid fixture: tsx, html, jsx and cjs entry points, invalid options, then one valid showcase per accepted language
+      const { passed, issues } = await check(_fixture('showcase-ts-invalid'));
+      expect(passed).toBe(false);
+      expect(issues.map(({ path, line, message }) => `${path}:${line}: ${message}`)).toEqual([
+        'README.md:3: The ts showcase adapter needs a "ts", "js", "mts" or "mjs" code block; for tsx and jsx, use the react showcase adapter',
+        'README.md:7: The ts showcase adapter needs a "ts", "js", "mts" or "mjs" code block',
+        'README.md:11: The ts showcase adapter needs a link to a .ts, .mts, .js or .mjs file, not "demos/app.jsx"; for tsx and jsx, use the react showcase adapter',
+        'README.md:11: The ts showcase adapter needs a link to a .ts, .mts, .js or .mjs file, not "demos/common.cjs"',
+        'README.md:13: The ts showcase adapter\'s option "typeCheck" must be true or false',
+        'README.md:13: Unknown option "size" of the ts showcase adapter; its options are "typeCheck" and "allowJs"',
+      ]);
+    });
 
     it('Collects the showcases, with the options their showcase adapters validated', async () => {
       const { passed, issues, host } = await check(_fixture('showcases'));
@@ -256,7 +270,7 @@ describe('cli/check', () => {
         // The custom showcase adapters
         'showroom.json:undefined: Custom showcase adapter "broken": "./adapters/missing.js" not found',
         // The showcases: unknown adapters, linked entry points, validation
-        'errors/adapters.md:3: Unknown showcase adapter "nope"; the showcase adapters are: html, needy, throwing',
+        'errors/adapters.md:3: Unknown showcase adapter "nope"; the showcase adapters are: html, needy, throwing, ts',
         'errors/adapters.md:12: needy takes no options',
         'errors/adapters.md:15: Showcase adapter "throwing" failed to validate the showcase: validate broke',
         `errors/entries.md:3: A linked showcase's entry point "errors/missing.html" not found`,
@@ -267,11 +281,15 @@ describe('cli/check', () => {
         'errors/html.md:6: The html showcase adapter needs a link to an .html or .htm file, not "adapters/needy.js"',
         'errors/html.md:8: The html showcase adapter takes no options',
         // The host requirements of the showcase adapters in use, and closing them
+        // (needy's host check is given only the showcase whose validation passed)
         'undefined:undefined: Showcase adapter "needy": needs "left-pad" installed',
+        'undefined:undefined: Showcase adapter "needy": checked errors/adapters.md#3',
         'undefined:undefined: Showcase adapter "throwing" failed to check the host repository: check broke',
         'undefined:undefined: Showcase adapter "throwing" failed to close: close broke',
       ]);
-      expect(result.issues.every((issue) => issue.severity === 'error')).toBe(true);
+      expect(result.issues.filter((issue) => issue.severity === 'warning').map(({ message }) => message)).toEqual([
+        'Showcase adapter "needy": checked errors/adapters.md#3',
+      ]);
     });
 
     it('Loads every custom showcase adapter, used or not, reporting those that fail', async () => {

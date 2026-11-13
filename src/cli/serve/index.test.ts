@@ -16,6 +16,7 @@ import {
   createHostWatcher,
   createIgnored,
   getServedFrames,
+  getWatchTargets,
   getShownChange,
   runBuild,
   serve,
@@ -61,9 +62,10 @@ function _host(content: string, code: string[] = [], showcases = 0): HostInforma
  * Creates a fake build, building every showcase into a showcase frame whose page holds the given text
  * @param page Text of every showcase frame's page
  * @param failing Ids of the showcases that don't build
+ * @param watched The files to watch it gives
  * @returns The fake build
  */
-function _build(page: string, failing: string[] = []): HostWatcherOptions['build'] {
+function _build(page: string, failing: string[] = [], watched: string[] = []): HostWatcherOptions['build'] {
   return async (host) => {
     const frames = new Map<string, ShowcaseFrame>();
     const errors = new Map<string, CheckIssue[]>();
@@ -74,7 +76,7 @@ function _build(page: string, failing: string[] = []): HostWatcherOptions['build
         frames.set(showcase.id, { folder: getShowcaseFrameFolder(showcase), page: 'index.html', files: [{ path: 'index.html', content: page }], reads: [] });
       }
     }
-    return { frames, errors, issues: [] };
+    return { frames, errors, warnings: [], issues: [], watched };
   };
 }
 
@@ -86,7 +88,7 @@ function _build(page: string, failing: string[] = []): HostWatcherOptions['build
  */
 async function _initial(host: HostInformation, build: HostWatcherOptions['build'] = _build('first')): Promise<ServedState> {
   const built = await runBuild(host, build, new Map());
-  return { host: getShownHostInformation(host, built.frames), frames: built.frames, issues: built.issues };
+  return { host: getShownHostInformation(host, built.frames), frames: built.frames, issues: built.issues, watched: built.watched };
 }
 
 /**
@@ -156,6 +158,38 @@ describe('cli/serve', () => {
       expect(latest(join(root, 'a'))).toBe(false);
       expect(latest(join(root, 'b'))).toBe(true);
     });
+
+    it('Watches the files to watch, and the folders leading to them, under ignored folders', () => {
+      let watched = ['vendor/lib/index.js', 'build.log'];
+      const withWatched = createIgnored(
+        root,
+        () => ignore().add(['vendor/', '*.log']),
+        () => watched,
+      );
+      expect(withWatched(join(root, 'vendor'))).toBe(false);
+      expect(withWatched(join(root, 'vendor', 'lib'))).toBe(false);
+      expect(withWatched(join(root, 'vendor', 'lib', 'index.js'))).toBe(false);
+      expect(withWatched(join(root, 'build.log'))).toBe(false);
+      // Their neighbours stay ignored, and a path only sharing a prefix isn't a folder leading to one
+      expect(withWatched(join(root, 'vendor', 'lib', 'other.js'))).toBe(true);
+      expect(withWatched(join(root, 'vendor', 'li'))).toBe(true);
+      expect(withWatched(join(root, 'debug.log'))).toBe(true);
+      // The latest files to watch apply
+      watched = [];
+      expect(withWatched(join(root, 'vendor'))).toBe(true);
+    });
+  });
+
+  describe('getWatchTargets', () => {
+    // What serve adds to the dev server's watcher for the files to watch under ignored paths.
+
+    it('Adds the topmost ignored folder holding each file to watch, or the file itself', () => {
+      const matcher = ignore().add(['dist/', 'vendor/', '*.gen.ts', 'docs/out/']);
+      expect(
+        getWatchTargets(['dist/index.js', 'dist/sub/a.js', 'vendor/lib/x.js', 'src/types.gen.ts', 'docs/out/a/b.js', 'README.md', 'src/a.ts'], matcher),
+      ).toEqual(['dist', 'docs/out', 'src/types.gen.ts', 'vendor']);
+      expect(getWatchTargets(['dist/index.js'], undefined)).toEqual([]);
+    });
   });
 
   describe('getServedFrames', () => {
@@ -171,10 +205,11 @@ describe('cli/serve', () => {
       );
     });
 
-    it('Keeps the last showcase frames, with an issue, when the build throws', async () => {
+    it('Keeps the last showcase frames and files to watch, with an issue, when the build throws', async () => {
       const previous = new Map([['README.md#1', { folder: 'showcases/README.md/1', page: 'index.html', files: [], reads: [] }]]);
-      const built = await runBuild(_host('x', [], 1), () => Promise.reject(new Error('no configuration')), previous);
+      const built = await runBuild(_host('x', [], 1), () => Promise.reject(new Error('no configuration')), previous, ['dist/index.js']);
       expect(built.frames).toBe(previous);
+      expect(built.watched).toEqual(['dist/index.js']);
       expect(built.issues).toEqual([{ severity: 'error', message: 'The showcases failed to build: no configuration' }]);
     });
   });
@@ -253,6 +288,65 @@ describe('cli/serve', () => {
         [ISSUES_EVENT, issues],
       ]);
       expect(record.stderr).toBe('error: README.md:2: README.md#2 broke\n');
+    });
+
+    it('Watches the files the latest build gives, whenever they change', async () => {
+      const host = _host('first', [], 1);
+      const calls: [readonly string[], boolean][] = [];
+      const builds = [_build('first', [], ['dist/a.js']), _build('first', [], ['dist/a.js']), _build('first', [], ['dist/b.js'])];
+      let run = 0;
+      const { watcher } = _watcher(await _initial(host), [{ passed: true, host, issues: [] }], {
+        build: (built) => builds[run++](built),
+        watch: (watched, matcher) => void calls.push([watched, matcher?.ignores('vendor/') ?? false]),
+      });
+      expect(watcher.getWatched()).toEqual([]);
+      await watcher.update();
+      await watcher.update();
+      await watcher.update();
+      // The second run gives the same files: nothing to change
+      expect(calls).toEqual([
+        [['dist/a.js'], true],
+        [['dist/b.js'], true],
+      ]);
+      expect(watcher.getWatched()).toEqual(['dist/b.js']);
+    });
+
+    it("Keeps the previous files to watch along with a run's while a showcase doesn't build, and replaces them once every showcase builds", async () => {
+      // A deleted dist/ is no longer among a failed build's reads; unwatching it would miss its rebuild (see AGENTS.md › serve watches ignored files)
+      const host = _host('first', [], 1);
+      const calls: (readonly string[])[] = [];
+      const builds = [_build('first', ['README.md#1'], ['README.md']), _build('first', [], ['README.md', 'dist/b.js'])];
+      let run = 0;
+      const { watcher } = _watcher(await _initial(host, _build('first', [], ['README.md', 'dist/a.js'])), [{ passed: true, host, issues: [] }], {
+        build: (built) => builds[run++](built),
+        watch: (watched) => void calls.push(watched),
+      });
+      await watcher.update();
+      expect(watcher.getWatched()).toEqual(['README.md', 'dist/a.js']);
+      await watcher.update();
+      expect(watcher.getWatched()).toEqual(['README.md', 'dist/b.js']);
+      expect(calls).toEqual([['README.md', 'dist/b.js']]);
+    });
+
+    it('Keeps the files to watch when the check fails, or the build throws', async () => {
+      const host = _host('first', [], 1);
+      const initial = await _initial(host, _build('first', [], ['dist/a.js']));
+      const calls: (readonly string[])[] = [];
+      const { watcher } = _watcher(
+        initial,
+        [
+          { passed: false, issues: [] },
+          { passed: true, host, issues: [] },
+        ],
+        {
+          build: () => Promise.reject(new Error('no configuration')),
+          watch: (watched) => void calls.push(watched),
+        },
+      );
+      await watcher.update();
+      await watcher.update();
+      expect(watcher.getWatched()).toEqual(['dist/a.js']);
+      expect(calls).toEqual([]);
     });
 
     it('Keeps the last good data, and writes and sends the issues, when the check fails', async () => {

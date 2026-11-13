@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { build as viteBuild, type InlineConfig } from 'vite';
 import { check } from '../check/index.js';
-import { formatIssues, resolveOutputFolder } from '../check/internal/index.js';
+import { formatIssues, resolveOutputFolder, SILENCED_WARNINGS } from '../check/internal/index.js';
 import type { CliOutput } from '../index.js';
 import { readConfiguration } from '../../configuration/index.js';
 import { buildShowcases, getBuildShowcasesIssues } from '../../showcases/index.js';
@@ -74,12 +74,6 @@ export interface BuildConfigurationOptions extends ViteConfigurationOptions {
  * repository's to change
  */
 export const CHUNK_SIZE_WARNING_LIMIT = 2048;
-
-/**
- * Codes of the bundler warnings left out of the build's output: FluentUI's and Griffel's `'use client'` directives, which only matter to server-side
- * React frameworks, and are warned about once per file
- */
-export const SILENCED_WARNINGS: readonly string[] = ['MODULE_LEVEL_DIRECTIVE'];
 
 /**
  * Gets the Vite configuration of the build: the showroom's, building into the output folder and emptying it first (it is outside Vite's
@@ -154,11 +148,11 @@ export async function build({ root, outDir, output, appDir = getAppDir() }: Buil
     return 1;
   }
 
-  // Build every showcase, leaving the output folder untouched if any fails
+  // Build every showcase, leaving the output folder untouched if any fails; build warnings are written, and fail nothing
   const showcases = await buildShowcases({ root, host: result.host, configuration });
   const issues = getBuildShowcasesIssues(showcases);
-  if (issues.length) {
-    output.stderr(formatIssues(issues));
+  output.stderr(formatIssues(issues));
+  if (issues.some((issue) => issue.severity === 'error')) {
     return 1;
   }
   const frames = showcases.frames;

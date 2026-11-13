@@ -4,6 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  CONSOLE_GROWTH_EVENT,
   FRAME_MESSAGE_SOURCE,
   MAX_REPEATED_GROWTHS,
   SHOWROOM_MESSAGE_SOURCE,
@@ -284,6 +285,26 @@ describe('frame', () => {
         frame.resize();
       }
       expect(_heights(frame)).toEqual([111, 130, 160, 180, 220, 240]);
+    });
+
+    it("Never counts the console panel's own growth as a repeated growth", () => {
+      // A showcase logging one line at a time grows its console panel by the same amount again and again (see AGENTS.md › The frame script
+      // stops reporting growth)
+      const frame = _createFrame();
+      _run(frame);
+      for (let step = 1; step <= MAX_REPEATED_GROWTHS + 2; step++) {
+        frame.dispatch(CONSOLE_GROWTH_EVENT, { detail: 18 });
+        frame.setBottom(100.2 + step * 18);
+        frame.resize();
+      }
+      expect(_heights(frame)).toEqual([111, 129, 147, 165, 183, 201]);
+      // Growth beyond the console panel's is counted again, and an invalid detail is ignored
+      frame.dispatch(CONSOLE_GROWTH_EVENT, { detail: 'x' });
+      for (let step = 1; step <= MAX_REPEATED_GROWTHS + 1; step++) {
+        frame.setBottom(190.2 + step * 20);
+        frame.resize();
+      }
+      expect(_heights(frame).slice(6)).toEqual([221, 241]);
     });
   });
 });
