@@ -50,7 +50,7 @@ function _host(content: string, code: string[] = [], showcases = 0): HostInforma
       documentation: 'README.md',
       line: index + 1,
       offset: index * 10,
-      kind: 'linked' as const,
+      kind: 'link' as const,
       adapter: 'html',
       entry: 'a.html',
     })),

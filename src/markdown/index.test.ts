@@ -140,20 +140,20 @@ describe('markdown', () => {
   describe('Scanning', () => {
     // Tests scanMarkdown() on small Markdown documents, each focusing on one kind of embed.
 
-    it('Finds inline showcases and their generated entry points', () => {
+    it('Finds code block showcases and their generated entry points', () => {
       const scan = scanMarkdown(
         'docs/guide.md',
         ['# Guide', '', '```html showcase', '<p>Hi</p>', '```', '', '```TypeScript showcase=ts({ strict: false })', 'log(1);', '```'].join('\n'),
       );
       expect(scan.errors).toEqual([]);
       expect(scan.showcases).toEqual([
-        { id: 'docs/guide.md#1', documentation: 'docs/guide.md', line: 3, offset: 9, kind: 'inline', adapter: 'html', entry: 'docs/guide.showcase-1.html' },
+        { id: 'docs/guide.md#1', documentation: 'docs/guide.md', line: 3, offset: 9, kind: 'code-block', adapter: 'html', entry: 'docs/guide.showcase-1.html' },
         {
           id: 'docs/guide.md#2',
           documentation: 'docs/guide.md',
           line: 7,
           offset: 41,
-          kind: 'inline',
+          kind: 'code-block',
           adapter: 'ts',
           options: { strict: false },
           entry: 'docs/guide.showcase-2.ts',
@@ -216,16 +216,16 @@ describe('markdown', () => {
       expect(scan.virtualFiles).toEqual([]);
     });
 
-    it('Finds linked showcases, numbered with the inline ones', () => {
+    it('Finds linked showcases, numbered with the code block ones', () => {
       const scan = scanMarkdown(
         'docs/guide.md',
         ['See [the demo](./demo.html "showcase") and [another](/examples/other%20one.js \'showcase=x({ a: 1 })\').', '', '```html showcase', '```'].join('\n'),
       );
       expect(scan.errors).toEqual([]);
       expect(scan.showcases.map(({ id, kind, adapter, options, entry, line }) => ({ id, kind, adapter, options, entry, line }))).toEqual([
-        { id: 'docs/guide.md#1', kind: 'linked', adapter: 'html', options: undefined, entry: 'docs/demo.html', line: 1 },
-        { id: 'docs/guide.md#2', kind: 'linked', adapter: 'x', options: { a: 1 }, entry: 'examples/other one.js', line: 1 },
-        { id: 'docs/guide.md#3', kind: 'inline', adapter: 'html', options: undefined, entry: 'docs/guide.showcase-3.html', line: 3 },
+        { id: 'docs/guide.md#1', kind: 'link', adapter: 'html', options: undefined, entry: 'docs/demo.html', line: 1 },
+        { id: 'docs/guide.md#2', kind: 'link', adapter: 'x', options: { a: 1 }, entry: 'examples/other one.js', line: 1 },
+        { id: 'docs/guide.md#3', kind: 'code-block', adapter: 'html', options: undefined, entry: 'docs/guide.showcase-3.html', line: 3 },
       ]);
       expect(scan.links).toEqual([]);
     });

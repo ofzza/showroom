@@ -38,7 +38,7 @@ describe('showcases (integration)', () => {
     expect([...frames.keys()]).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'docs/my notes #1.md#1']);
     const script = `<script>${getFrameScript()}</script>`;
 
-    // An inline page, the script after its head
+    // A code block showcase's page, the script after its head
     const page = frames.get('README.md#1')!;
     expect(page).toMatchObject({ folder: 'showcases/README.md/1', page: 'index.html', reads: ['README.md'] });
     expect(page.files).toEqual([

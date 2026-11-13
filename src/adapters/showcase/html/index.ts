@@ -25,7 +25,7 @@ export class HtmlShowcaseAdapter implements ShowcaseAdapter {
     }
     if (!/\.html?$/i.test(showcase.entry)) {
       errors.push(
-        showcase.kind === 'inline'
+        showcase.kind === 'code-block'
           ? 'The html showcase adapter needs an "html" or "htm" code block'
           : `The html showcase adapter needs a link to an .html or .htm file, not "${showcase.entry}"`,
       );
@@ -35,15 +35,15 @@ export class HtmlShowcaseAdapter implements ShowcaseAdapter {
 
   /**
    * Builds a showcase's showcase frame: its entry point as the page, a fragment wrapped into a complete page, and every resource of its
-   * documentation file's folder next to it, under its name, whether the page uses it or not; an inline entry point comes from its virtual file, a
-   * linked one is read from disk as UTF-8. A resource named like the page fails the build.
+   * documentation file's folder next to it, under its name, whether the page uses it or not; a code block showcase's entry point comes from its
+   * virtual file, a linked one is read from disk as UTF-8. A resource named like the page fails the build.
    * @param request What to build
    * @returns The showcase frame's page and resources, or the build errors
    */
   public async build({ root, showcase, virtualFiles }: ShowcaseBuildRequest): Promise<ShowcaseBuildResult> {
     let content: string;
     let reads: string[];
-    if (showcase.kind === 'inline') {
+    if (showcase.kind === 'code-block') {
       reads = [showcase.documentation];
       const file = virtualFiles.find((virtualFile) => virtualFile.path === showcase.entry);
       if (!file) {

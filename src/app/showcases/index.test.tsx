@@ -61,7 +61,7 @@ describe('app/showcases', () => {
   describe('Placement', () => {
     // Where the remark plugin puts each showcase frame: before the nearest paragraph, heading, table or code block holding its entry point.
 
-    it('Places an inline showcase before its fence, and a linked one before its paragraph', () => {
+    it('Places a code block showcase before its fence, and a linked one before its paragraph', () => {
       const html = _render('Intro\n\n```html showcase\n<p>x</p>\n```\n\nSee [the demo](demo.html "showcase") here.');
       expect(html).toMatch(/<p>Intro<\/p>\s*\[1\]\s*<pre>.*<\/pre>\s*\[2\]\s*<p>See /s);
     });

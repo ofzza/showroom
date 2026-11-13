@@ -290,7 +290,7 @@ export interface MarkdownScan {
    */
   showcases: Showcase[];
   /**
-   * Virtual files (resources and inline showcases' entry points), in document order
+   * Virtual files (resources and code block showcases' entry points), in document order
    */
   virtualFiles: VirtualFile[];
   /**
@@ -323,7 +323,7 @@ interface _Node {
 }
 
 /**
- * Extensions of inline entry points, by fence language (lower-cased), where they differ from the language
+ * Extensions of code block showcases' entry points, by fence language (lower-cased), where they differ from the language
  */
 const _EXTENSIONS: Record<string, string> = { typescript: 'ts', javascript: 'js', htm: 'html' };
 
@@ -394,7 +394,7 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
   };
 
   _visit(_parse(content), (node) => {
-    // Fenced code blocks: inline showcases' entry points, and resources
+    // Fenced code blocks: code block showcases' entry points, and resources
     if (node.type === 'code') {
       const lang = node.lang ?? '';
       if (isShowcaseMarker(lang)) {
@@ -416,9 +416,9 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
         scan.virtualFiles.push({ path: virtualPath(marker.file), kind: 'resource', content: node.value ?? '', documentation: path, line: _line(node) });
         return;
       }
-      // An inline showcase's entry point, with a generated name
+      // A code block showcase's entry point, with a generated name
       const extension = _EXTENSIONS[lang.toLowerCase()] ?? lang.toLowerCase();
-      addShowcase(node, 'inline', marker, (index) => {
+      addShowcase(node, 'code-block', marker, (index) => {
         const generated = `${stem}.showcase-${index}.${extension}`;
         if (!isValidVirtualFileName(generated)) {
           error(node, `The code block's language "${lang}" can't be a file extension`);
@@ -446,7 +446,7 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
       }
       const entry = _resolveEntry(path, node.url ?? '');
       if ('error' in entry) return error(node, entry.error);
-      addShowcase(node, 'linked', marker, () => entry.path);
+      addShowcase(node, 'link', marker, () => entry.path);
       return;
     }
     if (!node.url || isAbsoluteUrl(node.url) || node.url.startsWith('#')) return;

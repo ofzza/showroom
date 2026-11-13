@@ -234,7 +234,7 @@ describe('showcases', () => {
       documentation: 'docs/guide.md',
       line: 10,
       offset: 0,
-      kind: 'inline',
+      kind: 'code-block',
       adapter: 'x',
       entry: 'docs/guide.showcase-2.js',
     };

@@ -37,7 +37,7 @@ function _file(frame: ShowcaseFrame, pattern: RegExp): { path: string; content: 
 }
 
 describe('adapters/showcase/react (integration)', () => {
-  // Builds the showcases of the `showcase-react` fixture (an inline showcase with state, a host component, a virtual component and virtual CSS; a
+  // Builds the showcases of the `showcase-react` fixture (a code block showcase with state, a host component, a virtual component and virtual CSS; a
   // `memo()` default export; a linked `jsx` showcase with a named export; and, under `classic/`, a tsconfig asking for the classic JSX runtime),
   // whose root tsconfig leaves `jsx` unset; the `showcase-react-errors` fixture's missing default exports and type error; and the
   // `showcase-react-18` fixture, installed by the global setup with its own React 18. The fixtures are only read.

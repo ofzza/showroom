@@ -198,7 +198,7 @@ describe('cli/check', () => {
   });
 
   describe('Showcases', () => {
-    // The showcases fixture embeds inline, linked and custom showcases, and resources, in Markdown documentation files, and passes; the
+    // The showcases fixture embeds code block, linked and custom showcases, and resources, in Markdown documentation files, and passes; the
     // showcase-errors fixture holds one documentation file per kind of broken showcase, the showcase-adapters fixture lists one custom showcase
     // adapter per way of getting it wrong, and the showcase-ts-invalid fixture holds ts showcases the ts showcase adapter rejects.
 
@@ -221,11 +221,11 @@ describe('cli/check', () => {
       expect(passed).toBe(true);
       expect(issues).toEqual([]);
       expect(host?.showcases.map(({ id, line, kind, adapter, options, entry }) => ({ id, line, kind, adapter, options, entry }))).toEqual([
-        { id: 'README.md#1', line: 3, kind: 'inline', adapter: 'html', options: undefined, entry: 'README.showcase-1.html' },
-        { id: 'README.md#2', line: 11, kind: 'linked', adapter: 'html', options: undefined, entry: 'demos/demo.html' },
-        { id: 'README.md#3', line: 11, kind: 'linked', adapter: 'demo', options: { size: 2 }, entry: 'demos/widget.js' },
-        { id: 'docs/guide.md#1', line: 3, kind: 'inline', adapter: 'html', options: undefined, entry: 'docs/guide.showcase-1.html' },
-        { id: 'docs/guide.md#2', line: 7, kind: 'inline', adapter: 'demo', options: { size: 1 }, entry: 'docs/guide.showcase-2.js' },
+        { id: 'README.md#1', line: 3, kind: 'code-block', adapter: 'html', options: undefined, entry: 'README.showcase-1.html' },
+        { id: 'README.md#2', line: 11, kind: 'link', adapter: 'html', options: undefined, entry: 'demos/demo.html' },
+        { id: 'README.md#3', line: 11, kind: 'link', adapter: 'demo', options: { size: 2 }, entry: 'demos/widget.js' },
+        { id: 'docs/guide.md#1', line: 3, kind: 'code-block', adapter: 'html', options: undefined, entry: 'docs/guide.showcase-1.html' },
+        { id: 'docs/guide.md#2', line: 7, kind: 'code-block', adapter: 'demo', options: { size: 1 }, entry: 'docs/guide.showcase-2.js' },
       ]);
       // An adapter's validation may drop options the marker gave, but html takes none, so they are never set
       expect(host?.showcases.filter((showcase) => 'options' in showcase).map((showcase) => showcase.id)).toEqual(['README.md#3', 'docs/guide.md#2']);
@@ -279,7 +279,7 @@ describe('cli/check', () => {
         `errors/entries.md:3: A linked showcase's entry point "errors/missing.html" not found`,
         `errors/entries.md:5: A linked showcase's entry point "errors/folder" is a folder`,
         'errors/entries.md:5: The html showcase adapter needs a link to an .html or .htm file, not "errors/folder"',
-        `errors/entries.md:7: A linked showcase's entry point "errors/linked-virtual.html" is a virtual file; use an inline showcase instead`,
+        `errors/entries.md:7: A linked showcase's entry point "errors/linked-virtual.html" is a virtual file; use a code block showcase instead`,
         'errors/html.md:3: The html showcase adapter needs an "html" or "htm" code block',
         'errors/html.md:6: The html showcase adapter needs a link to an .html or .htm file, not "adapters/needy.js"',
         'errors/html.md:8: The html showcase adapter takes no options',

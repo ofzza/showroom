@@ -101,7 +101,7 @@ export default () => ({
   build: async ({ root, showcase, options, virtualFiles }) => {
     const { columns, caption, locale = 'en' } = /** @type {{ columns?: string[], caption?: string, locale?: string }} */ (options);
 
-    // An inline showcase's JSON is a virtual file, in memory; a linked one is read from disk
+    // A code block showcase's JSON is a virtual file, in memory; a linked one is read from disk
     const virtual = virtualFiles.find((file) => file.path === showcase.entry);
     const reads = virtual ? [] : [showcase.entry];
     const parsed = _parse(virtual ? virtual.content : await readFile(join(root, showcase.entry), 'utf8'), showcase.entry);

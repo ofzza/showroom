@@ -12,7 +12,7 @@ A linked showcase: [`demo/Stopwatch.tsx`](./demo/Stopwatch.tsx) imports the libr
 
 ## Counters
 
-An inline showcase, importing the library by relative paths from this documentation file's folder. Its props set each counter's start, step and bounds; what it logs shows in the console panel below it.
+A code block showcase, importing the library by relative paths from this documentation file's folder. Its props set each counter's start, step and bounds; what it logs shows in the console panel below it.
 
 ```tsx showcase=react
 import { Counter } from './src/Counter.js';

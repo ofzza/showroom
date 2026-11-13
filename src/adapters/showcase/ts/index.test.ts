@@ -106,30 +106,30 @@ describe('adapters/showcase/ts', () => {
 
     it('Accepts TypeScript and JavaScript entry points, with typeCheck on and allowJs off by default', () => {
       for (const entry of ['README.showcase-1.ts', 'README.showcase-1.js', 'README.showcase-1.mts', 'README.showcase-1.mjs']) {
-        expect(adapter.validate(_showcase('inline', entry))).toEqual({ options: { typeCheck: true, allowJs: false }, errors: [] });
+        expect(adapter.validate(_showcase('code-block', entry))).toEqual({ options: { typeCheck: true, allowJs: false }, errors: [] });
       }
       for (const entry of ['demo.ts', 'demo.MTS', 'demos/demo.js', 'demo.mjs']) {
-        expect(adapter.validate(_showcase('linked', entry))).toEqual({ options: { typeCheck: true, allowJs: false }, errors: [] });
+        expect(adapter.validate(_showcase('link', entry))).toEqual({ options: { typeCheck: true, allowJs: false }, errors: [] });
       }
     });
 
     it('Rejects other entry points, pointing tsx and jsx at the react showcase adapter', () => {
-      expect(adapter.validate(_showcase('inline', 'README.showcase-1.html')).errors).toEqual([
+      expect(adapter.validate(_showcase('code-block', 'README.showcase-1.html')).errors).toEqual([
         'The ts showcase adapter needs a "ts", "js", "mts" or "mjs" code block',
       ]);
-      expect(adapter.validate(_showcase('inline', 'README.showcase-1.tsx')).errors).toEqual([
+      expect(adapter.validate(_showcase('code-block', 'README.showcase-1.tsx')).errors).toEqual([
         'The ts showcase adapter needs a "ts", "js", "mts" or "mjs" code block; for tsx and jsx, use the react showcase adapter',
       ]);
-      expect(adapter.validate(_showcase('linked', 'demo.jsx')).errors).toEqual([
+      expect(adapter.validate(_showcase('link', 'demo.jsx')).errors).toEqual([
         'The ts showcase adapter needs a link to a .ts, .mts, .js or .mjs file, not "demo.jsx"; for tsx and jsx, use the react showcase adapter',
       ]);
-      expect(adapter.validate(_showcase('linked', 'demo.cts')).errors).toEqual([
+      expect(adapter.validate(_showcase('link', 'demo.cts')).errors).toEqual([
         'The ts showcase adapter needs a link to a .ts, .mts, .js or .mjs file, not "demo.cts"',
       ]);
     });
 
     it('Takes typeCheck and allowJs, both booleans, as its options', () => {
-      const options = (value: unknown) => adapter.validate(_showcase('inline', 'a.ts', { options: value }));
+      const options = (value: unknown) => adapter.validate(_showcase('code-block', 'a.ts', { options: value }));
       expect(options({ typeCheck: false })).toEqual({ options: { typeCheck: false, allowJs: false }, errors: [] });
       expect(options({ allowJs: true })).toEqual({ options: { typeCheck: true, allowJs: true }, errors: [] });
       expect(options({ typeCheck: false, allowJs: true })).toEqual({ options: { typeCheck: false, allowJs: true }, errors: [] });
@@ -140,7 +140,7 @@ describe('adapters/showcase/ts', () => {
         'Unknown option "size" of the ts showcase adapter; its options are "typeCheck" and "allowJs"',
       ]);
       for (const options of [[true], 'typeCheck', null]) {
-        expect(adapter.validate(_showcase('inline', 'a.ts', { options })).errors).toEqual([
+        expect(adapter.validate(_showcase('code-block', 'a.ts', { options })).errors).toEqual([
           'The ts showcase adapter\'s options must be an object, e.g. "showcase=ts({ typeCheck: false })"',
         ]);
       }
@@ -164,8 +164,8 @@ describe('adapters/showcase/ts', () => {
       const asked: string[] = [];
       const adapter = new TsShowcaseAdapter((folder) => void asked.push(folder));
       const showcases = [
-        _showcase('inline', 'README.showcase-1.ts', { options: { typeCheck: true, allowJs: false } }),
-        _showcase('inline', 'docs/guide.showcase-1.ts', { documentation: 'docs/guide.md', options: { typeCheck: false, allowJs: false } }),
+        _showcase('code-block', 'README.showcase-1.ts', { options: { typeCheck: true, allowJs: false } }),
+        _showcase('code-block', 'docs/guide.showcase-1.ts', { documentation: 'docs/guide.md', options: { typeCheck: false, allowJs: false } }),
       ];
       expect(adapter.check(_ROOT, showcases)).toEqual({
         errors: [

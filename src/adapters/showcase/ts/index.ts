@@ -100,7 +100,7 @@ export function validateTsShowcase(showcase: Showcase): ShowcaseValidation {
   if (!TS_ENTRY.test(showcase.entry)) {
     const react = REACT_ENTRY.test(showcase.entry) ? '; for tsx and jsx, use the react showcase adapter' : '';
     errors.push(
-      showcase.kind === 'inline'
+      showcase.kind === 'code-block'
         ? `The ts showcase adapter needs a "ts", "js", "mts" or "mjs" code block${react}`
         : `The ts showcase adapter needs a link to a .ts, .mts, .js or .mjs file, not "${showcase.entry}"${react}`,
     );
@@ -682,7 +682,7 @@ export async function buildTsShowcase({
 }: TsShowcaseBuild): Promise<ShowcaseBuildResult> {
   const vite = await import('vite');
   const virtualFiles = getVirtualFilesByPath(root, hostVirtualFiles);
-  const reads = new Set<string>([showcase.kind === 'inline' ? showcase.documentation : showcase.entry]);
+  const reads = new Set<string>([showcase.kind === 'code-block' ? showcase.documentation : showcase.entry]);
   const unresolved: ShowcaseBuildError[] = [];
   const pending: Promise<ShowcaseBuildError | undefined>[] = [];
   const place = (errors: ShowcaseBuildError[]) => placeGeneratedModuleErrors(root, generated, errors);

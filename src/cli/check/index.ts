@@ -292,12 +292,12 @@ async function _checkShowcases(
       const error = (message: string): void => void issues.push({ severity: 'error', message, path: showcase.documentation, line: showcase.line });
 
       // A linked entry point must be a real file
-      if (showcase.kind === 'linked') {
+      if (showcase.kind === 'link') {
         const kind = virtualPaths.has(showcase.entry.toLowerCase()) ? 'virtual' : await _getEntryKind(join(root, showcase.entry));
         if (kind !== 'file') {
           error(
             kind === 'virtual'
-              ? `A linked showcase's entry point "${showcase.entry}" is a virtual file; use an inline showcase instead`
+              ? `A linked showcase's entry point "${showcase.entry}" is a virtual file; use a code block showcase instead`
               : `A linked showcase's entry point "${showcase.entry}" ${kind === 'folder' ? 'is a folder' : 'not found'}`,
           );
         }
@@ -467,7 +467,7 @@ async function _collectLinkedFiles(
     if (resolved && !resolved.isFolder && resolved.path && !named.has(resolved.path)) named.set(resolved.path, link);
   }
   for (const showcase of showcases) {
-    if (showcase.kind === 'linked' && !named.has(showcase.entry)) named.set(showcase.entry, { documentation: showcase.documentation, line: showcase.line });
+    if (showcase.kind === 'link' && !named.has(showcase.entry)) named.set(showcase.entry, { documentation: showcase.documentation, line: showcase.line });
   }
 
   // The files among them

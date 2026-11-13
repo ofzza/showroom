@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation stage (_`P10.1`_); _`P10`_ Presenting showcases (`PLAN-P10-presentation.md`) approved for its split into _`P10.1`_–_`P10.5`_ and their order (_`D382`_–_`D385`_). _`P1`_–_`P9`_ implemented.
+- **Stage:** planning stage (_`P10.2`_); _`P10`_ Presenting showcases (`PLAN-P10-presentation.md`) approved for its split into _`P10.1`_–_`P10.5`_ and their order (_`D382`_–_`D385`_). _`P1`_–_`P9`_ implemented.
 - **Next free:** _`D386`_, _`S11`_, _`P11`_, _`O67`_, _`L14`_, _`R25`_, _`H1`_, _`K20`_
-- **Working on:** _`P10.1`_ The rename (`PLAN-P10.1-rename.md`), approved; implementation stage.
-- **Next step:** implement _`P10.1`_, then its checkpoint.
+- **Working on:** nothing; _`P10.1`_ implemented.
+- **Next step:** plan _`P10.2`_ Code blocks and links (`PLAN-P10.2-code-blocks.md`), with _`O64`_, _`O65`_.
 
 ## Open questions
 
@@ -223,3 +223,5 @@
 - 2026-11-13: _`P10`_ Presenting showcases approved, for its split and order (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
 - 2026-11-13: _`P10.1`_ The rename drafted (`PLAN-P10.1-rename.md`), with no choices left beyond _`D371`_ and _`D381`_.
 - 2026-11-13: _`P10.1`_ The rename approved (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
+- 2026-11-13: _`P10.1`_ implemented (27 files: kinds, wording, tests, `README.md`, `AGENTS.md`, examples); `npm run ci` green; awaiting the checkpoint.
+- 2026-11-13: _`P10.1`_ approved and committed (option chosen: "Approve and commit"); `p10.1-check/` working files deleted with it.

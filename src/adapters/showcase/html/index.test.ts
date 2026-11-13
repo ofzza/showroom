@@ -31,18 +31,18 @@ describe('adapters/showcase/html', () => {
   const adapter = new HtmlShowcaseAdapter();
 
   it('Accepts HTML entry points without options', () => {
-    expect(adapter.validate(_showcase('inline', 'README.showcase-1.html'))).toEqual({ errors: [] });
-    expect(adapter.validate(_showcase('linked', 'docs/demo.HTM'))).toEqual({ errors: [] });
+    expect(adapter.validate(_showcase('code-block', 'README.showcase-1.html'))).toEqual({ errors: [] });
+    expect(adapter.validate(_showcase('link', 'docs/demo.HTM'))).toEqual({ errors: [] });
   });
 
   it('Rejects other entry points', () => {
-    expect(adapter.validate(_showcase('inline', 'README.showcase-1.js')).errors).toEqual(['The html showcase adapter needs an "html" or "htm" code block']);
-    expect(adapter.validate(_showcase('linked', 'demo.js')).errors).toEqual(['The html showcase adapter needs a link to an .html or .htm file, not "demo.js"']);
+    expect(adapter.validate(_showcase('code-block', 'README.showcase-1.js')).errors).toEqual(['The html showcase adapter needs an "html" or "htm" code block']);
+    expect(adapter.validate(_showcase('link', 'demo.js')).errors).toEqual(['The html showcase adapter needs a link to an .html or .htm file, not "demo.js"']);
   });
 
   it('Rejects any options', () => {
     // A marker with options always has them, even `null`, which JSON5 can parse
-    expect(adapter.validate(_showcase('inline', 'a.html', { options: null })).errors).toEqual(['The html showcase adapter takes no options']);
+    expect(adapter.validate(_showcase('code-block', 'a.html', { options: null })).errors).toEqual(['The html showcase adapter takes no options']);
   });
 
   it('Has no host requirements', () => {
@@ -75,20 +75,20 @@ describe('adapters/showcase/html', () => {
       line: 3,
     });
 
-    it('Builds an inline page as it is', async () => {
+    it("Builds a code block showcase's page as it is", async () => {
       const page = '<!doctype html><html><body><p>Hi</p></body></html>';
-      const result = await adapter.build(request(_showcase('inline', 'README.showcase-1.html'), [virtual('README.showcase-1.html', page)]));
+      const result = await adapter.build(request(_showcase('code-block', 'README.showcase-1.html'), [virtual('README.showcase-1.html', page)]));
       expect(result).toEqual({ page: 'index.html', files: [{ path: 'index.html', content: page }], reads: ['README.md'] });
     });
 
-    it('Wraps an inline fragment into a page', async () => {
-      const result = await adapter.build(request(_showcase('inline', 'README.showcase-1.html'), [virtual('README.showcase-1.html', '<p>Hi</p>')]));
+    it("Wraps a code block showcase's fragment into a page", async () => {
+      const result = await adapter.build(request(_showcase('code-block', 'README.showcase-1.html'), [virtual('README.showcase-1.html', '<p>Hi</p>')]));
       expect(result.files).toEqual([{ path: 'index.html', content: wrapHtmlFragment('<p>Hi</p>') }]);
       expect(wrapHtmlFragment('<p>Hi</p>')).toMatch(/^<!doctype html><html><head><meta charset="utf-8">.*<body><p>Hi<\/p><\/body><\/html>$/);
     });
 
     it('Reads a linked page from disk, leaving its references alone', async () => {
-      const result = await adapter.build(request(_showcase('linked', 'demos/page.html')));
+      const result = await adapter.build(request(_showcase('link', 'demos/page.html')));
       expect(result.errors).toBeUndefined();
       expect(result.reads).toEqual(['demos/page.html']);
       expect(result.files).toHaveLength(1);
@@ -102,7 +102,7 @@ describe('adapters/showcase/html', () => {
         virtual('demo.js', 'run();', 'resource'),
         { path: 'unused.css', kind: 'resource' as const, content: 'p {}', documentation: 'CONTRIBUTE.md', line: 9 },
       ];
-      const result = await adapter.build(request(_showcase('inline', 'README.showcase-1.html'), files));
+      const result = await adapter.build(request(_showcase('code-block', 'README.showcase-1.html'), files));
       expect(result).toEqual({
         page: 'index.html',
         files: [
@@ -115,25 +115,25 @@ describe('adapters/showcase/html', () => {
     });
 
     it('Puts the resources next to a linked page too, under their names', async () => {
-      const result = await adapter.build(request(_showcase('linked', 'demos/page.html'), [virtual('demos/page.css', 'p {}', 'resource')]));
+      const result = await adapter.build(request(_showcase('link', 'demos/page.html'), [virtual('demos/page.css', 'p {}', 'resource')]));
       expect(result.files?.map((file) => file.path)).toEqual(['index.html', 'page.css']);
       expect(result.reads).toEqual(['demos/page.html', 'README.md']);
     });
 
     it('Fails on a resource that would replace the page, ignoring case', async () => {
       const files = [virtual('README.showcase-1.html', '<p>Hi</p>'), virtual('INDEX.html', '<p>Mine</p>', 'resource')];
-      expect(await adapter.build(request(_showcase('inline', 'README.showcase-1.html'), files))).toEqual({
+      expect(await adapter.build(request(_showcase('code-block', 'README.showcase-1.html'), files))).toEqual({
         reads: ['README.md'],
         errors: [{ message: 'The resource "INDEX.html" would replace the showcase frame\'s page', path: 'INDEX.html' }],
       });
     });
 
     it('Reports an entry point it cannot find', async () => {
-      expect(await adapter.build(request(_showcase('inline', 'README.showcase-1.html')))).toEqual({
+      expect(await adapter.build(request(_showcase('code-block', 'README.showcase-1.html')))).toEqual({
         reads: ['README.md'],
         errors: [{ message: `The entry point's virtual file "README.showcase-1.html" is missing` }],
       });
-      const linked = await adapter.build(request(_showcase('linked', 'demos/missing.html')));
+      const linked = await adapter.build(request(_showcase('link', 'demos/missing.html')));
       expect(linked.errors).toEqual([{ message: expect.stringContaining("The entry point can't be read: "), path: 'demos/missing.html' }]);
     });
 

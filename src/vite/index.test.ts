@@ -36,8 +36,8 @@ const _HOST: HostInformation = {
   documentation: [{ path: 'README.md', kind: 'readme', extension: '.md', content: '# Hi' }],
   code: ['src/index.ts'],
   showcases: [
-    { id: 'README.md#1', documentation: 'README.md', line: 3, offset: 10, kind: 'inline', adapter: 'html', entry: 'README.showcase-1.html' },
-    { id: 'my docs/a #1.md#2', documentation: 'my docs/a #1.md', line: 5, offset: 40, kind: 'linked', adapter: 'x', entry: 'demo.html' },
+    { id: 'README.md#1', documentation: 'README.md', line: 3, offset: 10, kind: 'code-block', adapter: 'html', entry: 'README.showcase-1.html' },
+    { id: 'my docs/a #1.md#2', documentation: 'my docs/a #1.md', line: 5, offset: 40, kind: 'link', adapter: 'x', entry: 'demo.html' },
   ],
   virtualFiles: [],
   linkedFiles: [{ path: 'src/index.ts', size: 75, text: true }],

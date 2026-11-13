@@ -1,6 +1,6 @@
 # _`P10.1`_ The rename
 
-approved 2026-11-13 (option chosen: "Approve and commit (Rec.)"), without a zero-context review
+implemented 2026-11-13 (option chosen: "Approve and commit"); approved 2026-11-13 (option chosen: "Approve and commit (Rec.)"), without a zero-context review
 
 ## Goals
 
@@ -24,4 +24,4 @@ None beyond _`D371`_ and _`D381`_ (SPEC-S10-presentation.md): the rename has no 
 
 ## Open points
 
-- [ ] _`O65`_ (SPEC-S10-presentation.md) The tests and documentation of this segment: steps 3 and 4.
+- [x] _`O65`_ (SPEC-S10-presentation.md; this segment's part done by steps 3 and 4) The tests and documentation of this segment.

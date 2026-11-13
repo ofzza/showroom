@@ -36,27 +36,29 @@ describe('adapters/showcase/react', () => {
 
     it('Accepts TSX and JSX entry points, with typeCheck on and allowJs off by default', () => {
       for (const showcase of [
-        _showcase('inline', 'README.showcase-1.tsx'),
-        _showcase('inline', 'README.showcase-1.jsx'),
-        _showcase('linked', 'demos/Demo.TSX'),
+        _showcase('code-block', 'README.showcase-1.tsx'),
+        _showcase('code-block', 'README.showcase-1.jsx'),
+        _showcase('link', 'demos/Demo.TSX'),
       ]) {
         expect(adapter.validate(showcase)).toEqual({ options: { typeCheck: true, allowJs: false }, errors: [] });
       }
-      expect(validateReactShowcase(_showcase('linked', 'Demo.jsx', { options: { typeCheck: false, allowJs: true } }))).toEqual({
+      expect(validateReactShowcase(_showcase('link', 'Demo.jsx', { options: { typeCheck: false, allowJs: true } }))).toEqual({
         options: { typeCheck: false, allowJs: true },
         errors: [],
       });
     });
 
     it('Rejects other entry points, pointing ts and js at the ts showcase adapter, and invalid options', () => {
-      expect(adapter.validate(_showcase('inline', 'README.showcase-1.html')).errors).toEqual(['The react showcase adapter needs a "tsx" or "jsx" code block']);
-      expect(adapter.validate(_showcase('inline', 'README.showcase-1.ts')).errors).toEqual([
+      expect(adapter.validate(_showcase('code-block', 'README.showcase-1.html')).errors).toEqual([
+        'The react showcase adapter needs a "tsx" or "jsx" code block',
+      ]);
+      expect(adapter.validate(_showcase('code-block', 'README.showcase-1.ts')).errors).toEqual([
         'The react showcase adapter needs a "tsx" or "jsx" code block; for ts and js, use the ts showcase adapter',
       ]);
-      expect(adapter.validate(_showcase('linked', 'demo.mjs')).errors).toEqual([
+      expect(adapter.validate(_showcase('link', 'demo.mjs')).errors).toEqual([
         'The react showcase adapter needs a link to a .tsx or .jsx file, not "demo.mjs"; for ts and js, use the ts showcase adapter',
       ]);
-      expect(adapter.validate(_showcase('inline', 'a.tsx', { options: { strict: true } })).errors).toEqual([
+      expect(adapter.validate(_showcase('code-block', 'a.tsx', { options: { strict: true } })).errors).toEqual([
         'Unknown option "strict" of the react showcase adapter; its options are "typeCheck" and "allowJs"',
       ]);
     });
@@ -123,9 +125,9 @@ describe('adapters/showcase/react', () => {
         const missing = (folder: string, name: string) => (folder.endsWith('none') || name === '@types/react' ? undefined : resolver(folder, name));
         const typeScript = (folder: string) => (folder.endsWith('off') ? undefined : join(REPOSITORY_ROOT, 'node_modules', 'typescript'));
         const showcases = ['ok', 'old', 'untyped', 'typed', 'none'].map((folder) =>
-          _showcase('inline', `${folder}/a.showcase-1.tsx`, { documentation: `${folder}/a.md` }),
+          _showcase('code-block', `${folder}/a.showcase-1.tsx`, { documentation: `${folder}/a.md` }),
         );
-        showcases.push(_showcase('inline', 'off/a.showcase-1.tsx', { documentation: 'off/a.md', options: { typeCheck: false, allowJs: false } }));
+        showcases.push(_showcase('code-block', 'off/a.showcase-1.tsx', { documentation: 'off/a.md', options: { typeCheck: false, allowJs: false } }));
         expect(checkReact(_ROOT, showcases, (folder, name) => (folder.endsWith('ok') ? resolver(folder, name) : missing(folder, name)), typeScript)).toEqual({
           errors: [
             'the react showcases of "none" need "react" 18 or later, but it isn\'t installed where it can be found: install "react" and "react-dom"',
@@ -144,7 +146,7 @@ describe('adapters/showcase/react', () => {
     });
 
     it("Includes the ts showcase adapter's TypeScript requirement, in its own name", () => {
-      const showcase = _showcase('inline', 'a.showcase-1.tsx', { documentation: 'a.md' });
+      const showcase = _showcase('code-block', 'a.showcase-1.tsx', { documentation: 'a.md' });
       const adapter = new ReactShowcaseAdapter(
         () => undefined,
         () => undefined,
@@ -155,7 +157,7 @@ describe('adapters/showcase/react', () => {
     });
 
     it("Passes on this repository's React 19 and its types", () => {
-      expect(new ReactShowcaseAdapter().check(_ROOT, [_showcase('inline', 'README.showcase-1.tsx')])).toEqual({ errors: [], warnings: [] });
+      expect(new ReactShowcaseAdapter().check(_ROOT, [_showcase('code-block', 'README.showcase-1.tsx')])).toEqual({ errors: [], warnings: [] });
     });
   });
 });

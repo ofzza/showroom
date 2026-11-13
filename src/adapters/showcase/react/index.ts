@@ -33,7 +33,7 @@ export function validateReactShowcase(showcase: Showcase): ShowcaseValidation {
   if (!REACT_ENTRY.test(showcase.entry)) {
     const ts = TS_ENTRY.test(showcase.entry) ? '; for ts and js, use the ts showcase adapter' : '';
     errors.push(
-      showcase.kind === 'inline'
+      showcase.kind === 'code-block'
         ? `The react showcase adapter needs a "tsx" or "jsx" code block${ts}`
         : `The react showcase adapter needs a link to a .tsx or .jsx file, not "${showcase.entry}"${ts}`,
     );

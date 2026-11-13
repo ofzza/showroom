@@ -26,7 +26,7 @@ A linked showcase: [`planets.json`](./planets.json), a real file, with a caption
 | `caption` | `string`   | none                                           | a caption above the table             |
 | `locale`  | `string`   | `en`                                           | the language numbers are formatted in |
 
-`validate()` rejects any other option, or one of the wrong type, and an entry point that isn't JSON, so `showroom check` reports them without building anything. An inline showcase, choosing its columns and formatting in German:
+`validate()` rejects any other option, or one of the wrong type, and an entry point that isn't JSON, so `showroom check` reports them without building anything. A code block showcase, choosing its columns and formatting in German:
 
 ```json showcase=number-table({ columns: ["city", "population", "area (km²)"], locale: "de" })
 [

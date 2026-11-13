@@ -12,7 +12,7 @@ A linked showcase: [`demo/countdown.ts`](./demo/countdown.ts) imports the librar
 
 ## Durations
 
-An inline showcase, importing the library by relative paths from this documentation file's folder. Everything it logs shows in the console panel.
+A code block showcase, importing the library by relative paths from this documentation file's folder. Everything it logs shows in the console panel.
 
 ```ts showcase=ts
 import { Duration } from './src/duration.js';

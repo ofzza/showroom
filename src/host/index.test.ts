@@ -19,8 +19,8 @@ describe('host', () => {
     expectTypeOf<DocumentationKind>().toEqualTypeOf<'readme' | 'contribute' | 'license' | 'other'>();
   });
 
-  it('Limits showcase kinds to inline and linked', () => {
-    expectTypeOf<ShowcaseKind>().toEqualTypeOf<'inline' | 'linked'>();
+  it('Limits showcase kinds to code-block and link', () => {
+    expectTypeOf<ShowcaseKind>().toEqualTypeOf<'code-block' | 'link'>();
   });
 
   it('Survives a JSON round trip unchanged', () => {
@@ -29,8 +29,8 @@ describe('host', () => {
       documentation: [{ path: 'README.md', kind: 'readme', extension: '.md', content: '# Host\n' }],
       code: ['src/index.ts'],
       showcases: [
-        { id: 'README.md#1', documentation: 'README.md', line: 3, offset: 9, kind: 'inline', adapter: 'html', entry: 'README.showcase-1.html' },
-        { id: 'README.md#2', documentation: 'README.md', line: 7, offset: 40, kind: 'linked', adapter: 'x', options: { a: [1] }, entry: 'demo.js' },
+        { id: 'README.md#1', documentation: 'README.md', line: 3, offset: 9, kind: 'code-block', adapter: 'html', entry: 'README.showcase-1.html' },
+        { id: 'README.md#2', documentation: 'README.md', line: 7, offset: 40, kind: 'link', adapter: 'x', options: { a: [1] }, entry: 'demo.js' },
       ],
       virtualFiles: [{ path: 'README.showcase-1.html', kind: 'entry', content: '<p>Hi</p>', documentation: 'README.md', line: 3 }],
       linkedFiles: [{ path: 'src/index.ts', size: 12, text: true }],
