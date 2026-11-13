@@ -2,14 +2,14 @@
 
 ## Next session: start here
 
-- **Stage:** _`P7.1`_ (`PLAN-P7.1-ts.md`) implemented: _`P7.1.1`_ (building) and _`P7.1.2`_ (type checking) both implemented and committed. _`P7`_ (`PLAN-P7-ts-react.md`) approved; _`P7.2`_ (the `react` showcase adapter) is next. Specification: _`S6`_ (with _`S6.5`_, _`S6.6`_, and _`S6.7`_ re-approved 2026-11-13) and _`S7`_ approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_, _`P6`_ and _`P7.1`_ are implemented and committed.
-- **Next free:** _`D302`_, _`S8`_, _`P8`_, _`O46`_, _`L13`_, _`R18`_, _`H1`_, _`K17`_
-- **Working on:** nothing.
-- **Next step:** plan _`P7.2`_ (the `react` showcase adapter), preferably in a fresh session; ask then about `./.workflow/.temp/spike-react-host/` (see Waiting on me).
+- **Stage:** specification stage, _`S8`_ (showcase adapter examples, `SPEC.md`), draft, recorded 2026-11-13 from the user's proposal; to be specified, planned and implemented before _`P7.2`_ (_`D304`_). _`P7.1`_ (`PLAN-P7.1-ts.md`) is implemented and committed; _`P7`_ (`PLAN-P7-ts-react.md`) approved, _`P7.2`_ (the `react` showcase adapter) not yet planned. Specification: _`S6`_ (with _`S6.5`_, _`S6.6`_, and _`S6.7`_ re-approved 2026-11-13) and _`S7`_ approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_, _`P6`_ and _`P7.1`_ are implemented and committed.
+- **Next free:** _`D305`_, _`S9`_, _`P8`_, _`O53`_, _`L13`_, _`R18`_, _`H1`_, _`K17`_
+- **Working on:** nothing; the user clears the context before continuing.
+- **Next step:** specify _`S8`_: go through its open points _`O46`_–_`O52`_ (`SPEC.md`) as choices, then approve it; then plan it, before _`P7.2`_.
 
 ## Open questions
 
-- See _`S6`_'s open points _`O16`_–_`O19`_. Open pitfalls are in `./.workflow/SPEC-pitfalls.md`.
+- See _`S6`_'s open points _`O16`_–_`O19`_. _`S8`_'s open points _`O46`_–_`O52`_ are next (`SPEC.md`). Open pitfalls are in `./.workflow/SPEC-pitfalls.md`.
 
 ## Waiting on me
 
@@ -187,3 +187,4 @@
 - 2026-11-13: _`P7.1.2`_ implemented (option chosen: "Implement P7.1.2 (Rec.)"): `check?(root, showcases)` returning `{ errors, warnings }`, type checking with the host's TypeScript (`src/adapters/showcase/ts/typecheck/`), the `allowJs` option; `showcase-ts-types` and `showcase-ts-defaults` fixtures; `npm run ci` green; _`K10`_ and _`K14`_ updated; awaiting the checkpoint.
 - 2026-11-13: _`P7.1.2`_ approved and committed (option chosen: "Approve and commit"), with _`D301`_ recorded for the fixtures' TypeScript 6.0 deviation (option chosen: "Record D301 (Rec.)") and re-approved with it, and "Host requirement" added to the Glossary (option chosen: "Add it (Rec.)"); _`P7.1`_ implemented.
 - 2026-11-13: Fast path: `README.md`'s `ts` showcase example (and its live copy) typed throughout, with an `enum` and an `interface` (option chosen: "Fast path, as drafted (Rec.)"); `npm run ci` green; approved and committed (option chosen: "Approve and commit").
+- 2026-11-13: _`S8`_ (showcase adapter examples) recorded as a draft specification segment from the user's proposal ("per showcase adapter `./examples/<adapter type>/README.md`s which will show up in the main `showroom`"), with _`D302`_–_`D304`_ and the agent's assessment as open points _`O46`_–_`O52`_; the user: "Let's proceed with the examples before react adapter. Let's document and commit what we discussed, mark it as next step".

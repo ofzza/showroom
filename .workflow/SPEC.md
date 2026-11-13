@@ -87,6 +87,28 @@ Keeping the documentation itself from drifting, alongside its showcases (_`D102`
 
 - Checking links' heading fragments (`#<heading id>`) against the target documentation file's headings.
 
+## _`S8`_ Showcase adapter examples
+
+draft (recorded 2026-11-13 from the user's proposal, to be specified before _`P7.2`_)
+
+Demonstrating and documenting each showcase adapter through an example of its own, shown live in this repository's own showroom.
+
+- _`D302`_ (`live`; the user: "I would like to add per showcase adapter `./examples/<adapter type>/README.md`s which will show up in the main `showroom`. Each would be a mock README or a mock/example project, showing in more detail the abilities of that showcase adapters"): **Each showcase adapter gets an example**, `examples/<adapter>/README.md`: a mock README, or a mock or example project, showing that showcase adapter's abilities in more detail than `README.md` does, with live showcases. It shows up in this repository's showroom as a documentation file (`README` anywhere is built-in documentation), so `check --showcases` (`ci:showroom`, and the integration test running `check()` on this repository) builds and type checks it.
+- _`D303`_ (`live`; the user: "The root README could reference these examples instead of having to go in depth for each adapter type"; how much reference stays in `README.md` is _`O46`_): **`README.md` refers to each showcase adapter's example** instead of demonstrating it in depth.
+- _`D304`_ (`live`; the user: "Starting now and going forward", and "Let's proceed with the examples before react adapter"): **The examples come before _`P7.2`_**, for the existing showcase adapters (`html`, `ts`, and a custom showcase adapter); from then on, every new showcase adapter comes with its example, as part of its own segment.
+
+### Open points
+
+From the discussion of 2026-11-13 (the agent's assessment), raised when specifying _`S8`_:
+
+- [ ] _`O46`_ How much of each showcase adapter's reference stays in `README.md` (the options, what a showcase can import, type checking's rules, the interface). Recommended: keep the reference there, shortened, with a link to the example ("See it live"), the example showing rather than restating the rules: npm and GitHub show `README.md` without showcases.
+- [ ] _`O47`_ Links to the examples outside the showroom: on npmjs.com and GitHub, `./examples/<adapter>/README.md` opens as plain Markdown, with code blocks and no showcases; consider also linking the published GitHub Pages showroom, where they are live.
+- [ ] _`O48`_ What an example may depend on. `html` and `ts` examples resolve this repository's own `node_modules` and its root `tsconfig.json` (which only includes `src/`, but applies as the nearest one), so an example may want a `tsconfig.json` of its own. A `react` example could use React as one of `showroom`'s own dependencies, against the host's own React (_`K10`_); an Angular one needs Angular's toolchain as devDependencies of this repository; a self-contained example project with its own `package.json` needs an install of its own (workspaces, or a CI step), as _`K12`_ (SPEC-pitfalls.md) and _`O41`_ (PLAN-P7-ts-react.md) have it.
+- [ ] _`O49`_ A custom showcase adapter's example lists its module under `customShowcaseAdapters` in this repository's `showroom.json`, so every `check` on this repository loads (runs) it.
+- [ ] _`O50`_ The existing `examples/` folder holds `button.html`, the real file behind `README.md`'s linked showcase: it moves to `examples/html/`, with `AGENTS.md`'s gotcha "Markers in this repository's own documentation files are live" and its rule keeping the button the first showcase in `README.md` (named `README.showcase-1.html` in the virtual files paragraph) updated.
+- [ ] _`O51`_ How nested `README.md` files show in the showroom's navigation (titles, grouping) with several examples: check it in a browser (e.g. on a copy, with one example dropped in) before writing them all.
+- [ ] _`O52`_ Whether an example is a domain concept for the Glossary (e.g. "Showcase adapter example").
+
 ## Pitfalls
 
 [See Pitfalls](./SPEC-pitfalls.md)
