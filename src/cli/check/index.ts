@@ -6,7 +6,7 @@ import ignore from 'ignore';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { ShowcaseAdapter } from '../../adapters/showcase/index.js';
-import { createShowcaseAdapter, getShowcaseAdapterNames, loadCustomShowcaseAdapters } from '../../adapters/showcase/registry/index.js';
+import { checkHostCheckResult, createShowcaseAdapter, getShowcaseAdapterNames, loadCustomShowcaseAdapters } from '../../adapters/showcase/registry/index.js';
 import { getStackAdapter, getStackAdapterNames } from '../../adapters/stack/index.js';
 import { readConfiguration, CONFIGURATION_FILE_NAME, type Configuration } from '../../configuration/index.js';
 import type { DocumentationFile, DocumentationKind, HostInformation, ProjectInformation, Showcase, VirtualFile } from '../../host/index.js';
@@ -259,8 +259,9 @@ async function _checkVirtualFiles(root: string, virtualFiles: VirtualFile[], iss
 }
 
 /**
- * Checks every showcase: its linked entry point, and its showcase adapter's validation; then each used showcase adapter's host requirements. Every
- * custom showcase adapter is loaded, used or not. Each showcase's options are replaced by the validated ones.
+ * Checks every showcase: its linked entry point, and its showcase adapter's validation; then each used showcase adapter's host requirements, given
+ * the showcases whose validation passed (errors as error issues, warnings as warning issues). Every custom showcase adapter is loaded, used or not.
+ * Each showcase's options are replaced by the validated ones.
  * @param root Path of the host repository's root
  * @param configuration Configuration of the host repository
  * @param showcases Showcases, sorted by documentation file and line
@@ -279,7 +280,7 @@ async function _checkShowcases(
   const custom = await loadCustomShowcaseAdapters(root, listed);
   issues.push(...custom.errors.map((message) => ({ severity: 'error' as const, message, path: CONFIGURATION_FILE_NAME })));
   const adapters = new Map<string, ShowcaseAdapter>(custom.adapters);
-  const used = new Set<string>();
+  const used = new Map<string, Showcase[]>();
   const virtualPaths = new Set(virtualFiles.map((file) => file.path.toLowerCase()));
 
   try {
@@ -311,28 +312,45 @@ async function _checkShowcases(
       }
       const adapter = adapters.get(showcase.adapter);
       if (!adapter) continue; // A custom showcase adapter that didn't load, reported already
-      used.add(showcase.adapter);
+      const valid = used.get(showcase.adapter) ?? [];
+      used.set(showcase.adapter, valid);
 
       // Its validation
       try {
         const validation = await adapter.validate({ ...showcase });
         if (validation.errors.length) {
           validation.errors.forEach(error);
-        } else if (validation.options === undefined) {
-          delete showcase.options;
         } else {
-          showcase.options = validation.options;
+          if (validation.options === undefined) {
+            delete showcase.options;
+          } else {
+            showcase.options = validation.options;
+          }
+          valid.push(showcase);
         }
       } catch (err) {
         error(`Showcase adapter "${showcase.adapter}" failed to validate the showcase: ${(err as Error).message}`);
       }
     }
 
-    // The host requirements of the showcase adapters in use
-    for (const name of [...used].sort()) {
+    // The host requirements of the showcase adapters in use, given the showcases whose validation passed
+    for (const name of [...used.keys()].sort()) {
       try {
-        const missing = (await adapters.get(name)!.check?.(resolve(root))) ?? [];
-        issues.push(...missing.map((message) => ({ severity: 'error' as const, message: `Showcase adapter "${name}": ${message}` })));
+        const adapter = adapters.get(name)!;
+        if (!adapter.check) continue;
+        const result = checkHostCheckResult(
+          await adapter.check(
+            resolve(root),
+            used.get(name)!.map((showcase) => ({ ...showcase })),
+          ),
+        );
+        if ('problem' in result) {
+          issues.push({ severity: 'error', message: `Showcase adapter "${name}" returned an invalid host check: ${result.problem}` });
+          continue;
+        }
+        for (const [severity, messages] of [['error', result.errors] as const, ['warning', result.warnings] as const]) {
+          issues.push(...messages.map((message) => ({ severity, message: `Showcase adapter "${name}": ${message}` })));
+        }
       } catch (err) {
         issues.push({ severity: 'error', message: `Showcase adapter "${name}" failed to check the host repository: ${(err as Error).message}` });
       }

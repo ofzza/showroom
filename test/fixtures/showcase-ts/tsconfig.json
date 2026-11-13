@@ -1,1 +1,12 @@
-{ "compilerOptions": { "target": "ES2022", "module": "ESNext", "useDefineForClassFields": false } }
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "useDefineForClassFields": false,
+    "types": []
+  },
+  "include": ["**/*.ts"]
+}

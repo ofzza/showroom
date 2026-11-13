@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** _`P7.1.1`_ (building `ts` showcases, `PLAN-P7.1-ts.md`) implemented and committed; _`P7.1.2`_ (type checking) approved, not yet implemented. _`P7.1`_ is split by _`D246`_; _`P7`_ (`PLAN-P7-ts-react.md`) approved; implementation is done up to _`P7.1.1`_. Specification: _`S6`_ (with _`S6.5`_, _`S6.6`_, and _`S6.7`_ re-approved 2026-11-13) and _`S7`_ approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_, _`P6`_ and _`P7.1.1`_ are implemented and committed.
-- **Next free:** _`D301`_, _`S8`_, _`P8`_, _`O46`_, _`L13`_, _`R18`_, _`H1`_, _`K17`_
-- **Working on:** nothing; _`P7.1.2`_ (type checking `ts` showcases) approved (`PLAN-P7.1-ts.md`, _`D273`_–_`D299`_), with _`S6.7`_ re-approved.
-- **Next step:** implement _`P7.1.2`_, preferably in a fresh session.
+- **Stage:** _`P7.1`_ (`PLAN-P7.1-ts.md`) implemented: _`P7.1.1`_ (building) and _`P7.1.2`_ (type checking) both implemented and committed. _`P7`_ (`PLAN-P7-ts-react.md`) approved; _`P7.2`_ (the `react` showcase adapter) is next. Specification: _`S6`_ (with _`S6.5`_, _`S6.6`_, and _`S6.7`_ re-approved 2026-11-13) and _`S7`_ approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_, _`P6`_ and _`P7.1`_ are implemented and committed.
+- **Next free:** _`D302`_, _`S8`_, _`P8`_, _`O46`_, _`L13`_, _`R18`_, _`H1`_, _`K17`_
+- **Working on:** nothing.
+- **Next step:** plan _`P7.2`_ (the `react` showcase adapter), preferably in a fresh session; ask then about `./.workflow/.temp/spike-react-host/` (see Waiting on me).
 
 ## Open questions
 
@@ -184,3 +184,5 @@
 - 2026-11-13: _`P7.1.2`_ approved, and _`S6.7`_ re-approved (_`R16`_, _`R17`_) (option chosen: "Approve and commit (Rec.)"); `spike-ts-typecheck/`, `questions-p7.1.2/` and `review-p7.1.2/` working files deleted ("Delete them (Rec.)").
 - 2026-11-13: Fast path: this repository's TypeScript upgraded from 5.9.3 to 6.0.3 (the user: "Let's fastpath the upgrade to 6.0.3"): no code changes needed, `npm run ci` green; `AGENTS.md`'s toolchain line updated; _`D300`_ changes _`D275`_ (tests on 6.0), _`P7.1.2`_ revised, pending re-approval; awaiting the checkpoint.
 - 2026-11-13: The TypeScript 6.0.3 fast path approved and committed, and _`P7.1.2`_ re-approved with _`D300`_ (option chosen: "Approve and commit").
+- 2026-11-13: _`P7.1.2`_ implemented (option chosen: "Implement P7.1.2 (Rec.)"): `check?(root, showcases)` returning `{ errors, warnings }`, type checking with the host's TypeScript (`src/adapters/showcase/ts/typecheck/`), the `allowJs` option; `showcase-ts-types` and `showcase-ts-defaults` fixtures; `npm run ci` green; _`K10`_ and _`K14`_ updated; awaiting the checkpoint.
+- 2026-11-13: _`P7.1.2`_ approved and committed (option chosen: "Approve and commit"), with _`D301`_ recorded for the fixtures' TypeScript 6.0 deviation (option chosen: "Record D301 (Rec.)") and re-approved with it, and "Host requirement" added to the Glossary (option chosen: "Add it (Rec.)"); _`P7.1`_ implemented.

@@ -92,19 +92,20 @@ function _abs(path: string): string {
 describe('adapters/showcase/ts', () => {
   // Tests the ts showcase adapter's parts on hand-made showcases and virtual files: its validation, the resolution and reads plugins (their hooks
   // called directly, with a fake plugin context, against the `showcase-ts` fixture's real files), error and warning mapping on hand-written errors in
-  // the shapes Vite and its bundler throw, the Vite configuration of each mode, and the page. Building with Vite is in the integration tests.
+  // the shapes Vite and its bundler throw, the Vite configuration of each mode, and the page; and its host check, with an injected resolver. Building
+  // with Vite, and type checking, are in the integration tests (type checking's parts are tested in `./typecheck/`).
 
   describe('Validation', () => {
     // Tests validate() on every language of an entry point, and on its options.
 
     const adapter = new TsShowcaseAdapter();
 
-    it('Accepts TypeScript and JavaScript entry points, with typeCheck on by default', () => {
+    it('Accepts TypeScript and JavaScript entry points, with typeCheck on and allowJs off by default', () => {
       for (const entry of ['README.showcase-1.ts', 'README.showcase-1.js', 'README.showcase-1.mts', 'README.showcase-1.mjs']) {
-        expect(adapter.validate(_showcase('inline', entry))).toEqual({ options: { typeCheck: true }, errors: [] });
+        expect(adapter.validate(_showcase('inline', entry))).toEqual({ options: { typeCheck: true, allowJs: false }, errors: [] });
       }
       for (const entry of ['demo.ts', 'demo.MTS', 'demos/demo.js', 'demo.mjs']) {
-        expect(adapter.validate(_showcase('linked', entry))).toEqual({ options: { typeCheck: true }, errors: [] });
+        expect(adapter.validate(_showcase('linked', entry))).toEqual({ options: { typeCheck: true, allowJs: false }, errors: [] });
       }
     });
 
@@ -123,18 +124,51 @@ describe('adapters/showcase/ts', () => {
       ]);
     });
 
-    it('Takes typeCheck, a boolean, as its only option', () => {
-      expect(adapter.validate(_showcase('inline', 'a.ts', { options: { typeCheck: false } }))).toEqual({ options: { typeCheck: false }, errors: [] });
-      expect(adapter.validate(_showcase('inline', 'a.ts', { options: {} }))).toEqual({ options: { typeCheck: true }, errors: [] });
-      expect(adapter.validate(_showcase('inline', 'a.ts', { options: { typeCheck: 'no', size: 2 } })).errors).toEqual([
+    it('Takes typeCheck and allowJs, both booleans, as its options', () => {
+      const options = (value: unknown) => adapter.validate(_showcase('inline', 'a.ts', { options: value }));
+      expect(options({ typeCheck: false })).toEqual({ options: { typeCheck: false, allowJs: false }, errors: [] });
+      expect(options({ allowJs: true })).toEqual({ options: { typeCheck: true, allowJs: true }, errors: [] });
+      expect(options({ typeCheck: false, allowJs: true })).toEqual({ options: { typeCheck: false, allowJs: true }, errors: [] });
+      expect(options({})).toEqual({ options: { typeCheck: true, allowJs: false }, errors: [] });
+      expect(options({ typeCheck: 'no', allowJs: 1, size: 2 }).errors).toEqual([
         'The ts showcase adapter\'s option "typeCheck" must be true or false',
-        'Unknown option "size" of the ts showcase adapter; its only option is "typeCheck"',
+        'The ts showcase adapter\'s option "allowJs" must be true or false',
+        'Unknown option "size" of the ts showcase adapter; its options are "typeCheck" and "allowJs"',
       ]);
       for (const options of [[true], 'typeCheck', null]) {
         expect(adapter.validate(_showcase('inline', 'a.ts', { options })).errors).toEqual([
           'The ts showcase adapter\'s options must be an object, e.g. "showcase=ts({ typeCheck: false })"',
         ]);
       }
+    });
+  });
+
+  describe('Host check', () => {
+    // Tests check() with an injected resolver standing for the host's TypeScript (the fixtures always resolve this repository's own), and close().
+
+    it('Checks the TypeScript of the showcases that type check, with the resolver it was given', () => {
+      const asked: string[] = [];
+      const adapter = new TsShowcaseAdapter((folder) => void asked.push(folder));
+      const showcases = [
+        _showcase('inline', 'README.showcase-1.ts', { options: { typeCheck: true, allowJs: false } }),
+        _showcase('inline', 'docs/guide.showcase-1.ts', { documentation: 'docs/guide.md', options: { typeCheck: false, allowJs: false } }),
+      ];
+      expect(adapter.check(_ROOT, showcases)).toEqual({
+        errors: [
+          'the ts showcases of "." type check, but no TypeScript is installed where it can be found: install "typescript" (5.x or 6.x), or set "typeCheck: false"',
+        ],
+        warnings: [],
+      });
+      expect(asked).toEqual([_ROOT]);
+      expect(new TsShowcaseAdapter().check(_ROOT, showcases)).toEqual({ errors: [], warnings: [] });
+    });
+
+    it('Releases the shared source files on close()', () => {
+      const adapter = new TsShowcaseAdapter();
+      const shared = (adapter as unknown as { _sourceFiles: Map<string, unknown> })._sourceFiles;
+      shared.set('key', new Map());
+      adapter.close();
+      expect((adapter as unknown as { _sourceFiles: Map<string, unknown> })._sourceFiles.size).toBe(0);
     });
   });
 

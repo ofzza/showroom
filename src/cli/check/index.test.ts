@@ -209,7 +209,7 @@ describe('cli/check', () => {
         'README.md:11: The ts showcase adapter needs a link to a .ts, .mts, .js or .mjs file, not "demos/app.jsx"; for tsx and jsx, use the react showcase adapter',
         'README.md:11: The ts showcase adapter needs a link to a .ts, .mts, .js or .mjs file, not "demos/common.cjs"',
         'README.md:13: The ts showcase adapter\'s option "typeCheck" must be true or false',
-        'README.md:13: Unknown option "size" of the ts showcase adapter; its only option is "typeCheck"',
+        'README.md:13: Unknown option "size" of the ts showcase adapter; its options are "typeCheck" and "allowJs"',
       ]);
     });
 
@@ -281,11 +281,15 @@ describe('cli/check', () => {
         'errors/html.md:6: The html showcase adapter needs a link to an .html or .htm file, not "adapters/needy.js"',
         'errors/html.md:8: The html showcase adapter takes no options',
         // The host requirements of the showcase adapters in use, and closing them
+        // (needy's host check is given only the showcase whose validation passed)
         'undefined:undefined: Showcase adapter "needy": needs "left-pad" installed',
+        'undefined:undefined: Showcase adapter "needy": checked errors/adapters.md#3',
         'undefined:undefined: Showcase adapter "throwing" failed to check the host repository: check broke',
         'undefined:undefined: Showcase adapter "throwing" failed to close: close broke',
       ]);
-      expect(result.issues.every((issue) => issue.severity === 'error')).toBe(true);
+      expect(result.issues.filter((issue) => issue.severity === 'warning').map(({ message }) => message)).toEqual([
+        'Showcase adapter "needy": checked errors/adapters.md#3',
+      ]);
     });
 
     it('Loads every custom showcase adapter, used or not, reporting those that fail', async () => {

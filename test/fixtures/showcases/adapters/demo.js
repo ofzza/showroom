@@ -4,6 +4,6 @@ export default () => ({
     showcase.options === undefined || typeof showcase.options?.size === 'number'
       ? { options: { size: showcase.options?.size ?? 1 }, errors: [] }
       : { errors: ['demo takes { size: <number> }'] },
-  check: () => [],
+  check: () => ({ errors: [], warnings: [] }),
   build: async () => ({ errors: [{ message: 'not built' }], reads: [] }),
 });

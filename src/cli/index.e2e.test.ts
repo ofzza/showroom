@@ -89,12 +89,13 @@ describe('cli (end to end)', () => {
       expect(code).toBe(1);
       expect(stdout).toBe('');
       const lines = stderr.trimEnd().split('\n');
-      expect(lines).toHaveLength(29);
+      expect(lines).toHaveLength(30);
       expect(lines).toContain(
         'error: errors/markers.md:6: Invalid showcase adapter name "Html" in showcase marker "showcase=Html": use lower-case letters, digits and "-", starting with a letter',
       );
       expect(lines).toContain('error: showroom.json: Custom showcase adapter "broken": "./adapters/missing.js" not found');
       expect(lines).toContain('error: Showcase adapter "needy": needs "left-pad" installed');
+      expect(lines).toContain('warning: Showcase adapter "needy": checked errors/adapters.md#3');
     });
 
     it('Warns about broken links on stderr, and passes', async () => {

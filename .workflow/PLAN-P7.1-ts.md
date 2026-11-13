@@ -1,6 +1,6 @@
 # _`P7.1`_ The `ts` showcase adapter
 
-draft; segmentation (_`D246`_) decided 2026-11-13
+implemented 2026-11-13 (both child segments implemented); segmentation (_`D246`_) decided 2026-11-13
 
 ## Goals
 
@@ -11,7 +11,7 @@ The `ts` built-in showcase adapter (_`D97`_, _`S6.7`_ (SPEC-S6-showcases.md)), r
 Each is planned, approved, implemented and checkpointed on its own, in this order (_`D246`_):
 
 - **_`P7.1.1`_ Building `ts` showcases** (implemented 2026-11-13; below): `validate()` (options, `typeCheck` among them, and the entry point's language, _`O43`_ (SPEC-S6-showcases.md)); the entry point and its virtual files as Vite virtual modules, built with `showroom`'s own Vite (_`D235`_ (SPEC-S6-showcases.md), _`D244`_ (PLAN-P7-ts-react.md)) in `check --showcases`, `build` and `serve`, with the files each build reads (`reads`); the console panel and the page container (_`D233`_ (SPEC-S6-showcases.md)); build errors mapped to their lines (_`D102`_ (SPEC-S6-showcases.md)); what a showcase can import (_`D236`_ (SPEC-S6-showcases.md)); `serve` rebuilding on change (_`D243`_ (PLAN-P7-ts-react.md)).
-- **_`P7.1.2`_ Type checking `ts` showcases** (approved 2026-11-13; below): the host repository's TypeScript and the nearest `tsconfig.json` (_`D234`_ (SPEC-S6-showcases.md)); virtual files reaching the type checker; type errors mapped to their lines; `typescript` as a host requirement only when some showcase type checks, through a showcase adapter interface that sees the showcases (_`O33`_ (PLAN-P7-ts-react.md)).
+- **_`P7.1.2`_ Type checking `ts` showcases** (implemented 2026-11-13; below): the host repository's TypeScript and the nearest `tsconfig.json` (_`D234`_ (SPEC-S6-showcases.md)); virtual files reaching the type checker; type errors mapped to their lines; `typescript` as a host requirement only when some showcase type checks, through a showcase adapter interface that sees the showcases (_`O33`_ (PLAN-P7-ts-react.md)).
 
 ## Decisions
 
@@ -86,7 +86,7 @@ The `ts` showcase adapter builds `ts` showcases into showcase frames (_`D97`_, _
 
 ## _`P7.1.2`_ Type checking `ts` showcases
 
-approved 2026-11-13 (option chosen: "Approve and commit (Rec.)"); revised 2026-11-13 (_`D300`_, the fast path upgrading this repository to TypeScript 6.0.3); re-approved 2026-11-13 (option chosen: "Approve and commit"); choices _`D273`_–_`D287`_ decided 2026-11-13 (after the _`K16`_ spike; Q1–Q14 of the planning discussion, the user's words or chosen options named in each decision); zero-context review 2026-11-13 (one agent, "approve with fixes", 17 findings), its outcomes in _`D288`_–_`D299`_ (with Q16–Q18) and the steps, documentation and tests below
+approved 2026-11-13 (option chosen: "Approve and commit (Rec.)"); revised 2026-11-13 (_`D300`_, the fast path upgrading this repository to TypeScript 6.0.3); re-approved 2026-11-13 (option chosen: "Approve and commit"); choices _`D273`_–_`D287`_ decided 2026-11-13 (after the _`K16`_ spike; Q1–Q14 of the planning discussion, the user's words or chosen options named in each decision); zero-context review 2026-11-13 (one agent, "approve with fixes", 17 findings), its outcomes in _`D288`_–_`D299`_ (with Q16–Q18) and the steps, documentation and tests below; _`D301`_ added 2026-11-13 at the implementation checkpoint (option chosen: "Record D301 (Rec.)"), re-approved with it; implemented 2026-11-13 (option chosen: "Approve and commit")
 
 ### Goals
 
@@ -141,11 +141,12 @@ The `ts` showcase adapter type checks its showcases with the host repository's o
 - _`D296`_ (`live`; refines _`D277`_, _`D286`_, _`D274`_; from review 2026-11-13 #10, #11): **`check?()` details**: only the showcases whose validation passed are passed, with their validated options; warnings get the same `Showcase adapter "<name>":` prefix as errors; the `ts` showcase adapter's messages name the documentation folder and the TypeScript version found; a custom showcase adapter returning an array gets an error naming the breaking change. Step 1 lists every test adapter to move, and `README.md`'s lines around 190, 276 and 292.
 - _`D297`_ (`live`; refines _`D278`_; from review 2026-11-13 #14): **`build()` finds TypeScript again** (it runs on another showcase adapter object than `check()`'s): when it is missing, older than 5.0, or 7 or later, type checking is skipped silently, as `check` reported it; a build failing on type errors keeps the bundle's warnings.
 - _`D298`_ (`live`; from review 2026-11-13 #15, #17): **`README.md` notes two differences from the bundle**: type checking follows the host's own module resolution (e.g. extensionless imports, which Vite bundles, are rejected under `node16`/`nodenext`, TS2835), and uses the documentation folder's tsconfig for every file, where Vite looks one up per module (_`D253`_).
-- _`D299`_ (`live`; from review 2026-11-13 #6): **`showcase-ts` is made to type check**: its tsconfig gets `moduleResolution: "bundler"`, `resolveJsonModule`, `allowImportingTsExtensions` and explicit `types`, keeping `useDefineForClassFields: false` for _`D253`_'s test, and a `.d.ts` in its `include` declares its assets and `import.meta.env` (_`D288`_); `showcase-ts-many`, `showcase-ts-errors` and `README.md`'s live example pass as they are (review 2026-11-13).
+- _`D299`_ (`live`, refined by _`D301`_; from review 2026-11-13 #6): **`showcase-ts` is made to type check**: its tsconfig gets `moduleResolution: "bundler"`, `resolveJsonModule`, `allowImportingTsExtensions` and explicit `types`, keeping `useDefineForClassFields: false` for _`D253`_'s test, and a `.d.ts` in its `include` declares its assets and `import.meta.env` (_`D288`_); `showcase-ts-many`, `showcase-ts-errors` and `README.md`'s live example pass as they are (review 2026-11-13).
 
 - _`D300`_ (`live`; changes _`D275`_; from the fast path upgrading this repository's TypeScript to 6.0.3, 2026-11-13 (the user: "Let's fastpath the upgrade to 6.0.3")): **Tests run on this repository's own TypeScript, now 6.0**; 5.x rests on _`D273`_'s evidence (5.9.3 in the spike), with no 5.x fixture in CI.
+- _`D301`_ (`live`; refines _`D299`_; from the implementation, 2026-11-13, option chosen: "Record D301 (Rec.)"): **The fixtures meet TypeScript 6.0's defaults** (`strict`, `noUncheckedSideEffectImports`), which came with _`D300`_, after the review behind _`D299`_: `showcase-ts-many`'s new tsconfig includes an `env.d.ts` declaring `*.css` (TS2882 otherwise), and `showcase-ts`'s `env.d.ts` declares `process` too, with a `lib/index.d.ts` typing the host's own package (TS7016 otherwise), which also makes the type checker read the host's declarations through its package (_`D285`_).
 
 ### Open points
 
 - [x] _`O45`_ (resolved by _`D273`_) From planning _`P7.1.2`_ (2026-11-13), _`K16`_ (SPEC-pitfalls.md): TypeScript 7 has no classic compiler API; which host TypeScript versions type checking supports, and how, is settled by a spike before _`P7.1.2`_'s choices are drafted (option chosen: "Spike all three (Rec.)": the classic API with an in-memory compiler host on 5.9 and 6.0, TypeScript 7's unstable API, and the host's `tsc` as a subprocess).
-- [ ] Taken from _`P7`_ (_`D246`_): _`O30`_ (resolved by _`D273`_), _`O31`_ (resolved by _`D275`_, _`D276`_), _`O33`_ (resolved by _`D277`_) (PLAN-P7-ts-react.md); the TypeScript part of _`K10`_ and the type checking part of _`K14`_ (SPEC-pitfalls.md), ticked at the checkpoint.
+- [x] Taken from _`P7`_ (_`D246`_): _`O30`_ (resolved by _`D273`_), _`O31`_ (resolved by _`D275`_, _`D276`_), _`O33`_ (resolved by _`D277`_) (PLAN-P7-ts-react.md); the TypeScript part of _`K10`_ and the type checking part of _`K14`_ (SPEC-pitfalls.md), ticked at the checkpoint (resolved by _`P7.1.2`_'s implementation, 2026-11-13: _`K10`_ and _`K14`_ updated).

@@ -41,7 +41,8 @@ describe('adapters/showcase/ts (integration)', () => {
   // Builds the showcases of the `showcase-ts` fixture (an inline showcase importing the host's own package by its name through a committed `lib/`
   // folder, virtual files in its folder and in another one, by a path without an extension, a .js specifier and a folder, a virtual CSS file, JSON,
   // an asset, and a dynamic import with CSS, under a tsconfig turning useDefineForClassFields off; an inline JavaScript showcase; and a linked one
-  // importing a virtual file), in each mode; the `showcase-ts-errors` fixture's build errors and warning; and the `showcase-ts-many` fixture's 10
+  // importing a virtual file), in each mode, type checked under its tsconfig; the `showcase-ts-errors` fixture's build errors and warning; the
+  // `showcase-ts-types` fixture's type errors, and the `showcase-ts-defaults` fixture's, without a tsconfig; and the `showcase-ts-many` fixture's 10
   // showcases. The fixtures are only read.
 
   it('Builds ts showcases into showcase frames, with the page, the bundle, and the files read', async () => {
@@ -73,14 +74,39 @@ describe('adapters/showcase/ts (integration)', () => {
     expect(entry.content).toContain(`"./${lazy.path.slice('assets/'.length)}","./${lazyCss.path.slice('assets/'.length)}"`);
     expect(lazyCss.content).toContain('.lazy{color:purple}');
     expect(frame.files.map(({ path }) => path).sort()).toEqual(['index.html', css.path, entry.path, lazy.path, lazyCss.path, logo.path].sort());
-    expect([...frame.reads].sort()).toEqual(['README.md', 'data.json', 'docs/guide.md', 'lazy.css', 'lazy.ts', 'lib/index.js', 'logo.svg']);
+    // The type check's reads too: the tsconfig, the files it includes, and the host's own package's declarations
+    expect([...frame.reads].sort()).toEqual([
+      'README.md',
+      'data.json',
+      'demos/linked.ts',
+      'docs/guide.md',
+      'env.d.ts',
+      'lazy.css',
+      'lazy.ts',
+      'lib/index.d.ts',
+      'lib/index.js',
+      'logo.svg',
+      'tsconfig.json',
+    ]);
 
     // A JavaScript showcase, and a linked one importing a virtual file
     expect(_file(frames.get('README.md#2')!, /\.js$/).content).toContain('console.info(`plain JavaScript`)');
     const linked = frames.get('README.md#3')!;
     expect(_file(linked, /^assets\/linked-[\w-]+\.js$/).content).toContain('`helper`');
-    expect(linked.reads).toEqual(['demos/linked.ts', 'README.md']);
-    expect(watched).toEqual(['README.md', 'data.json', 'demos/linked.ts', 'docs/guide.md', 'lazy.css', 'lazy.ts', 'lib/index.js', 'logo.svg']);
+    expect(linked.reads).toEqual(['demos/linked.ts', 'README.md', 'env.d.ts', 'lazy.ts', 'lib/index.d.ts', 'tsconfig.json']);
+    expect(watched).toEqual([
+      'README.md',
+      'data.json',
+      'demos/linked.ts',
+      'docs/guide.md',
+      'env.d.ts',
+      'lazy.css',
+      'lazy.ts',
+      'lib/index.d.ts',
+      'lib/index.js',
+      'logo.svg',
+      'tsconfig.json',
+    ]);
   });
 
   it('Builds in development mode: unminified, with inline source maps naming their sources relative to the root', async () => {
@@ -124,8 +150,77 @@ describe('adapters/showcase/ts (integration)', () => {
     expect(watched).toEqual(['README.md', 'demos/broken.ts', 'demos/imports.ts', 'demos/warning.ts']);
   });
 
+  it('Fails showcases on the type errors of the files they reach, at their lines', async () => {
+    // The `showcase-ts-types` fixture: a strict root tsconfig with rootDir, composite and outDir (dropped), including `src/` (whose declarations type
+    // an asset and import.meta.env); a nearer tsconfig turning noImplicitAny off in `docs/nested/`
+    const { frames, errors, warnings, issues, watched } = await _build('showcase-ts-types');
+    expect(issues).toEqual([]);
+    const error = (id: string, line: number, message: string, path: string, at: number) => [
+      id,
+      [{ severity: 'error', message: `Showcase ${id} (README.md:${line}): ${message}`, path, line: at }],
+    ];
+    const assign = (from: string, to: string) => `TS2322: Type '${from}' is not assignable to type '${to}'.`;
+    expect([...errors]).toEqual([
+      // In a code block, in a linked file, and in a virtual resource
+      error('README.md#1', 5, assign('string', 'number'), 'README.md', 6),
+      error('README.md#2', 10, assign('number', 'string'), 'demos/linked.ts', 2),
+      error('README.md#3', 12, assign('string', 'boolean'), 'README.md', 18),
+      // In a host file two showcases reach: one issue each (src/unreached.ts's error, which no showcase reaches, fails none)
+      error('README.md#4', 23, assign('string', 'number'), 'src/broken.ts', 2),
+      error('README.md#5', 28, assign('string', 'number'), 'src/broken.ts', 2),
+      // A JavaScript import without declarations, under strict; README.md#9, with allowJs, passes
+      error(
+        'README.md#8',
+        49,
+        "TS7016: Could not find a declaration file for module './src/legacy.js'. 'src/legacy.js' implicitly has an 'any' type.",
+        'README.md',
+        50,
+      ),
+      error('README.md#11', 68, assign('number', 'string'), 'README.md', 70),
+    ]);
+    // typeCheck off, a JavaScript entry point, allowJs, the host's declarations, and the nearer tsconfig
+    expect([...frames.keys()]).toEqual(['README.md#6', 'README.md#7', 'README.md#9', 'README.md#10', 'docs/nested/guide.md#1']);
+    // A failed type check keeps the bundle's warnings
+    expect(warnings.map(({ message, path, line }) => ({ message, path, line }))).toEqual([
+      {
+        message:
+          'Showcase README.md#11 (README.md:68): Use of direct `eval` function is strongly discouraged as it poses security risks and may cause issues with minification.',
+        path: 'README.md',
+        line: 69,
+      },
+    ]);
+    // The bundles' reads, and the type checks': the tsconfig files, and the files the programs hold, outside node_modules
+    expect(watched).toEqual([
+      'README.md',
+      'demos/linked.ts',
+      'docs/nested/guide.md',
+      'docs/nested/tsconfig.json',
+      'logo.svg',
+      'src/broken.ts',
+      'src/env.d.ts',
+      'src/legacy.js',
+      'src/typed.ts',
+      'src/unreached.ts',
+      'tsconfig.json',
+    ]);
+  });
+
+  it("Type checks with TypeScript's defaults without a tsconfig", async () => {
+    // TypeScript 6's defaults are strict
+    const { errors } = await _build('showcase-ts-defaults');
+    expect(errors.get('README.md#1')).toEqual([
+      {
+        severity: 'error',
+        message: "Showcase README.md#1 (README.md:5): TS7006: Parameter 'value' implicitly has an 'any' type.",
+        path: 'README.md',
+        line: 6,
+      },
+    ]);
+  });
+
   it('Builds 10 showcases, one after another', async () => {
-    // The time of this test is the measurement of D255 (PLAN-P7.1-ts.md): above 2 s per run, building only the showcases a change affects is taken up
+    // The time of this test is the measurement of D255 (PLAN-P7.1-ts.md), type checking included (D284): above 2 s per run, building only the
+    // showcases a change affects is taken up
     const { frames, errors } = await _build('showcase-ts-many', 'development');
     expect(errors.size).toBe(0);
     expect(frames.size).toBe(10);

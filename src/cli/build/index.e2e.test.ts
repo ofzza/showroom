@@ -103,6 +103,16 @@ describe('cli/build (end to end)', () => {
     expect(await readFile(join(root, 'showroom', 'showcases', 'README.md', '3', 'index.html'), 'utf8')).toContain('src="./assets/linked-');
   });
 
+  it('Fails on a type error, placed in the documentation file', async () => {
+    // On a copy under node_modules/.cache/, whose own files are judged on their paths relative to its root, never as dependencies (D292)
+    const root = await copy('showcase-ts-defaults');
+    const { code, stdout, stderr } = await run(root);
+    expect(code).toBe(1);
+    expect(stdout).toBe('');
+    expect(stderr).toContain("error: README.md:6: Showcase README.md#1 (README.md:5): TS7006: Parameter 'value' implicitly has an 'any' type.\n");
+    expect(await readdir(root)).not.toContain('showroom');
+  });
+
   it('Leaves the output folder untouched when a showcase does not build', async () => {
     const root = await copy('showcase-build-errors');
     await mkdir(join(root, 'showroom'));

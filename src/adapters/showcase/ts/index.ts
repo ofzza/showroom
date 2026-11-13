@@ -9,8 +9,26 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { InlineConfig, Logger, Plugin, Rolldown } from 'vite';
 import { SILENCED_WARNINGS } from '../../../cli/check/internal/index.js';
 import type { Showcase, VirtualFile } from '../../../host/index.js';
-import type { ShowcaseAdapter, ShowcaseBuildError, ShowcaseBuildFile, ShowcaseBuildRequest, ShowcaseBuildResult, ShowcaseValidation } from '../index.js';
+import type {
+  ShowcaseAdapter,
+  ShowcaseBuildError,
+  ShowcaseBuildFile,
+  ShowcaseBuildRequest,
+  ShowcaseBuildResult,
+  ShowcaseHostCheck,
+  ShowcaseValidation,
+} from '../index.js';
 import { CONSOLE_PANEL_ID, getConsoleScript, SHOWCASE_FRAME_ROOT_ID } from './console/index.js';
+import {
+  checkTypeScript,
+  findTypeScript,
+  getDocumentationFolder,
+  loadTypeScript,
+  resolveTypeScript,
+  typeCheckShowcase,
+  type SourceFileCache,
+  type TypeScriptResolver,
+} from './typecheck/index.js';
 
 // #region Validation
 
@@ -19,10 +37,19 @@ import { CONSOLE_PANEL_ID, getConsoleScript, SHOWCASE_FRAME_ROOT_ID } from './co
  */
 export interface TsShowcaseOptions {
   /**
-   * True to type check the showcase (the default); not acted on yet
+   * True to type check the showcase (the default)
    */
   typeCheck: boolean;
+  /**
+   * True to set TypeScript's `allowJs` for this showcase's type check only (false by default: the tsconfig decides)
+   */
+  allowJs: boolean;
 }
+
+/**
+ * Names of the `ts` showcase adapter's options, all of them booleans
+ */
+const _OPTIONS: readonly (keyof TsShowcaseOptions)[] = ['typeCheck', 'allowJs'];
 
 /**
  * Pattern of the entry points the `ts` showcase adapter builds: TypeScript and JavaScript modules
@@ -35,26 +62,27 @@ const _ENTRY = /\.(ts|mts|js|mjs)$/i;
 const _REACT_ENTRY = /\.(tsx|jsx)$/i;
 
 /**
- * Validates a `ts` showcase: its only option is `typeCheck`, a boolean (`true` by default), and its entry point must be a ` ```ts `, ` ```js `,
- * ` ```mts ` or ` ```mjs ` code block (or ` ```typescript `, ` ```javascript `), or a linked `.ts`, `.mts`, `.js` or `.mjs` file
+ * Validates a `ts` showcase: its options are `typeCheck` (`true` by default) and `allowJs` (`false` by default), both booleans, and its entry point
+ * must be a ` ```ts `, ` ```js `, ` ```mts ` or ` ```mjs ` code block (or ` ```typescript `, ` ```javascript `), or a linked `.ts`, `.mts`, `.js`
+ * or `.mjs` file
  * @param showcase The showcase
  * @returns The validated options, or the errors found
  */
 export function validateTsShowcase(showcase: Showcase): ShowcaseValidation {
   const errors: string[] = [];
-  let typeCheck = true;
+  const validated: TsShowcaseOptions = { typeCheck: true, allowJs: false };
   if (showcase.options !== undefined) {
     const options = showcase.options;
     if (typeof options !== 'object' || options === null || Array.isArray(options)) {
       errors.push('The ts showcase adapter\'s options must be an object, e.g. "showcase=ts({ typeCheck: false })"');
     } else {
       for (const [key, value] of Object.entries(options)) {
-        if (key !== 'typeCheck') {
-          errors.push(`Unknown option "${key}" of the ts showcase adapter; its only option is "typeCheck"`);
+        if (!(_OPTIONS as readonly string[]).includes(key)) {
+          errors.push(`Unknown option "${key}" of the ts showcase adapter; its options are "typeCheck" and "allowJs"`);
         } else if (typeof value !== 'boolean') {
-          errors.push('The ts showcase adapter\'s option "typeCheck" must be true or false');
+          errors.push(`The ts showcase adapter's option "${key}" must be true or false`);
         } else {
-          typeCheck = value;
+          validated[key as keyof TsShowcaseOptions] = value;
         }
       }
     }
@@ -67,7 +95,7 @@ export function validateTsShowcase(showcase: Showcase): ShowcaseValidation {
         : `The ts showcase adapter needs a link to a .ts, .mts, .js or .mjs file, not "${showcase.entry}"${react}`,
     );
   }
-  return errors.length ? { errors } : { options: { typeCheck } satisfies TsShowcaseOptions, errors: [] };
+  return errors.length ? { errors } : { options: validated, errors: [] };
 }
 
 // #endregion
@@ -541,6 +569,17 @@ export function getTsPage(module: string, styles: readonly string[]): string {
  */
 export class TsShowcaseAdapter implements ShowcaseAdapter {
   /**
+   * Parsed source files shared between this run's type checks, released in close()
+   */
+  private _sourceFiles: SourceFileCache = new Map();
+
+  /**
+   * Creates the `ts` showcase adapter
+   * @param _resolveTypeScript Resolves the `typescript` package from a folder (see resolveTypeScript()); the tests replace it
+   */
+  constructor(private readonly _resolveTypeScript: TypeScriptResolver = resolveTypeScript) {}
+
+  /**
    * Validates a showcase (see validateTsShowcase())
    * @param showcase The showcase
    * @returns The validated options, or the errors found
@@ -550,11 +589,30 @@ export class TsShowcaseAdapter implements ShowcaseAdapter {
   }
 
   /**
-   * Builds a showcase's showcase frame: bundles its entry point with Vite, in memory, and writes its page around the bundle
+   * Checks that the showcases that type check find a supported TypeScript, once per documentation file's folder (see checkTypeScript())
+   * @param root Absolute path of the host repository's root
+   * @param showcases The `ts` showcases whose validation passed
+   * @returns The host requirements missing, and the warnings
+   */
+  public check(root: string, showcases: Showcase[]): ShowcaseHostCheck {
+    return checkTypeScript(root, showcases, this._resolveTypeScript);
+  }
+
+  /**
+   * Releases the parsed source files shared between this run's type checks
+   */
+  public close(): void {
+    this._sourceFiles = new Map();
+  }
+
+  /**
+   * Builds a showcase's showcase frame: bundles its entry point with Vite, in memory, then, unless `typeCheck` is off, type checks it with the
+   * TypeScript its documentation file's folder finds (skipped silently when it is missing or unsupported, as `check` reports it), and writes its page
+   * around the bundle; type errors fail the build, keeping the bundle's warnings, and the files the type check read join the build's reads
    * @param request What to build
    * @returns The showcase frame's page, the bundle's chunks and assets, the files read and the warnings; or the build errors
    */
-  public async build({ root, showcase, hostVirtualFiles, mode, scratchFolder }: ShowcaseBuildRequest): Promise<ShowcaseBuildResult> {
+  public async build({ root, showcase, options, hostVirtualFiles, mode, scratchFolder }: ShowcaseBuildRequest): Promise<ShowcaseBuildResult> {
     const vite = await import('vite');
     const virtualFiles = getVirtualFilesByPath(root, hostVirtualFiles);
     const reads = new Set<string>([showcase.kind === 'inline' ? showcase.documentation : showcase.entry]);
@@ -585,6 +643,23 @@ export class TsShowcaseAdapter implements ShowcaseAdapter {
       return { reads: [...reads], errors, ...(warnings.length ? { warnings } : {}) };
     }
     const warnings = (await Promise.all(pending)).filter((warning) => warning !== undefined);
+
+    // The type check, after a successful bundle
+    const { typeCheck = true, allowJs = false } = (options ?? {}) as Partial<TsShowcaseOptions>;
+    const found = typeCheck ? findTypeScript(resolve(root, getDocumentationFolder(showcase.documentation)), this._resolveTypeScript) : undefined;
+    if (found?.support === 'supported') {
+      const checked = typeCheckShowcase({
+        ts: loadTypeScript(found.folder),
+        typeScriptFolder: found.folder,
+        root,
+        showcase,
+        allowJs,
+        virtualFiles: hostVirtualFiles,
+        sourceFiles: this._sourceFiles,
+      });
+      checked.reads.forEach((path) => reads.add(path));
+      if (checked.errors.length) return { reads: [...reads], errors: checked.errors, ...(warnings.length ? { warnings } : {}) };
+    }
 
     // The page around the bundle's entry chunk, and every chunk and asset next to it
     const entry = output.output.find((item): item is Rolldown.OutputChunk => item.type === 'chunk' && item.isEntry);

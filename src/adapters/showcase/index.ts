@@ -126,6 +126,25 @@ export type ShowcaseBuildResult =
 
 // #endregion
 
+// #region Host check
+
+/**
+ * Represents the outcome of checking the host repository for what a showcase adapter needs: the host requirements that are missing, which fail the
+ * check, and warnings, which don't; either may be empty
+ */
+export interface ShowcaseHostCheck {
+  /**
+   * Descriptions of the host requirements that are missing
+   */
+  errors: string[];
+  /**
+   * Warnings about the host repository, which `showroom` reports without failing anything
+   */
+  warnings: string[];
+}
+
+// #endregion
+
 // #region Interface
 
 /**
@@ -146,9 +165,10 @@ export interface ShowcaseAdapter {
    * Checks the host repository for what the showcase adapter needs (e.g. a package installed), statically; called once per run, only when some
    * showcase uses the showcase adapter
    * @param root Absolute path of the host repository's root
-   * @returns Descriptions of the host requirements that are missing, or none
+   * @param showcases The showcases using the showcase adapter whose validation passed, each with its options as `validate()` returned them
+   * @returns The host requirements that are missing, and warnings
    */
-  check?(root: string): string[] | Promise<string[]>;
+  check?(root: string, showcases: Showcase[]): ShowcaseHostCheck | Promise<ShowcaseHostCheck>;
   /**
    * Builds one showcase's showcase frame, in memory
    * @param request What to build, and where it may write scratch files
