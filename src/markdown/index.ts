@@ -298,6 +298,10 @@ export interface MarkdownScan {
    */
   links: MarkdownLink[];
   /**
+   * Images with a relative, non-fragment-only source, in document order (an image reference's source is its reference definition, in `links`)
+   */
+  images: MarkdownLink[];
+  /**
    * Errors in the showcase markers
    */
   errors: MarkdownError[];
@@ -353,13 +357,13 @@ export function isValidVirtualFileName(name: string): boolean {
 }
 
 /**
- * Scans a documentation file's Markdown for showcases, virtual files, relative links and showcase marker errors
+ * Scans a documentation file's Markdown for showcases, virtual files, relative links and images, and showcase marker errors
  * @param path POSIX-style path of the documentation file, relative to the host repository's root
  * @param content Markdown text of the documentation file
  * @returns What the scan found
  */
 export function scanMarkdown(path: string, content: string): MarkdownScan {
-  const scan: MarkdownScan = { showcases: [], virtualFiles: [], links: [], errors: [] };
+  const scan: MarkdownScan = { showcases: [], virtualFiles: [], links: [], images: [], errors: [] };
   const folder = getFolder(path);
   const name = path.slice(path.lastIndexOf('/') + 1);
   const stem = name.includes('.') ? name.slice(0, name.lastIndexOf('.')) : name;
@@ -433,7 +437,7 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
       return;
     }
 
-    // Links: linked showcases' entry points, and links to check
+    // Links: linked showcases' entry points, and links and images to check
     if (node.type === 'link' && titled) {
       const { marker, error: markerError } = parseShowcaseMarker(node.title!);
       if (!marker) return error(node, markerError);
@@ -445,8 +449,11 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
       addShowcase(node, 'linked', marker, () => entry.path);
       return;
     }
-    if ((node.type === 'link' || node.type === 'definition') && node.url && !isAbsoluteUrl(node.url) && !node.url.startsWith('#')) {
+    if (!node.url || isAbsoluteUrl(node.url) || node.url.startsWith('#')) return;
+    if (node.type === 'link' || node.type === 'definition') {
       scan.links.push({ href: node.url, line: _line(node) });
+    } else if (node.type === 'image') {
+      scan.images.push({ href: node.url, line: _line(node) });
     }
   });
   return scan;

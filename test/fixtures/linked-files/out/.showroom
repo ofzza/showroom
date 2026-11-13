@@ -1,0 +1,1 @@
+This folder is the output folder of `showroom build`: its whole content is deleted and rebuilt on every build.

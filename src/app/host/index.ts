@@ -33,10 +33,10 @@ export interface ShownShowcase {
 }
 
 /**
- * Represents the shown host information: the host information's project information and documentation files, without the code file index, which the
- * showroom doesn't show; and the showcases with a showcase frame
+ * Represents the shown host information: the host information's project information, documentation files and linked files, without the code file
+ * index, which the showroom doesn't show; and the showcases with a showcase frame
  */
-export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentation'> & {
+export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentation' | 'linkedFiles'> & {
   /**
    * The showcases with a showcase frame, sorted by documentation file and offset; in `serve`, a showcase that doesn't build has the showcase frame
    * showing its build errors

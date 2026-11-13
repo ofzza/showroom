@@ -1,16 +1,19 @@
 /**
  * The Vite configuration of the showroom, shared by `showroom serve` and `showroom build`: Vite's root is the application's folder inside
  * the package (`dist/app/`), the shown host information is served as a virtual module, the showcase frames are served from memory or emitted into
- * the build, and React is always `showroom`'s own copy. Internal: not re-exported.
+ * the build, the linked files are served from the host repository or copied into the build, and React is always `showroom`'s own copy. Internal: not
+ * re-exported.
  */
 
+import { readFile } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createRequire } from 'node:module';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Alias, InlineConfig, Plugin } from 'vite';
 import type { CheckIssue } from '../cli/check/index.js';
-import type { HostInformation } from '../host/index.js';
+import type { HostInformation, LinkedFile } from '../host/index.js';
+import { LINKED_FILES_FOLDER } from '../linked-files/index.js';
 import type { ShownHostInformation } from '../app/host/index.js';
 import { getShowcaseFrameUrl, type ShowcaseFrame } from '../showcases/index.js';
 
@@ -30,7 +33,7 @@ export const RESOLVED_HOST_MODULE_ID = `\0${HOST_MODULE_ID}`;
  * Gets the shown host information: the part of the host information the showroom presents
  * @param host Host information
  * @param frames The showcase frames built, by showcase id; none when they aren't built
- * @returns The project information and documentation files, without the code file index, and the showcases with a showcase frame
+ * @returns The project information, documentation files and linked files, without the code file index, and the showcases with a showcase frame
  */
 export function getShownHostInformation(
   host: HostInformation,
@@ -40,7 +43,7 @@ export function getShownHostInformation(
     const frame = frames?.get(id);
     return frame ? [{ id, documentation, offset, url: getShowcaseFrameUrl(frame) }] : [];
   });
-  return { project: host.project, documentation: host.documentation, showcases };
+  return { project: host.project, documentation: host.documentation, showcases, linkedFiles: host.linkedFiles };
 }
 
 /**
@@ -119,6 +122,46 @@ export function getContentType(path: string): string {
 export type Middleware = (request: IncomingMessage, response: ServerResponse, next: () => void) => void;
 
 /**
+ * Gets the path a request names, relative to the server's root and URL-decoded, without its query or fragment
+ * @param request The request
+ * @returns The path, or undefined if it can't be URL-decoded
+ */
+function _getRequestPath(request: IncomingMessage): string | undefined {
+  try {
+    return (request.url ?? '').split(/[?#]/)[0].replace(/^\/+/, '').split('/').map(decodeURIComponent).join('/');
+  } catch (_err) {
+    return undefined;
+  }
+}
+
+/**
+ * Answers a request with a 404, with `Cache-Control: no-store`
+ * @param request The request
+ * @param response Its response
+ */
+function _notFound(request: IncomingMessage, response: ServerResponse): void {
+  response.statusCode = 404;
+  response.setHeader('Cache-Control', 'no-store');
+  response.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  response.end(request.method === 'HEAD' ? undefined : 'Not found');
+}
+
+/**
+ * Answers a request with a file's content, with `Cache-Control: no-store`
+ * @param request The request
+ * @param response Its response
+ * @param contentType Content type of the file
+ * @param content Content of the file
+ */
+function _send(request: IncomingMessage, response: ServerResponse, contentType: string, content: Uint8Array): void {
+  response.statusCode = 200;
+  response.setHeader('Cache-Control', 'no-store');
+  response.setHeader('Content-Type', contentType);
+  response.setHeader('Content-Length', content.byteLength);
+  response.end(request.method === 'HEAD' ? undefined : content);
+}
+
+/**
  * Creates the dev server's middleware serving the showcase frames from memory, at the paths `build` writes them to, with `Cache-Control: no-store`.
  * It answers only the requests inside a showcase frame's folder: a file of the showcase frame, or a 404 for a missing one; every other request
  * (e.g. the showroom's own `showcases/index.js`) goes on to Vite.
@@ -128,28 +171,14 @@ export type Middleware = (request: IncomingMessage, response: ServerResponse, ne
 export function createShowcaseFramesMiddleware(getFrames: () => ReadonlyMap<string, ShowcaseFrame>): Middleware {
   return (request, response, next) => {
     if (request.method !== 'GET' && request.method !== 'HEAD') return next();
-    let path: string;
-    try {
-      path = (request.url ?? '').split(/[?#]/)[0].replace(/^\/+/, '').split('/').map(decodeURIComponent).join('/');
-    } catch (_err) {
-      return next();
-    }
+    const path = _getRequestPath(request);
+    if (path === undefined) return next();
     for (const frame of getFrames().values()) {
       if (!path.startsWith(`${frame.folder}/`)) continue;
       const file = frame.files.find((candidate) => candidate.path === path.slice(frame.folder.length + 1));
-      response.setHeader('Cache-Control', 'no-store');
-      if (!file) {
-        response.statusCode = 404;
-        response.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        response.end(request.method === 'HEAD' ? undefined : 'Not found');
-        return;
-      }
+      if (!file) return _notFound(request, response);
       const content = typeof file.content === 'string' ? Buffer.from(file.content, 'utf8') : Buffer.from(file.content);
-      response.statusCode = 200;
-      response.setHeader('Content-Type', getContentType(file.path));
-      response.setHeader('Content-Length', content.byteLength);
-      response.end(request.method === 'HEAD' ? undefined : content);
-      return;
+      return _send(request, response, getContentType(file.path), content);
     }
     next();
   };
@@ -172,6 +201,63 @@ export function createShowcaseFramesPlugin(getFrames: () => ReadonlyMap<string, 
         for (const file of frame.files) {
           this.emitFile({ type: 'asset', fileName: `${frame.folder}/${file.path}`, source: file.content });
         }
+      }
+    },
+  };
+}
+
+// #endregion
+
+// #region Linked files
+
+/**
+ * Gets the content type a linked file is served with in `serve`: by its extension, or plain text for a text file whose extension says nothing
+ * @param file The linked file
+ * @returns Its content type
+ */
+export function getLinkedFileContentType(file: LinkedFile): string {
+  const contentType = getContentType(file.path);
+  return file.text && contentType === 'application/octet-stream' ? 'text/plain; charset=utf-8' : contentType;
+}
+
+/**
+ * Creates the dev server's middleware serving the linked files from the host repository, read on every request, at the paths `build` copies them
+ * to (`files/<path>`), with `Cache-Control: no-store`. It answers every request in the linked files' folder: a linked file, or a 404 for any other
+ * path, so `serve` hands out nothing `build` doesn't publish; every other request goes on.
+ * @param root Path of the host repository's root
+ * @param getLinkedFiles Gets the linked files to serve; called on every request, so they can change while serving
+ * @returns The middleware
+ */
+export function createLinkedFilesMiddleware(root: string, getLinkedFiles: () => readonly LinkedFile[]): Middleware {
+  return (request, response, next) => {
+    if (request.method !== 'GET' && request.method !== 'HEAD') return next();
+    const path = _getRequestPath(request);
+    if (path === undefined || !path.startsWith(`${LINKED_FILES_FOLDER}/`)) return next();
+    const file = getLinkedFiles().find((candidate) => candidate.path === path.slice(LINKED_FILES_FOLDER.length + 1));
+    if (!file) return _notFound(request, response);
+    readFile(join(root, file.path)).then(
+      (content) => _send(request, response, getLinkedFileContentType(file), content),
+      () => _notFound(request, response),
+    );
+  };
+}
+
+/**
+ * Creates the Vite plugin of the linked files: in `serve`, its middleware hands them out from the host repository, ahead of Vite's own; in `build`,
+ * it copies them into the build, each at `files/<path>`, so that the build's `emptyOutDir` and its marker cover them
+ * @param root Path of the host repository's root
+ * @param getLinkedFiles Gets the linked files to serve or copy
+ * @returns The Vite plugin
+ */
+export function createLinkedFilesPlugin(root: string, getLinkedFiles: () => readonly LinkedFile[]): Plugin {
+  return {
+    name: 'showroom-linked-files',
+    configureServer(server) {
+      server.middlewares.use(createLinkedFilesMiddleware(root, getLinkedFiles));
+    },
+    async generateBundle() {
+      for (const file of getLinkedFiles()) {
+        this.emitFile({ type: 'asset', fileName: `${LINKED_FILES_FOLDER}/${file.path}`, source: await readFile(join(root, file.path)) });
       }
     },
   };
@@ -222,7 +308,11 @@ export interface ViteConfigurationOptions {
    */
   cacheDir: string;
   /**
-   * Gets the shown host information to serve or build
+   * Path of the host repository's root, which the linked files are read from
+   */
+  hostRoot: string;
+  /**
+   * Gets the shown host information to serve or build, its linked files included
    */
   getHost: () => ShownHostInformation;
   /**
@@ -241,7 +331,7 @@ export interface ViteConfigurationOptions {
  * @param options Options of the configuration
  * @returns Vite's inline configuration; `serve` and `build` add their own `server` and `build` options
  */
-export function getViteConfiguration({ appDir, cacheDir, getHost, getFrames = () => new Map(), getIssues }: ViteConfigurationOptions): InlineConfig {
+export function getViteConfiguration({ appDir, cacheDir, hostRoot, getHost, getFrames = () => new Map(), getIssues }: ViteConfigurationOptions): InlineConfig {
   return {
     configFile: false,
     root: appDir,
@@ -249,7 +339,7 @@ export function getViteConfiguration({ appDir, cacheDir, getHost, getFrames = ()
     cacheDir,
     clearScreen: false,
     logLevel: 'warn',
-    plugins: [createHostPlugin(getHost, getIssues), createShowcaseFramesPlugin(getFrames)],
+    plugins: [createHostPlugin(getHost, getIssues), createShowcaseFramesPlugin(getFrames), createLinkedFilesPlugin(hostRoot, () => getHost().linkedFiles)],
     resolve: { alias: getReactAliases() },
   };
 }

@@ -1,0 +1,1 @@
+{ "stack": "typescript", "outDir": "out", "ignore": ["vendor/"] }

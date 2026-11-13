@@ -4,7 +4,7 @@
 
 import type { ReactNode } from 'react';
 import { Body1, Caption1, Link, Title1, Title2, makeStyles, tokens } from '@fluentui/react-components';
-import type { DocumentationFile, ProjectInformation } from '../../host/index.js';
+import type { DocumentationFile, LinkedFile, ProjectInformation } from '../../host/index.js';
 import { getOpeningTitleOffset } from '../../markdown/index.js';
 import { isMarkdown, type ShownShowcase } from '../host/index.js';
 import { Markdown } from '../markdown/index.js';
@@ -52,6 +52,10 @@ export interface DocumentationContentProps {
    * Shown showcases, whose showcase frames are placed in the documentation files embedding them
    */
   showcases?: ShownShowcase[];
+  /**
+   * Linked files, to resolve links and images against
+   */
+  linkedFiles?: LinkedFile[];
 }
 
 /**
@@ -59,9 +63,13 @@ export interface DocumentationContentProps {
  * @param props Properties of the component
  * @returns The rendered content
  */
-export function DocumentationContent({ file, documentation, showcases }: DocumentationContentProps): ReactNode {
+export function DocumentationContent({ file, documentation, showcases, linkedFiles }: DocumentationContentProps): ReactNode {
   const styles = _useStyles();
-  return isMarkdown(file) ? <Markdown file={file} documentation={documentation} showcases={showcases} /> : <pre className={styles.text}>{file.content}</pre>;
+  return isMarkdown(file) ? (
+    <Markdown file={file} documentation={documentation} showcases={showcases} linkedFiles={linkedFiles} />
+  ) : (
+    <pre className={styles.text}>{file.content}</pre>
+  );
 }
 
 // #endregion
@@ -88,6 +96,10 @@ export interface HomePageProps {
    * Shown showcases, whose showcase frames are placed in the documentation files embedding them
    */
   showcases?: ShownShowcase[];
+  /**
+   * Linked files, to resolve links and images against
+   */
+  linkedFiles?: LinkedFile[];
 }
 
 /**
@@ -149,17 +161,23 @@ function _ProjectInformation({ project, untitled }: { project: ProjectInformatio
  * @param props Properties of the component
  * @returns The rendered page
  */
-export function HomePage({ project, readme, documentation, showcases }: HomePageProps): ReactNode {
+export function HomePage({ project, readme, documentation, showcases, linkedFiles }: HomePageProps): ReactNode {
   const styles = _useStyles();
   const titled = readme !== undefined && isMarkdown(readme) && getOpeningTitleOffset(readme.content) !== undefined;
   return (
     <div className={styles.page}>
       {titled ? (
-        <Markdown file={readme} documentation={documentation} showcases={showcases} afterTitle={<_ProjectInformation project={project} untitled />} />
+        <Markdown
+          file={readme}
+          documentation={documentation}
+          showcases={showcases}
+          linkedFiles={linkedFiles}
+          afterTitle={<_ProjectInformation project={project} untitled />}
+        />
       ) : (
         <>
           <_ProjectInformation project={project} />
-          {readme ? <DocumentationContent file={readme} documentation={documentation} showcases={showcases} /> : null}
+          {readme ? <DocumentationContent file={readme} documentation={documentation} showcases={showcases} linkedFiles={linkedFiles} /> : null}
         </>
       )}
     </div>
@@ -186,6 +204,10 @@ export interface DocumentationPageProps {
    * Shown showcases, whose showcase frames are placed in the documentation files embedding them
    */
   showcases?: ShownShowcase[];
+  /**
+   * Linked files, to resolve links and images against
+   */
+  linkedFiles?: LinkedFile[];
 }
 
 /**
@@ -193,12 +215,12 @@ export interface DocumentationPageProps {
  * @param props Properties of the component
  * @returns The rendered page
  */
-export function DocumentationPage({ file, documentation, showcases }: DocumentationPageProps): ReactNode {
+export function DocumentationPage({ file, documentation, showcases, linkedFiles }: DocumentationPageProps): ReactNode {
   const styles = _useStyles();
   return (
     <article className={styles.page}>
       <Caption1 className={styles.path}>{file.path}</Caption1>
-      <DocumentationContent file={file} documentation={documentation} showcases={showcases} />
+      <DocumentationContent file={file} documentation={documentation} showcases={showcases} linkedFiles={linkedFiles} />
     </article>
   );
 }

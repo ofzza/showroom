@@ -89,11 +89,19 @@ export function App({ data, issues = _NO_ISSUES, route, theme: initialTheme }: A
   let current: string | undefined;
   switch (resolved.page) {
     case 'home':
-      page = <HomePage project={data.project} readme={getRootReadme(data.documentation)} documentation={data.documentation} showcases={data.showcases} />;
+      page = (
+        <HomePage
+          project={data.project}
+          readme={getRootReadme(data.documentation)}
+          documentation={data.documentation}
+          showcases={data.showcases}
+          linkedFiles={data.linkedFiles}
+        />
+      );
       current = formatRoute();
       break;
     case 'documentation':
-      page = <DocumentationPage file={resolved.file} documentation={data.documentation} showcases={data.showcases} />;
+      page = <DocumentationPage file={resolved.file} documentation={data.documentation} showcases={data.showcases} linkedFiles={data.linkedFiles} />;
       current = formatRoute(resolved.file.path);
       break;
     case 'not-found':

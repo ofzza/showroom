@@ -5,8 +5,18 @@
 import { describe, it, expect } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-components';
-import type { DocumentationFile } from '../../host/index.js';
-import { COLOURED_TOKEN_CLASSES, Markdown, UNCOLOURED_TOKEN_CLASSES, UNRESOLVED_LINK_TOOLTIP } from './index.js';
+import type { DocumentationFile, LinkedFile } from '../../host/index.js';
+import { COLOURED_TOKEN_CLASSES, UNCOLOURED_TOKEN_CLASSES } from '../code/index.js';
+import { Markdown, UNRESOLVED_LINK_TOOLTIP } from './index.js';
+
+/**
+ * Linked files the rendered documentation files link to
+ */
+const _LINKED_FILES: LinkedFile[] = [
+  { path: 'docs/diagram.png', size: 70, text: false },
+  { path: 'src/big.json', size: 2 * 1024 * 1024, text: false },
+  { path: 'src/index.ts', size: 75, text: true },
+];
 
 /**
  * Renders a Markdown documentation file to HTML on the server
@@ -20,7 +30,7 @@ function _render(content: string, path = 'docs/guide.md'): string {
   return renderToString(
     <SSRProvider>
       <FluentProvider theme={webLightTheme}>
-        <Markdown file={file} documentation={documentation} />
+        <Markdown file={file} documentation={documentation} linkedFiles={_LINKED_FILES} />
       </FluentProvider>
     </SSRProvider>,
   ).replaceAll('<!-- -->', '');
@@ -79,19 +89,30 @@ describe('app/markdown', () => {
     expect(html).toMatch(/<a [^>]*href="https:\/\/example.com"[^>]*target="_blank"[^>]*rel="noopener noreferrer"[^>]*>Site<\/a>/);
   });
 
+  it('Links text linked files to their copies, opened in the modal on click, and other linked files to a new tab', () => {
+    const html = _render('[code](../src/index.ts#L2) [big](../src/big.json) [diagram](diagram.png)');
+    // The modal opens on click, which needs effects; the link still names the copy, for the browser's own "open in a new tab"
+    expect(html).toMatch(/<a [^>]*href="files\/src\/index.ts"[^>]*>code<\/a>/);
+    expect(html).not.toMatch(/<a [^>]*href="files\/src\/index.ts"[^>]*target=/);
+    expect(html).toMatch(/<a [^>]*href="files\/src\/big.json"[^>]*target="_blank"[^>]*rel="noopener noreferrer"[^>]*>big<\/a>/);
+    expect(html).toMatch(/<a [^>]*href="files\/docs\/diagram.png"[^>]*target="_blank"[^>]*>diagram<\/a>/);
+  });
+
   it('Shows links to anything else as plain text', () => {
-    const html = _render('See [the code](../src/index.ts).');
-    expect(html).not.toContain('../src/index.ts');
-    expect(html).toMatch(/<span [^>]*tabindex="0"[^>]*>the code<\/span>/);
+    const html = _render('See [the missing code](../src/missing.ts), [a folder](../src/).');
+    expect(html).not.toContain('../src/missing.ts');
+    expect(html).toMatch(/<span [^>]*tabindex="0"[^>]*>the missing code<\/span>/);
+    expect(html).toMatch(/<span [^>]*tabindex="0"[^>]*>a folder<\/span>/);
     // The tooltip itself only appears on hover or focus, through a portal, so only its trigger is rendered here
     expect(UNRESOLVED_LINK_TOOLTIP).toBe('Not in the showroom');
   });
 
-  it('Shows relative images as their alt text, and absolute ones as images', () => {
-    const html = _render('![A diagram](./diagram.png) ![A badge](https://example.com/badge.svg)');
-    expect(html).not.toContain('diagram.png');
-    expect(html).toContain('<span>A diagram</span>');
+  it('Shows relative images from their linked files, absolute ones as they are, and any other as its alt text', () => {
+    const html = _render('![A diagram](./diagram.png) ![A badge](https://example.com/badge.svg) ![A photo](./photo.jpg)');
+    expect(html).toContain('<img src="files/docs/diagram.png" alt="A diagram"/>');
     expect(html).toContain('<img src="https://example.com/badge.svg" alt="A badge"/>');
+    expect(html).not.toContain('photo.jpg');
+    expect(html).toContain('<span>A photo</span>');
   });
 
   it('Leaves out raw HTML, keeping the Markdown around it', () => {

@@ -3,8 +3,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { symlink, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { LINKED_FILE_MODAL_LIMIT } from '../../linked-files/index.js';
+import { copyFixture, createScratchFolder } from '../../testing/index.js';
 import { BUILT_IN_DOCUMENTATION, check } from './index.js';
 
 /**
@@ -314,16 +317,83 @@ describe('cli/check', () => {
     // The links fixture: working and broken links, in Markdown documentation files and a plain text one, with an ignored folder.
 
     it('Warns about every broken relative link, without failing', async () => {
-      // Absolute URLs, fragments, images, linked showcases, ignored files and plain text documentation files are not warned about
+      // Absolute URLs, fragments, linked showcases, ignored files and plain text documentation files are not warned about; images are
       const result = await check(_fixture('links'));
       expect(result.passed).toBe(true);
       expect(result.issues).toEqual([
         { severity: 'warning', message: 'Broken link "docs/missing.md": nothing at "docs/missing.md"', path: 'README.md', line: 7 },
         { severity: 'warning', message: 'Broken link "../outside.md": it leads outside the host repository', path: 'README.md', line: 7 },
         { severity: 'warning', message: `Broken link "%E0%A4%A.md": it can't be URL-decoded`, path: 'README.md', line: 7 },
+        { severity: 'warning', message: 'Broken image "./missing.png": nothing at "missing.png"', path: 'README.md', line: 9 },
         { severity: 'warning', message: 'Broken link "./docs/missing-reference.md": nothing at "docs/missing-reference.md"', path: 'README.md', line: 12 },
         { severity: 'warning', message: 'Broken link "./sub/nowhere.md": nothing at "docs/sub/nowhere.md"', path: 'docs/guide.md', line: 3 },
       ]);
+    });
+  });
+
+  describe('Linked files', () => {
+    // The linked-files fixture: text, code, extensionless, binary (linked and shown as an image) and ignored files, a linked showcase's entry point,
+    // and links that name no linked file (a documentation file, folders, a missing file, the output folder, an absolute URL); scratch copies of it
+    // for a symbolic link leading outside the host repository, and a text file over the modal's limit.
+
+    it('Collects the linked files, once each, ignored or not, sorted by path', async () => {
+      const result = await check(_fixture('linked-files'));
+      expect(result.passed).toBe(true);
+      expect(result.host?.linkedFiles).toEqual([
+        { path: 'Makefile', size: 19, text: true },
+        { path: 'assets/logo.png', size: 70, text: false },
+        { path: 'demo/demo.html', size: 12, text: true },
+        { path: 'notes.txt', size: 22, text: true },
+        { path: 'src/index.ts', size: 75, text: true },
+        { path: 'vendor/data.json', size: 22, text: true },
+      ]);
+    });
+
+    it('Warns about a link into the output folder, and leaves it out', async () => {
+      const result = await check(_fixture('linked-files'));
+      expect(result.issues).toEqual([
+        { severity: 'warning', message: 'Broken link "missing.txt": nothing at "missing.txt"', path: 'README.md', line: 9 },
+        {
+          severity: 'warning',
+          message: 'Linked file "out/stale.txt" is in the output folder, which `showroom build` empties; it isn\'t copied into the showroom',
+          path: 'README.md',
+          line: 9,
+        },
+      ]);
+    });
+
+    it('Warns about a linked file whose real path is outside the host repository, and leaves it out', async () => {
+      const host = await copyFixture('linked-files');
+      const outside = await createScratchFolder('outside-');
+      try {
+        await writeFile(join(outside.path, 'secret.txt'), 'Outside\n');
+        await symlink(join(outside.path, 'secret.txt'), join(host.path, 'outside.txt'));
+        await writeFile(join(host.path, 'docs', 'README.md'), '# Guide\n\n[outside](../outside.txt)\n');
+        const result = await check(host.path);
+        expect(result.host?.linkedFiles.map(({ path }) => path)).not.toContain('outside.txt');
+        expect(result.issues).toContainEqual({
+          severity: 'warning',
+          message: 'Linked file "outside.txt" is outside the host repository (through a symbolic link); it isn\'t copied into the showroom',
+          path: 'docs/README.md',
+          line: 3,
+        });
+      } finally {
+        await host.remove();
+        await outside.remove();
+      }
+    });
+
+    it("Marks a text file over the modal's limit as not text", async () => {
+      const host = await copyFixture('linked-files');
+      try {
+        await writeFile(join(host.path, 'notes.txt'), 'a'.repeat(LINKED_FILE_MODAL_LIMIT + 1));
+        await writeFile(join(host.path, 'src', 'index.ts'), 'a'.repeat(LINKED_FILE_MODAL_LIMIT));
+        const linkedFiles = (await check(host.path)).host?.linkedFiles;
+        expect(linkedFiles).toContainEqual({ path: 'notes.txt', size: LINKED_FILE_MODAL_LIMIT + 1, text: false });
+        expect(linkedFiles).toContainEqual({ path: 'src/index.ts', size: LINKED_FILE_MODAL_LIMIT, text: true });
+      } finally {
+        await host.remove();
+      }
     });
   });
 });

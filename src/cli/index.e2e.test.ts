@@ -98,7 +98,7 @@ describe('cli (end to end)', () => {
       expect(lines).toContain('warning: Showcase adapter "needy": checked errors/adapters.md#3');
     });
 
-    it('Warns about broken links on stderr, and passes', async () => {
+    it('Warns about broken links and images on stderr, and passes', async () => {
       const root = await copy('links');
       const { code, stdout, stderr } = await _run(['check', '--root', root]);
       expect(code).toBe(0);
@@ -108,6 +108,7 @@ describe('cli (end to end)', () => {
           'warning: README.md:7: Broken link "docs/missing.md": nothing at "docs/missing.md"',
           'warning: README.md:7: Broken link "../outside.md": it leads outside the host repository',
           `warning: README.md:7: Broken link "%E0%A4%A.md": it can't be URL-decoded`,
+          'warning: README.md:9: Broken image "./missing.png": nothing at "missing.png"',
           'warning: README.md:12: Broken link "./docs/missing-reference.md": nothing at "docs/missing-reference.md"',
           'warning: docs/guide.md:3: Broken link "./sub/nowhere.md": nothing at "docs/sub/nowhere.md"',
           '',

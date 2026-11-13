@@ -1,18 +1,21 @@
 /**
  * Markdown rendering of documentation files: GitHub-flavoured Markdown, with heading ids, syntax-highlighted code blocks, links resolved inside the
- * showroom, relative images shown as their alt text, showcase frames placed before their entry points, and no raw HTML
+ * showroom (linked files opening in the modal, or in a new tab), relative images shown from their linked files (or as their alt text), showcase
+ * frames placed before their entry points, and no raw HTML
  */
 
-import { createContext, useContext, useMemo, type ComponentProps, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, useState, type ComponentProps, type ReactNode } from 'react';
 import ReactMarkdown, { type Components, type Options } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeSlug from 'rehype-slug';
-import { Link, Tooltip, makeStyles, tokens, type GriffelStyle } from '@fluentui/react-components';
-import type { DocumentationFile } from '../../host/index.js';
-import { getOpeningTitleOffset, isAbsoluteUrl } from '../../markdown/index.js';
+import { Link, Tooltip, makeStyles, tokens } from '@fluentui/react-components';
+import type { DocumentationFile, LinkedFile } from '../../host/index.js';
+import { getOpeningTitleOffset } from '../../markdown/index.js';
+import { TOKEN_STYLES } from '../code/index.js';
+import { LinkedFileDialog } from '../files/index.js';
 import type { ShownShowcase } from '../host/index.js';
-import { resolveLink } from '../links/index.js';
+import { resolveImage, resolveLink } from '../links/index.js';
 import { scrollToAnchor } from '../routing/index.js';
 import { SHOWCASE_FRAME_ELEMENT, SHOWCASE_ID_PROPERTY, ShowcaseFrame, remarkShowcaseFrames } from '../showcases/index.js';
 
@@ -22,46 +25,6 @@ import { SHOWCASE_FRAME_ELEMENT, SHOWCASE_ID_PROPERTY, ShowcaseFrame, remarkShow
  * Tooltip of a link that points to nothing in the showroom
  */
 export const UNRESOLVED_LINK_TOOLTIP = 'Not in the showroom';
-
-/**
- * Colours of highlight.js's token classes, as FluentUI tokens, so code blocks follow the theme. Every class highlight.js emits is coloured, except
- * those listed in UNCOLOURED_TOKEN_CLASSES
- */
-const _TOKEN_STYLES: [string[], GriffelStyle][] = [
-  [['hljs-comment', 'hljs-quote'], { color: tokens.colorNeutralForeground3, fontStyle: 'italic' }],
-  // A code block or span inside Markdown (e.g. a fenced example in an `md` block), and a formula
-  [['hljs-code', 'hljs-formula'], { color: tokens.colorNeutralForeground3 }],
-  [
-    ['hljs-keyword', 'hljs-selector-tag', 'hljs-literal', 'hljs-doctag', 'hljs-meta .hljs-keyword', 'hljs-template-tag', 'hljs-variable.language_'],
-    { color: tokens.colorPaletteBerryForeground1 },
-  ],
-  [['hljs-string', 'hljs-regexp', 'hljs-addition', 'hljs-meta .hljs-string'], { color: tokens.colorPaletteGreenForeground1 }],
-  [['hljs-number', 'hljs-symbol', 'hljs-bullet', 'hljs-link', 'hljs-char.escape_'], { color: tokens.colorPaletteDarkOrangeForeground1 }],
-  [
-    ['hljs-title', 'hljs-section', 'hljs-name', 'hljs-selector-id', 'hljs-selector-class', 'hljs-selector-pseudo'],
-    { color: tokens.colorPaletteBlueForeground2 },
-  ],
-  [['hljs-type', 'hljs-built_in', 'hljs-title.class_', 'hljs-class .hljs-title'], { color: tokens.colorPaletteTealForeground2 }],
-  [
-    ['hljs-attr', 'hljs-attribute', 'hljs-variable', 'hljs-template-variable', 'hljs-property', 'hljs-params', 'hljs-operator', 'hljs-selector-attr'],
-    { color: tokens.colorPaletteRedForeground1 },
-  ],
-  [['hljs-meta'], { color: tokens.colorNeutralForeground2 }],
-  [['hljs-deletion'], { color: tokens.colorPaletteRedForeground1 }],
-  [['hljs-emphasis'], { fontStyle: 'italic' }],
-  [['hljs-strong'], { fontWeight: tokens.fontWeightSemibold }],
-];
-
-/**
- * highlight.js's token classes that deliberately keep the code block's own colour: punctuation, a substitution's content (e.g. `${...}` in a
- * template string, whose parts are coloured themselves), and the containers of other tokens (an HTML tag, a function's signature)
- */
-export const UNCOLOURED_TOKEN_CLASSES = ['hljs-punctuation', 'hljs-subst', 'hljs-tag', 'hljs-function', 'hljs-class'];
-
-/**
- * Names of highlight.js's token classes the showroom colours (each style's first class, e.g. `hljs-title` for `hljs-title.class_`)
- */
-export const COLOURED_TOKEN_CLASSES = [...new Set(_TOKEN_STYLES.flatMap(([classes]) => classes.map((name) => name.split(/[ .]/)[0]!)))];
 
 /**
  * Styles of rendered Markdown
@@ -91,7 +54,7 @@ const _useStyles = makeStyles({
     '& th': { border: `1px solid ${tokens.colorNeutralStroke1}`, padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}` },
     '& td': { border: `1px solid ${tokens.colorNeutralStroke1}`, padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}` },
     '& img': { maxWidth: '100%' },
-    ...Object.fromEntries(_TOKEN_STYLES.flatMap(([classes, style]) => classes.map((name) => [`& .${name}`, style]))),
+    ...TOKEN_STYLES,
   },
   unresolved: {
     textDecorationLine: 'underline',
@@ -121,6 +84,10 @@ export interface MarkdownProps {
    */
   showcases?: ShownShowcase[];
   /**
+   * Linked files, to resolve links and images against; none if not given
+   */
+  linkedFiles?: LinkedFile[];
+  /**
    * Content placed right after the level-1 heading the file opens with (see getOpeningTitleOffset()); not shown if it doesn't open with one
    */
   afterTitle?: ReactNode;
@@ -132,12 +99,19 @@ export interface MarkdownProps {
 const _NO_SHOWCASES: ShownShowcase[] = [];
 
 /**
+ * No linked files, the default of the Markdown component's, kept as one array so its memoised values stay put
+ */
+const _NO_LINKED_FILES: LinkedFile[] = [];
+
+/**
  * Renders a documentation file's content as Markdown
  * @param props Properties of the component
  * @returns The rendered Markdown
  */
-export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, afterTitle }: MarkdownProps): ReactNode {
+export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, linkedFiles = _NO_LINKED_FILES, afterTitle }: MarkdownProps): ReactNode {
   const styles = _useStyles();
+  // The linked file shown in the modal, if any
+  const [shownFile, setShownFile] = useState<LinkedFile | undefined>(undefined);
   const titleOffset = useMemo(() => (afterTitle === undefined ? undefined : getOpeningTitleOffset(file.content)), [afterTitle, file.content]);
   const fileShowcases = useMemo(() => showcases.filter((showcase) => showcase.documentation === file.path), [showcases, file.path]);
   const remarkPlugins = useMemo<Options['remarkPlugins']>(() => [remarkGfm, [remarkShowcaseFrames, { showcases: fileShowcases }]], [fileShowcases]);
@@ -146,7 +120,14 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, after
   const components = useMemo<Components>(
     () => ({
       a: ({ href, children }) => (
-        <_MarkdownLink href={href} from={file} documentation={documentation} unresolvedClassName={styles.unresolved}>
+        <_MarkdownLink
+          href={href}
+          from={file}
+          documentation={documentation}
+          linkedFiles={linkedFiles}
+          onShowFile={setShownFile}
+          unresolvedClassName={styles.unresolved}
+        >
           {children}
         </_MarkdownLink>
       ),
@@ -160,13 +141,16 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, after
         ) : (
           <h1 {...props} />
         ),
-      img: ({ src, alt }) => (typeof src === 'string' && isAbsoluteUrl(src) ? <img src={src} alt={alt ?? ''} /> : <span>{alt}</span>),
+      img: ({ src, alt }) => {
+        const url = typeof src === 'string' ? resolveImage(src, file, linkedFiles) : undefined;
+        return url ? <img src={url} alt={alt ?? ''} /> : <span>{alt}</span>;
+      },
       // An element react-markdown's types don't know, as the remark plugin names it
       ...({
         [SHOWCASE_FRAME_ELEMENT]: (props: Record<string, unknown>) => <PlacedShowcaseFrame id={props[SHOWCASE_ID_PROPERTY]} />,
       } as Components),
     }),
-    [file, documentation, styles.unresolved, titleOffset, afterTitle],
+    [file, documentation, linkedFiles, styles.unresolved, titleOffset, afterTitle],
   );
   return (
     <div className={styles.markdown}>
@@ -175,6 +159,7 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, after
           {file.content}
         </ReactMarkdown>
       </_ShowcasesContext.Provider>
+      <LinkedFileDialog file={shownFile} onClose={() => setShownFile(undefined)} />
     </div>
   );
 }
@@ -211,6 +196,14 @@ interface _MarkdownLinkProps {
    */
   documentation: DocumentationFile[];
   /**
+   * Linked files, to resolve the link against
+   */
+  linkedFiles: LinkedFile[];
+  /**
+   * Shows a linked file in the modal
+   */
+  onShowFile: (file: LinkedFile) => void;
+  /**
    * Class name of a link that points to nothing in the showroom
    */
   unresolvedClassName: string;
@@ -221,13 +214,13 @@ interface _MarkdownLinkProps {
 }
 
 /**
- * Renders a link in rendered Markdown: to an absolute URL in a new tab, to a page of the showroom, or as plain text with a tooltip when it
- * points to nothing in the showroom
+ * Renders a link in rendered Markdown: to an absolute URL in a new tab, to a page of the showroom, to a linked file (a text file up to 1 MB in the
+ * modal, any other in a new tab), or as plain text with a tooltip when it points to nothing in the showroom
  * @param props Properties of the component
  * @returns The rendered link
  */
-function _MarkdownLink({ href, from, documentation, unresolvedClassName, children }: _MarkdownLinkProps): ReactNode {
-  const link = href === undefined ? ({ kind: 'unresolved' } as const) : resolveLink(href, from, documentation);
+function _MarkdownLink({ href, from, documentation, linkedFiles, onShowFile, unresolvedClassName, children }: _MarkdownLinkProps): ReactNode {
+  const link = href === undefined ? ({ kind: 'unresolved' } as const) : resolveLink(href, from, documentation, linkedFiles);
   switch (link.kind) {
     case 'external':
       return (
@@ -243,6 +236,25 @@ function _MarkdownLink({ href, from, documentation, unresolvedClassName, childre
           // A link to the page and heading already shown doesn't change the hash, so it scrolls by itself
           onClick={() => window.location.hash === link.href && scrollToAnchor(link.anchor)}
         >
+          {children}
+        </Link>
+      );
+    case 'file':
+      return link.file.text ? (
+        <Link
+          inline
+          href={link.href}
+          // The link's own URL still opens the file in a new tab, from the browser's menu or with a modifier key
+          onClick={(event) => {
+            if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+            event.preventDefault();
+            onShowFile(link.file);
+          }}
+        >
+          {children}
+        </Link>
+      ) : (
+        <Link inline href={link.href} target="_blank" rel="noopener noreferrer">
           {children}
         </Link>
       );

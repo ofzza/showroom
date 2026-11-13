@@ -6,7 +6,7 @@ Working: [guide](docs/guide.md), [root-relative](/docs/guide.md#setup), [folder]
 
 Broken: [missing](docs/missing.md), [outside](../outside.md), [undecodable](%E0%A4%A.md), [broken reference][missing].
 
-Not checked: ![image](./missing.png), [a showcase](./demo/demo.html "showcase").
+Broken image: ![image](./missing.png). Not checked: [a showcase](./demo/demo.html "showcase").
 
 [guide]: ./docs/guide.md
 [missing]: ./docs/missing-reference.md

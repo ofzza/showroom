@@ -161,7 +161,7 @@ export async function build({ root, outDir, output, appDir = getAppDir() }: Buil
   // Build, with Vite's cache in a fresh folder of its own, removed afterwards
   const cacheDir = await mkdtemp(join(tmpdir(), 'showroom-'));
   try {
-    await viteBuild(getBuildConfiguration({ appDir, cacheDir, getHost: () => host, getFrames: () => frames, outDir: outputFolder.path }));
+    await viteBuild(getBuildConfiguration({ appDir, cacheDir, hostRoot: root, getHost: () => host, getFrames: () => frames, outDir: outputFolder.path }));
     await writeFile(join(outputFolder.path, OUTPUT_FOLDER_MARKER), OUTPUT_FOLDER_MARKER_CONTENT);
     output.stdout(`Built the showroom of ${host.project.name} into ${outputFolder.path}\n`);
     return 0;

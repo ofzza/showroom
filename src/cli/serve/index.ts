@@ -275,7 +275,8 @@ export const DEFAULT_WATCH_DELAY = 100;
 /**
  * Runs the first build of `serve`, or a later one: builds the showcases of a passed check, and gets the state to serve. The files to watch are the
  * build's when every showcase builds; when any doesn't, the previous ones are kept as well, as a failed build only reads what it reached (e.g. a
- * deleted `dist/` it imports isn't among its reads, yet its rebuild must rerun it)
+ * deleted `dist/` it imports isn't among its reads, yet its rebuild must rerun it). The linked files are always among them, so a change of their
+ * size or text-ness reloads the page.
  * @param host Host information of the passed check
  * @param build Builds the showcases
  * @param previous The showcase frames to keep if the build throws
@@ -288,15 +289,17 @@ export async function runBuild(
   previous: ReadonlyMap<string, ShowcaseFrame>,
   previousWatched: readonly string[] = [],
 ): Promise<{ frames: ReadonlyMap<string, ShowcaseFrame>; issues: CheckIssue[]; watched: readonly string[] }> {
+  const linked = host.linkedFiles.map(({ path }) => path);
+  const merge = (...lists: (readonly string[])[]): string[] => [...new Set(lists.flat())].sort();
   try {
     const built = await build(host);
-    const watched = built.errors.size ? [...new Set([...previousWatched, ...built.watched])].sort() : built.watched;
+    const watched = merge(built.errors.size ? previousWatched : [], built.watched, linked);
     return { frames: getServedFrames(host, built), issues: getBuildShowcasesIssues(built), watched };
   } catch (err) {
     return {
       frames: previous,
       issues: [{ severity: 'error', message: `The showcases failed to build: ${(err as Error).message}` }],
-      watched: previousWatched,
+      watched: merge(previousWatched, linked),
     };
   }
 }
@@ -548,7 +551,14 @@ export async function serve({ root, port = DEFAULT_PORT, outDir, output, appDir 
     watcher = current;
 
     // Start the dev server, watching the host repository too
-    const configuration = getViteConfiguration({ appDir, cacheDir, getHost: current.getHost, getFrames: current.getFrames, getIssues: current.getIssues });
+    const configuration = getViteConfiguration({
+      appDir,
+      cacheDir,
+      hostRoot: root,
+      getHost: current.getHost,
+      getFrames: current.getFrames,
+      getIssues: current.getIssues,
+    });
     server = await createServer({
       ...configuration,
       server: { port, strictPort: false, watch: { ignored: [createIgnored(root, current.getMatcher, current.getWatched)] } },
