@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation stage; _`P9`_ (linked files, `PLAN-P9-linked-files.md`) implemented; _`S9`_ (`SPEC.md`) re-approved. _`P7.2`_ (the `react` showcase adapter, `PLAN-P7-ts-react.md`) waits behind it, not yet planned. Specification: _`S6`_, _`S7`_ and _`S8`_ approved; _`P1`_–_`P6`_, _`P7.1`_ and _`P8`_ implemented.
-- **Next free:** _`D340`_, _`S10`_, _`P10`_, _`O60`_, _`L14`_, _`R21`_, _`H1`_, _`K17`_
+- **Stage:** implementation stage; _`P9`_ (linked files, `PLAN-P9-linked-files.md`) implemented; _`S9`_ (`SPEC.md`) re-approved. _`P7.2`_ (the `react` showcase adapter, `PLAN-P7.2-react.md`) approved; _`S6.3`_ re-approved with _`R21`_. Specification: _`S6`_, _`S7`_ and _`S8`_ approved; _`P1`_–_`P6`_, _`P7.1`_ and _`P8`_ implemented.
+- **Next free:** _`D351`_, _`S10`_, _`P10`_, _`O60`_, _`L14`_, _`R22`_, _`H1`_, _`K17`_
 - **Working on:** nothing.
-- **Next step:** plan _`P7.2`_ (the `react` showcase adapter).
+- **Next step:** implement _`P7.2`_ (`PLAN-P7.2-react.md`), from step 1.
 
 ## Open questions
 
@@ -13,7 +13,9 @@
 
 ## Waiting on me
 
-- `./.workflow/.temp/spike-react-host/` (the _`K10`_ spike, written into `PLAN-P7-ts-react.md`) is kept until _`P7.2`_, at the user's request ("Keep until P7.2"); ask again then.
+- `./.workflow/.temp/questions-p7.2-plan/` (_`P7.2`_'s choices, now _`D340`_–_`D350`_): ask whether to delete it.
+
+- `./.workflow/.temp/spike-react-host/` (the _`K10`_ spike, written into `PLAN-P7-ts-react.md`) is kept until _`P7.2`_ is done (option chosen: "Keep until P7.2 done (Rec.)"); ask again at _`P7.2`_'s checkpoint.
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
@@ -208,3 +210,6 @@
 - 2026-11-13: _`P9`_ implemented (steps 1–6: collection, copying and serving, links and images, the modal, tests, documentation); the full test suite passed; awaiting the browser check and the checkpoint.
 - 2026-11-13: _`P9`_'s browser check passed ("Works great!"); _`P9`_ approved and committed (option chosen: "Approve and commit"), with _`D339`_ recording its deviations, and `PUBLISH.md` and `WORKFLOW.md` kept as linked files ("Keep as linked files (Rec.)"); _`L1`_ resolved, _`S9`_ implemented.
 - 2026-11-13: `p9-check/` working files deleted ("Delete it (Rec.)").
+- 2026-11-13: Planning stage entered for _`P7.2`_ (the `react` showcase adapter): `PLAN-P7.2-react.md` drafted, with 11 choices in `questions-p7.2-plan/`.
+- 2026-11-13: _`P7.2`_'s choices Q1–Q11 settled as recommended (_`D340`_–_`D350`_; option chosen: "Accept all (Rec.)"); _`S6.3`_ revised (_`R21`_, by _`D343`_); _`O29`_, _`O39`_–_`O42`_ resolved.
+- 2026-11-13: _`P7.2`_ The `react` showcase adapter approved, and _`S6.3`_ re-approved with _`R21`_ (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
