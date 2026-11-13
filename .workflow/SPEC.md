@@ -127,9 +127,10 @@ From the discussion of 2026-11-13 (the agent's assessment), raised when specifyi
 
 ## _`S9`_ Linked files
 
-approved 2026-11-13; revised 2026-11-13 (_`R20`_); re-approved 2026-11-13; implemented 2026-11-13
+approved 2026-11-13; revised 2026-11-13 (_`R20`_); re-approved 2026-11-13; implemented 2026-11-13; revised 2026-11-13 (_`R24`_); re-approved 2026-11-13
 
 - _`R20`_ 2026-11-13: a link into the output folder isn't copied, an exception to _`D324`_, caused by _`D334`_ (PLAN-P9-linked-files.md).
+- _`R24`_ 2026-11-13: a linked showcase's modal shows its included files as tabs (_`D329`_ changed), caused by _`D362`_ (SPEC-S10-presentation.md).
 
 Keeping a documentation file's relative links to files that aren't documentation files (code files, images, any other file in the host repository) working in the showroom, instead of showing them as plain text (_`D38`_, _`D39`_, PLAN.md).
 
@@ -140,7 +141,7 @@ Keeping a documentation file's relative links to files that aren't documentation
 - _`D326`_ (`live`; refines _`D323`_, resolves _`O55`_; the user: "Agreed, but 'open directly' should open in new tab - with the 'open in modal' being the default behavior, user won't expect to navigate away"): **Every linked file is copied, whatever its size; a text file over 1 MB opens directly instead of in the modal**, as highlighting it would freeze the page. **Opening a linked file directly (a binary file, a text file over 1 MB, or the modal's own link) opens it in a new tab**, so the reader never leaves the showroom. Rejected: a `check` warning above a size; no limit on the modal.
 - _`D327`_ (`live`; refines _`D323`_, resolves _`O56`_; "Agreed on rest"): **A link to a folder with no `README` stays plain text**, as before (_`D38`_, PLAN.md). Rejected: a listing of the folder (nothing linked its files).
 - _`D328`_ (`live`; refines _`D323`_, resolves _`O57`_; "Agreed on rest"): **`serve` hands out only the linked files, at the paths `build` writes them to**, so it shows what `build` publishes. Rejected: any file in the host repository.
-- _`D329`_ (`live`; refines _`D323`_, resolves _`O58`_; "Agreed on rest"): **The modal shows the linked file's path as its title, its content highlighted with line numbers, a link opening the file directly (_`D326`_), and a close button.** A link's fragment is ignored for now; GitHub-style line fragments (`#L10`, `#L10-L20`) are in "Ideas and later". Rejected: handling line fragments now.
+- _`D329`_ (`live`, changed by _`D362`_ (SPEC-S10-presentation.md); refines _`D323`_, resolves _`O58`_; "Agreed on rest"): **The modal shows the linked file's path as its title, its content highlighted with line numbers, a link opening the file directly (_`D326`_), and a close button.** A link's fragment is ignored for now; GitHub-style line fragments (`#L10`, `#L10-L20`) are in "Ideas and later". Rejected: handling line fragments now.
 - _`D330`_ (`live`; refines _`D323`_, resolves _`O59`_; "Agreed on rest"): **"Linked file" is a Glossary term** (`CONTRIBUTE.md`).
 
 ### Ideas and later
@@ -158,6 +159,12 @@ From the specification of _`S9`_ (2026-11-13), discussed in `./.workflow/.temp/q
 - [x] _`O57`_ (resolved by _`D328`_) What `serve` hands out: only the linked files, or any file in the host repository.
 - [x] _`O58`_ (resolved by _`D329`_) What the modal holds besides the highlighted content, and a link's fragment (e.g. `#L10`).
 - [x] _`O59`_ (resolved by _`D330`_) Whether "Linked file" is a Glossary term.
+
+## _`S10`_ Presenting showcases
+
+approved 2026-11-13
+
+[See Presenting showcases](./SPEC-S10-presentation.md)
 
 ## Pitfalls
 

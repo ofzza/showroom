@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation stage; _`P7.2`_ (the `react` showcase adapter, `PLAN-P7.2-react.md`) implemented, so _`P7`_ is implemented. Specification: _`S6`_, _`S7`_, _`S8`_ and _`S9`_ approved; _`P1`_–_`P9`_ implemented.
-- **Next free:** _`D352`_, _`S10`_, _`P10`_, _`O60`_, _`L14`_, _`R22`_, _`H1`_, _`K17`_
+- **Stage:** specification stage; _`S10`_ Presenting showcases (`SPEC-S10-presentation.md`) approved, not yet planned. _`P1`_–_`P9`_ implemented.
+- **Next free:** _`D382`_, _`S11`_, _`P10`_, _`O67`_, _`L14`_, _`R25`_, _`H1`_, _`K20`_
 - **Working on:** nothing.
-- **Next step:** choose the next work (e.g. the `angular` showcase adapter, _`S6.4`_, or a known open issue in `PLAN.md`).
+- **Next step:** plan _`S10`_ (planning stage), starting from its open points _`O60`_–_`O66`_ and pitfalls _`K17`_–_`K19`_.
 
 ## Open questions
 
@@ -215,3 +215,7 @@
 - 2026-11-13: _`P7.2`_'s browser check passed ("I see all the showcases rendering and functionaling").
 - 2026-11-13: _`P7.2`_ approved and committed (option chosen: "Approve and commit"), with _`D351`_ recording its deviations; _`P7`_ and _`S6.3`_ implemented, _`K10`_ resolved.
 - 2026-11-13: `p7.2-check/` and `spike-react-host/` working files deleted ("Delete both (Rec.)").
+- 2026-11-13: Specification stage entered for _`S10`_ Presenting showcases: the user's proposal (code beside showcases, unified code presentation, extra files, the console) critiqued and iterated on freely; settled with "Rename terms (Rec.)", "As proposed (Rec.)", "Draft S10 (Rec.)"; drafted as _`D352`_–_`D371`_, pitfalls _`K17`_–_`K19`_, open points _`O60`_–_`O63`_.
+- 2026-11-13: `showroom serve` stopped ("Stop it (Rec.)"); zero-context review of _`S10`_ started, 2 agents ("Review first").
+- 2026-11-13: Zero-context review of _`S10`_ done (2 agents, 34 findings, no stray writes; record in `review-s10/`); its 12 questions settled ("Discuss some": Q2, Q8, Q10, Q12 in the user's words; the rest "Yes, apply (Rec.)"); _`S10`_ edited before approval (_`D372`_–_`D381`_ added), _`S6.5`_, _`S6.7`_ and _`S9`_ revised (_`R22`_–_`R24`_), _`K17`_, _`K18`_ reworded, open points _`O64`_–_`O66`_ added.
+- 2026-11-13: _`S10`_ Presenting showcases approved, and _`S6.5`_, _`S6.7`_ and _`S9`_ re-approved with _`R22`_–_`R24`_ (option chosen: "Approve and commit (Rec.)"); Glossary changes applied to `CONTRIBUTE.md` ("Code block showcase", "Code pane", "Included file", and four entries updated); `review-s10/` working files deleted ("Delete it (Rec.)").
