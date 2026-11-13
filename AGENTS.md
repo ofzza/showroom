@@ -41,7 +41,7 @@ Template: ts from ofzza/.templates @ develop@35c447a
 - **ESM only** (`"type": "module"`). The entry point is the `exports` map (`.` → `types: ./dist/index.d.ts`, `default: ./dist/index.js`, plus `./package.json`). `main` and `types` mirror it for older tooling.
 - **The `showroom` command line** is `bin: { showroom: dist/cli/bin.js }`, built from `src/cli/bin.ts`, which keeps its `#!/usr/bin/env node` line through `tsc`.
 - **Only `dist/` is published** (`files: ["dist"]`; npm adds `README.md`, `LICENSE.md` and `package.json` itself). The package also sets `sideEffects: false`, and `publishConfig.access: public` because scoped packages otherwise publish as restricted.
-- Toolchain last verified against: Node 24, TypeScript 5.9, Vitest 5.0, ESLint 10, Prettier 3.8, React 19.3, FluentUI 9.75.
+- Toolchain last verified against: Node 24, TypeScript 6.0, Vitest 5.0, ESLint 10, Prettier 3.8, React 19.3, FluentUI 9.75.
 
 ## Branching
 
