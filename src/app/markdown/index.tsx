@@ -1,7 +1,8 @@
 /**
- * Markdown rendering of documentation files: GitHub-flavoured Markdown, with heading ids, syntax-highlighted code blocks, links resolved inside the
- * showroom (linked files opening in the modal, or in a new tab), relative images shown from their linked files (or as their alt text), showcase
- * frames placed before their entry points, and no raw HTML
+ * Markdown rendering of documentation files: GitHub-flavoured Markdown, with heading ids, syntax-highlighted code blocks with line numbers and a copy
+ * button, links resolved inside the showroom (linked files marked with a "code" icon, opening in the
+ * modal, or in a new tab), relative images shown from their linked files (or as their alt text), showcase frames placed before their entry points,
+ * and no raw HTML
  */
 
 import { createContext, useContext, useMemo, useState, type ComponentProps, type ReactNode } from 'react';
@@ -10,9 +11,10 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeSlug from 'rehype-slug';
 import { Link, Tooltip, makeStyles, tokens } from '@fluentui/react-components';
+import { Code16Regular } from '@fluentui/react-icons';
 import type { DocumentationFile, LinkedFile } from '../../host/index.js';
 import { getOpeningTitleOffset } from '../../markdown/index.js';
-import { TOKEN_STYLES } from '../code/index.js';
+import { CodeBlock } from '../code/index.js';
 import { LinkedFileDialog } from '../file-modal/index.js';
 import type { ShownShowcase } from '../host/index.js';
 import { resolveImage, resolveLink } from '../links/index.js';
@@ -34,15 +36,13 @@ const _useStyles = makeStyles({
     lineHeight: tokens.lineHeightBase400,
     fontSize: tokens.fontSizeBase400,
     overflowWrap: 'break-word',
-    '& code': { fontFamily: tokens.fontFamilyMonospace, fontSize: '90%' },
-    // Inline code; code blocks are told apart through their `pre` element
-    '& :not(pre) > code': { backgroundColor: tokens.colorNeutralBackground3, padding: '0.1em 0.3em', borderRadius: tokens.borderRadiusSmall },
-    '& pre': {
+    // Inline code; code blocks are told apart through their `pre` element, and styled by CodeBlock
+    '& :not(pre) > code': {
+      fontFamily: tokens.fontFamilyMonospace,
+      fontSize: '90%',
       backgroundColor: tokens.colorNeutralBackground3,
-      padding: tokens.spacingHorizontalM,
-      borderRadius: tokens.borderRadiusMedium,
-      overflowX: 'auto',
-      lineHeight: tokens.lineHeightBase300,
+      padding: '0.1em 0.3em',
+      borderRadius: tokens.borderRadiusSmall,
     },
     '& blockquote': {
       margin: '0',
@@ -54,8 +54,8 @@ const _useStyles = makeStyles({
     '& th': { border: `1px solid ${tokens.colorNeutralStroke1}`, padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}` },
     '& td': { border: `1px solid ${tokens.colorNeutralStroke1}`, padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}` },
     '& img': { maxWidth: '100%' },
-    ...TOKEN_STYLES,
   },
+  fileIcon: { marginLeft: '0.15em', verticalAlign: 'middle' },
   unresolved: {
     textDecorationLine: 'underline',
     textDecorationStyle: 'dotted',
@@ -126,6 +126,7 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, linke
           documentation={documentation}
           linkedFiles={linkedFiles}
           onShowFile={setShownFile}
+          fileIconClassName={styles.fileIcon}
           unresolvedClassName={styles.unresolved}
         >
           {children}
@@ -141,6 +142,15 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, linke
         ) : (
           <h1 {...props} />
         ),
+      // Code blocks, each in a CodeBlock around rehype-highlight's output
+      pre: ({ node, children }) => {
+        const code = node?.children.find((child) => child.type === 'element' && child.tagName === 'code');
+        return (
+          <CodeBlock text={code ? _getText(code) : ''}>
+            <pre>{children}</pre>
+          </CodeBlock>
+        );
+      },
       img: ({ src, alt }) => {
         const url = typeof src === 'string' ? resolveImage(src, file, linkedFiles) : undefined;
         return url ? <img src={url} alt={alt ?? ''} /> : <span>{alt}</span>;
@@ -150,7 +160,7 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, linke
         [SHOWCASE_FRAME_ELEMENT]: (props: Record<string, unknown>) => <PlacedShowcaseFrame id={props[SHOWCASE_ID_PROPERTY]} />,
       } as Components),
     }),
-    [file, documentation, linkedFiles, styles.unresolved, titleOffset, afterTitle],
+    [file, documentation, linkedFiles, styles.fileIcon, styles.unresolved, titleOffset, afterTitle],
   );
   return (
     <div className={styles.markdown}>
@@ -162,6 +172,24 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, linke
       <LinkedFileDialog file={shownFile} onClose={() => setShownFile(undefined)} />
     </div>
   );
+}
+
+/**
+ * Represents the few fields of a syntax tree node (hast) that getting a code block's text reads
+ */
+interface _TextNode {
+  type: string;
+  value?: string;
+  children?: _TextNode[];
+}
+
+/**
+ * Gets the text of a node of the syntax tree (hast): its text nodes' values, joined
+ * @param node The node
+ * @returns Its text
+ */
+function _getText(node: _TextNode): string {
+  return node.type === 'text' ? (node.value ?? '') : (node.children ?? []).map(_getText).join('');
 }
 
 /**
@@ -204,6 +232,10 @@ interface _MarkdownLinkProps {
    */
   onShowFile: (file: LinkedFile) => void;
   /**
+   * Class name of the "code" icon after a link to a linked file
+   */
+  fileIconClassName: string;
+  /**
    * Class name of a link that points to nothing in the showroom
    */
   unresolvedClassName: string;
@@ -215,11 +247,20 @@ interface _MarkdownLinkProps {
 
 /**
  * Renders a link in rendered Markdown: to an absolute URL in a new tab, to a page of the showroom, to a linked file (a text file up to 1 MB in the
- * modal, any other in a new tab), or as plain text with a tooltip when it points to nothing in the showroom
+ * modal, any other in a new tab), marked with a "code" icon, or as plain text with a tooltip when it points to nothing in the showroom
  * @param props Properties of the component
  * @returns The rendered link
  */
-function _MarkdownLink({ href, from, documentation, linkedFiles, onShowFile, unresolvedClassName, children }: _MarkdownLinkProps): ReactNode {
+function _MarkdownLink({
+  href,
+  from,
+  documentation,
+  linkedFiles,
+  onShowFile,
+  fileIconClassName,
+  unresolvedClassName,
+  children,
+}: _MarkdownLinkProps): ReactNode {
   const link = href === undefined ? ({ kind: 'unresolved' } as const) : resolveLink(href, from, documentation, linkedFiles);
   switch (link.kind) {
     case 'external':
@@ -239,7 +280,9 @@ function _MarkdownLink({ href, from, documentation, linkedFiles, onShowFile, unr
           {children}
         </Link>
       );
-    case 'file':
+    case 'file': {
+      // The link's own text names the file, so the icon is hidden from screen readers
+      const icon = <Code16Regular className={fileIconClassName} aria-hidden="true" />;
       return link.file.text ? (
         <Link
           inline
@@ -252,12 +295,15 @@ function _MarkdownLink({ href, from, documentation, linkedFiles, onShowFile, unr
           }}
         >
           {children}
+          {icon}
         </Link>
       ) : (
         <Link inline href={link.href} target="_blank" rel="noopener noreferrer">
           {children}
+          {icon}
         </Link>
       );
+    }
     case 'unresolved':
       return (
         <Tooltip content={UNRESOLVED_LINK_TOOLTIP} relationship="description">

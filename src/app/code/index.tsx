@@ -1,12 +1,14 @@
 /**
- * Highlighted code, shared by rendered Markdown and the linked files' modal: highlight.js's token colours, as FluentUI tokens, and a highlighted code
- * block with line numbers, rendered through the same `react-markdown` and `rehype-highlight` as Markdown's code blocks
+ * Highlighted code, shared by rendered Markdown and the linked files' modal: highlight.js's token colours, as FluentUI tokens; the code block every
+ * piece of code is shown in (line numbers in a gutter, a copy button); and a highlighted code block of a text, rendered through the same
+ * `react-markdown` and `rehype-highlight` as Markdown's code blocks
  */
 
-import type { ReactNode } from 'react';
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
-import { makeStyles, tokens, type GriffelStyle } from '@fluentui/react-components';
+import { Button, makeStyles, tokens, type GriffelStyle } from '@fluentui/react-components';
+import { Checkmark16Regular, Copy16Regular, ErrorCircle16Regular } from '@fluentui/react-icons';
 
 // #region Token colours
 
@@ -59,33 +61,173 @@ export const TOKEN_STYLES: Record<string, GriffelStyle> = Object.fromEntries(
 
 // #endregion
 
-// #region Highlighted code
+// #region Code block
 
 /**
- * Styles of a highlighted code block
+ * Styles of a code block
  */
 const _useStyles = makeStyles({
   block: {
-    display: 'flex',
+    position: 'relative',
+    margin: `${tokens.spacingVerticalM} 0`,
     backgroundColor: tokens.colorNeutralBackground3,
     borderRadius: tokens.borderRadiusMedium,
-    overflowX: 'auto',
     fontFamily: tokens.fontFamilyMonospace,
     fontSize: tokens.fontSizeBase300,
     lineHeight: tokens.lineHeightBase300,
-    '& pre': { margin: '0', padding: tokens.spacingHorizontalM, lineHeight: 'inherit' },
+    '& pre': { margin: '0', padding: tokens.spacingHorizontalM, lineHeight: 'inherit', fontFamily: 'inherit' },
     '& code': { fontFamily: 'inherit', fontSize: 'inherit' },
     ...TOKEN_STYLES,
   },
+  scroll: { display: 'flex', overflowX: 'auto' },
+  // Sticky, so line numbers stay in place while long lines scroll sideways
   gutter: {
+    position: 'sticky',
+    left: '0',
+    zIndex: 1,
     flexShrink: 0,
     textAlign: 'right',
     color: tokens.colorNeutralForeground4,
+    backgroundColor: tokens.colorNeutralBackground3,
     userSelect: 'none',
     borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   code: { flexGrow: 1, minWidth: 0 },
+  copy: { position: 'absolute', top: tokens.spacingVerticalXS, right: tokens.spacingHorizontalXS, zIndex: 2 },
 });
+
+/**
+ * Counts the lines of a code block's text, as the code block shows them: one line break ending the text is dropped, as a code block shows none
+ * @param text The code block's text
+ * @returns Its number of lines, at least 1
+ */
+export function countLines(text: string): number {
+  return text.replace(/(\r\n|\r|\n)$/, '').split(/\r\n|\r|\n/).length;
+}
+
+/**
+ * Represents the properties of a code block
+ */
+export interface CodeBlockProps {
+  /**
+   * The code's text, which the gutter numbers the lines of, and the copy button copies
+   */
+  text: string;
+  /**
+   * The highlighted code: a `pre` element holding a `code` element
+   */
+  children: ReactNode;
+}
+
+/**
+ * Renders a code block: line numbers in a gutter that can't be selected beside the highlighted code, and a copy button
+ * @param props Properties of the component
+ * @returns The code block
+ */
+export function CodeBlock({ text, children }: CodeBlockProps): ReactNode {
+  const styles = _useStyles();
+  return (
+    <div className={styles.block}>
+      <div className={styles.scroll}>
+        <pre className={styles.gutter} aria-hidden="true">
+          {Array.from({ length: countLines(text) }, (_, index) => index + 1).join('\n')}
+        </pre>
+        <div className={styles.code}>{children}</div>
+      </div>
+      <CopyButton text={text} className={styles.copy} />
+    </div>
+  );
+}
+
+// #endregion
+
+// #region Copy button
+
+/**
+ * How long the copy button shows what copying did, in milliseconds
+ */
+export const COPY_STATUS_DURATION = 2000;
+
+/**
+ * Checks if the clipboard can be written to: `navigator.clipboard` only exists in secure contexts (HTTPS, `localhost`)
+ * @returns True if `navigator.clipboard` exists
+ */
+export function canCopy(): boolean {
+  return typeof navigator !== 'undefined' && navigator.clipboard !== undefined;
+}
+
+/**
+ * Copies a text to the clipboard; called from a click handler only, as browsers refuse it otherwise
+ * @param text The text
+ * @returns True if it was copied, false if the clipboard is missing or refused it
+ */
+export async function copyText(text: string): Promise<boolean> {
+  if (!canCopy()) return false;
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (_err) {
+    return false;
+  }
+}
+
+/**
+ * Subscribes to changes of whether the clipboard exists, which never happen
+ * @returns The function unsubscribing, which does nothing
+ */
+function _subscribeToNothing(): () => void {
+  return () => undefined;
+}
+
+/**
+ * Represents the properties of a copy button
+ */
+export interface CopyButtonProps {
+  /**
+   * The text it copies
+   */
+  text: string;
+  /**
+   * Its class name
+   */
+  className: string;
+}
+
+/**
+ * Renders a code block's copy button, which shows what copying did for a moment; hidden in the browser where the clipboard is missing (outside
+ * secure contexts), and always rendered on the server, which can't tell
+ * @param props Properties of the component
+ * @returns The copy button, or nothing where the clipboard is missing
+ */
+export function CopyButton({ text, className }: CopyButtonProps): ReactNode {
+  // Whether the clipboard exists never changes while the page is open; the server-side rendering shows the button
+  const available = useSyncExternalStore(_subscribeToNothing, canCopy, () => true);
+  const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
+  useEffect(() => {
+    if (status === 'idle') return;
+    const timer = setTimeout(() => setStatus('idle'), COPY_STATUS_DURATION);
+    return () => clearTimeout(timer);
+  }, [status]);
+  if (!available) return null;
+  const icon = status === 'copied' ? <Checkmark16Regular /> : status === 'failed' ? <ErrorCircle16Regular /> : <Copy16Regular />;
+  return (
+    <Button
+      className={className}
+      appearance="subtle"
+      size="small"
+      icon={icon}
+      aria-label={status === 'idle' ? 'Copy code' : undefined}
+      title="Copy code"
+      onClick={() => void copyText(text).then((copied) => setStatus(copied ? 'copied' : 'failed'))}
+    >
+      {status === 'copied' ? 'Copied' : status === 'failed' ? 'Copy failed' : undefined}
+    </Button>
+  );
+}
+
+// #endregion
+
+// #region Highlighted code
 
 /**
  * Represents a fenced code block built around a text
@@ -114,7 +256,7 @@ export function getFence(content: string, language: string): Fence {
   const longest = Math.max(0, ...[...text.matchAll(/`+/g)].map((match) => match[0].length));
   const fence = '`'.repeat(Math.max(3, longest + 1));
   const info = /[`\s]/.test(language) ? '' : language;
-  return { markdown: `${fence}${info}\n${text}\n${fence}\n`, lines: text.split(/\r\n|\r|\n/).length };
+  return { markdown: `${fence}${info}\n${text}\n${fence}\n`, lines: countLines(content) };
 }
 
 /**
@@ -132,24 +274,17 @@ export interface HighlightedCodeProps {
 }
 
 /**
- * Renders code highlighted, as Markdown's code blocks are, with line numbers in a gutter beside it
+ * Renders a text as a code block, highlighted as Markdown's code blocks are
  * @param props Properties of the component
- * @returns The highlighted code block
+ * @returns The code block
  */
 export function HighlightedCode({ content, language }: HighlightedCodeProps): ReactNode {
-  const styles = _useStyles();
-  const fence = getFence(content, language);
   return (
-    <div className={styles.block}>
-      <pre className={styles.gutter} aria-hidden="true">
-        {Array.from({ length: fence.lines }, (_, index) => index + 1).join('\n')}
-      </pre>
-      <div className={styles.code}>
-        <ReactMarkdown rehypePlugins={[rehypeHighlight]} skipHtml>
-          {fence.markdown}
-        </ReactMarkdown>
-      </div>
-    </div>
+    <CodeBlock text={content}>
+      <ReactMarkdown rehypePlugins={[rehypeHighlight]} skipHtml>
+        {getFence(content, language).markdown}
+      </ReactMarkdown>
+    </CodeBlock>
   );
 }
 

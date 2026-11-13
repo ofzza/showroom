@@ -59,7 +59,7 @@ src/
     navigation/         The navigation items
     theme/              The light/dark theme
     markdown/           Rendering Markdown
-    code/               Highlighted code with line numbers, shared by Markdown and the linked files' modal
+    code/               The code block (line numbers, copy button), shared by Markdown and the linked files' modal
     file-modal/         The linked files' modal
     issues/             The issues bar, showing serve's current issues
     showcases/          Placing showcase frames in rendered Markdown, and their iframes

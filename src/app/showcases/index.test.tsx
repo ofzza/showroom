@@ -63,7 +63,8 @@ describe('app/showcases', () => {
 
     it('Places a code block showcase before its fence, and a linked one before its paragraph', () => {
       const html = _render('Intro\n\n```html showcase\n<p>x</p>\n```\n\nSee [the demo](demo.html "showcase") here.');
-      expect(html).toMatch(/<p>Intro<\/p>\s*\[1\]\s*<pre>.*<\/pre>\s*\[2\]\s*<p>See /s);
+      // The fence is rendered in its code block, a <div> around its <pre>
+      expect(html).toMatch(/<p>Intro<\/p>\s*\[1\]\s*<div [^>]*>.*<pre><code class="hljs language-html">.*<\/pre>.*\[2\]\s*<p>See /s);
     });
 
     it('Places several showcases before one paragraph, in document order', () => {

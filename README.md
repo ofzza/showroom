@@ -438,7 +438,8 @@ See the rest in the example: [its options](./examples/number-table/README.md#opt
 
 A file that a Markdown documentation file links to by a relative path, and that isn't a documentation file, is a **linked file**: a code file, an image, any other file in the host repository. Links to linked files work in the showroom, which copies each of them, and only them, never whole folders:
 
-- a text file up to 1 MB opens in a modal, its content syntax highlighted (by its extension, or its name when it has none, e.g. `Makefile`; plain text for a language highlight.js doesn't know) with line numbers, under its path, with a link opening the file in a new tab;
+- a link to a linked file is marked with a "code" icon after its text;
+- a text file up to 1 MB opens in a modal, its content syntax highlighted (by its extension, or its name when it has none, e.g. `Makefile`; plain text for a language highlight.js doesn't know) with line numbers and a copy button, as code blocks are, under its path, with a link opening the file in a new tab;
 - any other file (a binary file, or a text file over 1 MB) opens in a new tab;
 - a relative image (`![logo](./docs/logo.png)`) is shown from its linked file;
 - a linked showcase's entry point is a linked file too: its link, below its showcase frame, opens its source in the modal.
@@ -500,7 +501,8 @@ $ npx showroom serve [--root <dir>] [--port <port>] [--out-dir <dir>]
 
 The showroom has a page per documentation file, its address in the URL's hash (e.g. `#/docs/guide.md`), and a home page with the project information and the root `README` (when the `README` opens with a level-1 heading, that heading is the home page's title, and the project information follows it). The navigation lists `README` (the home page), `CONTRIBUTING` and `LICENSE` first, whatever the root files' actual names (e.g. `CONTRIBUTE.md`, `LICENCE.txt`), then every other documentation file by its path. `.md` files are rendered as GitHub-flavoured Markdown, with syntax-highlighted code blocks and the same heading ids as on GitHub; other documentation files are shown as plain text. The navigation stays in view as a page scrolls; on a narrow (phone) viewport, below 768 px, it opens from the header's menu button instead. In Markdown:
 
-- relative links to documentation files (or to folders whose `README` is one) open their page; relative links to [linked files](#linked-files) open them in the modal, or in a new tab; other relative links (e.g. to a folder with no `README`, or a missing file) are shown as plain text;
+- every code block is syntax highlighted with line numbers (which are never copied with the code), whatever its length, and has a copy button (shown only where the browser allows writing to the clipboard: over HTTPS, or on `localhost`);
+- relative links to documentation files (or to folders whose `README` is one) open their page; relative links to [linked files](#linked-files), marked with a "code" icon, open them in the modal, or in a new tab; other relative links (e.g. to a folder with no `README`, or a missing file) are shown as plain text;
 - relative images are shown from their linked files, or as their alt text when they're missing; absolute image URLs work;
 - raw HTML tags are left out, keeping the Markdown between them.
 

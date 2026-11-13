@@ -65,6 +65,23 @@ describe('app/markdown', () => {
     expect(html).toContain('class="hljs language-tsx"');
   });
 
+  it('Shows every code block with line numbers and a copy button, whatever its length', () => {
+    const html = _render('```ts\nconst a = 1;\nconst b = 2;\n```\n\n```\none line\n```\n\nRun `npm test`.');
+    expect(html).toMatch(/<pre [^>]*aria-hidden="true"[^>]*>1\n2<\/pre>/);
+    expect(html).toMatch(/<pre [^>]*aria-hidden="true"[^>]*>1<\/pre>/);
+    expect(html.match(/aria-label="Copy code"/g)).toHaveLength(2);
+    // Inline code is no code block
+    expect(html).toContain('<code>npm test</code>');
+  });
+
+  it("Shows a resource's code block as any other, with no caption", () => {
+    // Included files name the files showcases use, in the code pane (D390, .workflow/SPEC-S10-presentation.md)
+    const html = _render('```css showcase file=theme.css\nb { color: red; }\n```');
+    expect(html).toMatch(/<pre [^>]*aria-hidden="true"[^>]*>1<\/pre>/);
+    expect(html).toContain('class="hljs language-css"');
+    expect(html).not.toContain('theme.css');
+  });
+
   it('Colours every token class highlight.js emits', () => {
     // A class left out is shown in the code block's own colour: README.md's `md` examples are a single `hljs-code` token, and once weren't coloured
     const samples = [
@@ -92,10 +109,16 @@ describe('app/markdown', () => {
   it('Links text linked files to their copies, opened in the modal on click, and other linked files to a new tab', () => {
     const html = _render('[code](../src/index.ts#L2) [big](../src/big.json) [diagram](diagram.png)');
     // The modal opens on click, which needs effects; the link still names the copy, for the browser's own "open in a new tab"
-    expect(html).toMatch(/<a [^>]*href="files\/src\/index.ts"[^>]*>code<\/a>/);
+    expect(html).toMatch(/<a [^>]*href="files\/src\/index.ts"[^>]*>code<svg [^>]*aria-hidden="true"[^>]*>.*?<\/svg><\/a>/);
     expect(html).not.toMatch(/<a [^>]*href="files\/src\/index.ts"[^>]*target=/);
-    expect(html).toMatch(/<a [^>]*href="files\/src\/big.json"[^>]*target="_blank"[^>]*rel="noopener noreferrer"[^>]*>big<\/a>/);
-    expect(html).toMatch(/<a [^>]*href="files\/docs\/diagram.png"[^>]*target="_blank"[^>]*>diagram<\/a>/);
+    expect(html).toMatch(/<a [^>]*href="files\/src\/big.json"[^>]*target="_blank"[^>]*rel="noopener noreferrer"[^>]*>big<svg [^>]*>.*?<\/svg><\/a>/);
+    expect(html).toMatch(/<a [^>]*href="files\/docs\/diagram.png"[^>]*target="_blank"[^>]*>diagram<svg [^>]*>.*?<\/svg><\/a>/);
+  });
+
+  it('Marks links to linked files with a "code" icon, and no other link or image', () => {
+    const html = _render('[code](../src/index.ts) [Home](../README.md) [Site](https://example.com) ![A diagram](./diagram.png)');
+    expect(html.match(/<svg /g)).toHaveLength(1);
+    expect(html).toMatch(/>code<svg /);
   });
 
   it('Shows links to anything else as plain text', () => {

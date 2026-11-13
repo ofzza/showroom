@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation stage (_`P10.2`_); _`P10`_ Presenting showcases (`PLAN-P10-presentation.md`) approved for its split into _`P10.1`_–_`P10.5`_ and their order (_`D382`_–_`D385`_). _`P1`_–_`P9`_ implemented.
-- **Next free:** _`D390`_, _`S11`_, _`P11`_, _`O67`_, _`L14`_, _`R26`_, _`H1`_, _`K20`_
-- **Working on:** _`P10.2`_ Code blocks and links (`PLAN-P10.2-code-blocks.md`), approved; implementing.
-- **Next step:** implement _`P10.2`_ (steps 1–7), then its checkpoint (with a browser check).
+- **Stage:** planning stage (_`P10.3`_); _`P10`_ Presenting showcases approved for its split (_`P10.1`_–_`P10.5`_); _`P10.1`_, _`P10.2`_ implemented. _`P1`_–_`P9`_ implemented.
+- **Next free:** _`D392`_, _`S11`_, _`P11`_, _`O67`_, _`L14`_, _`R27`_, _`H1`_, _`K20`_
+- **Working on:** nothing.
+- **Next step:** plan _`P10.3`_ The new keys (`PLAN-P10.3-keys.md`), with _`O62`_, _`O65`_.
 
 ## Open questions
 
@@ -227,4 +227,7 @@
 - 2026-11-13: _`P10.1`_ approved and committed (option chosen: "Approve and commit"); `p10.1-check/` working files deleted with it.
 - 2026-11-13: _`P10.2`_ drafted; its 4 choices settled (_`D386`_–_`D389`_: "pre override (Rec.)", "API only, hide", "As recommended (Rec.)", "One code icon (Rec.)"); _`S10`_ revised (_`R25`_, by _`D387`_).
 - 2026-11-13: _`P10.2`_ approved, and _`S10`_ re-approved with _`R25`_ (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
+- 2026-11-13: _`P10.2`_ implemented (the shared `CodeBlock`, the `pre` override, resource captions, the copy button, the "code" icon; tests and documentation); `npm run ci` green after an ESLint fix (the copy button exported as `CopyButton`, its clipboard check through `useSyncExternalStore`); awaiting the browser check.
 - 2026-11-13: Fast path (during _`P10.2`_'s browser check; the user: "it displays a blank page due to `http://localhost:5173/files/index.js` 404-ing"): `serve` showed a blank page since _`P9`_, as the linked files middleware claimed the showroom's own `files/index.js`; `src/app/files/` renamed `src/app/file-modal/`, with a guard test and a `serve` test (option chosen: "Fast path, rename (Rec.)"); approved and committed (option chosen: "Approve and commit"), with _`P10.2`_'s work stashed meanwhile.
+- 2026-11-13: _`P10.2`_'s browser check passed (the user: "Everything works"), but for resource captions: discussed, and dropped (_`D390`_ replacing _`D379`_, option chosen: "Drop it entirely (Rec.)"); _`S10`_ and _`P10.2`_ revised (_`R26`_), pending re-approval; the code changed to match.
+- 2026-11-13: _`P10.2`_ approved and committed, reviewed on the dogfood `serve` first (the user: "Please start the dogfooding serve session (now and for every checkpoint) so that I can review before approving"; option chosen: "Approve and commit"); _`S10`_ and _`P10.2`_ re-approved with _`R26`_; _`D391`_ records its deviations; `p10.2-check/` working files deleted.
