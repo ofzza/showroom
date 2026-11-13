@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** planning stage (_`P10.4`_); _`P10`_ Presenting showcases approved for its split (_`P10.1`_–_`P10.5`_); _`P10.1`_–_`P10.3`_ implemented. _`P1`_–_`P9`_ implemented.
-- **Next free:** _`D403`_, _`S11`_, _`P11`_, _`O68`_, _`L14`_, _`R29`_, _`H1`_, _`K20`_
-- **Working on:** nothing.
-- **Next step:** the spike for _`P10.4`_ (_`D385`_: `./.workflow/.temp/spike-code-pane/`, checked by the user in a browser), then plan _`P10.4`_ The code pane, with _`O62`_–_`O65`_, _`O67`_, _`K17`_, _`K18`_.
+- **Next free:** _`D404`_, _`S11`_, _`P11`_, _`O68`_, _`L14`_, _`R29`_, _`H1`_, _`K20`_
+- **Working on:** _`P10.4`_ The code pane (`PLAN-P10.4-code-pane.md`): its spike done and recorded (_`D403`_); its steps not yet planned.
+- **Next step:** plan _`P10.4`_'s steps and choices, with _`O62`_–_`O65`_, _`O67`_. Start from a fresh context (the user cleared it after the spike).
 
 ## Open questions
 
@@ -238,3 +238,5 @@
 - 2026-11-13: _`P10.3`_ implemented (the grammar, `Showcase`'s `display` and `include`, `_checkIncludes()`, the `html` showcase adapter's included files, watching them; a new `showcase-keys` fixture; tests and documentation); `npm run ci` running.
 - 2026-11-13: _`P10.3`_'s `npm run ci` green after updating `src/cli/index.e2e.test.ts`'s count of `showcase-errors`' issues (30 to 39); the dogfood `serve` started for the checkpoint.
 - 2026-11-13: _`P10.3`_ approved and committed (option chosen: "Approve and commit"), reviewed on the dogfood `serve`; _`D402`_ records its deviations; `p10.3-check/` working files deleted.
+- 2026-11-13: Spike for _`P10.4`_ (_`D385`_): the code pane's layout (a container query, the three states, the frame never moved or stretched) built in `spike-code-pane/`, measured with Playwright and checked by the user ("Works, use it"); recorded as _`D403`_ with its evidence, resolving _`K17`_ and _`K18`_.
+- 2026-11-14: `spike-code-pane/` working files deleted, and the workflow files committed ("Delete and commit (Rec.)"); the user chose to clear the context before planning _`P10.4`_ ("Clear, then plan (Rec.)").
