@@ -41,7 +41,18 @@ const _ROOT = fileURLToPath(new URL('../../../../test/fixtures/showcase-ts', imp
  * @returns The showcase
  */
 function _showcase(kind: Showcase['kind'], entry: string, extra: Partial<Showcase> = {}): Showcase {
-  return { id: 'README.md#1', documentation: 'README.md', line: 1, offset: 0, kind, adapter: 'ts', entry, ...extra };
+  return {
+    id: 'README.md#1',
+    documentation: 'README.md',
+    line: 1,
+    offset: 0,
+    kind,
+    display: kind === 'code-block' ? 'block' : 'inline',
+    adapter: 'ts',
+    entry,
+    include: [],
+    ...extra,
+  };
 }
 
 /**

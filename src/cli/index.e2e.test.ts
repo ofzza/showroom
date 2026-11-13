@@ -89,7 +89,7 @@ describe('cli (end to end)', () => {
       expect(code).toBe(1);
       expect(stdout).toBe('');
       const lines = stderr.trimEnd().split('\n');
-      expect(lines).toHaveLength(30);
+      expect(lines).toHaveLength(39);
       expect(lines).toContain(
         'error: errors/markers.md:6: Invalid showcase adapter name "Html" in showcase marker "showcase=Html": use lower-case letters, digits and "-", starting with a letter',
       );

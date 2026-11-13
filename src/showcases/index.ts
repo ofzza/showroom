@@ -402,7 +402,8 @@ function _getModulePath(root: string, path: string): string | undefined {
 /**
  * Builds every showcase of a host repository with its showcase adapter, one at a time, each with a scratch folder of its own inside one temporary
  * folder per run (removed afterwards), and adds the frame script to each showcase frame page. Custom showcase adapters are loaded again, so the
- * run gets fresh showcase adapter objects, each closed at its end. A showcase that doesn't build never stops the others.
+ * run gets fresh showcase adapter objects, each closed at its end. A showcase that doesn't build never stops the others. The files to watch are the
+ * custom showcase adapter modules, every showcase's included files (an included virtual file's documentation file), and the files each build read.
  * @param options What to build
  * @returns The showcase frames of the showcases that built, the build errors of those that didn't, and the run's own issues
  */
@@ -426,6 +427,11 @@ export async function buildShowcases({ root, host, configuration, mode = 'produc
     for (const [index, showcase] of host.showcases.entries()) {
       const fail = (error: Pick<ShowcaseBuildError, 'message'> & Partial<ShowcaseBuildError>) =>
         void errors.set(showcase.id, [...(errors.get(showcase.id) ?? []), getBuildErrorIssue(showcase, host.virtualFiles, error)]);
+
+      // Its included files are watched, whatever its showcase adapter and whether it builds: a virtual one by its documentation file
+      for (const path of showcase.include) {
+        watched.add(host.virtualFiles.find((file) => file.path === path)?.documentation ?? path);
+      }
 
       // Its showcase adapter
       if (!adapters.has(showcase.adapter)) {

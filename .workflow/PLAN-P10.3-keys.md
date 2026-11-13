@@ -1,6 +1,6 @@
 # _`P10.3`_ The new keys
 
-approved 2026-11-13 (option chosen: "Approve and commit (Rec.)"), after its zero-context review (2026-11-13: 15 findings; _`D395`_–_`D401`_ and 11 fixes to the steps)
+implemented 2026-11-13 (option chosen: "Approve and commit"); approved 2026-11-13 (option chosen: "Approve and commit (Rec.)"), after its zero-context review (2026-11-13: 15 findings; _`D395`_–_`D401`_ and 11 fixes to the steps)
 
 ## Goals
 
@@ -37,6 +37,7 @@ Facts found while planning (2026-11-13):
 - _`D399`_ (`live`; refines _`D360`_ (SPEC-S10-presentation.md); review 2026-11-13 #11, Q5, as _`D397`_): **A linked showcase shown as a block can't be in a footnote definition**: a `check` error. Rejected: allowing it.
 - _`D400`_ (`live`; refines _`D380`_ (SPEC-S10-presentation.md); review 2026-11-13 #5, Q6, as _`D397`_): **An included real file's path is matched exactly on every OS**, through its folders' entries, so a case slip fails on macOS and Windows as it does on Linux. Rejected: leaving it to the file system, as for links.
 - _`D401`_ (`live`; review 2026-11-13 #8, Q7, as _`D397`_): **Glossary change, applied with _`P10.3`_'s implementation**: "Linked file" (`CONTRIBUTE.md`) becomes "A file in the host repository that isn't a documentation file, which a documentation file links to by a relative path (or shows as an image), or a showcase includes (an included file); copied into the showroom, …" (the rest unchanged).
+- _`D402`_ (`live`; from _`P10.3`_'s checkpoint, option chosen: "Approve and commit"): **_`P10.3`_'s deviations from its steps, approved**: the valid uses of the keys are in a new fixture, `showcase-keys` (with its own copy of the `demo` custom showcase adapter), not in `showcases`, so the ids and lines many tests assert there don't shift; the errors' wording was settled while implementing; `src/cli/index.e2e.test.ts` counts the `showcase-errors` fixture's 39 issues, up from 30.
 
 ## Review notes
 
@@ -45,4 +46,4 @@ Facts found while planning (2026-11-13):
 ## Open points
 
 - [x] _`O62`_ (SPEC-S10-presentation.md; this segment's part resolved by _`D393`_, _`D395`_; the shown host information moved to _`P10.4`_ by _`D394`_) What the shown host information gains, and how included files reach the showroom.
-- [ ] _`O65`_ (SPEC-S10-presentation.md) The tests and documentation of this segment (steps 6 and 7).
+- [x] _`O65`_ (SPEC-S10-presentation.md; this segment's part done by steps 6 and 7) The tests and documentation of this segment.

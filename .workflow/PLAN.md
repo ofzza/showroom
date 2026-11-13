@@ -278,7 +278,7 @@ None (_`D61`_).
 
 ## Presenting showcases
 
-- _`P10`_ Presenting showcases (approved 2026-11-13, for its split and order; _`P10.1`_, _`P10.2`_ implemented): the code pane beside showcases, linked showcases shown as blocks, `include=`, code blocks with line numbers and a copy button, the console apart from what a showcase renders (_`S10`_, SPEC-S10-presentation.md), in five child segments _`P10.1`_–_`P10.5`_. [See Presenting showcases](./PLAN-P10-presentation.md)
+- _`P10`_ Presenting showcases (approved 2026-11-13, for its split and order; _`P10.1`_–_`P10.3`_ implemented): the code pane beside showcases, linked showcases shown as blocks, `include=`, code blocks with line numbers and a copy button, the console apart from what a showcase renders (_`S10`_, SPEC-S10-presentation.md), in five child segments _`P10.1`_–_`P10.5`_. [See Presenting showcases](./PLAN-P10-presentation.md)
 
 ## Known open issues
 

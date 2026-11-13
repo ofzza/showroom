@@ -47,7 +47,7 @@ const _TYPESCRIPT = join(REPOSITORY_ROOT, 'node_modules', 'typescript');
  * @returns The showcase
  */
 function _showcase(documentation: string, entry: string, options: unknown = { typeCheck: true, allowJs: false }): Showcase {
-  return { id: `${documentation}#1`, documentation, line: 1, offset: 0, kind: 'code-block', adapter: 'ts', entry, options };
+  return { id: `${documentation}#1`, documentation, line: 1, offset: 0, kind: 'code-block', display: 'block', adapter: 'ts', entry, include: [], options };
 }
 
 /**

@@ -1,20 +1,22 @@
 /**
- * The `html` showcase adapter: its entry point is an HTML page or fragment, built alone (its relative references are neither resolved nor copied),
- * next to the resources of its documentation file's folder; it takes no options and needs nothing from the host repository. Internal, never
- * re-exported.
+ * The `html` showcase adapter: its entry point is an HTML page or fragment, built without following its relative references (they are neither
+ * resolved nor copied), next to the resources of its documentation file's folder and its included files; it takes no options and needs nothing
+ * from the host repository. Internal, never re-exported.
  */
 
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Showcase } from '../../../host/index.js';
-import type { ShowcaseAdapter, ShowcaseBuildRequest, ShowcaseBuildResult, ShowcaseValidation } from '../index.js';
+import { getFolder } from '../../../markdown/index.js';
+import type { ShowcaseAdapter, ShowcaseBuildError, ShowcaseBuildFile, ShowcaseBuildRequest, ShowcaseBuildResult, ShowcaseValidation } from '../index.js';
 
 /**
  * Represents the `html` showcase adapter
  */
 export class HtmlShowcaseAdapter implements ShowcaseAdapter {
   /**
-   * Validates a showcase: it takes no options, and its entry point must be an `html` or `htm` code block, or a linked `.html` or `.htm` file
+   * Validates a showcase: it takes no options, its entry point must be an `html` or `htm` code block, or a linked `.html` or `.htm` file, and its
+   * included files must be inside its entry point's folder, none where the page goes (`index.html`, in any case)
    * @param showcase The showcase
    * @returns No options, or the errors found
    */
@@ -30,17 +32,28 @@ export class HtmlShowcaseAdapter implements ShowcaseAdapter {
           : `The html showcase adapter needs a link to an .html or .htm file, not "${showcase.entry}"`,
       );
     }
+    for (const path of showcase.include) {
+      const placed = _getPlacedPath(showcase, path);
+      if (placed === undefined) {
+        errors.push(`The html showcase adapter can't include "${path}": it must be inside the entry point's folder ("${getFolder(showcase.entry) || '.'}")`);
+      } else if (placed.toLowerCase() === HTML_PAGE) {
+        errors.push(`The html showcase adapter can't include "${path}": it would replace the showcase frame's page`);
+      }
+    }
     return errors.length ? { errors } : { errors: [] };
   }
 
   /**
-   * Builds a showcase's showcase frame: its entry point as the page, a fragment wrapped into a complete page, and every resource of its
-   * documentation file's folder next to it, under its name, whether the page uses it or not; a code block showcase's entry point comes from its
-   * virtual file, a linked one is read from disk as UTF-8. A resource named like the page fails the build.
+   * Builds a showcase's showcase frame: its entry point as the page, a fragment wrapped into a complete page, every resource of its documentation
+   * file's folder next to it, under its name, whether the page uses it or not, and its included files, at their paths relative to the entry point's
+   * folder (a virtual file from memory, any other read from disk as it is); a code block showcase's entry point comes from its virtual file, a
+   * linked one is read from disk as UTF-8. A resource named like the page, an included file landing where a resource does (unless it is that
+   * resource), and an included file that can't be read fail the build. Its reads are the files read from disk, and the documentation files holding
+   * the virtual files it uses.
    * @param request What to build
    * @returns The showcase frame's page and resources, or the build errors
    */
-  public async build({ root, showcase, virtualFiles }: ShowcaseBuildRequest): Promise<ShowcaseBuildResult> {
+  public async build({ root, showcase, virtualFiles, hostVirtualFiles }: ShowcaseBuildRequest): Promise<ShowcaseBuildResult> {
     let content: string;
     let reads: string[];
     if (showcase.kind === 'code-block') {
@@ -67,15 +80,48 @@ export class HtmlShowcaseAdapter implements ShowcaseAdapter {
         errors: clashing.map((file) => ({ message: `The resource "${_getName(file.path)}" would replace the showcase frame's page`, path: file.path })),
       };
     }
-    return {
-      page: HTML_PAGE,
-      files: [
-        { path: HTML_PAGE, content: isHtmlPage(content) ? content : wrapHtmlFragment(content) },
-        ...resources.map((file) => ({ path: _getName(file.path), content: file.content })),
-      ],
-      reads,
-    };
+
+    // The included files, next to the page as they sit next to the entry point
+    const files: ShowcaseBuildFile[] = [
+      { path: HTML_PAGE, content: isHtmlPage(content) ? content : wrapHtmlFragment(content) },
+      ...resources.map((file) => ({ path: _getName(file.path), content: file.content })),
+    ];
+    const errors: ShowcaseBuildError[] = [];
+    for (const path of showcase.include) {
+      const placed = _getPlacedPath(showcase, path) ?? path;
+      const resource = resources.find((file) => _getName(file.path).toLowerCase() === placed.toLowerCase());
+      if (resource?.path === path) continue; // The resource itself, copied already
+      if (resource) {
+        errors.push({ message: `The included file "${path}" would land where the resource "${resource.path}" does ("${placed}")`, path });
+        continue;
+      }
+      const virtual = hostVirtualFiles.find((file) => file.path === path);
+      if (virtual) {
+        reads = [...new Set([...reads, virtual.documentation])];
+        files.push({ path: placed, content: virtual.content });
+        continue;
+      }
+      reads = [...new Set([...reads, path])];
+      try {
+        files.push({ path: placed, content: new Uint8Array(await readFile(join(root, path))) });
+      } catch (err) {
+        errors.push({ message: `The included file can't be read: ${(err as Error).message}`, path });
+      }
+    }
+    return errors.length ? { reads, errors } : { page: HTML_PAGE, files, reads };
   }
+}
+
+/**
+ * Gets where an included file goes in a showcase frame: its path relative to the entry point's folder
+ * @param showcase The showcase
+ * @param path POSIX-style path of the included file, relative to the root
+ * @returns Its path relative to the entry point's folder, or undefined if it isn't inside that folder
+ */
+function _getPlacedPath(showcase: Showcase, path: string): string | undefined {
+  const folder = getFolder(showcase.entry);
+  if (!folder) return path;
+  return path.startsWith(`${folder}/`) ? path.slice(folder.length + 1) : undefined;
 }
 
 /**

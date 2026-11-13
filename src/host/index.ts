@@ -79,6 +79,12 @@ export interface DocumentationFile {
 export type ShowcaseKind = 'code-block' | 'link';
 
 /**
+ * Represents how a showcase is shown: `inline`, a linked showcase's showcase frame before the paragraph holding its link; or `block`, its code pane
+ * and showcase frame in place of its code block, or of the paragraph holding its link
+ */
+export type ShowcaseDisplay = 'inline' | 'block';
+
+/**
  * Represents a showcase embedded in a documentation file
  */
 export interface Showcase {
@@ -103,6 +109,10 @@ export interface Showcase {
    */
   kind: ShowcaseKind;
   /**
+   * How the showcase is shown: `block` for a code block showcase, and for a linked showcase marked `block`; `inline` for any other linked showcase
+   */
+  display: ShowcaseDisplay;
+  /**
    * Name of the showcase adapter building the showcase (`html` for a naked marker)
    */
   adapter: string;
@@ -115,6 +125,10 @@ export interface Showcase {
    * names
    */
   entry: string;
+  /**
+   * POSIX-style paths of its included files (`include=`), relative to the host repository's root, in the marker's order; empty if it has none
+   */
+  include: string[];
 }
 
 /**
@@ -155,7 +169,7 @@ export interface VirtualFile {
 
 /**
  * Represents a linked file: a file that isn't a documentation file, which a documentation file links to (or shows as an image, or names as a linked
- * showcase's entry point) by a relative path, and which the showroom copies
+ * showcase's entry point) by a relative path, or a showcase includes (`include=`), and which the showroom copies
  */
 export interface LinkedFile {
   /**

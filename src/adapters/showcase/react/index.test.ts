@@ -22,7 +22,18 @@ const _ROOT = join(FIXTURES, 'showcase-react');
  * @returns The showcase
  */
 function _showcase(kind: Showcase['kind'], entry: string, extra: Partial<Showcase> = {}): Showcase {
-  return { id: 'README.md#1', documentation: 'README.md', line: 1, offset: 0, kind, adapter: 'react', entry, ...extra };
+  return {
+    id: 'README.md#1',
+    documentation: 'README.md',
+    line: 1,
+    offset: 0,
+    kind,
+    display: kind === 'code-block' ? 'block' : 'inline',
+    adapter: 'react',
+    entry,
+    include: [],
+    ...extra,
+  };
 }
 
 describe('adapters/showcase/react', () => {

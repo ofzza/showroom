@@ -120,7 +120,11 @@ The **showcase marker** is `showcase`, `showcase=<adapter>`, or `showcase=<adapt
 
 - `<adapter>` names the showcase adapter: lower-case letters, digits and `-`, starting with a letter. A naked `showcase` means `showcase=html`.
 - `<options>` are [JSON5](https://json5.org/) (parsed, never evaluated), for the showcase adapter to validate. Empty options (`()`) are an error.
-- The only key is `file=<name>`, which marks a resource (below). `anchor=<name>` is reserved for later, and any other key is an error.
+- The keys:
+  - `file=<name>` marks a resource (below), and goes with no other key.
+  - `inline` or `block` says how a linked showcase is shown: inline, the default, or as a block, in place of the paragraph holding its link, which must be its paragraph's only content (in a list item or a blockquote too, never in a footnote). A code block showcase is always a block, so neither key goes on a code block.
+  - `include=<path>,<path>` lists a showcase's **included files**, which are shown with it: real files, documentation files, or virtual files (a resource, or a code block showcase's entry point, by its generated name, which changes when a showcase is added above it), in any folder. Paths are relative to the documentation file's folder, comma-separated, with no spaces, commas, `?` or `#` in them, URL-decoded as link targets are, and matched exactly, case included, on every OS. `check` reports an included file that doesn't exist, is a folder, is the showcase's own entry point, is listed twice, is in the output folder, or leads outside the host repository. Including a file only adds it: it is always available to the showcase's build (see each showcase adapter below), and a showcase still uses whatever else it uses, included or not.
+  - `anchor=<name>` is reserved for later, and any other key is an error. Keys are case-sensitive, and a repeated key is an error.
 
 A **code block showcase** is a fenced code block with the marker right after its language, which stays first so that the block is still highlighted everywhere. Its code is the showcase's entry point:
 
@@ -238,7 +242,7 @@ An `angular` showcase adapter is planned. A broken showcase is an error `showroo
 
 ### `html` showcases
 
-An `html` showcase's showcase frame is its entry point, as the page, and **every resource of its documentation file's folder**, next to the page under its name, whether the page uses it or not. An entry point that starts (after whitespace and comments) with `<!doctype`, `<html`, `<head` or `<?xml` is a complete page, used as it is; anything else is a fragment, wrapped into a page of its own. Pages are UTF-8. Nothing else is followed or copied: the page isn't read for its relative references (`<script src>`, `<link href>`, `<img src>`), so they only reach those resources, and resolve as written for a code block showcase, or a linked page in its documentation file's folder. Keep other styles and scripts inline, or use absolute URLs. A resource named `index.html` would replace the page, and fails the build. (A script needs its closing tag, `<script src="./demo.js"></script>`: HTML has no self-closing `<script />`.)
+An `html` showcase's showcase frame is its entry point, as the page, **every resource of its documentation file's folder**, next to the page under its name, whether the page uses it or not, and **its included files**, next to the page as they sit next to the entry point (so they must be inside the entry point's folder). An entry point that starts (after whitespace and comments) with `<!doctype`, `<html`, `<head` or `<?xml` is a complete page, used as it is; anything else is a fragment, wrapped into a page of its own. Pages are UTF-8. Nothing else is followed or copied: the page isn't read for its relative references (`<script src>`, `<link href>`, `<img src>`), so they only reach those resources, and resolve as written for a code block showcase, or a linked page in its documentation file's folder. Keep other styles and scripts inline, or use absolute URLs. A resource named `index.html` would replace the page, and fails the build; so does an included file landing where a resource of the documentation file's folder does (including that resource itself is fine), and `check` reports an included file named `index.html`, in any case. (A script needs its closing tag, `<script src="./demo.js"></script>`: HTML has no self-closing `<script />`.)
 
 The [`html` example](./examples/html/README.md) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md)) documents `numerals`, a made-up CSS library, on its own showcases. Its first showcase is a page of its own, [`clock.html`](./examples/html/clock.html), linked as a showcase:
 
@@ -415,6 +419,7 @@ export default (): ShowcaseAdapter => ({
 });
 ```
 
+- Every method gets the `Showcase` with its `display` (`inline` or `block`) and its `include`d files (paths relative to the root), which a custom showcase adapter may use as it sees fit (e.g. to copy them, as the `html` showcase adapter does).
 - `validate(showcase)` gets the `Showcase` with its options as the marker gives them, and returns `{ options, errors: [] }` (the options as the adapter will use them) or `{ errors: [...] }`.
 - `check?(root, showcases)` checks the host repository for what the adapter needs (e.g. a package installed), once per run when some showcase uses the adapter. It gets the `showcases` using the adapter whose validation passed, with their validated options, and returns a `ShowcaseHostCheck`: `{ errors, warnings }`, two lists of messages, either of them empty. Errors (the host requirements that are missing) fail the check, warnings don't; `showroom` prefixes both with the adapter's name. This is a breaking change: `check?()` used to return the list of errors alone; return it as `{ errors: <the list>, warnings: [] }`. Any other result, or a `check?()` that throws, is an error of the adapter.
 - `build(request)` builds one showcase, called by `showroom build`, `showroom serve` and `showroom check --showcases`, one showcase at a time. It gets a `ShowcaseBuildRequest`: the host repository's absolute `root`, the `showcase`, its validated `options`, the `virtualFiles` of its documentation file's folder, resources and code block showcases' entry points told apart by their `kind` (in memory: they aren't on disk, so put them before your tooling yourself), every virtual file of the host repository as `hostVirtualFiles` (for imports reaching other folders), the `mode` to build in (`development` in `serve`, `production` in `build` and `check --showcases`), and an empty `scratchFolder` for tools that must write to disk, removed after the build. It returns a `ShowcaseBuildResult`, with the files it `reads` (paths relative to the root), and optionally `warnings` (shaped like errors, below; reported as warnings, failing nothing), either way:
@@ -442,9 +447,10 @@ A file that a Markdown documentation file links to by a relative path, and that 
 - a text file up to 1 MB opens in a modal, its content syntax highlighted (by its extension, or its name when it has none, e.g. `Makefile`; plain text for a language highlight.js doesn't know) with line numbers and a copy button, as code blocks are, under its path, with a link opening the file in a new tab;
 - any other file (a binary file, or a text file over 1 MB) opens in a new tab;
 - a relative image (`![logo](./docs/logo.png)`) is shown from its linked file;
-- a linked showcase's entry point is a linked file too: its link, below its showcase frame, opens its source in the modal.
+- a linked showcase's entry point is a linked file too: its link, below its showcase frame, opens its source in the modal;
+- a showcase's included real files (`include=`) are linked files too, copied whether a link names them or not.
 
-Whether a file is text is decided from its content (UTF-8 with no NUL byte), whatever its name. A link's fragment (e.g. `#L10`) is ignored. A linked file is copied even when the `ignore` patterns skip it (e.g. a file in `dist/`): the link states the intent, but a file missing where `showroom` runs (e.g. a build output not built in CI) is a broken link. It isn't copied when it is in the output folder, which `build` empties first, or when its real path leads outside the host repository through a symbolic link; `check` warns about both. A link to a folder with no `README` stays plain text.
+Whether a file is text is decided from its content (UTF-8 with no NUL byte), whatever its name. A link's fragment (e.g. `#L10`) is ignored. A linked file is copied even when the `ignore` patterns skip it (e.g. a file in `dist/`): the link states the intent, but a file missing where `showroom` runs (e.g. a build output not built in CI) is a broken link. It isn't copied when it is in the output folder, which `build` empties first, or when its real path leads outside the host repository through a symbolic link; `check` warns about both, and reports them as errors for an included file. A link to a folder with no `README` stays plain text.
 
 `serve` and `build` hand out the linked files at `files/<path>`, next to the showroom's page: `build` copies them into the output folder, and `serve` answers only them there, from the host repository, so what you preview is what gets published.
 
@@ -474,14 +480,24 @@ The host information has this shape (types `HostInformation`, `ProjectInformatio
   "documentation": [{ "path": "README.md", "kind": "readme", "extension": ".md", "content": "# My library\n\n```html showcase\n<p>Hi</p>\n```\n" }],
   "code": ["src/index.ts"],
   "showcases": [
-    { "id": "README.md#1", "documentation": "README.md", "line": 3, "offset": 14, "kind": "code-block", "adapter": "html", "entry": "README.showcase-1.html" }
+    {
+      "id": "README.md#1",
+      "documentation": "README.md",
+      "line": 3,
+      "offset": 14,
+      "kind": "code-block",
+      "display": "block",
+      "adapter": "html",
+      "entry": "README.showcase-1.html",
+      "include": []
+    }
   ],
   "virtualFiles": [{ "path": "README.showcase-1.html", "kind": "entry", "content": "<p>Hi</p>", "documentation": "README.md", "line": 3 }],
   "linkedFiles": [{ "path": "src/index.ts", "size": 1024, "text": true }]
 }
 ````
 
-Documentation files have a `kind` of `readme`, `contribute`, `license`, or `other` for the files the `documentation` patterns add. A showcase has an `id` (its documentation file and its position there), the `line` and character `offset` of its entry point (the code block, or the link), its `kind` (`code-block` or `link`), its showcase `adapter`, its `options` as the showcase adapter validated them (left out when there are none), and the path of its `entry` point (a virtual file, or the linked file). A virtual file has its `path`, its `kind` (`resource`, or `entry` for a code block showcase's entry point), its `content`, and the `documentation` file and `line` of its code block. A linked file has its `path`, its `size` in bytes, and whether it is `text` (UTF-8 with no NUL byte, and no larger than 1 MB, so the showroom shows it in the modal). Paths are POSIX-style and relative to the host repository's root. Documentation files and linked files are sorted by path, showcases and virtual files by documentation file and line.
+Documentation files have a `kind` of `readme`, `contribute`, `license`, or `other` for the files the `documentation` patterns add. A showcase has an `id` (its documentation file and its position there), the `line` and character `offset` of its entry point (the code block, or the link), its `kind` (`code-block` or `link`), how it is shown (`display`: `block`, or `inline` for a linked showcase without the `block` key), its showcase `adapter`, its `options` as the showcase adapter validated them (left out when there are none), the path of its `entry` point (a virtual file, or the linked file), and the paths of its included files (`include`, in the marker's order; empty when it has none). A virtual file has its `path`, its `kind` (`resource`, or `entry` for a code block showcase's entry point), its `content`, and the `documentation` file and `line` of its code block. A linked file has its `path`, its `size` in bytes, and whether it is `text` (UTF-8 with no NUL byte, and no larger than 1 MB, so the showroom shows it in the modal). Paths are POSIX-style and relative to the host repository's root. Documentation files and linked files are sorted by path, showcases and virtual files by documentation file and line.
 
 ## `showroom serve`
 
@@ -603,7 +619,7 @@ console.log(getStackAdapterNames(), project, errors);
 - `getStackAdapter(name)` / `getStackAdapterNames()`: look up the built-in stack adapters, which implement the `StackAdapter` interface; `TypeScriptStackAdapter` is the `typescript` one.
 - `main(args, output?)`: runs the command line with the given arguments, resolving to its exit code; `USAGE` is its help text.
 - Constants: `CONFIGURATION_FILE_NAME` (`showroom.json`), `DEFAULT_OUT_DIR` (`./showroom`), and `BUILT_IN_DOCUMENTATION` (the built-in documentation patterns).
-- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase`, `ShowcaseKind`, `VirtualFile`, `VirtualFileKind`, `LinkedFile`, `Configuration`, `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.
+- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase`, `ShowcaseKind`, `ShowcaseDisplay`, `VirtualFile`, `VirtualFileKind`, `LinkedFile`, `Configuration`, `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.
 - Experimental types, for [custom showcase adapters](#custom-showcase-adapters-experimental): `ShowcaseAdapter`, `ShowcaseValidation`, `ShowcaseHostCheck`, `ShowcaseBuildRequest`, `ShowcaseBuildResult`, `ShowcaseBuildFile` and `ShowcaseBuildError`.
 
 # Development

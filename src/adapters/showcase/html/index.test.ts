@@ -21,7 +21,18 @@ const _ROOT = fileURLToPath(new URL('../../../../test/fixtures/showcase-frames',
  * @returns The showcase
  */
 function _showcase(kind: Showcase['kind'], entry: string, extra: Partial<Showcase> = {}): Showcase {
-  return { id: 'README.md#1', documentation: 'README.md', line: 1, offset: 0, kind, adapter: 'html', entry, ...extra };
+  return {
+    id: 'README.md#1',
+    documentation: 'README.md',
+    line: 1,
+    offset: 0,
+    kind,
+    display: kind === 'code-block' ? 'block' : 'inline',
+    adapter: 'html',
+    entry,
+    include: [],
+    ...extra,
+  };
 }
 
 describe('adapters/showcase/html', () => {
@@ -45,12 +56,23 @@ describe('adapters/showcase/html', () => {
     expect(adapter.validate(_showcase('code-block', 'a.html', { options: null })).errors).toEqual(['The html showcase adapter takes no options']);
   });
 
+  it("Accepts included files inside the entry point's folder, and rejects any other, or one replacing the page", () => {
+    expect(adapter.validate(_showcase('code-block', 'README.showcase-1.html', { include: ['a.css', 'docs/b.css'] }))).toEqual({ errors: [] });
+    expect(adapter.validate(_showcase('link', 'demos/page.html', { include: ['demos/page.css', 'demos/img/a.png'] }))).toEqual({ errors: [] });
+    expect(adapter.validate(_showcase('link', 'demos/page.html', { include: ['theme.css', 'demos-2/a.css', 'demos/INDEX.HTML'] })).errors).toEqual([
+      `The html showcase adapter can't include "theme.css": it must be inside the entry point's folder ("demos")`,
+      `The html showcase adapter can't include "demos-2/a.css": it must be inside the entry point's folder ("demos")`,
+      `The html showcase adapter can't include "demos/INDEX.HTML": it would replace the showcase frame's page`,
+    ]);
+  });
+
   it('Has no host requirements', () => {
     expect((adapter as ShowcaseAdapter).check).toBeUndefined();
   });
 
   describe('Build', () => {
-    // Tests building showcase frames: the entry point as the page, or a fragment wrapped into one, with the resources of its folder next to it.
+    // Tests building showcase frames: the entry point as the page, or a fragment wrapped into one, with the resources of its folder and its
+    // included files next to it.
 
     /**
      * Creates a build request
@@ -126,6 +148,34 @@ describe('adapters/showcase/html', () => {
         reads: ['README.md'],
         errors: [{ message: 'The resource "INDEX.html" would replace the showcase frame\'s page', path: 'INDEX.html' }],
       });
+    });
+
+    it('Puts the included files next to the page, as they sit next to the entry point', async () => {
+      // A real file, read as bytes; another documentation file's virtual file; a resource of the folder, copied once
+      const theme = { path: 'demos/theme.css', kind: 'resource' as const, content: 'b {}', documentation: 'demos/README.md', line: 4 };
+      const showcase = _showcase('link', 'demos/page.html', { include: ['demos/page.css', 'demos/theme.css', 'demos/widget.txt'] });
+      const result = await adapter.build({ ...request(showcase, [virtual('demos/widget.txt', 'w', 'resource')]), hostVirtualFiles: [theme] });
+      expect(result.errors).toBeUndefined();
+      expect(result.files?.map(({ path, content }) => ({ path, content: typeof content === 'string' ? content : Buffer.from(content).toString() }))).toEqual([
+        { path: 'index.html', content: expect.stringContaining('<link rel="stylesheet" href="./page.css" />') },
+        { path: 'widget.txt', content: 'w' },
+        { path: 'page.css', content: expect.stringContaining('{') },
+        { path: 'theme.css', content: 'b {}' },
+      ]);
+      expect(result.files![2].content).toBeInstanceOf(Uint8Array);
+      expect(result.reads).toEqual(['demos/page.html', 'README.md', 'demos/page.css', 'demos/README.md']);
+    });
+
+    it('Fails on an included file landing where a resource does, and on one it cannot read', async () => {
+      // A linked page in another folder: README.md's resource page.css lands by its name, where the included demos/page.css would
+      const showcase = _showcase('link', 'demos/page.html', { include: ['demos/page.css', 'demos/missing.css'] });
+      const result = await adapter.build(request(showcase, [virtual('page.css', 'p {}', 'resource')]));
+      expect(result.files).toBeUndefined();
+      expect(result.errors).toEqual([
+        { message: 'The included file "demos/page.css" would land where the resource "page.css" does ("page.css")', path: 'demos/page.css' },
+        { message: expect.stringMatching(/^The included file can't be read: ENOENT/), path: 'demos/missing.css' },
+      ]);
+      expect(result.reads).toEqual(['demos/page.html', 'README.md', 'demos/missing.css']);
     });
 
     it('Reports an entry point it cannot find', async () => {

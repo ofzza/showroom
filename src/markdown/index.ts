@@ -147,7 +147,20 @@ export interface ShowcaseMarker {
    * Name given by the `file` key, if the marker has one
    */
   file?: string;
+  /**
+   * How a linked showcase is shown, if the marker says it with the `inline` or `block` key
+   */
+  display?: 'inline' | 'block';
+  /**
+   * Paths the `include` key lists, URL-decoded, as written (relative to the documentation file's folder), if the marker has one
+   */
+  include?: string[];
 }
+
+/**
+ * Keys a showcase marker can have after its adapter and options
+ */
+const _MARKER_KEYS = ['file', 'anchor', 'inline', 'block', 'include'];
 
 /**
  * Pattern of a showcase adapter's name
@@ -165,7 +178,8 @@ export function isShowcaseMarker(word: string): boolean {
 
 /**
  * Parses a showcase marker: `showcase`, `showcase=<adapter>` or `showcase=<adapter>(<JSON5 options>)`, followed by space-separated keys
- * (`file=<name>`; `anchor=<name>` is reserved)
+ * (`file=<name>`; `inline` or `block`; `include=<path>,<path>`; `anchor=<name>` is reserved). Keys are checked on their own here; where each
+ * may be used is the scan's to check
  * @param text The marker and its keys
  * @returns The marker, or the error that prevents parsing it
  */
@@ -206,7 +220,7 @@ export function parseShowcaseMarker(text: string): { marker: ShowcaseMarker; err
     const equals = word.indexOf('=');
     const key = equals < 0 ? word : word.slice(0, equals);
     const value = equals < 0 ? '' : word.slice(equals + 1);
-    if (key !== 'file' && key !== 'anchor') {
+    if (!_MARKER_KEYS.includes(key)) {
       return { error: `Unknown key "${key}" in showcase marker ${quoted}` };
     }
     if (seen.has(key)) {
@@ -216,12 +230,57 @@ export function parseShowcaseMarker(text: string): { marker: ShowcaseMarker; err
     if (key === 'anchor') {
       return { error: `The key "anchor" is reserved for later, in showcase marker ${quoted}` };
     }
+    if (key === 'inline' || key === 'block') {
+      if (equals >= 0) {
+        return { error: `The key "${key}" takes no value in showcase marker ${quoted}` };
+      }
+      if (marker.display) {
+        return { error: `The keys "inline" and "block" can't be used together, in showcase marker ${quoted}` };
+      }
+      marker.display = key;
+      continue;
+    }
+    if (key === 'include') {
+      const include = _parseInclude(value);
+      if ('error' in include) {
+        return { error: `${include.error} in showcase marker ${quoted}` };
+      }
+      marker.include = include.paths;
+      continue;
+    }
     if (!value) {
       return { error: `The key "file" needs a name ("file=<name>") in showcase marker ${quoted}` };
     }
     marker.file = value;
   }
   return { marker };
+}
+
+/**
+ * Parses the value of a showcase marker's `include` key: comma-separated paths, each judged on its raw text (no `?`, `#` or leading `/`, as a
+ * link's path would lose them), then URL-decoded as link targets are
+ * @param value The key's value, after `include=`
+ * @returns The paths, URL-decoded, or the error that prevents parsing them
+ */
+function _parseInclude(value: string): { paths: string[] } | { error: string } {
+  if (!value) {
+    return { error: 'The key "include" needs paths ("include=<path>,<path>")' };
+  }
+  const paths: string[] = [];
+  for (const raw of value.split(',')) {
+    if (!raw) {
+      return { error: `Empty path in "include=${value}"` };
+    }
+    if (/[?#]/.test(raw) || raw.startsWith('/')) {
+      return { error: `Invalid included path "${raw}": use a path relative to the documentation file's folder, with no "?" or "#"` };
+    }
+    try {
+      paths.push(decodeURIComponent(raw));
+    } catch (_err) {
+      return { error: `Included path "${raw}" can't be URL-decoded` };
+    }
+  }
+  return { paths };
 }
 
 /**
@@ -371,7 +430,7 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
   const error = (node: _Node, message: string): void => void scan.errors.push({ line: _line(node), message });
 
   /**
-   * Adds a showcase found at a node
+   * Adds a showcase found at a node, once its included files resolve
    * @param node The fence or link
    * @param kind Kind of the showcase
    * @param marker Its marker
@@ -381,19 +440,23 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
     const index = scan.showcases.length + 1;
     const entryPath = entry(index);
     if (entryPath === undefined) return;
+    const include = _resolveIncludes(path, entryPath, marker.include ?? []);
+    if ('error' in include) return error(node, include.error);
     scan.showcases.push({
       id: `${path}#${index}`,
       documentation: path,
       line: _line(node),
       offset: node.position?.start.offset ?? 0,
       kind,
+      display: kind === 'code-block' ? 'block' : (marker.display ?? 'inline'),
       adapter: marker.adapter ?? 'html',
       ...(marker.hasOptions ? { options: marker.options } : {}),
       entry: entryPath,
+      include: include.paths,
     });
   };
 
-  _visit(_parse(content), (node) => {
+  _visit(_parse(content), [], (node, ancestors) => {
     // Fenced code blocks: code block showcases' entry points, and resources
     if (node.type === 'code') {
       const lang = node.lang ?? '';
@@ -405,10 +468,17 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
       if (!lang || !isShowcaseMarker(meta.split(/\s+/)[0])) return;
       const { marker, error: markerError } = parseShowcaseMarker(meta);
       if (!marker) return error(node, markerError);
+      // Where a code block's keys may be used
+      if (marker.display !== undefined) {
+        return error(node, `A code block showcase is always shown as a block; the keys "inline" and "block" are for linked showcases only`);
+      }
       // A resource
       if (marker.file !== undefined) {
         if (marker.adapter !== undefined) {
           return error(node, `A showcase's entry point can't have a "file" key; a resource's marker is "showcase file=<name>"`);
+        }
+        if (marker.include !== undefined) {
+          return error(node, `A resource can't include files; only a showcase's marker can have an "include" key`);
         }
         if (!isValidVirtualFileName(marker.file)) {
           return error(node, `Invalid resource name "${marker.file}": use a plain file name, with no "/" or "\\"`);
@@ -443,6 +513,10 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
       if (!marker) return error(node, markerError);
       if (marker.file !== undefined) {
         return error(node, `A showcase's entry point can't have a "file" key; a resource's marker is "showcase file=<name>", on a code block`);
+      }
+      if (marker.display === 'block') {
+        const blockError = _checkBlockPlacement(node, ancestors);
+        if (blockError) return error(node, blockError);
       }
       const entry = _resolveEntry(path, node.url ?? '');
       if ('error' in entry) return error(node, entry.error);
@@ -487,14 +561,65 @@ function _resolveEntry(from: string, href: string): { path: string } | { error: 
 }
 
 /**
+ * Resolves a showcase's included files against its documentation file's folder: each inside the host repository, naming a file (whether it
+ * exists is not checked here), none the entry point itself, none twice
+ * @param from POSIX-style path of the documentation file holding the showcase
+ * @param entry POSIX-style path of the showcase's entry point, relative to the root
+ * @param include The included paths, URL-decoded, as written
+ * @returns The included files' paths, relative to the root, in the marker's order, or the error that prevents resolving them
+ */
+function _resolveIncludes(from: string, entry: string, include: string[]): { paths: string[] } | { error: string } {
+  const paths: string[] = [];
+  for (const written of include) {
+    const resolved = resolvePath(from, written);
+    if (!resolved) {
+      return { error: `Included file "${written}" is outside the host repository` };
+    }
+    if (resolved.isFolder || !resolved.path) {
+      return { error: `Included file "${written}" must name a file, not a folder` };
+    }
+    if (resolved.path === entry) {
+      return { error: `Included file "${written}" is the showcase's own entry point` };
+    }
+    if (paths.includes(resolved.path)) {
+      return { error: `Included file "${resolved.path}" is listed twice` };
+    }
+    paths.push(resolved.path);
+  }
+  return { paths };
+}
+
+/**
+ * Checks where a linked showcase shown as a block is: alone in its paragraph (apart from whitespace), that paragraph anywhere but in a footnote
+ * definition (in a list item, a blockquote, or neither)
+ * @param node The link
+ * @param ancestors Its ancestors, from the root
+ * @returns The error, or undefined if it is placed as a block can be
+ */
+function _checkBlockPlacement(node: _Node, ancestors: _Node[]): string | undefined {
+  const parent = ancestors[ancestors.length - 1];
+  if (parent?.type !== 'paragraph') {
+    return `A linked showcase shown as a block must be alone in a paragraph, not in a "${parent?.type ?? 'root'}" node`;
+  }
+  if (parent.children!.some((child) => child !== node && !(child.type === 'text' && !child.value?.trim()))) {
+    return 'A linked showcase shown as a block must be alone in its paragraph';
+  }
+  if (ancestors.some((ancestor) => ancestor.type === 'footnoteDefinition')) {
+    return "A linked showcase shown as a block can't be in a footnote";
+  }
+  return undefined;
+}
+
+/**
  * Visits every node of a syntax tree, in document order
  * @param node Node to start at
- * @param visitor Called for each node
+ * @param ancestors The node's ancestors, from the root
+ * @param visitor Called for each node, with its ancestors
  */
-function _visit(node: _Node, visitor: (node: _Node) => void): void {
-  visitor(node);
+function _visit(node: _Node, ancestors: _Node[], visitor: (node: _Node, ancestors: _Node[]) => void): void {
+  visitor(node, ancestors);
   for (const child of node.children ?? []) {
-    _visit(child, visitor);
+    _visit(child, [...ancestors, node], visitor);
   }
 }
 
