@@ -62,7 +62,7 @@ src/
     pages/              The home, documentation and not-found pages
     layout/             The header and the navigation (inline, or an overlay on narrow viewports)
 test/fixtures/          Fixture host repositories the tests run against
-examples/               Real files behind README.md's live showcases
+examples/               README.md's own linked showcase's page, and the showcase adapter examples (html/, ts/, number-table/)
 ```
 
 Every module lives in `src/`, as an `index.ts` + `index.test.ts` pair, and is re-exported from `src/index.ts`, except the showroom's modules in `src/app/`, which are browser code, and the internal modules (`src/markdown/`, `src/showcases/`, `src/frame/`, `src/testing/`, the showcase adapter registry and the built-in showcase adapters, and the parts of `src/cli/` only the command line uses). Besides `unit` tests (`*.test.ts`), there are `integration` tests (`*.integration.test.ts`) of real showcase builds on the fixtures, `e2e` tests (`*.e2e.test.ts`) of the command line and of `build()`, Vite included, on copies of the fixtures, and `serve` tests (`*.serve.test.ts`) of `serve()` with its dev server, on copies of the fixtures; tests write only into scratch folders in `node_modules/.cache/showroom-tests/`, where the `integration`, `e2e` and `serve` tiers also get their own system temporary folder.

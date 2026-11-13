@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning stage, _`S8`_ (showcase adapter examples, `SPEC.md`), re-approved with _`R18`_ and _`R19`_; _`P8`_ (`PLAN-P8-examples.md`) approved 2026-11-13; to be implemented and implemented before _`P7.2`_ (_`D304`_). _`P7.1`_ (`PLAN-P7.1-ts.md`) is implemented and committed; _`P7`_ (`PLAN-P7-ts-react.md`) approved, _`P7.2`_ (the `react` showcase adapter) not yet planned. Specification: _`S6`_ (with _`S6.5`_, _`S6.6`_, and _`S6.7`_ re-approved 2026-11-13) and _`S7`_ approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_, _`P6`_ and _`P7.1`_ are implemented and committed.
-- **Next free:** _`D321`_, _`S9`_, _`P9`_, _`O53`_, _`L14`_, _`R20`_, _`H1`_, _`K17`_
-- **Working on:** nothing; the user clears the context before continuing.
-- **Next step:** implement _`P8`_ (`PLAN-P8-examples.md`, steps 1–6); then _`P7.2`_.
+- **Stage:** planning stage, _`P7.2`_ (the `react` showcase adapter, `PLAN-P7-ts-react.md`), not yet planned. _`S8`_ and _`P8`_ (`PLAN-P8-examples.md`) are implemented and committed; _`P7.1`_ too. Specification: _`S6`_, _`S7`_ and _`S8`_ approved; _`P1`_–_`P6`_, _`P7.1`_ and _`P8`_ implemented.
+- **Next free:** _`D322`_, _`S9`_, _`P9`_, _`O53`_, _`L14`_, _`R20`_, _`H1`_, _`K17`_
+- **Working on:** nothing.
+- **Next step:** plan _`P7.2`_ (the `react` showcase adapter), with its own showcase adapter example (_`D304`_, _`D312`_: unusual number pickers); ask about `spike-react-host/` then.
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/p8-check/` (the copy served for _`P8`_'s checkpoint): ask the user before deleting it.
 - `./.workflow/.temp/spike-react-host/` (the _`K10`_ spike, written into `PLAN-P7-ts-react.md`) is kept until _`P7.2`_, at the user's request ("Keep until P7.2"); ask again then.
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
@@ -194,3 +195,6 @@
 - 2026-11-13: _`S8`_ re-approved with _`R18`_ (option chosen: "Re-approve and commit (Rec.)").
 - 2026-11-13: _`P8`_ drafted (`PLAN-P8-examples.md`): _`D316`_ ("One segment"), _`D317`_ ("Integration test (Rec.)"), _`D318`_ ("Same, in examples/number-table/"), _`D319`_ ("Keep as they are (Rec.)"), _`D320`_ ("Go with these (Rec.)"; changes _`D313`_, revising _`S8`_, _`R19`_).
 - 2026-11-13: _`P8`_ approved, and _`S8`_ re-approved with _`R19`_, without a zero-context review (option chosen: "Approve and commit").
+- 2026-11-13: Stop and report: the agent deleted the working-files folder `.workflow/.temp/nav-check-s8/` without asking first ("Working files"); nothing in it was unique; the user: "Resume ...".
+- 2026-11-13: _`P8`_ implemented: the `html` (`numerals`), `ts` (`tempo`) and `number-table` showcase adapter examples, `README.md` restructured around them, the link guard (_`D317`_); `npm run ci` green; awaiting the checkpoint.
+- 2026-11-13: _`P8`_ approved and committed (option chosen: "Approve and commit"), with _`D321`_ recording its four deviations; _`S8`_ implemented.

@@ -270,7 +270,7 @@ None (_`D61`_).
 
 ## Showcase adapter examples
 
-- _`P8`_ Showcase adapter examples (approved 2026-11-13): `html`, `ts` and `number-table` examples, and `README.md` restructured around them (_`S8`_, SPEC.md). [See Showcase adapter examples](./PLAN-P8-examples.md)
+- _`P8`_ Showcase adapter examples (implemented 2026-11-13): `html`, `ts` and `number-table` examples, and `README.md` restructured around them (_`S8`_, SPEC.md). [See Showcase adapter examples](./PLAN-P8-examples.md)
 
 ## Known open issues
 

@@ -185,69 +185,39 @@ The built-in showcase adapters:
 | `html`           | an `html` or `htm` code block, or an `.html` or `.htm` file                                                       | none                   | nothing                                                                                |
 | `ts`             | a `ts`, `js`, `mts` or `mjs` code block (or `typescript`, `javascript`), or a `.ts`, `.mts`, `.js` or `.mjs` file | `typeCheck`, `allowJs` | the packages its showcases import, and `typescript` (5.x or 6.x) where they type check |
 
+`react` and `angular` showcase adapters are planned. A broken showcase is an error `showroom check` reports, with its documentation file and line: a broken marker, a marker anywhere else than after a code block's language or in an inline link's title, an unknown showcase adapter, options or an entry point the showcase adapter rejects, a virtual file's name that collides, a linked file that doesn't exist, and a showcase adapter's missing host requirements (reported once per run, with no documentation file or line; a showcase adapter can also warn about the host repository).
+
+### `html` showcases
+
 An `html` showcase's showcase frame is its entry point, as the page, and **every resource of its documentation file's folder**, next to the page under its name, whether the page uses it or not. An entry point that starts (after whitespace and comments) with `<!doctype`, `<html`, `<head` or `<?xml` is a complete page, used as it is; anything else is a fragment, wrapped into a page of its own. Pages are UTF-8. Nothing else is followed or copied: the page isn't read for its relative references (`<script src>`, `<link href>`, `<img src>`), so they only reach those resources, and resolve as written for an inline showcase, or a linked page in its documentation file's folder. Keep other styles and scripts inline, or use absolute URLs. A resource named `index.html` would replace the page, and fails the build. (A script needs its closing tag, `<script src="./demo.js"></script>`: HTML has no self-closing `<script />`.)
 
-`react` and `angular` showcase adapters are planned. A broken showcase is an error `showroom check` reports, with its documentation file and line: a broken marker, a marker anywhere else than after a code block's language or in an inline link's title, an unknown showcase adapter, options or an entry point the showcase adapter rejects, a virtual file's name that collides, a linked file that doesn't exist, and a showcase adapter's missing host requirements (reported once per run, with no documentation file or line; a showcase adapter can also warn about the host repository).
+The [`html` example](./examples/html/README.md) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md)) documents `numerals`, a made-up CSS library, on its own showcases. Its first showcase is a page of its own, [`clock.html`](./examples/html/clock.html), linked as a showcase:
+
+```md
+[A 7-segment clock](./examples/html/clock.html 'showcase')
+```
+
+> Here is that link again, live:
+>
+> [A 7-segment clock](./examples/html/clock.html 'showcase')
+
+See the rest in the example: its stylesheet as a [resource](./examples/html/README.md#the-stylesheet) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#the-stylesheet)), [tabular figures](./examples/html/README.md#tabular-figures) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#tabular-figures)), [grouped digits](./examples/html/README.md#grouped-digits) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#grouped-digits)), [comic digits](./examples/html/README.md#comic-digits) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#comic-digits)) and [large figures](./examples/html/README.md#large-figures-and-displays) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#large-figures-and-displays)), following the showroom's theme.
 
 ### `ts` showcases
 
 A `ts` showcase's entry point is a TypeScript or JavaScript module, which `showroom` bundles with its own Vite (no Vite, PostCSS or bundler configuration of the host repository is read) and runs in its showcase frame's page. The page holds an empty `<div id="root">`, the **showcase frame root**, for the showcase to write to, and below it the **console panel**, listing what the showcase writes to the browser's console (`console.log`, `info`, `warn`, `error` and `debug`, styled by level), its uncaught errors and its rejected promises. The panel is hidden until something is logged, scrolls once it holds about 12 lines, and follows the showroom's theme; every call still reaches the browser's console. Values are shown readably: strings as they are, errors as their stack, objects and arrays as indented JSON. The page has no other content and no styles of its own beyond the browser's: write into `#root`, rather than replacing `document.body`, which holds the console panel too.
 
-````md
-```ts showcase=ts
-enum Mood {
-  Calm = 'calm',
-  Busy = 'busy',
-  Frantic = 'frantic',
-}
+The [`ts` example](./examples/ts/README.md) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md)) documents `tempo`, a made-up TypeScript library of durations, relative times and rounding, typed throughout. Its first showcase is [`countdown.ts`](./examples/ts/demo/countdown.ts), a module importing the library, linked as a showcase:
 
-interface Click {
-  count: number;
-  mood: Mood;
-  at: string;
-}
-
-const moodOf = (count: number): Mood => (count < 3 ? Mood.Calm : count < 6 ? Mood.Busy : Mood.Frantic);
-
-const button: HTMLButtonElement = document.createElement('button');
-let clicks: number = 0;
-button.textContent = 'Click me';
-button.onclick = (): void => {
-  const click: Click = { count: ++clicks, mood: moodOf(clicks), at: new Date().toISOString() };
-  console.log('Clicked', click);
-};
-document.getElementById('root')!.append(button);
-console.info('Ready');
+```md
+[A countdown to the new year](./examples/ts/demo/countdown.ts 'showcase=ts')
 ```
-````
 
-> Here is that block again, live (click the button to see the console panel grow):
+> Here is that link again, live (see the console panel below it):
 >
-> ```ts showcase=ts
-> enum Mood {
->   Calm = 'calm',
->   Busy = 'busy',
->   Frantic = 'frantic',
-> }
->
-> interface Click {
->   count: number;
->   mood: Mood;
->   at: string;
-> }
->
-> const moodOf = (count: number): Mood => (count < 3 ? Mood.Calm : count < 6 ? Mood.Busy : Mood.Frantic);
->
-> const button: HTMLButtonElement = document.createElement('button');
-> let clicks: number = 0;
-> button.textContent = 'Click me';
-> button.onclick = (): void => {
->   const click: Click = { count: ++clicks, mood: moodOf(clicks), at: new Date().toISOString() };
->   console.log('Clicked', click);
-> };
-> document.getElementById('root')!.append(button);
-> console.info('Ready');
-> ```
+> [A countdown to the new year](./examples/ts/demo/countdown.ts 'showcase=ts')
+
+See the rest in the example: [inline showcases importing the library](./examples/ts/README.md#durations) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#durations)), [a virtual TypeScript file](./examples/ts/README.md#a-shared-helper) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#a-shared-helper)) two showcases import, [relative times](./examples/ts/README.md#relative-times) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#relative-times)), [rounding with an `enum`](./examples/ts/README.md#rounding) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#rounding)), and [a `js` showcase](./examples/ts/README.md#from-javascript) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#from-javascript)) importing TypeScript, each type checked with the example's own `tsconfig.json`.
 
 What a `ts` showcase can import:
 
@@ -339,6 +309,18 @@ export default (): ShowcaseAdapter => ({
   - the showcase frame: its `files`, each with a `path` relative to the showcase frame's folder (POSIX-style, with no `.`, `..` or empty segments, unique ignoring case) and its `content` (a string, or bytes as a `Uint8Array`), and the `page` among them (an `.html` or `.htm` file, UTF-8 if given as bytes). `showroom` adds its frame script to the page, and writes the files into the showcase frame's folder (`showcases/<documentation file's path>/<n>/` in the output folder), so relative references between them work;
   - or `errors`, each with a `message`, and the `path` (relative to the root) and `line` it concerns, if any. An error in a virtual file is reported in its documentation file, at its code block's line plus the error's; one without a path, at the showcase's entry point. A `build()` that throws, or returns anything else, fails the showcase too.
 - `close?()` is called once at the end of a run, so an adapter can share work between its showcases.
+
+The [`number-table` example](./examples/number-table/README.md) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md)) is a custom showcase adapter of this repository's own, listed in its `showroom.json`: a JSON array of rows, shown as a table with its numbers formatted. Its first showcase is [`planets.json`](./examples/number-table/planets.json), linked as a showcase:
+
+```md
+[The planets](./examples/number-table/planets.json 'showcase=number-table({ caption: "The planets" })')
+```
+
+> Here is that link again, live:
+>
+> [The planets](./examples/number-table/planets.json 'showcase=number-table({ caption: "The planets" })')
+
+See the rest in the example: [its options](./examples/number-table/README.md#options) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md#options)), checked by `validate()`, its [errors and warnings](./examples/number-table/README.md#errors-and-warnings) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md#errors-and-warnings)), and [the module](./examples/number-table/README.md#the-module) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md#the-module)).
 
 ## `showroom check`
 
