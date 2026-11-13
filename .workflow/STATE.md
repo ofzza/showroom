@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning stage (_`P10.4`_); _`P10`_ Presenting showcases approved for its split (_`P10.1`_–_`P10.5`_); _`P10.1`_–_`P10.3`_ implemented. _`P1`_–_`P9`_ implemented.
-- **Next free:** _`D404`_, _`S11`_, _`P11`_, _`O68`_, _`L14`_, _`R29`_, _`H1`_, _`K20`_
-- **Working on:** _`P10.4`_ The code pane (`PLAN-P10.4-code-pane.md`): its spike done and recorded (_`D403`_); its steps not yet planned.
-- **Next step:** plan _`P10.4`_'s steps and choices, with _`O62`_–_`O65`_, _`O67`_. Start from a fresh context (the user cleared it after the spike).
+- **Stage:** implementation stage (_`P10.4`_); _`P10`_ Presenting showcases approved for its split (_`P10.1`_–_`P10.5`_); _`P10.1`_–_`P10.3`_ implemented. _`P1`_–_`P9`_ implemented.
+- **Next free:** _`D414`_, _`S11`_, _`P11`_, _`O68`_, _`L14`_, _`R31`_, _`H1`_, _`K20`_
+- **Working on:** _`P10.4`_ The code pane (`PLAN-P10.4-code-pane.md`): approved; not yet implemented.
+- **Next step:** implement _`P10.4`_'s steps 1–6, starting by confirming Griffel's `@container` support (step 3's first action, done first as it can stop the segment).
 
 ## Open questions
 
@@ -240,3 +240,7 @@
 - 2026-11-13: _`P10.3`_ approved and committed (option chosen: "Approve and commit"), reviewed on the dogfood `serve`; _`D402`_ records its deviations; `p10.3-check/` working files deleted.
 - 2026-11-13: Spike for _`P10.4`_ (_`D385`_): the code pane's layout (a container query, the three states, the frame never moved or stretched) built in `spike-code-pane/`, measured with Playwright and checked by the user ("Works, use it"); recorded as _`D403`_ with its evidence, resolving _`K17`_ and _`K18`_.
 - 2026-11-14: `spike-code-pane/` working files deleted, and the workflow files committed ("Delete and commit (Rec.)"); the user chose to clear the context before planning _`P10.4`_ ("Clear, then plan (Rec.)").
+- 2026-11-14: _`P10.4`_ drafted; its 7 choices settled (_`D404`_–_`D410`_: "Tabs built in Node (Rec.)", "6 / 20 / 720 px", "Hash in tab URL (Rec.)", "One cycling button", "Pane always, modal >1 (Rec.)", "Lazily, when shown (Rec.)", "Blocks in both (Rec.)"); _`S10`_ revised (_`R29`_, by _`D407`_).
+- 2026-11-14: Zero-context review of _`P10.4`_ started, 1 agent (option chosen: "Review first (Rec.)").
+- 2026-11-14: Zero-context review of _`P10.4`_ done (1 agent, 14 findings, no stray writes; record in `review-p10.4/`): QA–QC settled (_`D411`_–_`D413`_: "Keep tab, say why (Rec.)", "Extension, upper-cased (Rec.)", "Frame left, code right (Rec.)"), 12 fixes applied to the steps ("Apply all (Rec.)"); _`S10`_ revised (_`R30`_).
+- 2026-11-14: _`P10.4`_ approved, and _`S10`_ re-approved with _`R29`_, _`R30`_ (option chosen: "Approve and commit (Rec.)"); `review-p10.4/` working files deleted.
