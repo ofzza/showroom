@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning stage (_`P10.3`_); _`P10`_ Presenting showcases approved for its split (_`P10.1`_–_`P10.5`_); _`P10.1`_, _`P10.2`_ implemented. _`P1`_–_`P9`_ implemented.
-- **Next free:** _`D392`_, _`S11`_, _`P11`_, _`O67`_, _`L14`_, _`R27`_, _`H1`_, _`K20`_
-- **Working on:** nothing.
-- **Next step:** plan _`P10.3`_ The new keys (`PLAN-P10.3-keys.md`), with _`O62`_, _`O65`_.
+- **Stage:** implementation stage (_`P10.3`_); _`P10`_ Presenting showcases approved for its split (_`P10.1`_–_`P10.5`_); _`P10.1`_, _`P10.2`_ implemented. _`P1`_–_`P9`_ implemented.
+- **Next free:** _`D402`_, _`S11`_, _`P11`_, _`O68`_, _`L14`_, _`R29`_, _`H1`_, _`K20`_
+- **Working on:** _`P10.3`_ The new keys (`PLAN-P10.3-keys.md`), approved; implementing.
+- **Next step:** implement _`P10.3`_ (steps 1–7), then `npm run ci`, the dogfood `serve`, and its checkpoint.
 
 ## Open questions
 
@@ -231,3 +231,7 @@
 - 2026-11-13: Fast path (during _`P10.2`_'s browser check; the user: "it displays a blank page due to `http://localhost:5173/files/index.js` 404-ing"): `serve` showed a blank page since _`P9`_, as the linked files middleware claimed the showroom's own `files/index.js`; `src/app/files/` renamed `src/app/file-modal/`, with a guard test and a `serve` test (option chosen: "Fast path, rename (Rec.)"); approved and committed (option chosen: "Approve and commit"), with _`P10.2`_'s work stashed meanwhile.
 - 2026-11-13: _`P10.2`_'s browser check passed (the user: "Everything works"), but for resource captions: discussed, and dropped (_`D390`_ replacing _`D379`_, option chosen: "Drop it entirely (Rec.)"); _`S10`_ and _`P10.2`_ revised (_`R26`_), pending re-approval; the code changed to match.
 - 2026-11-13: _`P10.2`_ approved and committed, reviewed on the dogfood `serve` first (the user: "Please start the dogfooding serve session (now and for every checkpoint) so that I can review before approving"; option chosen: "Approve and commit"); _`S10`_ and _`P10.2`_ re-approved with _`R26`_; _`D391`_ records its deviations; `p10.2-check/` working files deleted.
+- 2026-11-13: _`P10.3`_ drafted; its 3 choices settled as recommended (_`D392`_–_`D394`_: "Always present (Rec.)", "As linked files (Rec.)", "Move to P10.4 (Rec.)"); _`P10`_ revised (_`R27`_, by _`D394`_).
+- 2026-11-13: Zero-context review of _`P10.3`_ started, 1 agent (option chosen: "Review first (Rec.)").
+- 2026-11-13: Zero-context review of _`P10.3`_ done (1 agent, 15 findings, no stray writes; record in `review-p10.3/`): Q1 and Q2 allowed (the user: "I would just allow including Q1 and Q2 cases. Everything else I agree"), the rest as recommended: _`D395`_–_`D401`_, 11 fixes to the steps, _`O67`_ for _`P10.4`_, one skip; _`P10`_ revised (_`R28`_, by _`D398`_).
+- 2026-11-13: _`P10.3`_ approved, and _`P10`_ re-approved with _`R27`_, _`R28`_ (option chosen: "Approve and commit (Rec.)"); `review-p10.3/` working files deleted ("Delete it (Rec.)").
