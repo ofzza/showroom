@@ -228,12 +228,13 @@ The link must be an inline link (not a reference, nor an image) with a relative 
 
 The built-in showcase adapters:
 
-| Showcase adapter | Entry point                                                                                                       | Options                | Needs from the host repository                                                         |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------- |
-| `html`           | an `html` or `htm` code block, or an `.html` or `.htm` file                                                       | none                   | nothing                                                                                |
-| `ts`             | a `ts`, `js`, `mts` or `mjs` code block (or `typescript`, `javascript`), or a `.ts`, `.mts`, `.js` or `.mjs` file | `typeCheck`, `allowJs` | the packages its showcases import, and `typescript` (5.x or 6.x) where they type check |
+| Showcase adapter | Entry point                                                                                                       | Options                | Needs from the host repository                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------ |
+| `html`           | an `html` or `htm` code block, or an `.html` or `.htm` file                                                       | none                   | nothing                                                                                    |
+| `ts`             | a `ts`, `js`, `mts` or `mjs` code block (or `typescript`, `javascript`), or a `.ts`, `.mts`, `.js` or `.mjs` file | `typeCheck`, `allowJs` | the packages its showcases import, and `typescript` (5.x or 6.x) where they type check     |
+| `react`          | a `tsx` or `jsx` code block, or a `.tsx` or `.jsx` file                                                           | `typeCheck`, `allowJs` | `ts`'s, and `react` and `react-dom` 18 or later, with `@types/react` where they type check |
 
-`react` and `angular` showcase adapters are planned. A broken showcase is an error `showroom check` reports, with its documentation file and line: a broken marker, a marker anywhere else than after a code block's language or in an inline link's title, an unknown showcase adapter, options or an entry point the showcase adapter rejects, a virtual file's name that collides, a linked file that doesn't exist, and a showcase adapter's missing host requirements (reported once per run, with no documentation file or line; a showcase adapter can also warn about the host repository).
+An `angular` showcase adapter is planned. A broken showcase is an error `showroom check` reports, with its documentation file and line: a broken marker, a marker anywhere else than after a code block's language or in an inline link's title, an unknown showcase adapter, options or an entry point the showcase adapter rejects, a virtual file's name that collides, a linked file that doesn't exist, and a showcase adapter's missing host requirements (reported once per run, with no documentation file or line; a showcase adapter can also warn about the host repository).
 
 ### `html` showcases
 
@@ -275,7 +276,7 @@ What a `ts` showcase can import:
 
 Not supported for now: tsconfig `paths` aliases, and anything needing the host repository's own bundler configuration (e.g. SCSS without `sass` installed, environment variables). The host's PostCSS configuration is ignored; the settings Vite's TypeScript transform reads from the nearest `tsconfig.json` (e.g. `experimentalDecorators`, `useDefineForClassFields`) apply. There is no setup shared by a host repository's showcases: a showcase imports what it needs (global styles, polyfills) itself.
 
-`showroom serve` builds showcases in development mode (unminified, with inline source maps), and `build` and `check --showcases` in production mode (minified); `process.env.NODE_ENV`, `import.meta.env.MODE`, `import.meta.env.DEV` and `import.meta.env.PROD` follow the mode, as do packages' `development` and `production` conditions. Its options are `typeCheck` and `allowJs`, both booleans (see [Type checking](#type-checking)). A `tsx` or `jsx` entry point is the planned `react` showcase adapter's.
+`showroom serve` builds showcases in development mode (unminified, with inline source maps), and `build` and `check --showcases` in production mode (minified); `process.env.NODE_ENV`, `import.meta.env.MODE`, `import.meta.env.DEV` and `import.meta.env.PROD` follow the mode, as do packages' `development` and `production` conditions. Its options are `typeCheck` and `allowJs`, both booleans (see [Type checking](#type-checking)). A `tsx` or `jsx` entry point is the [`react` showcase adapter](#react-showcases)'s.
 
 #### Type checking
 
@@ -287,6 +288,39 @@ Unless its `typeCheck` option is `false` (`showcase=ts({ typeCheck: false })`), 
 - **What Vite bundles and TypeScript doesn't know of** (CSS, assets, `?raw` imports, a virtual resource imported as a URL, `import.meta.env`) must be declared by the host repository, or type checking fails (e.g. TS2307, or TS2882 for a CSS import on TypeScript 6): add `/// <reference types="vite/client" />` to a `.d.ts` file the tsconfig includes, where `vite` is installed, or declarations of your own (e.g. `declare module '*.css';`), or turn `typeCheck` off.
 - **Two differences from the bundle**: type checking follows the host's own module resolution (e.g. under `node16` or `nodenext`, an extensionless import, which Vite bundles, is an error, TS2835), and applies the documentation folder's tsconfig to every file, where Vite's transform looks one up per file.
 - **JavaScript**: a `js` or `mjs` entry point is type checked with `allowJs`, so its TypeScript imports are checked (the entry point itself only with the tsconfig's `checkJs`). Importing a `.js` file without declarations is an error under `strict` (TS7016), as it is in the host's own code: the `allowJs` option (`showcase=ts({ allowJs: true })`) type checks that showcase with `allowJs`, leaving the tsconfig as it is.
+
+### `react` showcases
+
+A `react` showcase's entry point is a TSX or JSX module whose **default export is a component**, which `showroom` renders into the showcase frame root with the host repository's own React (`react-dom/client`'s `createRoot`), without `StrictMode`:
+
+```tsx
+import { useState } from 'react';
+
+export default function Demo() {
+  const [count, setCount] = useState(0);
+  return <button onClick={() => setCount(count + 1)}>Clicked {count} times</button>;
+}
+```
+
+It builds on the [`ts` showcase adapter](#ts-showcases): it is bundled the same way, can import the same things, runs on the same page (the showcase frame root above the console panel, which also shows React's warnings and render errors), and is [type checked](#type-checking) the same way, with the same options, `typeCheck` and `allowJs`. Beyond that:
+
+- **React comes from the host repository**: `react` and `react-dom`, 18 or later, found as Node finds them from the documentation file's folder, which `showroom check` reports when missing or older; and where the showcases type check, React's types (`@types/react`, unless `react` ships its own). Each showcase frame bundles its own copy of React.
+- **The default export** can be any component React renders: a function, a class, or what `memo()`, `forwardRef()` or `lazy()` return. A module without one fails the build, at the entry point; named exports are allowed, and ignored. A default export React can't render fails in the showcase frame, as React's own error in the console panel.
+- **JSX always uses the automatic runtime** (no `import React` needed), whatever the tsconfig's `jsx` says; its `jsxImportSource` applies. Type checking uses `jsx: react-jsx` where the nearest tsconfig (or its absence) leaves `jsx` unset, and the tsconfig's own `jsx` otherwise. A `jsx` entry point is type checked with `allowJs`, as a `js` one is.
+- **No setup shared by the showcases**: a showcase that needs providers (a theme, a router, a store), global styles or `StrictMode` wraps itself in them, in its own code.
+- **The theme**: like any page in a showcase frame, a showcase reads the showroom's theme from `<html>`'s `data-showroom-theme` attribute and `color-scheme` (see [Showcase frames](#showcase-frames)); a hook can follow it with a `MutationObserver`, as the example's [`useShowroomTheme()`](./examples/react/src/useShowroomTheme.ts) does.
+
+The [`react` example](./examples/react/README.md) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md)) documents `ticker`, a made-up React component library of a stopwatch, counters and a theme hook. Its first showcase is [`Stopwatch.tsx`](./examples/react/demo/Stopwatch.tsx), a module whose default export renders the library's stopwatch, linked as a showcase:
+
+```md
+[A stopwatch](./examples/react/demo/Stopwatch.tsx 'showcase=react')
+```
+
+> Here is that link again, live:
+>
+> [A stopwatch](./examples/react/demo/Stopwatch.tsx 'showcase=react')
+
+See the rest in the example: [counters with props](./examples/react/README.md#counters) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#counters)) logging to the console panel, [following the theme](./examples/react/README.md#following-the-theme) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#following-the-theme)), [a virtual TSX file](./examples/react/README.md#a-shared-component) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#a-shared-component)) the [next showcase](./examples/react/README.md#composing) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#composing)) imports, [a memoized component](./examples/react/README.md#memoized-components) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#memoized-components)), and [a `jsx` showcase](./examples/react/README.md#from-jsx) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#from-jsx)), each type checked with the example's own `tsconfig.json`.
 
 ### Showcase frames
 
@@ -355,7 +389,7 @@ A host repository can bring its own showcase adapter: a JavaScript (ES) module w
 [My widget](./src/widget.js 'showcase=my-frames({ "size": 2 })')
 ```
 
-Names follow the marker's rules, and can't be a built-in showcase adapter's (or a planned one's: `react`, `angular`). Paths are relative to the host repository's root, inside it, to a `.js` or `.mjs` file. Every listed module is loaded by every `showroom check`, used or not, so each listed module runs the host repository's code; one that doesn't load, or doesn't implement the interface, is an error. Each module is loaded once per process, and once more whenever its content changes (in `serve`; the modules it imports are not loaded again), and its default export is called once per run (a `check`, then the showcases' build in `build`, `serve` or `check --showcases`; `serve` runs both again after every change), so every run gets a fresh showcase adapter object, closed at the end of that run.
+Names follow the marker's rules, and can't be a built-in showcase adapter's (or a planned one's: `angular`). Paths are relative to the host repository's root, inside it, to a `.js` or `.mjs` file. Every listed module is loaded by every `showroom check`, used or not, so each listed module runs the host repository's code; one that doesn't load, or doesn't implement the interface, is an error. Each module is loaded once per process, and once more whenever its content changes (in `serve`; the modules it imports are not loaded again), and its default export is called once per run (a `check`, then the showcases' build in `build`, `serve` or `check --showcases`; `serve` runs both again after every change), so every run gets a fresh showcase adapter object, closed at the end of that run.
 
 ```ts
 import type { ShowcaseAdapter } from '@ofzza/showroom';
@@ -577,7 +611,7 @@ console.log(getStackAdapterNames(), project, errors);
 - `npm start` - runs the built command line, `dist/cli/bin.js`; pass it arguments after `--`, e.g. `npm start -- check --root test/fixtures/minimal`. Try `build` on a copy of a host repository (never on a fixture in `test/fixtures/`, which tests rely on), and serve its output folder over HTTP to look at it. To preview the showroom while working on it, serve a host repository with `npm start -- serve --root <host>` while `npm run dev` recompiles `src/app/` into `dist/app/`, and reload the page after a change. `npm run build` empties `dist/` first, so restart `serve` after it.
 - `npm test` - runs every `test:*` script.
   - `npm run test:unit` - a single Vitest invocation that executes test files (`*.test.ts(x)`), runs their runtime expectations, and type checks them, reporting type errors as test failures. Tests run against the fixture host repositories in `test/fixtures/`; the showroom's tests render it to HTML with `react-dom/server`.
-  - `npm run test:integration` - real showcase adapter builds (`*.integration.test.ts`), on the fixture host repositories.
+  - `npm run test:integration` - real showcase adapter builds (`*.integration.test.ts`), on the fixture host repositories. A fixture on another React than `showroom`'s own (`test/fixtures/showcase-react-18/`) carries a lockfile, and is installed with `npm ci` once per lockfile into `node_modules/.cache/showroom-tests/installs/` (by `test:integration` and `test:e2e`), so their first run needs the npm registry.
   - `npm run test:e2e` - the command line, and `build()` with Vite's build of the showroom, on copies of the fixture host repositories (`*.e2e.test.ts`). It first compiles `src/` once into a scratch folder, so it never depends on, or writes to, `dist/`. Tests copy fixtures, and create scratch folders, only inside `node_modules/.cache/showroom-tests/`, and remove them afterwards. The integration, end-to-end and dev server tests also see a temporary folder of their own there as the system's temporary folder (`TMPDIR`, `TMP`, `TEMP`).
   - `npm run test:serve` - the dev server (`*.serve.test.ts`): `serve()` on copies of the fixture host repositories, on a free port, fetching the showroom, its showcase frames and their files, with the showroom compiled as for `test:e2e`. Updates after a change are only unit-tested, as the dev server doesn't watch the copies (they are under `node_modules/`).
 - `npm run ci` - runs every `ci:*` script: build, ESLint, Prettier, the tests, and `showroom check --showcases --quiet` on this repository itself, with the command line just built (`ci:showroom`). This is what GitHub Actions runs on every pull request targeting, and every push to, `master` or `develop`, against Node 22 and 24. It also runs on `prepublishOnly`, so `npm publish` refuses to publish a failing build.

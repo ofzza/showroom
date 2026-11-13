@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation stage; _`P9`_ (linked files, `PLAN-P9-linked-files.md`) implemented; _`S9`_ (`SPEC.md`) re-approved. _`P7.2`_ (the `react` showcase adapter, `PLAN-P7.2-react.md`) approved; _`S6.3`_ re-approved with _`R21`_. Specification: _`S6`_, _`S7`_ and _`S8`_ approved; _`P1`_–_`P6`_, _`P7.1`_ and _`P8`_ implemented.
-- **Next free:** _`D351`_, _`S10`_, _`P10`_, _`O60`_, _`L14`_, _`R22`_, _`H1`_, _`K17`_
+- **Stage:** implementation stage; _`P7.2`_ (the `react` showcase adapter, `PLAN-P7.2-react.md`) implemented, so _`P7`_ is implemented. Specification: _`S6`_, _`S7`_, _`S8`_ and _`S9`_ approved; _`P1`_–_`P9`_ implemented.
+- **Next free:** _`D352`_, _`S10`_, _`P10`_, _`O60`_, _`L14`_, _`R22`_, _`H1`_, _`K17`_
 - **Working on:** nothing.
-- **Next step:** implement _`P7.2`_ (`PLAN-P7.2-react.md`), from step 1.
+- **Next step:** choose the next work (e.g. the `angular` showcase adapter, _`S6.4`_, or a known open issue in `PLAN.md`).
 
 ## Open questions
 
@@ -13,9 +13,6 @@
 
 ## Waiting on me
 
-- `./.workflow/.temp/questions-p7.2-plan/` (_`P7.2`_'s choices, now _`D340`_–_`D350`_): ask whether to delete it.
-
-- `./.workflow/.temp/spike-react-host/` (the _`K10`_ spike, written into `PLAN-P7-ts-react.md`) is kept until _`P7.2`_ is done (option chosen: "Keep until P7.2 done (Rec.)"); ask again at _`P7.2`_'s checkpoint.
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
@@ -213,3 +210,8 @@
 - 2026-11-13: Planning stage entered for _`P7.2`_ (the `react` showcase adapter): `PLAN-P7.2-react.md` drafted, with 11 choices in `questions-p7.2-plan/`.
 - 2026-11-13: _`P7.2`_'s choices Q1–Q11 settled as recommended (_`D340`_–_`D350`_; option chosen: "Accept all (Rec.)"); _`S6.3`_ revised (_`R21`_, by _`D343`_); _`O29`_, _`O39`_–_`O42`_ resolved.
 - 2026-11-13: _`P7.2`_ The `react` showcase adapter approved, and _`S6.3`_ re-approved with _`R21`_ (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
+- 2026-11-13: `questions-p7.2-plan/` working files deleted ("Delete, implement (Rec.)"); implementation of _`P7.2`_ started.
+- 2026-11-13: _`P7.2`_ implemented (steps 1–7: the shared build, the `react` showcase adapter, the JSX type check default, fixtures and the React 18 install, tests, `examples/react/`, documentation); `npm run ci` green; awaiting the browser check and the checkpoint.
+- 2026-11-13: _`P7.2`_'s browser check passed ("I see all the showcases rendering and functionaling").
+- 2026-11-13: _`P7.2`_ approved and committed (option chosen: "Approve and commit"), with _`D351`_ recording its deviations; _`P7`_ and _`S6.3`_ implemented, _`K10`_ resolved.
+- 2026-11-13: `p7.2-check/` and `spike-react-host/` working files deleted ("Delete both (Rec.)").

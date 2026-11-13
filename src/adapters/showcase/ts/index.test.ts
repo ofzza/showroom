@@ -10,6 +10,7 @@ import type { Showcase, VirtualFile } from '../../../host/index.js';
 import type { ShowcaseBuildError } from '../index.js';
 import { CONSOLE_PANEL_ID, getConsoleScript, SHOWCASE_FRAME_ROOT_ID } from './console/index.js';
 import {
+  createGeneratedModulesPlugin,
   createReadsPlugin,
   createVirtualFilesPlugin,
   getBuildErrors,
@@ -21,8 +22,10 @@ import {
   getTsPage,
   getVirtualFileDataUrl,
   getVirtualFilesByPath,
+  placeGeneratedModuleErrors,
   RESOLVE_EXTENSIONS,
   TsShowcaseAdapter,
+  validateTsShowcaseOptions,
 } from './index.js';
 
 /**
@@ -90,10 +93,11 @@ function _abs(path: string): string {
 }
 
 describe('adapters/showcase/ts', () => {
-  // Tests the ts showcase adapter's parts on hand-made showcases and virtual files: its validation, the resolution and reads plugins (their hooks
-  // called directly, with a fake plugin context, against the `showcase-ts` fixture's real files), error and warning mapping on hand-written errors in
-  // the shapes Vite and its bundler throw, the Vite configuration of each mode, and the page; and its host check, with an injected resolver. Building
-  // with Vite, and type checking, are in the integration tests (type checking's parts are tested in `./typecheck/`).
+  // Tests the ts showcase adapter's parts on hand-made showcases and virtual files: its validation, the resolution, reads and generated modules
+  // plugins (their hooks called directly, with a fake plugin context, against the `showcase-ts` fixture's real files), placing errors in generated
+  // modules, error and warning mapping on hand-written errors in the shapes Vite and its bundler throw, the Vite configuration of each mode, and the
+  // page; and its host check, with an injected resolver. Building with Vite, and type checking, are in the integration tests (type checking's parts
+  // are tested in `./typecheck/`).
 
   describe('Validation', () => {
     // Tests validate() on every language of an entry point, and on its options.
@@ -140,6 +144,16 @@ describe('adapters/showcase/ts', () => {
           'The ts showcase adapter\'s options must be an object, e.g. "showcase=ts({ typeCheck: false })"',
         ]);
       }
+    });
+
+    it('Names the showcase adapter building on it in the errors about its options', () => {
+      const errors: string[] = [];
+      expect(validateTsShowcaseOptions('react', { allowJs: true, size: 2 }, errors)).toEqual({ typeCheck: true, allowJs: true });
+      expect(validateTsShowcaseOptions('react', 'x', errors)).toEqual({ typeCheck: true, allowJs: false });
+      expect(errors).toEqual([
+        'Unknown option "size" of the react showcase adapter; its options are "typeCheck" and "allowJs"',
+        'The react showcase adapter\'s options must be an object, e.g. "showcase=react({ typeCheck: false })"',
+      ]);
     });
   });
 
@@ -308,6 +322,41 @@ describe('adapters/showcase/ts', () => {
       }
       expect([...reads]).toEqual(['docs/guide.md', 'lazy.css', 'lazy.ts']);
     });
+
+    it('Never records a generated module', () => {
+      const reads = new Set<string>();
+      const plugin = createReadsPlugin(_ROOT, new Map(), reads, new Set([_abs('README.showcase-1.tsx.showroom-mount.js')]));
+      expect(_load(plugin, _abs('README.showcase-1.tsx.showroom-mount.js'))).toBeNull();
+      expect([...reads]).toEqual([]);
+    });
+  });
+
+  describe('Generated modules', () => {
+    // Tests the modules showcase adapters generate (e.g. react's mount module): the plugin serving them, and placing the errors in them.
+
+    const mount = _abs('README.showcase-1.tsx.showroom-mount.js');
+    const modules = new Map([[mount, { source: 'export {};', errorsAt: 'README.showcase-1.tsx' }]]);
+
+    it('Resolves and loads the generated modules by their absolute paths, and nothing else', async () => {
+      const plugin = createGeneratedModulesPlugin(modules);
+      expect(await _resolve(plugin, mount)).toBe(mount);
+      expect(await _resolve(plugin, './other.js', mount)).toBeNull();
+      expect(_load(plugin, mount)).toBe('export {};');
+      expect(_load(plugin, _abs('lazy.ts'))).toBeNull();
+    });
+
+    it('Places the errors in a generated module where it says, at line 1, and leaves the others', () => {
+      const errors: ShowcaseBuildError[] = [
+        { message: 'in the mount module', path: 'README.showcase-1.tsx.showroom-mount.js', line: 3 },
+        { message: 'elsewhere', path: 'lazy.ts', line: 2 },
+        { message: 'nowhere' },
+      ];
+      expect(placeGeneratedModuleErrors(_ROOT, modules, errors)).toEqual([
+        { message: 'in the mount module', path: 'README.showcase-1.tsx', line: 1 },
+        { message: 'elsewhere', path: 'lazy.ts', line: 2 },
+        { message: 'nowhere' },
+      ]);
+    });
   });
 
   describe('Errors', () => {
@@ -394,6 +443,12 @@ describe('adapters/showcase/ts', () => {
         css: { postcss: {} },
         build: { write: false, copyPublicDir: false, modulePreload: { polyfill: false }, rolldownOptions: { input: options.entry } },
       });
+    });
+
+    it("Sets Oxc's options only when given", () => {
+      expect(getTsBuildConfiguration({ ...options, mode: 'production' })).not.toHaveProperty('oxc');
+      const oxc = { jsx: { runtime: 'automatic' as const } };
+      expect(getTsBuildConfiguration({ ...options, mode: 'production', oxc }).oxc).toEqual(oxc);
     });
 
     it("Pins each mode in the configuration, whatever NODE_ENV says (see AGENTS.md › The ts showcase adapter's mode is pinned)", () => {

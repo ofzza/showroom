@@ -273,7 +273,7 @@ describe('cli/check', () => {
         // The custom showcase adapters
         'showroom.json:undefined: Custom showcase adapter "broken": "./adapters/missing.js" not found',
         // The showcases: unknown adapters, linked entry points, validation
-        'errors/adapters.md:3: Unknown showcase adapter "nope"; the showcase adapters are: html, needy, throwing, ts',
+        'errors/adapters.md:3: Unknown showcase adapter "nope"; the showcase adapters are: html, needy, react, throwing, ts',
         'errors/adapters.md:12: needy takes no options',
         'errors/adapters.md:15: Showcase adapter "throwing" failed to validate the showcase: validate broke',
         `errors/entries.md:3: A linked showcase's entry point "errors/missing.html" not found`,

@@ -1,6 +1,6 @@
 # _`P7.2`_ The `react` showcase adapter
 
-approved 2026-11-13 (option chosen: "Approve and commit (Rec.)"), without a zero-context review; choices _`D340`_–_`D350`_ settled 2026-11-13
+implemented 2026-11-13 (option chosen: "Approve and commit"; _`D351`_); approved 2026-11-13 (option chosen: "Approve and commit (Rec.)"), without a zero-context review; choices _`D340`_–_`D350`_ settled 2026-11-13
 
 ## Goals
 
@@ -21,6 +21,7 @@ No child segments: the bundling, type checking, errors, `serve` rebuilds and rea
 - _`D348`_ (`live`; Q9): **The `react` showcase adapter's options are `ts`'s**: `typeCheck` (default `true`) and `allowJs` (default `false`), validated the same way; a `ts`, `js`, `mts` or `mjs` entry point is an error pointing at the `ts` showcase adapter. Rejected: `typeCheck` only.
 - _`D349`_ (`live`; Q10; resolves _`O41`_ (PLAN-P7-ts-react.md); refines _`D245`_ (PLAN-P7-ts-react.md)): **The React 18 fixture's install**: one fixture, `test/fixtures/showcase-react-18/`, with `react`, `react-dom` 18.3.1 and `@types/react` 18 pinned exactly in its committed `package.json` and `package-lock.json`; the `integration` and `e2e` projects' global setup runs `npm ci --no-audit --no-fund` for it into `node_modules/.cache/showroom-tests/installs/showcase-react-18-<lockfile hash>/`, kept across runs while the lockfile is unchanged (local runs are offline after the first), and tests copy it. The `serve` tier uses fixtures on this repository's React 19 only. Dependabot only watches the root, so it never bumps the fixture. Rejected: reinstalling on every run.
 - _`D350`_ (`live`; Q11; for _`D304`_ (SPEC.md)): **`examples/react/`**: a mock project on the examples' shared theme (numbers and time, _`D312`_ (SPEC.md)), e.g. a component library with a counter or a stopwatch, showcases with state, props and the theme read from `<html>` (_`D241`_ (SPEC-S6-showcases.md)); its first showcase a linked `.tsx` file shown in `README.md` (_`D315`_ (SPEC.md)); its own `tsconfig.json` (`types: []`, `jsx: react-jsx`), on this repository's React 19 and `@types/react`. Rejected: settling the example's content separately first.
+- _`D351`_ (`live`; from _`P7.2`_'s checkpoint, option chosen: "Approve and commit"): **_`P7.2`_'s deviations from its steps, approved**: `resolvePackage()` and `readPackageJson()` (`typecheck/`), `validateTsShowcaseOptions()` and `checkTypeScript()`'s showcase adapter name are generalised and exported, for `react`'s host check, validation and messages; the React 18 fixture installs with `npm ci --ignore-scripts` (React needs no install scripts); `installFixture()` takes its folder as a parameter, for its unit tests; `react` is now a built-in name (`angular` the only planned one), so two tests' lists of showcase adapters include it; the entry chunk is named after the mount module (`<entry>.showroom-mount-<hash>.js`). The bundler reports a missing default export as an error, so _`D343`_'s fallback wasn't needed; the browser check passed ("I see all the showcases rendering and functionaling").
 
 ## Steps
 

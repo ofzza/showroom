@@ -54,41 +54,51 @@ const _OPTIONS: readonly (keyof TsShowcaseOptions)[] = ['typeCheck', 'allowJs'];
 /**
  * Pattern of the entry points the `ts` showcase adapter builds: TypeScript and JavaScript modules
  */
-const _ENTRY = /\.(ts|mts|js|mjs)$/i;
+export const TS_ENTRY = /\.(ts|mts|js|mjs)$/i;
 
 /**
- * Pattern of the entry points of the `react` showcase adapter, which the `ts` showcase adapter points at
+ * Pattern of the entry points of the `react` showcase adapter: TSX and JSX modules
  */
-const _REACT_ENTRY = /\.(tsx|jsx)$/i;
+export const REACT_ENTRY = /\.(tsx|jsx)$/i;
 
 /**
- * Validates a `ts` showcase: its options are `typeCheck` (`true` by default) and `allowJs` (`false` by default), both booleans, and its entry point
- * must be a ` ```ts `, ` ```js `, ` ```mts ` or ` ```mjs ` code block (or ` ```typescript `, ` ```javascript `), or a linked `.ts`, `.mts`, `.js`
- * or `.mjs` file
+ * Validates the options of a showcase of the `ts` showcase adapter, or of one building on it (`react`): `typeCheck` (`true` by default) and
+ * `allowJs` (`false` by default), both booleans
+ * @param adapter The showcase adapter's name, in the messages
+ * @param options The showcase's options, as written
+ * @param errors The errors found, to add to
+ * @returns The validated options
+ */
+export function validateTsShowcaseOptions(adapter: string, options: unknown, errors: string[]): TsShowcaseOptions {
+  const validated: TsShowcaseOptions = { typeCheck: true, allowJs: false };
+  if (options === undefined) return validated;
+  if (typeof options !== 'object' || options === null || Array.isArray(options)) {
+    errors.push(`The ${adapter} showcase adapter's options must be an object, e.g. "showcase=${adapter}({ typeCheck: false })"`);
+    return validated;
+  }
+  for (const [key, value] of Object.entries(options)) {
+    if (!(_OPTIONS as readonly string[]).includes(key)) {
+      errors.push(`Unknown option "${key}" of the ${adapter} showcase adapter; its options are "typeCheck" and "allowJs"`);
+    } else if (typeof value !== 'boolean') {
+      errors.push(`The ${adapter} showcase adapter's option "${key}" must be true or false`);
+    } else {
+      validated[key as keyof TsShowcaseOptions] = value;
+    }
+  }
+  return validated;
+}
+
+/**
+ * Validates a `ts` showcase: its options (see validateTsShowcaseOptions()), and its entry point, which must be a ` ```ts `, ` ```js `, ` ```mts `
+ * or ` ```mjs ` code block (or ` ```typescript `, ` ```javascript `), or a linked `.ts`, `.mts`, `.js` or `.mjs` file
  * @param showcase The showcase
  * @returns The validated options, or the errors found
  */
 export function validateTsShowcase(showcase: Showcase): ShowcaseValidation {
   const errors: string[] = [];
-  const validated: TsShowcaseOptions = { typeCheck: true, allowJs: false };
-  if (showcase.options !== undefined) {
-    const options = showcase.options;
-    if (typeof options !== 'object' || options === null || Array.isArray(options)) {
-      errors.push('The ts showcase adapter\'s options must be an object, e.g. "showcase=ts({ typeCheck: false })"');
-    } else {
-      for (const [key, value] of Object.entries(options)) {
-        if (!(_OPTIONS as readonly string[]).includes(key)) {
-          errors.push(`Unknown option "${key}" of the ts showcase adapter; its options are "typeCheck" and "allowJs"`);
-        } else if (typeof value !== 'boolean') {
-          errors.push(`The ts showcase adapter's option "${key}" must be true or false`);
-        } else {
-          validated[key as keyof TsShowcaseOptions] = value;
-        }
-      }
-    }
-  }
-  if (!_ENTRY.test(showcase.entry)) {
-    const react = _REACT_ENTRY.test(showcase.entry) ? '; for tsx and jsx, use the react showcase adapter' : '';
+  const validated = validateTsShowcaseOptions('ts', showcase.options, errors);
+  if (!TS_ENTRY.test(showcase.entry)) {
+    const react = REACT_ENTRY.test(showcase.entry) ? '; for tsx and jsx, use the react showcase adapter' : '';
     errors.push(
       showcase.kind === 'inline'
         ? `The ts showcase adapter needs a "ts", "js", "mts" or "mjs" code block${react}`
@@ -303,19 +313,69 @@ export function createVirtualFilesPlugin(root: string, virtualFiles: VirtualFile
 }
 
 /**
+ * Represents a module `showroom` generates for a build (e.g. the `react` showcase adapter's mount module): a virtual module at an absolute path in
+ * the host repository, so its imports resolve from there, never written to disk, never among the build's reads
+ */
+export interface GeneratedModule {
+  /**
+   * The module's source text
+   */
+  source: string;
+  /**
+   * POSIX-style path, relative to the host repository's root, where the build errors in this module are reported, at line 1 (e.g. the entry point)
+   */
+  errorsAt: string;
+}
+
+/**
+ * Creates the Vite plugin serving the generated modules (see GeneratedModule), by their absolute paths
+ * @param modules The generated modules, by absolute path
+ * @returns The Vite plugin
+ */
+export function createGeneratedModulesPlugin(modules: ReadonlyMap<string, GeneratedModule>): Plugin {
+  return {
+    name: 'showroom-generated-modules',
+    enforce: 'pre',
+    resolveId(source) {
+      return modules.has(source) ? source : null;
+    },
+    load(id) {
+      return modules.get(_splitId(id).path)?.source ?? null;
+    },
+  };
+}
+
+/**
+ * Places the build errors in generated modules where they say (see GeneratedModule), at line 1
+ * @param root Absolute path of the host repository's root
+ * @param modules The generated modules, by absolute path
+ * @param errors The build errors
+ * @returns The build errors, placed
+ */
+export function placeGeneratedModuleErrors(root: string, modules: ReadonlyMap<string, GeneratedModule>, errors: ShowcaseBuildError[]): ShowcaseBuildError[] {
+  const byPath = new Map([...modules].map(([path, module]) => [_relativeToRoot(root, path), module.errorsAt]));
+  return errors.map((error) => {
+    const errorsAt = error.path === undefined ? undefined : byPath.get(error.path);
+    return errorsAt === undefined ? error : { ...error, path: errorsAt, line: 1 };
+  });
+}
+
+/**
  * Creates the Vite plugin recording the files a build reads, as its modules load (so a failed build has them too): virtual files as their
  * documentation files, and the host repository's real files outside every `node_modules` folder (files only CSS imports, by `@import`, aren't
  * modules, and aren't recorded)
  * @param root Absolute path of the host repository's root
  * @param virtualFiles The virtual files, by absolute path
  * @param reads POSIX-style paths, relative to the host repository's root, to add the files read to
+ * @param generated Absolute paths of the generated modules, which are never recorded
  * @returns The Vite plugin
  */
-export function createReadsPlugin(root: string, virtualFiles: VirtualFilesByPath, reads: Set<string>): Plugin {
+export function createReadsPlugin(root: string, virtualFiles: VirtualFilesByPath, reads: Set<string>, generated: ReadonlySet<string> = new Set()): Plugin {
   return {
     name: 'showroom-reads',
     enforce: 'pre',
     load(id) {
+      if (generated.has(_splitId(id).path)) return null;
       const virtualFile = virtualFiles.get(_splitId(id).path);
       const path = virtualFile ? virtualFile.documentation : getHostPath(root, virtualFiles, id);
       if (path) reads.add(path);
@@ -451,6 +511,10 @@ export interface TsBuildConfigurationOptions {
    */
   conditions: readonly string[];
   /**
+   * Oxc's transform options, when the showcase adapter pins any (e.g. the `react` showcase adapter's JSX runtime)
+   */
+  oxc?: InlineConfig['oxc'];
+  /**
    * The build's plugins
    */
   plugins: Plugin[];
@@ -477,6 +541,7 @@ export function getTsBuildConfiguration({
   mode,
   scratchFolder,
   conditions,
+  oxc,
   plugins,
   logger,
   onWarning,
@@ -501,6 +566,7 @@ export function getTsBuildConfiguration({
       'import.meta.env.PROD': JSON.stringify(!development),
     },
     resolve: { conditions: conditions.map((condition) => (condition === 'development|production' ? mode : condition)) },
+    ...(oxc === undefined ? {} : { oxc }),
     plugins,
     build: {
       write: false,
@@ -562,6 +628,126 @@ export function getTsPage(module: string, styles: readonly string[]): string {
 
 // #endregion
 
+// #region Build
+
+/**
+ * Represents what buildTsShowcase() builds, beyond the request
+ */
+export interface TsShowcaseBuild {
+  /**
+   * What to build, and where it may write scratch files
+   */
+  request: ShowcaseBuildRequest;
+  /**
+   * Absolute path of the module Vite builds: a generated module, or (by default) the showcase's entry point
+   */
+  input?: string;
+  /**
+   * The generated modules, by absolute path (see GeneratedModule)
+   */
+  generated?: ReadonlyMap<string, GeneratedModule>;
+  /**
+   * Oxc's transform options to pin, if any
+   */
+  oxc?: InlineConfig['oxc'];
+  /**
+   * True to type check with `jsx: react-jsx` where the tsconfig leaves `jsx` unset
+   */
+  jsx?: boolean;
+  /**
+   * Parsed source files shared between a run's type checks
+   */
+  sourceFiles: SourceFileCache;
+  /**
+   * Resolves the `typescript` package from a folder (see resolveTypeScript())
+   */
+  resolveTypeScript: TypeScriptResolver;
+}
+
+/**
+ * Builds a showcase with `showroom`'s own Vite, in memory: its virtual files and generated modules as modules, then (unless `typeCheck` is off) type
+ * checks it with the host's TypeScript, and puts the bundle's entry chunk into the `ts` page; the `ts` and `react` showcase adapters both build
+ * through it
+ * @param build What to build
+ * @returns The showcase frame's files, or the build errors, with the files the build read
+ */
+export async function buildTsShowcase({
+  request: { root, showcase, options, hostVirtualFiles, mode, scratchFolder },
+  input,
+  generated = new Map(),
+  oxc,
+  jsx = false,
+  sourceFiles,
+  resolveTypeScript: resolver,
+}: TsShowcaseBuild): Promise<ShowcaseBuildResult> {
+  const vite = await import('vite');
+  const virtualFiles = getVirtualFilesByPath(root, hostVirtualFiles);
+  const reads = new Set<string>([showcase.kind === 'inline' ? showcase.documentation : showcase.entry]);
+  const unresolved: ShowcaseBuildError[] = [];
+  const pending: Promise<ShowcaseBuildError | undefined>[] = [];
+  const place = (errors: ShowcaseBuildError[]) => placeGeneratedModuleErrors(root, generated, errors);
+  const settle = async () => place((await Promise.all(pending)).filter((warning) => warning !== undefined));
+  const logger = vite.createLogger('silent');
+  const warn = (message: string) => void pending.push(getBuildWarning(root, virtualFiles, { message }));
+  logger.warn = warn;
+  logger.warnOnce = warn;
+  const configuration = getTsBuildConfiguration({
+    root,
+    entry: input ?? resolve(root, showcase.entry),
+    mode,
+    scratchFolder,
+    conditions: vite.defaultClientConditions,
+    ...(oxc === undefined ? {} : { oxc }),
+    plugins: [
+      createGeneratedModulesPlugin(generated),
+      createReadsPlugin(root, virtualFiles, reads, new Set(generated.keys())),
+      createVirtualFilesPlugin(root, virtualFiles, unresolved),
+    ],
+    logger,
+    onWarning: (warning) => void pending.push(getBuildWarning(root, virtualFiles, warning)),
+  });
+
+  let output: Rolldown.RolldownOutput;
+  try {
+    const built = await vite.build(configuration);
+    output = (Array.isArray(built) ? built[0] : built) as Rolldown.RolldownOutput;
+  } catch (err) {
+    const errors = place(unresolved.length ? unresolved : await getBuildErrors(root, virtualFiles, err));
+    const warnings = await settle();
+    return { reads: [...reads], errors, ...(warnings.length ? { warnings } : {}) };
+  }
+  const warnings = await settle();
+
+  // The type check, after a successful bundle
+  const { typeCheck = true, allowJs = false } = (options ?? {}) as Partial<TsShowcaseOptions>;
+  const found = typeCheck ? findTypeScript(resolve(root, getDocumentationFolder(showcase.documentation)), resolver) : undefined;
+  if (found?.support === 'supported') {
+    const checked = typeCheckShowcase({
+      ts: loadTypeScript(found.folder),
+      typeScriptFolder: found.folder,
+      root,
+      showcase,
+      allowJs,
+      jsx,
+      virtualFiles: hostVirtualFiles,
+      sourceFiles,
+    });
+    checked.reads.forEach((path) => reads.add(path));
+    if (checked.errors.length) return { reads: [...reads], errors: checked.errors, ...(warnings.length ? { warnings } : {}) };
+  }
+
+  // The page around the bundle's entry chunk, and every chunk and asset next to it
+  const entry = output.output.find((item): item is Rolldown.OutputChunk => item.type === 'chunk' && item.isEntry);
+  if (!entry) return { reads: [...reads], errors: [{ message: 'The build has no entry chunk' }] };
+  const files: ShowcaseBuildFile[] = [
+    { path: TS_PAGE, content: getTsPage(entry.fileName, [...(entry.viteMetadata?.importedCss ?? [])]) },
+    ...output.output.map((item) => ({ path: item.fileName, content: item.type === 'chunk' ? item.code : item.source })),
+  ];
+  return { page: TS_PAGE, files, reads: [...reads], ...(warnings.length ? { warnings } : {}) };
+}
+
+// #endregion
+
 // #region Showcase adapter
 
 /**
@@ -606,69 +792,12 @@ export class TsShowcaseAdapter implements ShowcaseAdapter {
   }
 
   /**
-   * Builds a showcase's showcase frame: bundles its entry point with Vite, in memory, then, unless `typeCheck` is off, type checks it with the
-   * TypeScript its documentation file's folder finds (skipped silently when it is missing or unsupported, as `check` reports it), and writes its page
-   * around the bundle; type errors fail the build, keeping the bundle's warnings, and the files the type check read join the build's reads
-   * @param request What to build
-   * @returns The showcase frame's page, the bundle's chunks and assets, the files read and the warnings; or the build errors
+   * Builds a showcase's showcase frame, in memory (see buildTsShowcase())
+   * @param request What to build, and where it may write scratch files
+   * @returns The showcase frame's files, or the build errors
    */
-  public async build({ root, showcase, options, hostVirtualFiles, mode, scratchFolder }: ShowcaseBuildRequest): Promise<ShowcaseBuildResult> {
-    const vite = await import('vite');
-    const virtualFiles = getVirtualFilesByPath(root, hostVirtualFiles);
-    const reads = new Set<string>([showcase.kind === 'inline' ? showcase.documentation : showcase.entry]);
-    const unresolved: ShowcaseBuildError[] = [];
-    const pending: Promise<ShowcaseBuildError | undefined>[] = [];
-    const logger = vite.createLogger('silent');
-    const warn = (message: string) => void pending.push(getBuildWarning(root, virtualFiles, { message }));
-    logger.warn = warn;
-    logger.warnOnce = warn;
-    const configuration = getTsBuildConfiguration({
-      root,
-      entry: resolve(root, showcase.entry),
-      mode,
-      scratchFolder,
-      conditions: vite.defaultClientConditions,
-      plugins: [createReadsPlugin(root, virtualFiles, reads), createVirtualFilesPlugin(root, virtualFiles, unresolved)],
-      logger,
-      onWarning: (warning) => void pending.push(getBuildWarning(root, virtualFiles, warning)),
-    });
-
-    let output: Rolldown.RolldownOutput;
-    try {
-      const built = await vite.build(configuration);
-      output = (Array.isArray(built) ? built[0] : built) as Rolldown.RolldownOutput;
-    } catch (err) {
-      const errors = unresolved.length ? unresolved : await getBuildErrors(root, virtualFiles, err);
-      const warnings = (await Promise.all(pending)).filter((warning) => warning !== undefined);
-      return { reads: [...reads], errors, ...(warnings.length ? { warnings } : {}) };
-    }
-    const warnings = (await Promise.all(pending)).filter((warning) => warning !== undefined);
-
-    // The type check, after a successful bundle
-    const { typeCheck = true, allowJs = false } = (options ?? {}) as Partial<TsShowcaseOptions>;
-    const found = typeCheck ? findTypeScript(resolve(root, getDocumentationFolder(showcase.documentation)), this._resolveTypeScript) : undefined;
-    if (found?.support === 'supported') {
-      const checked = typeCheckShowcase({
-        ts: loadTypeScript(found.folder),
-        typeScriptFolder: found.folder,
-        root,
-        showcase,
-        allowJs,
-        virtualFiles: hostVirtualFiles,
-        sourceFiles: this._sourceFiles,
-      });
-      checked.reads.forEach((path) => reads.add(path));
-      if (checked.errors.length) return { reads: [...reads], errors: checked.errors, ...(warnings.length ? { warnings } : {}) };
-    }
-
-    // The page around the bundle's entry chunk, and every chunk and asset next to it
-    const entry = output.output.find((item): item is Rolldown.OutputChunk => item.type === 'chunk' && item.isEntry);
-    if (!entry) return { reads: [...reads], errors: [{ message: 'The build has no entry chunk' }] };
-    const files: ShowcaseBuildFile[] = [
-      { path: TS_PAGE, content: getTsPage(entry.fileName, [...(entry.viteMetadata?.importedCss ?? [])]) },
-      ...output.output.map((item) => ({ path: item.fileName, content: item.type === 'chunk' ? item.code : item.source })),
-    ];
-    return { page: TS_PAGE, files, reads: [...reads], ...(warnings.length ? { warnings } : {}) };
+  public build(request: ShowcaseBuildRequest): Promise<ShowcaseBuildResult> {
+    return buildTsShowcase({ request, sourceFiles: this._sourceFiles, resolveTypeScript: this._resolveTypeScript });
   }
 }
 

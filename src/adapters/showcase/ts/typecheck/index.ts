@@ -51,26 +51,35 @@ export interface FoundTypeScript {
 export type TypeScriptResolver = (folder: string) => string | undefined;
 
 /**
- * Resolves the `typescript` package from a folder, as Node resolves it (up through every `node_modules` folder above it, past the host
- * repository's root too)
+ * Resolves a package from a folder, as Node resolves it (up through every `node_modules` folder above it, past the host repository's root too)
  * @param folder Absolute path of the folder
+ * @param name The package's name
  * @returns Absolute path of the package's folder, or undefined if it isn't found
  */
-export function resolveTypeScript(folder: string): string | undefined {
+export function resolvePackage(folder: string, name: string): string | undefined {
   const require = createRequire(join(folder, '_.js'));
   try {
-    return dirname(require.resolve('typescript/package.json'));
+    return dirname(require.resolve(`${name}/package.json`));
   } catch (_err) {
     // Its `package.json` may not be exported: walk up from its main module instead
   }
   try {
-    for (let current = dirname(require.resolve('typescript')); dirname(current) !== current; current = dirname(current)) {
-      if (_readPackageJson(current)?.name === 'typescript') return current;
+    for (let current = dirname(require.resolve(name)); dirname(current) !== current; current = dirname(current)) {
+      if (readPackageJson(current)?.name === name) return current;
     }
   } catch (_err) {
-    // Not installed
+    // Not installed, or a package of types only, with no main module
   }
   return undefined;
+}
+
+/**
+ * Resolves the `typescript` package from a folder (see resolvePackage())
+ * @param folder Absolute path of the folder
+ * @returns Absolute path of the package's folder, or undefined if it isn't found
+ */
+export function resolveTypeScript(folder: string): string | undefined {
+  return resolvePackage(folder, 'typescript');
 }
 
 /**
@@ -78,7 +87,7 @@ export function resolveTypeScript(folder: string): string | undefined {
  * @param folder Absolute path of the package's folder
  * @returns Its content, or undefined if it can't be read
  */
-function _readPackageJson(folder: string): Record<string, unknown> | undefined {
+export function readPackageJson(folder: string): Record<string, unknown> | undefined {
   try {
     const content: unknown = JSON.parse(readFileSync(join(folder, 'package.json'), 'utf8'));
     return typeof content === 'object' && content !== null ? (content as Record<string, unknown>) : undefined;
@@ -107,7 +116,7 @@ export function judgeTypeScriptVersion(version: string): TypeScriptSupport {
 export function findTypeScript(folder: string, resolver: TypeScriptResolver = resolveTypeScript): FoundTypeScript | undefined {
   const found = resolver(folder);
   if (found === undefined) return undefined;
-  const version = _readPackageJson(found)?.version;
+  const version = readPackageJson(found)?.version;
   const text = typeof version === 'string' ? version : '';
   return { folder: found, version: text, support: judgeTypeScriptVersion(text) };
 }
@@ -135,11 +144,17 @@ export function getDocumentationFolder(documentation: string): string {
  * Checks that the showcases that type check find a supported TypeScript, once per documentation file's folder: an error where TypeScript is missing
  * or older than 5.0, a warning where it is 7 or later (their type checking is skipped), each naming the folder and the version found
  * @param root Absolute path of the host repository's root
- * @param showcases The `ts` showcases whose validation passed, with their validated options
+ * @param showcases The showcases whose validation passed, with their validated options
  * @param resolver Resolves the `typescript` package from a folder (see resolveTypeScript())
+ * @param adapter The showcase adapter's name, in the messages
  * @returns The host requirements missing, and the warnings
  */
-export function checkTypeScript(root: string, showcases: readonly Showcase[], resolver: TypeScriptResolver = resolveTypeScript): ShowcaseHostCheck {
+export function checkTypeScript(
+  root: string,
+  showcases: readonly Showcase[],
+  resolver: TypeScriptResolver = resolveTypeScript,
+  adapter = 'ts',
+): ShowcaseHostCheck {
   const result: ShowcaseHostCheck = { errors: [], warnings: [] };
   const folders = [
     ...new Set(showcases.filter((showcase) => (showcase.options as { typeCheck?: unknown } | undefined)?.typeCheck !== false).map(_folderOf)),
@@ -148,15 +163,15 @@ export function checkTypeScript(root: string, showcases: readonly Showcase[], re
     const found = findTypeScript(resolve(root, folder), resolver);
     if (!found) {
       result.errors.push(
-        `the ts showcases of "${folder}" type check, but no TypeScript is installed where it can be found: install "typescript" (5.x or 6.x), or set "typeCheck: false"`,
+        `the ${adapter} showcases of "${folder}" type check, but no TypeScript is installed where it can be found: install "typescript" (5.x or 6.x), or set "typeCheck: false"`,
       );
     } else if (found.support === 'old') {
       result.errors.push(
-        `the ts showcases of "${folder}" type check, but the TypeScript found, ${found.version}, is older than 5.0: upgrade it, or set "typeCheck: false"`,
+        `the ${adapter} showcases of "${folder}" type check, but the TypeScript found, ${found.version}, is older than 5.0: upgrade it, or set "typeCheck: false"`,
       );
     } else if (found.support === 'unsupported') {
       result.warnings.push(
-        `type checking skipped for the ts showcases of "${folder}": the TypeScript found, ${found.version || 'of an unknown version'}, isn't supported yet (5.x and 6.x are)`,
+        `type checking skipped for the ${adapter} showcases of "${folder}": the TypeScript found, ${found.version || 'of an unknown version'}, isn't supported yet (5.x and 6.x are)`,
       );
     }
   }
@@ -301,23 +316,32 @@ export interface TypeCheckConfigurationOptions {
    */
   entry: string;
   /**
-   * True to set `allowJs`: for a `js` or `mjs` entry point, or the showcase's `allowJs` option
+   * True to set `allowJs`: for a `js`, `mjs` or `jsx` entry point, or the showcase's `allowJs` option
    */
   allowJs: boolean;
+  /**
+   * True to set `jsx: react-jsx` where the tsconfig (or its absence) leaves `jsx` unset: for `react` showcases
+   */
+  jsx?: boolean;
 }
 
 /**
  * Gets what a showcase is type checked with (see TypeCheckConfiguration): the nearest tsconfig, from the documentation file's folder up to the host
  * repository's root, applied whole, as `tsc -p` would (its `references` aren't built), except for the options that can't coexist with a file
- * outside the project; or TypeScript's defaults, as `tsc` without a tsconfig, and the entry point the only root
+ * outside the project; or TypeScript's defaults, as `tsc` without a tsconfig, and the entry point the only root. With `jsx`, `jsx: react-jsx` is
+ * the default where `jsx` is unset
  * @param ts The host's TypeScript
  * @param options What the configuration depends on
  * @returns The configuration
  */
-export function getTypeCheckConfiguration(ts: TypeScriptModule, { root, folder, entry, allowJs }: TypeCheckConfigurationOptions): TypeCheckConfiguration {
+export function getTypeCheckConfiguration(
+  ts: TypeScriptModule,
+  { root, folder, entry, allowJs, jsx = false }: TypeCheckConfigurationOptions,
+): TypeCheckConfiguration {
   const forced: TypeScript.CompilerOptions = { noEmit: true, ...(allowJs ? { allowJs: true } : {}) };
+  const defaults: TypeScript.CompilerOptions = jsx ? { jsx: ts.JsxEmit.ReactJSX } : {};
   const tsconfig = findTsConfig(root, folder);
-  if (!tsconfig) return { options: forced, rootNames: [entry], diagnostics: [], configFiles: [] };
+  if (!tsconfig) return { options: { ...defaults, ...forced }, rootNames: [entry], diagnostics: [], configFiles: [] };
 
   const source = ts.readJsonConfigFile(tsconfig, ts.sys.readFile);
   const host: TypeScript.ParseConfigHost = {
@@ -327,7 +351,7 @@ export function getTypeCheckConfiguration(ts: TypeScriptModule, { root, folder, 
     readFile: ts.sys.readFile,
   };
   const parsed = ts.parseJsonSourceFileConfigFileContent(source, host, dirname(tsconfig), undefined, tsconfig);
-  const options: TypeScript.CompilerOptions = { ...parsed.options, ...forced, configFile: source };
+  const options: TypeScript.CompilerOptions = { ...defaults, ...parsed.options, ...forced, configFile: source };
   for (const name of DROPPED_COMPILER_OPTIONS) delete options[name];
 
   // The entry point joins the tsconfig's files, once
@@ -500,9 +524,13 @@ export interface TypeCheckRequest {
    */
   showcase: Showcase;
   /**
-   * True to set `allowJs` for this type check (the showcase's `allowJs` option); a `js` or `mjs` entry point sets it anyway
+   * True to set `allowJs` for this type check (the showcase's `allowJs` option); a `js`, `mjs` or `jsx` entry point sets it anyway
    */
   allowJs: boolean;
+  /**
+   * True to type check with `jsx: react-jsx` where the tsconfig leaves `jsx` unset (see getTypeCheckConfiguration())
+   */
+  jsx?: boolean;
   /**
    * Every virtual file of the host repository
    */
@@ -535,10 +563,19 @@ export interface TypeCheckResult {
  * @param request The type check
  * @returns The type errors, and the files read
  */
-export function typeCheckShowcase({ ts, typeScriptFolder, root, showcase, allowJs, virtualFiles, sourceFiles }: TypeCheckRequest): TypeCheckResult {
+export function typeCheckShowcase({
+  ts,
+  typeScriptFolder,
+  root,
+  showcase,
+  allowJs,
+  jsx = false,
+  virtualFiles,
+  sourceFiles,
+}: TypeCheckRequest): TypeCheckResult {
   const folder = resolve(root, getDocumentationFolder(showcase.documentation));
   const entry = resolve(root, showcase.entry);
-  const configuration = getTypeCheckConfiguration(ts, { root, folder, entry, allowJs: allowJs || /\.m?js$/i.test(entry) });
+  const configuration = getTypeCheckConfiguration(ts, { root, folder, entry, allowJs: allowJs || /\.(m?js|jsx)$/i.test(entry), jsx });
   const key = getSourceFileCacheKey(typeScriptFolder, configuration.options);
   const shared = sourceFiles.get(key) ?? new Map<string, TypeScript.SourceFile>();
   sourceFiles.set(key, shared);

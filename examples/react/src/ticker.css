@@ -1,0 +1,18 @@
+/* ticker's styles: tabular figures, following the showroom's theme with light-dark() */
+
+.ticker-display {
+  font: 2rem monospace;
+  font-variant-numeric: tabular-nums;
+  color: light-dark(#0f6cbd, #479ef5);
+}
+
+.ticker-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+.ticker-row button {
+  min-width: 2.5rem;
+}

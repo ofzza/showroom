@@ -185,6 +185,19 @@ describe('cli/serve (serve)', () => {
     expect(await (await fetch(new URL(`showcases/README.md/1/assets/${lazy}`, url))).text()).toContain('"later"');
   });
 
+  it("Serves react showcase frames, built in development mode with React's development build", async () => {
+    const { url, stderr } = await start('showcase-react');
+    expect(stderr()).toBe('');
+    const urls = getShowcaseUrls(await fetchHostModule(url));
+    expect(Object.keys(urls)).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'classic/README.md#1']);
+    const page = await (await fetch(new URL(urls['README.md#1'], url))).text();
+    expect(page).toContain('<div id="root"></div><div id="showroom-console" hidden></div>');
+    const module = /<script type="module" crossorigin src="\.\/(assets\/[^"]+)"/.exec(page)![1];
+    const code = await (await fetch(new URL(`showcases/README.md/1/${module}`, url))).text();
+    expect(code).toContain('react-dom-client.development.js');
+    expect(code).toContain('createRoot)(document.getElementById("root"))');
+  });
+
   it('Serves the linked files from the host repository, and nothing else in their folder', async () => {
     const { url } = await start('linked-files');
     const source = await fetchHostModule(url);

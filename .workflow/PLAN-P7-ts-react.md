@@ -1,6 +1,6 @@
 # _`P7`_ Showcases: the `ts` and `react` showcase adapters
 
-approved 2026-11-13 (option chosen: "Approve and commit (Rec.)"); segmentation and _`D242`_–_`D245`_ decided 2026-11-12; edited 2026-11-12 after its zero-context review, before approval (_`D244`_ narrowed to bundling, with its pinned Vite settings; child segment summaries completed; open points _`O30`_–_`O43`_ added)
+implemented 2026-11-13 (both child segments implemented); approved 2026-11-13 (option chosen: "Approve and commit (Rec.)"); segmentation and _`D242`_–_`D245`_ decided 2026-11-12; edited 2026-11-12 after its zero-context review, before approval (_`D244`_ narrowed to bundling, with its pinned Vite settings; child segment summaries completed; open points _`O30`_–_`O43`_ added)
 
 ## Goals
 
@@ -11,7 +11,7 @@ The `ts` and `react` built-in showcase adapters (_`D97`_, SPEC-S6-showcases.md),
 Each is planned, approved, implemented and checkpointed on its own, in this order (_`D242`_):
 
 - **_`P7.1`_ The `ts` showcase adapter** (implemented 2026-11-13; split into _`P7.1.1`_ building and _`P7.1.2`_ type checking by _`D246`_ (PLAN-P7.1-ts.md); [See The `ts` showcase adapter](./PLAN-P7.1-ts.md)): its `validate()` (options, `typeCheck` among them) and host requirements in `check`; the entry point and its virtual files as Vite modules, built with `showroom`'s own Vite (_`D235`_ (SPEC-S6-showcases.md), _`D244`_), in `check --showcases` and `build`, with the files each build reads (`reads`) for the host watcher; the console panel and the page container (_`D233`_ (SPEC-S6-showcases.md)); type checking with the host's TypeScript and nearest `tsconfig.json` (_`D234`_ (SPEC-S6-showcases.md)); build and type errors mapped to their lines, in code blocks or linked files (_`D102`_ (SPEC-S6-showcases.md)); what a showcase can import (_`D236`_ (SPEC-S6-showcases.md)); `serve` rebuilding on change (_`D243`_).
-- **_`P7.2`_ The `react` showcase adapter** (approved 2026-11-13; [See The `react` showcase adapter](./PLAN-P7.2-react.md)): built on _`P7.1`_; the mount module rendering the default export with `createRoot` (_`D230`_, _`D237`_ (SPEC-S6-showcases.md)), `tsx`/`jsx` entry points (_`D238`_), the default-export check (_`D239`_), no StrictMode (_`D240`_), the theme (_`D241`_, all SPEC-S6-showcases.md); type checking React showcases; React ≥ 18 as a host requirement (_`O29`_); a React 18 fixture with its own install (_`D245`_).
+- **_`P7.2`_ The `react` showcase adapter** (implemented 2026-11-13; [See The `react` showcase adapter](./PLAN-P7.2-react.md)): built on _`P7.1`_; the mount module rendering the default export with `createRoot` (_`D230`_, _`D237`_ (SPEC-S6-showcases.md)), `tsx`/`jsx` entry points (_`D238`_), the default-export check (_`D239`_), no StrictMode (_`D240`_), the theme (_`D241`_, all SPEC-S6-showcases.md); type checking React showcases; React ≥ 18 as a host requirement (_`O29`_); a React 18 fixture with its own install (_`D245`_).
 
 ## Decisions
 

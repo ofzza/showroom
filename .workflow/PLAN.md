@@ -266,7 +266,7 @@ None (_`D61`_).
 
 ## The `ts` and `react` showcase adapters
 
-- _`P7`_ Showcases: the `ts` and `react` showcase adapters (approved 2026-11-13), in two child segments, _`P7.1`_ `ts` and _`P7.2`_ `react`. [See The `ts` and `react` showcase adapters](./PLAN-P7-ts-react.md)
+- _`P7`_ Showcases: the `ts` and `react` showcase adapters (implemented 2026-11-13), in two child segments, _`P7.1`_ `ts` and _`P7.2`_ `react`. [See The `ts` and `react` showcase adapters](./PLAN-P7-ts-react.md)
 
 ## Showcase adapter examples
 

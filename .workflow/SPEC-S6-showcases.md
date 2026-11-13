@@ -44,7 +44,7 @@ approved 2026-11-11; revised 2026-11-12 (_`R2`_); re-approved 2026-11-12
 
 ## _`S6.3`_ Showcase format: React
 
-approved 2026-11-11; revised 2026-11-12 (_`R14`_); re-approved 2026-11-12; revised 2026-11-13 (_`R21`_); re-approved 2026-11-13
+approved 2026-11-11; revised 2026-11-12 (_`R14`_); re-approved 2026-11-12; revised 2026-11-13 (_`R21`_); re-approved 2026-11-13; implemented 2026-11-13 (_`P7.2`_ (PLAN-P7.2-react.md))
 
 - _`R14`_ 2026-11-12: the React showcase format: the entry point's shape, no host-wide setup, a spike on _`K10`_ before planning, the versions, files, default export, StrictMode and theme (_`O16`_ resolved), caused by _`D230`_–_`D232`_, _`D237`_–_`D241`_.
 - _`R21`_ 2026-11-13: only a missing default export fails the build; a default export React can't render (e.g. not `memo()`, `forwardRef()` or `lazy()` components, which are objects) fails at run time, in the console panel (_`D239`_ changed), caused by _`D343`_ (PLAN-P7.2-react.md).
