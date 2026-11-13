@@ -268,6 +268,10 @@ None (_`D61`_).
 
 - _`P7`_ Showcases: the `ts` and `react` showcase adapters (approved 2026-11-13), in two child segments, _`P7.1`_ `ts` and _`P7.2`_ `react`. [See The `ts` and `react` showcase adapters](./PLAN-P7-ts-react.md)
 
+## Showcase adapter examples
+
+- _`P8`_ Showcase adapter examples (approved 2026-11-13): `html`, `ts` and `number-table` examples, and `README.md` restructured around them (_`S8`_, SPEC.md). [See Showcase adapter examples](./PLAN-P8-examples.md)
+
 ## Known open issues
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: not yet assigned. Status: `open`.

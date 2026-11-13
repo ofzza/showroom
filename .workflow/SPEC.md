@@ -89,9 +89,10 @@ Keeping the documentation itself from drifting, alongside its showcases (_`D102`
 
 ## _`S8`_ Showcase adapter examples
 
-approved 2026-11-13, re-approved 2026-11-13 (_`R18`_) (recorded 2026-11-13 from the user's proposal, to be implemented before _`P7.2`_)
+approved 2026-11-13, re-approved 2026-11-13 (_`R18`_, _`R19`_) (recorded 2026-11-13 from the user's proposal, to be implemented before _`P7.2`_)
 
 - _`R18`_ 2026-11-13: what the examples are (one theme, mock projects) and how `README.md` uses them, caused by _`D312`_–_`D315`_.
+- _`R19`_ 2026-11-13: the `html` example's library stylesheet is a resource, not a real file, as the `html` showcase adapter follows none, caused by _`D320`_ (PLAN-P8-examples.md).
 
 Demonstrating and documenting each showcase adapter through an example of its own, shown live in this repository's own showroom.
 
@@ -108,7 +109,7 @@ Demonstrating and documenting each showcase adapter through an example of its ow
   - Evidence: the user's check, 2026-11-13, of a served copy of this repository with placeholder `examples/html/`, `ts/` and `custom/` `README.md` files: "Fine as is for now. We'll need to address the ability to customize the menu at some later point ..." (_`L13`_, PLAN.md).
 - _`D311`_ (`live`; resolves _`O52`_; option chosen: "Add it (Rec.)"): **"Showcase adapter example" is a Glossary term** (`CONTRIBUTE.md`).
 - _`D312`_ (`live`; refines _`D302`_; the user proposed a made-up use case per example, numbers as "just a random pull"; the agent's suggestion of one theme, "Agreed across the board"): **Every showcase adapter example demonstrates a made-up use case, on one theme across all of them: numbers (and time)**, so readers can compare showcase adapters on the same subject: `html`, making numbers readable and fun (grouped digits, tabular figures, a colourful counter, a 7-segment display in CSS, following the showroom's theme); `ts`, a typed numbers and time utility (enums of units, durations, relative times, `Math`'s rounding), shown through the console panel; `react` (with _`P7.2`_), unusual number pickers (a digit wheel like an old clock's, an odometer, a dial); `angular`, the same pickers in Angular; the custom showcase adapter, something in the same theme (e.g. a JSON code block of numbers shown as a formatted table).
-- _`D313`_ (`live`; refines _`D302`_; "Agreed across the board"): **Each showcase adapter example is a mock project**: a tiny fictional library with real files (e.g. `examples/ts/src/duration.ts`, its `tsconfig.json`; `examples/html/numbers.css`) and a `README.md` documenting it, whose showcases use the library's own files, as a real host repository's documentation would.
+- _`D313`_ (`live`, changed by _`D320`_ (PLAN-P8-examples.md); refines _`D302`_; "Agreed across the board"): **Each showcase adapter example is a mock project**: a tiny fictional library with real files (e.g. `examples/ts/src/duration.ts`, its `tsconfig.json`; `examples/html/numbers.css`) and a `README.md` documenting it, whose showcases use the library's own files, as a real host repository's documentation would.
 - _`D314`_ (`live`; refines _`D303`_, _`D305`_, _`D309`_; the user: "The root README.md file should first discuss showcases in general and adapters generically, and demonstrate them using its own, minimal examples. Later, when getting into individual adapters, the root README.md should show the first showcase from that adapter's example and link to the example showcase to see the rest ..."): **`README.md` first presents showcases and showcase adapters in general, with its own minimal demonstrations** (adapter-neutral, of the marker grammar: inline, resource, linked); **then, for each showcase adapter, it shows its example's first showcase, and links to the example for the rest** (and to particular showcases in it, _`D309`_).
 - _`D315`_ (`live`; refines _`D309`_; "Agreed across the board"): **A showcase adapter example's first showcase is a linked showcase of a real file**, which `README.md` links as a showcase too: one source, shown in both. On npm and GitHub, `README.md` shows only the link there, leading to the example, where the code is visible.
 

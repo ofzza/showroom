@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning stage, _`S8`_ (showcase adapter examples, `SPEC.md`), approved 2026-11-13, re-approved with _`R18`_; to be planned and implemented before _`P7.2`_ (_`D304`_). _`P7.1`_ (`PLAN-P7.1-ts.md`) is implemented and committed; _`P7`_ (`PLAN-P7-ts-react.md`) approved, _`P7.2`_ (the `react` showcase adapter) not yet planned. Specification: _`S6`_ (with _`S6.5`_, _`S6.6`_, and _`S6.7`_ re-approved 2026-11-13) and _`S7`_ approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_, _`P6`_ and _`P7.1`_ are implemented and committed.
-- **Next free:** _`D316`_, _`S9`_, _`P8`_, _`O53`_, _`L14`_, _`R19`_, _`H1`_, _`K17`_
+- **Stage:** planning stage, _`S8`_ (showcase adapter examples, `SPEC.md`), re-approved with _`R18`_ and _`R19`_; _`P8`_ (`PLAN-P8-examples.md`) approved 2026-11-13; to be implemented and implemented before _`P7.2`_ (_`D304`_). _`P7.1`_ (`PLAN-P7.1-ts.md`) is implemented and committed; _`P7`_ (`PLAN-P7-ts-react.md`) approved, _`P7.2`_ (the `react` showcase adapter) not yet planned. Specification: _`S6`_ (with _`S6.5`_, _`S6.6`_, and _`S6.7`_ re-approved 2026-11-13) and _`S7`_ approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_, _`P6`_ and _`P7.1`_ are implemented and committed.
+- **Next free:** _`D321`_, _`S9`_, _`P9`_, _`O53`_, _`L14`_, _`R20`_, _`H1`_, _`K17`_
 - **Working on:** nothing; the user clears the context before continuing.
-- **Next step:** go on planning _`P8`_ (its choices: guarding `README.md`'s links into the examples, `examples/button.html`, the custom showcase adapter, the examples' contents); then _`P7.2`_.
+- **Next step:** implement _`P8`_ (`PLAN-P8-examples.md`, steps 1–6); then _`P7.2`_.
 
 ## Open questions
 
@@ -192,3 +192,5 @@
 - 2026-11-13: _`S8`_ approved (option chosen: "Approve and commit (Rec.)").
 - 2026-11-13: _`P8`_ planning started. The user's navigation check on a served copy (_`D310`_): "Fine as is for now. We'll need to address the ability to customize the menu at some later point ..." (_`L13`_). The user's direction for the examples, and the agent's suggestions ("Agreed across the board"): _`D312`_–_`D315`_, revising _`S8`_ (_`R18`_), pending re-approval.
 - 2026-11-13: _`S8`_ re-approved with _`R18`_ (option chosen: "Re-approve and commit (Rec.)").
+- 2026-11-13: _`P8`_ drafted (`PLAN-P8-examples.md`): _`D316`_ ("One segment"), _`D317`_ ("Integration test (Rec.)"), _`D318`_ ("Same, in examples/number-table/"), _`D319`_ ("Keep as they are (Rec.)"), _`D320`_ ("Go with these (Rec.)"; changes _`D313`_, revising _`S8`_, _`R19`_).
+- 2026-11-13: _`P8`_ approved, and _`S8`_ re-approved with _`R19`_, without a zero-context review (option chosen: "Approve and commit").
