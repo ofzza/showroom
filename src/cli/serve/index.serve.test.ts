@@ -90,12 +90,13 @@ describe('cli/serve (serve)', () => {
   }
 
   /**
-   * Gets the shown showcases' URLs from the virtual module's source
+   * Gets the shown showcases' URLs from the virtual module's source, as written, or as Vite prints it again when the documentation's text holds
+   * `import.meta.env` or `process.env` (still JSON, spread over lines)
    * @param source The module's source
    * @returns The URLs, by showcase id
    */
   function getShowcaseUrls(source: string): Record<string, string> {
-    const host = JSON.parse(/export default (.*);\n/.exec(source)![1]) as { showcases: { id: string; url: string }[] };
+    const host = JSON.parse(/export default ([\s\S]*?);\s*export const issues/.exec(source)![1]) as { showcases: { id: string; url: string }[] };
     return Object.fromEntries(host.showcases.map(({ id, url }) => [id, url]));
   }
 
@@ -158,6 +159,30 @@ describe('cli/serve (serve)', () => {
     expect(source).toContain('"message":"Showcase README.md#2 (README.md:12): Showcase adapter \\"throwing\\" failed to build the showcase: build broke"');
     expect(served.stderr()).toContain('error: src/widget.js:2: Showcase README.md#1 (README.md:5): Widget broke\n');
     expect(await served.stop()).toBe(0);
+  });
+
+  it('Serves ts showcase frames, built in development mode, with their files', async () => {
+    const { url, stderr } = await start('showcase-ts');
+    expect(stderr()).toBe('');
+    const urls = getShowcaseUrls(await fetchHostModule(url));
+    expect(Object.keys(urls)).toEqual(['README.md#1', 'README.md#2', 'README.md#3']);
+    const page = await (await fetch(new URL(urls['README.md#1'], url))).text();
+    expect(page).toContain('<div id="root"></div><div id="showroom-console" hidden></div>');
+
+    // The module and its CSS, relative to the page; the module's asset and dynamic import, relative to the module
+    const module = /<script type="module" crossorigin src="\.\/(assets\/[^"]+)"/.exec(page)![1];
+    const response = await fetch(new URL(`showcases/README.md/1/${module}`, url));
+    expect(response.headers.get('content-type')).toBe('text/javascript; charset=utf-8');
+    const code = await response.text();
+    expect(code).toContain('"development"');
+    expect(code).toContain('//# sourceMappingURL=data:application/json;');
+    const css = /<link rel="stylesheet" crossorigin href="\.\/(assets\/[^"]+)"/.exec(page)![1];
+    expect(await (await fetch(new URL(`showcases/README.md/1/${css}`, url))).text()).toContain('color: teal');
+    const logo = /new URL\("(logo-[\w-]+\.svg)", import\.meta\.url\)/.exec(code)![1];
+    const svg = await fetch(new URL(`showcases/README.md/1/assets/${logo}`, url));
+    expect(svg.headers.get('content-type')).toBe('image/svg+xml');
+    const lazy = /"\.\/(lazy-[\w-]+\.js)"/.exec(code)![1];
+    expect(await (await fetch(new URL(`showcases/README.md/1/assets/${lazy}`, url))).text()).toContain('"later"');
   });
 
   it('Stops at once with a signal aborted before it listens', async () => {

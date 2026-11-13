@@ -213,13 +213,10 @@ export async function check(root: string, options: CheckOptions = {}): Promise<C
   if (!project || issues.some((issue) => issue.severity === 'error')) return fail();
   const host: HostInformation = { project, documentation, code, showcases, virtualFiles };
 
-  // Build every showcase, if asked to, throwing the showcase frames away
+  // Build every showcase, if asked to, throwing the showcase frames away; build warnings fail nothing
   if (options.showcases) {
-    const built = getBuildShowcasesIssues(await buildShowcases({ root, host, configuration }));
-    if (built.length) {
-      issues.push(...built);
-      return fail();
-    }
+    issues.push(...getBuildShowcasesIssues(await buildShowcases({ root, host, configuration })));
+    if (issues.some((issue) => issue.severity === 'error')) return fail();
   }
   return { passed: true, host, issues };
 }

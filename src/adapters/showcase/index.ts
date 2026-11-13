@@ -37,6 +37,15 @@ export interface ShowcaseBuildRequest {
    */
   virtualFiles: VirtualFile[];
   /**
+   * Every virtual file of the host repository, in any folder, which resolve like real files where they are (e.g. by a relative path to another
+   * folder)
+   */
+  hostVirtualFiles: VirtualFile[];
+  /**
+   * Mode to build in: `development` in `serve` (e.g. unminified, with source maps), `production` in `build` and `check --showcases`
+   */
+  mode: 'development' | 'production';
+  /**
    * Absolute path of an empty scratch folder `showroom` created for this build, and removes after it, for tools that must write to disk
    */
   scratchFolder: string;
@@ -57,7 +66,7 @@ export interface ShowcaseBuildFile {
 }
 
 /**
- * Represents an error building a showcase
+ * Represents an error building a showcase, or a warning
  */
 export interface ShowcaseBuildError {
   /**
@@ -76,7 +85,7 @@ export interface ShowcaseBuildError {
 
 /**
  * Represents the outcome of building a showcase: either the showcase frame's files, or the errors that prevented building it; with the files the
- * build read either way, so that they can be watched for changes
+ * build read either way, so that they can be watched for changes, and the build's warnings, which fail nothing
  */
 export type ShowcaseBuildResult =
   | {
@@ -92,6 +101,10 @@ export type ShowcaseBuildResult =
        * POSIX-style paths, relative to the host repository's root, of the files the build read
        */
       reads: string[];
+      /**
+       * Warnings of the build, which `showroom` reports without failing anything
+       */
+      warnings?: ShowcaseBuildError[];
       errors?: undefined;
     }
   | {
@@ -101,6 +114,10 @@ export type ShowcaseBuildResult =
        * POSIX-style paths, relative to the host repository's root, of the files the build read
        */
       reads: string[];
+      /**
+       * Warnings of the build, which `showroom` reports without failing anything
+       */
+      warnings?: ShowcaseBuildError[];
       /**
        * Errors that prevented building the showcase
        */

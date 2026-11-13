@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** _`P7.1.1`_ (building `ts` showcases, `PLAN-P7.1-ts.md`) approved, ready to implement; _`P7.1.2`_ (type checking) not yet planned. _`P7.1`_ is split by _`D246`_; _`P7`_ (`PLAN-P7-ts-react.md`) approved; implementation is done up to _`P6`_. Specification: _`S6`_ (with _`S6.5`_, _`S6.6`_, and _`S6.7`_ re-approved 2026-11-13) and _`S7`_ approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_ and _`P6`_ are implemented and committed.
-- **Next free:** _`D271`_, _`S8`_, _`P8`_, _`O45`_, _`L12`_, _`R16`_, _`H1`_, _`K16`_
-- **Working on:** nothing; _`P7.1.1`_ approved.
-- **Next step:** implement _`P7.1.1`_ (its 8 steps), preferably in a fresh session; or plan _`P7.1.2`_ first, if the user prefers.
+- **Stage:** _`P7.1.1`_ (building `ts` showcases, `PLAN-P7.1-ts.md`) implemented and committed; _`P7.1.2`_ (type checking) not yet planned. _`P7.1`_ is split by _`D246`_; _`P7`_ (`PLAN-P7-ts-react.md`) approved; implementation is done up to _`P7.1.1`_. Specification: _`S6`_ (with _`S6.5`_, _`S6.6`_, and _`S6.7`_ re-approved 2026-11-13) and _`S7`_ approved; _`P1`_–_`P3`_, _`P4`_ (_`P4.1`_–_`P4.4`_), _`P5`_, _`P6`_ and _`P7.1.1`_ are implemented and committed.
+- **Next free:** _`D273`_, _`S8`_, _`P8`_, _`O45`_, _`L12`_, _`R16`_, _`H1`_, _`K16`_
+- **Working on:** nothing; _`P7.1.1`_ done.
+- **Next step:** plan _`P7.1.2`_ (type checking `ts` showcases), preferably in a fresh session.
 
 ## Open questions
 
@@ -171,3 +171,8 @@
 - 2026-11-13: _`P7.1.1`_ zero-context review started (option chosen: "Review first (Rec.)").
 - 2026-11-13: _`P7.1.1`_ zero-context review run (one subagent; "approve with fixes"; stray-write check clean): 14 findings; 11 fixes ("Apply all (Rec.)"), and 3 questions: the console panel's growth ("Both"), virtual CSS by `@import` ("Document, not support (Rec.)"), build warnings ("Add it now"); recorded as _`D261`_–_`D270`_.
 - 2026-11-13: _`P7.1.1`_ approved, and _`S6.7`_ re-approved (_`R15`_) (option chosen: "Approve and commit (Rec.)"); `questions-p7.1.1/`, `spike-self-reference/` and `review-p7.1.1/` working files deleted ("Delete them (Rec.)").
+- 2026-11-13: _`P7.1.1`_ implemented (steps 1–8, documentation and tests); 10 `ts` showcases build in about 0.1 s (_`D255`_: below 2 s, so _`O28`_ (PLAN-P4.3-serve.md) stays open); awaiting its checkpoint.
+- 2026-11-13: _`P7.1.1`_'s checkpoint: Q1 "Typed data: URL (Rec.)" (_`D271`_, applied); checkpoint answer "Discuss".
+- 2026-11-13: _`P7.1.1`_'s by-hand check: all but step 5 work; step 5's failure (a rebuilt `dist/` never seen) fixed by Q2 "Keep while failing (Rec.)" (_`D272`_).
+- 2026-11-13: _`P7.1.1`_'s by-hand step 5 rechecked after _`D272`_: the user: "That worked".
+- 2026-11-13: _`P7.1.1`_ approved at its checkpoint and committed (option chosen: "Approve and commit"); `check-p7.1.1/` working files deleted ("Delete it (Rec.)").

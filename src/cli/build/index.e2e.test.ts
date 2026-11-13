@@ -82,6 +82,27 @@ describe('cli/build (end to end)', () => {
     expect(bundle).toMatch(/showcases\/docs\/my%20notes%20%231\.md\/1\/index\.html\?hash=[0-9a-f]{8}/);
   });
 
+  it('Builds ts showcases into their showcase frames, and writes build warnings without failing', async () => {
+    const root = await copy('showcase-ts');
+    // A showcase whose build warns, added to the copy
+    await writeFile(join(root, 'demos', 'warning.ts'), "console.log(eval('1 + 1'));\n");
+    await writeFile(join(root, 'README.md'), `${await readFile(join(root, 'README.md'), 'utf8')}\nA [warning](./demos/warning.ts 'showcase=ts').\n`);
+    const { code, stderr } = await run(root);
+    expect(stderr).toMatch(/^warning: demos\/warning\.ts:1: Showcase README\.md#4 \(README\.md:\d+\): Use of direct `eval` function/);
+    expect(code).toBe(0);
+
+    // The page, and the bundle's chunks and assets next to it, with relative URLs
+    const frame = join(root, 'showroom', 'showcases', 'README.md', '1');
+    const page = await readFile(join(frame, 'index.html'), 'utf8');
+    expect(page).toContain('<div id="root"></div><div id="showroom-console" hidden></div>');
+    const assets = await readdir(join(frame, 'assets'));
+    expect(assets.map((name) => name.replace(/-[\w-]{8}\./, '.')).sort()).toEqual(['README.css', 'README.showcase-1.js', 'lazy.css', 'lazy.js', 'logo.svg']);
+    const entry = assets.find((name) => name.startsWith('README.showcase-1'))!;
+    expect(page).toContain(`<script type="module" crossorigin src="./assets/${entry}"></script>`);
+    expect(await readFile(join(frame, 'assets', entry), 'utf8')).toContain('`production`');
+    expect(await readFile(join(root, 'showroom', 'showcases', 'README.md', '3', 'index.html'), 'utf8')).toContain('src="./assets/linked-');
+  });
+
   it('Leaves the output folder untouched when a showcase does not build', async () => {
     const root = await copy('showcase-build-errors');
     await mkdir(join(root, 'showroom'));

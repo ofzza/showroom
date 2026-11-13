@@ -63,6 +63,8 @@ describe('adapters/showcase/html', () => {
       showcase,
       options: undefined,
       virtualFiles,
+      hostVirtualFiles: virtualFiles,
+      mode: 'production',
       scratchFolder: _ROOT,
     });
     const virtual = (path: string, content: string, kind: VirtualFileKind = 'entry'): VirtualFile => ({

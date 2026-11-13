@@ -180,13 +180,50 @@ The link must be an inline link (not a reference, nor an image) with a relative 
 
 The built-in showcase adapters:
 
-| Showcase adapter | Entry point                                                 | Options | Needs from the host repository |
-| ---------------- | ----------------------------------------------------------- | ------- | ------------------------------ |
-| `html`           | an `html` or `htm` code block, or an `.html` or `.htm` file | none    | nothing                        |
+| Showcase adapter | Entry point                                                                                                       | Options     | Needs from the host repository    |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------- | ----------- | --------------------------------- |
+| `html`           | an `html` or `htm` code block, or an `.html` or `.htm` file                                                       | none        | nothing                           |
+| `ts`             | a `ts`, `js`, `mts` or `mjs` code block (or `typescript`, `javascript`), or a `.ts`, `.mts`, `.js` or `.mjs` file | `typeCheck` | the packages its showcases import |
 
 An `html` showcase's showcase frame is its entry point, as the page, and **every resource of its documentation file's folder**, next to the page under its name, whether the page uses it or not. An entry point that starts (after whitespace and comments) with `<!doctype`, `<html`, `<head` or `<?xml` is a complete page, used as it is; anything else is a fragment, wrapped into a page of its own. Pages are UTF-8. Nothing else is followed or copied: the page isn't read for its relative references (`<script src>`, `<link href>`, `<img src>`), so they only reach those resources, and resolve as written for an inline showcase, or a linked page in its documentation file's folder. Keep other styles and scripts inline, or use absolute URLs. A resource named `index.html` would replace the page, and fails the build. (A script needs its closing tag, `<script src="./demo.js"></script>`: HTML has no self-closing `<script />`.)
 
-`ts`, `react` and `angular` showcase adapters are planned. A broken showcase is an error `showroom check` reports, with its documentation file and line: a broken marker, a marker anywhere else than after a code block's language or in an inline link's title, an unknown showcase adapter, options or an entry point the showcase adapter rejects, a virtual file's name that collides, a linked file that doesn't exist, and a showcase adapter's missing host requirements.
+`react` and `angular` showcase adapters are planned. A broken showcase is an error `showroom check` reports, with its documentation file and line: a broken marker, a marker anywhere else than after a code block's language or in an inline link's title, an unknown showcase adapter, options or an entry point the showcase adapter rejects, a virtual file's name that collides, a linked file that doesn't exist, and a showcase adapter's missing host requirements.
+
+### `ts` showcases
+
+A `ts` showcase's entry point is a TypeScript or JavaScript module, which `showroom` bundles with its own Vite (no Vite, PostCSS or bundler configuration of the host repository is read) and runs in its showcase frame's page. The page holds an empty `<div id="root">`, the **showcase frame root**, for the showcase to write to, and below it the **console panel**, listing what the showcase writes to the browser's console (`console.log`, `info`, `warn`, `error` and `debug`, styled by level), its uncaught errors and its rejected promises. The panel is hidden until something is logged, scrolls once it holds about 12 lines, and follows the showroom's theme; every call still reaches the browser's console. Values are shown readably: strings as they are, errors as their stack, objects and arrays as indented JSON. The page has no other content and no styles of its own beyond the browser's: write into `#root`, rather than replacing `document.body`, which holds the console panel too.
+
+````md
+```ts showcase=ts
+const button = document.createElement('button');
+let clicks = 0;
+button.textContent = 'Click me';
+button.onclick = () => console.log('Clicked', ++clicks, { at: new Date().toISOString() });
+document.getElementById('root')!.append(button);
+console.info('Ready');
+```
+````
+
+> Here is that block again, live (click the button to see the console panel grow):
+>
+> ```ts showcase=ts
+> const button = document.createElement('button');
+> let clicks = 0;
+> button.textContent = 'Click me';
+> button.onclick = () => console.log('Clicked', ++clicks, { at: new Date().toISOString() });
+> document.getElementById('root')!.append(button);
+> console.info('Ready');
+> ```
+
+What a `ts` showcase can import:
+
+- relative paths, to real files and to virtual files anywhere in the host repository, as if the virtual files were on disk: without an extension, by a `.js` specifier naming a `.ts` file, or by a folder holding an `index` file;
+- packages installed in the host repository's `node_modules`, and the host's own package by its name, through its `package.json`'s `exports` (so build it first, when they point at its `dist/`);
+- what Vite handles out of the box: CSS, JSON and assets (e.g. images). A virtual CSS file must be imported from TypeScript or JavaScript (`import './demo.css'`), as a CSS `@import` only reaches real files. Any other virtual file is imported as a `data:` URL of its text, typed by its extension (e.g. `image/svg+xml` for an `svg` resource, which an `<img>` can show; `text/plain` for an unknown one).
+
+Not supported for now: tsconfig `paths` aliases, and anything needing the host repository's own bundler configuration (e.g. SCSS without `sass` installed, environment variables). The host's PostCSS configuration is ignored; the settings Vite's TypeScript transform reads from the nearest `tsconfig.json` (e.g. `experimentalDecorators`, `useDefineForClassFields`) apply. There is no setup shared by a host repository's showcases: a showcase imports what it needs (global styles, polyfills) itself.
+
+`showroom serve` builds showcases in development mode (unminified, with inline source maps), and `build` and `check --showcases` in production mode (minified); `process.env.NODE_ENV`, `import.meta.env.MODE`, `import.meta.env.DEV` and `import.meta.env.PROD` follow the mode, as do packages' `development` and `production` conditions. Its only option, `typeCheck` (`showcase=ts({ typeCheck: false })`), is `true` by default; type checking is coming in a later release, and until then the option is accepted and has no effect. A `tsx` or `jsx` entry point is the planned `react` showcase adapter's.
 
 ### Showcase frames
 
@@ -225,7 +262,7 @@ A host repository can bring its own showcase adapter: a JavaScript (ES) module w
 [My widget](./src/widget.js 'showcase=my-frames({ "size": 2 })')
 ```
 
-Names follow the marker's rules, and can't be a built-in showcase adapter's (or a planned one's: `ts`, `react`, `angular`). Paths are relative to the host repository's root, inside it, to a `.js` or `.mjs` file. Every listed module is loaded by every `showroom check`, used or not, so each listed module runs the host repository's code; one that doesn't load, or doesn't implement the interface, is an error. Each module is loaded once per process, and once more whenever its content changes (in `serve`; the modules it imports are not loaded again), and its default export is called once per run (a `check`, then the showcases' build in `build`, `serve` or `check --showcases`; `serve` runs both again after every change), so every run gets a fresh showcase adapter object, closed at the end of that run.
+Names follow the marker's rules, and can't be a built-in showcase adapter's (or a planned one's: `react`, `angular`). Paths are relative to the host repository's root, inside it, to a `.js` or `.mjs` file. Every listed module is loaded by every `showroom check`, used or not, so each listed module runs the host repository's code; one that doesn't load, or doesn't implement the interface, is an error. Each module is loaded once per process, and once more whenever its content changes (in `serve`; the modules it imports are not loaded again), and its default export is called once per run (a `check`, then the showcases' build in `build`, `serve` or `check --showcases`; `serve` runs both again after every change), so every run gets a fresh showcase adapter object, closed at the end of that run.
 
 ```ts
 import type { ShowcaseAdapter } from '@ofzza/showroom';
@@ -253,7 +290,7 @@ export default (): ShowcaseAdapter => ({
 
 - `validate(showcase)` gets the `Showcase` with its options as the marker gives them, and returns `{ options, errors: [] }` (the options as the adapter will use them) or `{ errors: [...] }`.
 - `check?(root)` returns the host requirements that are missing (e.g. a package not installed), as messages; none means nothing is missing.
-- `build(request)` builds one showcase, called by `showroom build` and `showroom check --showcases`, one showcase at a time. It gets a `ShowcaseBuildRequest`: the host repository's absolute `root`, the `showcase`, its validated `options`, the `virtualFiles` of its documentation file's folder, resources and inline showcases' entry points told apart by their `kind` (in memory: they aren't on disk, so put them before your tooling yourself), and an empty `scratchFolder` for tools that must write to disk, removed after the build. It returns a `ShowcaseBuildResult`, with the files it `reads` (paths relative to the root) either way:
+- `build(request)` builds one showcase, called by `showroom build`, `showroom serve` and `showroom check --showcases`, one showcase at a time. It gets a `ShowcaseBuildRequest`: the host repository's absolute `root`, the `showcase`, its validated `options`, the `virtualFiles` of its documentation file's folder, resources and inline showcases' entry points told apart by their `kind` (in memory: they aren't on disk, so put them before your tooling yourself), every virtual file of the host repository as `hostVirtualFiles` (for imports reaching other folders), the `mode` to build in (`development` in `serve`, `production` in `build` and `check --showcases`), and an empty `scratchFolder` for tools that must write to disk, removed after the build. It returns a `ShowcaseBuildResult`, with the files it `reads` (paths relative to the root), and optionally `warnings` (shaped like errors, below; reported as warnings, failing nothing), either way:
   - the showcase frame: its `files`, each with a `path` relative to the showcase frame's folder (POSIX-style, with no `.`, `..` or empty segments, unique ignoring case) and its `content` (a string, or bytes as a `Uint8Array`), and the `page` among them (an `.html` or `.htm` file, UTF-8 if given as bytes). `showroom` adds its frame script to the page, and writes the files into the showcase frame's folder (`showcases/<documentation file's path>/<n>/` in the output folder), so relative references between them work;
   - or `errors`, each with a `message`, and the `path` (relative to the root) and `line` it concerns, if any. An error in a virtual file is reported in its documentation file, at its code block's line plus the error's; one without a path, at the showcase's entry point. A `build()` that throws, or returns anything else, fails the showcase too.
 - `close?()` is called once at the end of a run, so an adapter can share work between its showcases.
@@ -272,7 +309,7 @@ $ npx showroom check [--root <dir>] [--out-dir <dir>] [--showcases] [--quiet]
 
 `--out-dir` overrides `showroom.json`'s `outDir`, relative to the current directory (as `--root` is); `check` takes it so it skips the same files `build` would.
 
-`--showcases` also builds every showcase, as `showroom build` does, and throws the result away, once the rest of the check finds no errors. A showcase that doesn't build is an error, naming the showcase and its entry point (e.g. `error: README.md:16: Showcase README.md#2 (README.md:14): <message>`), placed where the build error is. Without it, `check` builds nothing, so it stays fast, and works without the host repository's dependencies installed; run `check --showcases` in CI to catch showcases that no longer build.
+`--showcases` also builds every showcase, as `showroom build` does, and throws the result away, once the rest of the check finds no errors. A showcase that doesn't build is an error, naming the showcase and its entry point (e.g. `error: README.md:16: Showcase README.md#2 (README.md:14): <message>`), placed where the build error is. A build's warnings are reported the same way, as warnings. Without it, `check` builds nothing, so it stays fast, and works without the host repository's dependencies installed; run `check --showcases` in CI to catch showcases that no longer build.
 
 Errors are: a missing or invalid `showroom.json`, an unknown `stack`, project information that can't be read, a source root that doesn't exist or is outside the host repository, an output folder that is the host repository's root or outside it, a [broken showcase](#showcases), and a [custom showcase adapter](#custom-showcase-adapters-experimental) that doesn't load. Warnings are: several documentation files of the same kind in one folder, and broken links. A link (or reference definition) in a Markdown documentation file is broken when its relative target, URL-decoded and without its query and fragment, leads outside the host repository, or to nothing on disk; links to fragments only, absolute URLs and images are not checked.
 
@@ -301,12 +338,12 @@ $ npx showroom serve [--root <dir>] [--port <port>] [--out-dir <dir>]
 ```
 
 - It checks the host repository first, as `showroom check` does. If the check fails, it writes the issues to `stderr` and exits with `1` without serving.
-- It then builds every showcase, and writes the check's issues and the showcases' build errors to `stderr`. A showcase that doesn't build doesn't stop it: its showcase frame shows its build errors instead (with each error's file and line), and every other showcase is shown as usual.
+- It then builds every showcase, in development mode, and writes the check's issues and the showcases' build errors and warnings to `stderr`. A showcase that doesn't build doesn't stop it: its showcase frame shows its build errors instead (with each error's file and line), and every other showcase is shown as usual.
 - It then serves the showroom with Vite's dev server on `--port` (default: `5173`, or the next free port), writing its URL to `stdout`, until you stop it with Ctrl+C. The showcase frames are served from memory, at the same paths `build` writes them to; nothing is written into the host repository.
 - It watches the host repository, skipping the files the `ignore` patterns skip, and the output folder (`--out-dir`, as for `check`). After any change it checks the host repository again and, when the check passes, builds every showcase again. It reloads the page when the project information or a documentation file changed, or a showcase was added, removed or moved; when only showcase frames changed (e.g. a linked showcase's page, or another file a build reads), only their iframes reload, and the page stays where it is. An inline showcase's code and a resource are part of their documentation file, which the page shows too, so editing them reloads the page. A failed check keeps showing the last good data. Changes to `showroom.json` apply without a restart, custom showcase adapters included.
-- The current issues (the check's errors and warnings, and the showcases' build errors) are shown in a bar at the top of the page, which you can collapse, and are written to `stderr` whenever they change. The bar is gone once there are none.
+- The current issues (the check's errors and warnings, and the showcases' build errors and warnings) are shown in a bar at the top of the page, which you can collapse, and are written to `stderr` whenever they change. The bar is gone once there are none.
 - A changed [custom showcase adapter](#custom-showcase-adapters-experimental) module is loaded again, but the modules it imports aren't: restart `serve` after changing them.
-- Files the `ignore` patterns skip (e.g. under `dist/`) aren't watched, so a showcase that depends on one isn't updated when it changes: in `serve`, showcases shouldn't depend on ignored files.
+- Files the `ignore` patterns skip (e.g. under `dist/`) aren't watched, except the files the latest showcase builds read (e.g. the host's own package's `dist/`, which a `ts` showcase imports by the package's name) and the custom showcase adapter modules: a change to one checks and builds again, as any change does, so `tsc --watch` running alongside `serve` updates the showcases. While a showcase doesn't build, the files earlier builds read stay watched too, so it recovers once they're back (e.g. after `dist/` is deleted and built again). They never become documentation or code files, and files under `node_modules` or `.git` are never watched.
 
 The showroom has a page per documentation file, its address in the URL's hash (e.g. `#/docs/guide.md`), and a home page with the project information and the root `README` (when the `README` opens with a level-1 heading, that heading is the home page's title, and the project information follows it). The navigation lists `README` (the home page), `CONTRIBUTING` and `LICENSE` first, whatever the root files' actual names (e.g. `CONTRIBUTE.md`, `LICENCE.txt`), then every other documentation file by its path. `.md` files are rendered as GitHub-flavoured Markdown, with syntax-highlighted code blocks and the same heading ids as on GitHub; other documentation files are shown as plain text. The navigation stays in view as a page scrolls; on a narrow (phone) viewport, below 768 px, it opens from the header's menu button instead. In Markdown:
 
@@ -325,7 +362,7 @@ $ npx showroom build [--root <dir>] [--out-dir <dir>]
 ```
 
 - It checks the host repository first, as `showroom check` does, writing the issues to `stderr`. If the check fails, it exits with `1` without building.
-- It then builds every showcase. If any doesn't build, it writes every build error to `stderr` (as `check --showcases` does), and exits with `1`, leaving the output folder untouched.
+- It then builds every showcase. If any doesn't build, it writes every build error to `stderr` (as `check --showcases` does), and exits with `1`, leaving the output folder untouched. The builds' warnings are written to `stderr` too, and don't fail it.
 - The output folder is `outDir` from `showroom.json` (default: `./showroom`), or `--out-dir`, relative to the current directory. It must be inside the host repository, and can't be its root.
 - **The output folder is emptied before every build.** To keep a mistyped `outDir` from deleting your files, every build writes a `.showroom` marker file into it, and `build` refuses (exiting with `1`) to empty a folder that holds anything but a `.showroom` file from an earlier build. A missing or empty folder is fine.
 - It writes the output folder's path to `stdout` once built, and exits with `0`. Warnings from the check don't fail it.
