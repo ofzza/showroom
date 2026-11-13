@@ -126,55 +126,103 @@ An **inline showcase** is a fenced code block with the marker right after its la
 
 ````md
 ```html showcase
-<button style="color: rebeccapurple" onclick="this.textContent = 'Clicked'">Click me</button>
+<style>
+  .n {
+    font: 1.5em monospace;
+    color: #0f6cbd;
+  }
+  .n b {
+    font-weight: normal;
+    color: #242424;
+    background: #fde300;
+  }
+  .n i {
+    font-style: normal;
+    color: #c50f1f;
+  }
+</style>
+<span class="n">1<b>,</b>234<b>,</b>567<b>.</b><i>89</i></span>
 ```
 ````
 
 > Here is that block again, as a live showcase in this repository's own showroom:
 >
 > ```html showcase
-> <button style="color: rebeccapurple" onclick="this.textContent = 'Clicked'">Click me</button>
+> <style>
+>   .n {
+>     font: 1.5em monospace;
+>     color: #0f6cbd;
+>   }
+>   .n b {
+>     font-weight: normal;
+>     color: #242424;
+>     background: #fde300;
+>   }
+>   .n i {
+>     font-style: normal;
+>     color: #c50f1f;
+>   }
+> </style>
+> <span class="n">1<b>,</b>234<b>,</b>567<b>.</b><i>89</i></span>
 > ```
 
-A code block marked `showcase file=<name>` is a **resource** instead: a file the showcases of its folder can use. Here, a stylesheet, and an inline showcase using it:
+A code block marked `showcase file=<name>` is a **resource** instead: a file the showcases of its folder can use. Here, the same styles as a stylesheet, and an inline showcase using it:
 
 ````md
-```css showcase file=demo.css
-.demo {
-  color: rebeccapurple;
+```css showcase file=figures.css
+.figure {
+  font: 1.5em monospace;
+  color: #0f6cbd;
+}
+.figure b {
+  font-weight: normal;
+  color: #242424;
+  background: #fde300;
+}
+.figure i {
+  font-style: normal;
+  color: #c50f1f;
 }
 ```
 
 ```html showcase
-<link rel="stylesheet" href="./demo.css" />
-<p class="demo">Styled by a resource</p>
+<link rel="stylesheet" href="./figures.css" /> <span class="figure">3<b>.</b><i>14159</i></span>
 ```
 ````
 
 > Here are those blocks again, live:
 >
-> ```css showcase file=demo.css
-> .demo {
->   color: rebeccapurple;
+> ```css showcase file=figures.css
+> .figure {
+>   font: 1.5em monospace;
+>   color: #0f6cbd;
+> }
+> .figure b {
+>   font-weight: normal;
+>   color: #242424;
+>   background: #fde300;
+> }
+> .figure i {
+>   font-style: normal;
+>   color: #c50f1f;
 > }
 > ```
 >
 > ```html showcase
-> <link rel="stylesheet" href="./demo.css" />
-> <p class="demo">Styled by a resource</p>
+> <link rel="stylesheet" href="./figures.css" /> <span class="figure">3<b>.</b><i>14159</i></span>
 > ```
 
-The code blocks of inline showcases and resources are **virtual files**: they resolve like real files in their documentation file's folder, so every documentation file in that folder, and other folders through relative paths, can use them. A resource is named by its `file` key, a plain file name. An inline showcase's entry point gets a generated name, `<documentation file's name>.showcase-<n>.<extension>`, where `<n>` is its position among the showcases in its documentation file, and `<extension>` comes from the code block's language (`typescript` gives `ts`, `javascript` gives `js`, `htm` gives `html`; any other language is used as is). The first showcase in `README.md`, the button above, is `README.showcase-1.html`. A virtual file's name may not collide, ignoring case, with another virtual file or a real file or folder in the same folder.
+The code blocks of inline showcases and resources are **virtual files**: they resolve like real files in their documentation file's folder, so every documentation file in that folder, and other folders through relative paths, can use them. A resource is named by its `file` key, a plain file name. An inline showcase's entry point gets a generated name, `<documentation file's name>.showcase-<n>.<extension>`, where `<n>` is its position among the showcases in its documentation file, and `<extension>` comes from the code block's language (`typescript` gives `ts`, `javascript` gives `js`, `htm` gives `html`; any other language is used as is). The first showcase in `README.md`, the number above, is `README.showcase-1.html`. A virtual file's name may not collide, ignoring case, with another virtual file or a real file or folder in the same folder.
 
 A **linked showcase** is a link to its entry point's file, with the marker as the link's title. The link stays an ordinary link anywhere else:
 
 ```md
-[The button demo](./examples/button.html 'showcase')
+[Formatted figures](./examples/figures.html 'showcase')
 ```
 
 > Here is that link again, live:
 >
-> [The button demo](./examples/button.html 'showcase')
+> [Formatted figures](./examples/figures.html 'showcase')
 
 The link must be an inline link (not a reference, nor an image) with a relative path, without a query or fragment, naming a file inside the host repository that isn't a virtual file. The files the entry point uses are ordinary files too, which a showcase adapter building from disk follows; the `html` showcase adapter follows none (see below). A title is a marker when its first word is `showcase`, or starts with `showcase=`, and must then be a valid marker.
 
@@ -250,14 +298,44 @@ The showcase frame follows the showroom's light or dark theme: the script sets i
 
 ````md
 ```html showcase
-<p style="color: light-dark(#0f6cbd, #479ef5)">A themed fragment</p>
+<style>
+  .themed {
+    font: 1.5em monospace;
+    color: light-dark(#0f6cbd, #479ef5);
+  }
+  .themed b {
+    font-weight: normal;
+    color: light-dark(#242424, #ffffff);
+    background: light-dark(#fde300, #8a3707);
+  }
+  .themed i {
+    font-style: normal;
+    color: light-dark(#c50f1f, #f1707b);
+  }
+</style>
+<span class="themed">2<b>.</b><i>71828</i></span>
 ```
 ````
 
 > Here is that block again, live (switch the showroom's theme to see it change):
 >
 > ```html showcase
-> <p style="color: light-dark(#0f6cbd, #479ef5)">A themed fragment</p>
+> <style>
+>   .themed {
+>     font: 1.5em monospace;
+>     color: light-dark(#0f6cbd, #479ef5);
+>   }
+>   .themed b {
+>     font-weight: normal;
+>     color: light-dark(#242424, #ffffff);
+>     background: light-dark(#fde300, #8a3707);
+>   }
+>   .themed i {
+>     font-style: normal;
+>     color: light-dark(#c50f1f, #f1707b);
+>   }
+> </style>
+> <span class="themed">2<b>.</b><i>71828</i></span>
 > ```
 
 ## Custom showcase adapters (experimental)

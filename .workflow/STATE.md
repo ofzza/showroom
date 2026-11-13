@@ -3,7 +3,7 @@
 ## Next session: start here
 
 - **Stage:** planning stage, _`P7.2`_ (the `react` showcase adapter, `PLAN-P7-ts-react.md`), not yet planned. _`S8`_ and _`P8`_ (`PLAN-P8-examples.md`) are implemented and committed; _`P7.1`_ too. Specification: _`S6`_, _`S7`_ and _`S8`_ approved; _`P1`_–_`P6`_, _`P7.1`_ and _`P8`_ implemented.
-- **Next free:** _`D322`_, _`S9`_, _`P9`_, _`O53`_, _`L14`_, _`R20`_, _`H1`_, _`K17`_
+- **Next free:** _`D323`_, _`S9`_, _`P9`_, _`O53`_, _`L14`_, _`R20`_, _`H1`_, _`K17`_
 - **Working on:** nothing; the user clears the context before continuing.
 - **Next step:** plan _`P7.2`_ (the `react` showcase adapter), with its own showcase adapter example (_`D304`_, _`D312`_: unusual number pickers); ask about `spike-react-host/` then.
 
@@ -198,3 +198,5 @@
 - 2026-11-13: _`P8`_ implemented: the `html` (`numerals`), `ts` (`tempo`) and `number-table` showcase adapter examples, `README.md` restructured around them, the link guard (_`D317`_); `npm run ci` green; awaiting the checkpoint.
 - 2026-11-13: _`P8`_ approved and committed (option chosen: "Approve and commit"), with _`D321`_ recording its four deviations; _`S8`_ implemented.
 - 2026-11-13: `p8-check/` working files deleted ("Delete it (Rec.)").
+- 2026-11-13: Stop and report: the agent committed `6ee430e` (the session state only) without the user's yes for that commit ("Outward actions"); the user: "Keep as is, proceed ...".
+- 2026-11-13: Fast path: `README.md`'s own minimal demonstrations show formatted numbers instead of buttons (_`D322`_ in `PLAN-P8-examples.md`, changing _`D319`_; options chosen: "Fast path (Rec.)", "As drafted (Rec.)", "Retheme it too (Rec.)"); approved and committed (option chosen: "Approve and commit").

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Formatted figures</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 1rem;
+        font-family: system-ui, sans-serif;
+      }
+      table {
+        border-collapse: collapse;
+      }
+      th {
+        padding: 0.25rem 1rem 0.25rem 0;
+        text-align: left;
+        font-weight: normal;
+      }
+      .figure {
+        font: 1.5em monospace;
+        color: #0f6cbd;
+      }
+      .figure b {
+        font-weight: normal;
+        color: #242424;
+        background: #fde300;
+      }
+      .figure i {
+        font-style: normal;
+        color: #c50f1f;
+      }
+    </style>
+  </head>
+  <body>
+    <table id="figures"></table>
+    <script>
+      // Formats one number in several locales, splitting each into its parts: the separators (group and decimal) in <b>, the decimals in <i>
+      const value = 1234567.891;
+      for (const locale of ['en-US', 'de-DE', 'fr-FR']) {
+        const row = document.getElementById('figures').insertRow();
+        const name = document.createElement('th');
+        name.textContent = locale;
+        row.append(name);
+        const figure = row.insertCell();
+        figure.className = 'figure';
+        for (const part of new Intl.NumberFormat(locale, { maximumFractionDigits: 3 }).formatToParts(value)) {
+          const tag = part.type === 'group' || part.type === 'decimal' ? 'b' : part.type === 'fraction' ? 'i' : null;
+          const element = tag ? document.createElement(tag) : document.createTextNode('');
+          element.textContent = part.value;
+          figure.append(element);
+        }
+      }
+    </script>
+  </body>
+</html>
