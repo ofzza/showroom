@@ -276,6 +276,10 @@ None (_`D61`_).
 
 - _`P9`_ Linked files (approved 2026-11-13): files that documentation files link to, copied into the showroom, opened in a modal or a new tab; relative images shown (_`S9`_, SPEC.md). [See Linked files](./PLAN-P9-linked-files.md)
 
+## Presenting showcases
+
+- _`P10`_ Presenting showcases (approved 2026-11-13, for its split and order): the code pane beside showcases, linked showcases shown as blocks, `include=`, code blocks with line numbers and a copy button, the console apart from what a showcase renders (_`S10`_, SPEC-S10-presentation.md), in five child segments _`P10.1`_–_`P10.5`_. [See Presenting showcases](./PLAN-P10-presentation.md)
+
 ## Known open issues
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: _`P9`_. Status: picked up by _`P9`_; resolved by _`D323`_ (SPEC.md), implemented by _`P9`_ 2026-11-13.
