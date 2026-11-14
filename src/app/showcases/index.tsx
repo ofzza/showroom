@@ -167,6 +167,11 @@ export interface ShowcaseFrameProps {
    * Class name added to the iframe's own (e.g. the code pane's block resetting its margin)
    */
   className?: string;
+  /**
+   * Minimum height of the iframe, in pixels, however short the showcase frame reports itself (e.g. the code pane's block, whose cycling button
+   * floats over its top-right corner); none by default
+   */
+  minHeight?: number;
 }
 
 /**
@@ -176,7 +181,7 @@ export interface ShowcaseFrameProps {
  * @param props Properties of the component
  * @returns The iframe
  */
-export function ShowcaseFrame({ showcase, className }: ShowcaseFrameProps): ReactNode {
+export function ShowcaseFrame({ showcase, className, minHeight }: ShowcaseFrameProps): ReactNode {
   const styles = _useStyles();
   const theme = useContext(ThemeContext);
   const frame = useRef<HTMLIFrameElement>(null);
@@ -215,7 +220,11 @@ export function ShowcaseFrame({ showcase, className }: ShowcaseFrameProps): Reac
       title={getShowcaseFrameTitle(showcase)}
       loading="lazy"
       // The iframe's own border is inside its height (border-box), on top of its content's
-      style={{ height: `calc(${height ?? DEFAULT_FRAME_HEIGHT}px + 2 * ${tokens.strokeWidthThin})`, colorScheme: theme }}
+      style={{
+        height: `calc(${height ?? DEFAULT_FRAME_HEIGHT}px + 2 * ${tokens.strokeWidthThin})`,
+        ...(minHeight === undefined ? {} : { minHeight: `${minHeight}px` }),
+        colorScheme: theme,
+      }}
       onLoad={sendTheme}
     />
   );

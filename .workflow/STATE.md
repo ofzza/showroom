@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation stage (_`P10.5`_); _`P10`_ Presenting showcases approved for its split (_`P10.1`_–_`P10.5`_); _`P10.1`_–_`P10.4`_ implemented, _`P10.5`_ approved. _`P1`_–_`P9`_ implemented.
-- **Next free:** _`D436`_, _`S11`_, _`P11`_, _`O68`_, _`L15`_, _`R33`_, _`H1`_, _`K20`_
-- **Working on:** _`P10.5`_ The console, approved (`./.workflow/PLAN-P10.5-console.md`), not started.
-- **Next step:** implement _`P10.5`_, step 1 (the console script).
+- **Stage:** between segments: _`P1`_–_`P10`_ implemented (_`P10.5`_, the last of _`P10`_, on 2026-11-14).
+- **Next free:** _`D438`_, _`S11`_, _`P11`_, _`O68`_, _`L15`_, _`R33`_, _`H1`_, _`K20`_
+- **Working on:** nothing in progress; _`P10.5`_ implemented and committed.
+- **Next step:** ask the user what to work on next (e.g. the open points of _`S6`_ (_`O16`_–_`O19`_), the known open issues in `PLAN.md`, or a new specification segment); ask before deleting `./.workflow/.temp/p10.5-check/` and `ci-p10.5.log`.
 
 ## Open questions
 
@@ -13,13 +13,13 @@
 
 ## Waiting on me
 
-- Deleting `./.workflow/.temp/review-p10.5/` (its outcomes are written into `PLAN-P10.5-console.md` and `PLAN.md`) once the user confirms.
+- Deleting `./.workflow/.temp/p10.5-check/` (the console's check host) and `./.workflow/.temp/ci-p10.5.log`, once the user confirms.
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
 ## Running
 
-- Nothing.
+- The dogfood `serve` (http://localhost:5180/) and the check host's `serve` (http://localhost:5181/), started for _`P10.5`_'s checkpoint; a new session finds them gone.
 
 ## History
 
@@ -259,3 +259,7 @@
 - 2026-11-14: _`P10.5`_ planning started; its six choices settled (_`D424`_–_`D429`_; Q1: "8 lines, separate", Q2–Q6 the recommendations); drafted in `PLAN-P10.5-console.md`.
 - 2026-11-14: _`P10.5`_'s draft reviewed (one zero-context reviewer, 20 findings, stray-write check clean); QA–QD settled (_`D432`_–_`D435`_: "Once per load (Rec.)", "Text or visual only (Rec.)", "Accept (Rec.)", "2 s ceiling (Rec.)"); 15 fixes applied to the draft; _`L14`_ recorded.
 - 2026-11-14: _`P10.5`_ approved (option chosen: "Approve and commit (Rec.)"), after its zero-context review; _`O60`_ resolved.
+- 2026-11-14: _`P10.5`_ steps 1–3 implemented (the console script, its tests, the documentation); `npm run ci` green; the check host and both `serve`s started for the user's browser check.
+- 2026-11-14: _`P10.5`_'s browser check: the user asked for the open console to leave the cycling button's row (_`D436`_: "Always leave 32px (Rec.)") and a minimum height for showcase frames in blocks (_`D437`_: "Blocks, 64px, showroom (Rec.)"); both implemented.
+- 2026-11-14: _`P10.5`_'s browser check passed (option chosen: "Looks good").
+- 2026-11-14: _`P10.5`_ implemented, re-approved with _`D436`_, _`D437`_ and committed (option chosen: "Approve and commit"); `npm run ci` green; _`P10`_ implemented.

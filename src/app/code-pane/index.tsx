@@ -59,6 +59,12 @@ export const CODE_PANE_MIN_LINES = 6;
 export const CODE_PANE_MAX_LINES = 20;
 
 /**
+ * Minimum height of the showcase frame in a block, in pixels: the cycling button's row, floating over its top-right corner while the code pane is
+ * hidden, and a console panel's counter's row at its bottom (`src/adapters/showcase/ts/console/`), so the two never overlap
+ */
+export const SHOWCASE_BLOCK_FRAME_MIN_HEIGHT = 64;
+
+/**
  * Width of the block, in pixels, below which the code pane is stacked below the showcase frame
  */
 export const CODE_PANE_STACK_WIDTH = 720;
@@ -221,7 +227,7 @@ export function ShowcaseBlock({ showcase, documentation, initialState = INITIAL_
     <div className={styles.container} data-code-pane-state={state} style={{ [_MIN_LINES_PROPERTY]: getCodePaneMinLines(text) } as CSSProperties}>
       <div className={mergeClasses(styles.grid, state === 'half' && styles.gridHalf)}>
         <div className={styles.frame} inert={state === 'full'}>
-          <ShowcaseFrame showcase={showcase} className={styles.frameIframe} />
+          <ShowcaseFrame showcase={showcase} className={styles.frameIframe} minHeight={SHOWCASE_BLOCK_FRAME_MIN_HEIGHT} />
         </div>
         <div
           className={mergeClasses(

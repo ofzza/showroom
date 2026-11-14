@@ -7,7 +7,15 @@ import { renderToString } from 'react-dom/server';
 import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-components';
 import type { ShownShowcase } from '../host/index.js';
 import { MISSING_FILE_MESSAGE } from '../file-modal/index.js';
-import { CODE_PANE_BUTTON_LABELS, INITIAL_CODE_PANE_STATE, ShowcaseBlock, getCodePaneMinLines, getNextCodePaneState, type CodePaneState } from './index.js';
+import {
+  CODE_PANE_BUTTON_LABELS,
+  INITIAL_CODE_PANE_STATE,
+  SHOWCASE_BLOCK_FRAME_MIN_HEIGHT,
+  ShowcaseBlock,
+  getCodePaneMinLines,
+  getNextCodePaneState,
+  type CodePaneState,
+} from './index.js';
 
 /**
  * A code block showcase with an included virtual file and an included linked file
@@ -68,6 +76,14 @@ describe('app/code-pane', () => {
     expect(html).not.toContain('.big {}');
     const tabId = /<button [^>]*aria-selected="true"[^>]*id="([^"]+)"|<button [^>]*id="([^"]+)"[^>]*aria-selected="true"/.exec(html);
     expect(html).toContain(`aria-labelledby="${tabId![1] ?? tabId![2]}"`);
+  });
+
+  it('Gives the showcase frame a minimum height in every state', () => {
+    // A short showcase frame would put a console panel's counter, at its bottom, under the cycling button floating over its top-right corner
+    expect(SHOWCASE_BLOCK_FRAME_MIN_HEIGHT).toBe(64);
+    for (const state of ['hidden', 'half', 'full'] as const) {
+      expect(_render(_SHOWCASE, state)).toMatch(new RegExp(`<iframe [^>]*style="[^"]*min-height:${SHOWCASE_BLOCK_FRAME_MIN_HEIGHT}px`));
+    }
   });
 
   it('Shows the tab list with a single tab too', () => {

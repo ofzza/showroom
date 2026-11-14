@@ -1,6 +1,6 @@
 # _`P10`_ Presenting showcases
 
-re-approved 2026-11-13 with _`R27`_, _`R28`_ (option chosen: "Approve and commit (Rec.)"); approved 2026-11-13, for its split and order (_`D384`_) (option chosen: "Approve and commit (Rec.)"), without a zero-context review
+implemented 2026-11-14, with its last child, _`P10.5`_; re-approved 2026-11-13 with _`R27`_, _`R28`_ (option chosen: "Approve and commit (Rec.)"); approved 2026-11-13, for its split and order (_`D384`_) (option chosen: "Approve and commit (Rec.)"), without a zero-context review
 
 ## Goals
 
@@ -28,7 +28,7 @@ Each is planned, approved, implemented and checkpointed on its own, in this orde
 - **_`P10.2`_ Code blocks and links** (implemented 2026-11-13; [See Code blocks and links](./PLAN-P10.2-code-blocks.md)) (_`D366`_–_`D368`_, _`D379`_): every code block in the showroom highlighted with line numbers in a gutter that isn't selected, and a copy button; a resource's name as its caption; the "code" icon after links to linked files. The showroom only.
 - **_`P10.3`_ The new keys** (implemented 2026-11-13; [See The new keys](./PLAN-P10.3-keys.md)) (_`D357`_–_`D365`_, _`D374`_, _`D375`_, _`D378`_, _`D380`_): `inline`, `block` and `include=` in the marker grammar and `check`'s errors; `Showcase` gaining its included files and how a linked showcase is shown; included real files collected as linked files (copied, served, watched); the `html` build copying included files next to its page (_`O62`_'s part on included files; the shown host information moved to _`P10.4`_ by _`D394`_ (PLAN-P10.3-keys.md)). The showroom still shows a linked showcase shown as a block as it shows one shown inline, until _`P10.4`_.
 - **_`P10.4`_ The code pane** (implemented 2026-11-14; [See The code pane](./PLAN-P10.4-code-pane.md)) (_`D352`_–_`D356`_, _`D362`_, _`D372`_, _`D373`_, _`D376`_): the code pane and its three states, side by side or stacked by a container query, its tabs; blocks replacing their fence or paragraph; what the shown host information gains (_`O62`_, _`D394`_ (PLAN-P10.3-keys.md)); the modal's tabs for a linked showcase shown inline; its sizes (_`O63`_), one cycling button, and the tabs' hashed URLs (_`O67`_); _`K17`_ and _`K18`_. Then `README.md`'s sections on `block` and `include=` (_`D398`_ (PLAN-P10.3-keys.md)), the cheat-sheet (_`D370`_) and this repository's own documentation (_`D381`_).
-- **_`P10.5`_ The console** (approved 2026-11-14; [See The console](./PLAN-P10.5-console.md)) (_`D369`_, _`D377`_): the console's two modes, the fading lines, the counter, errors, the switch at run time (_`O60`_).
+- **_`P10.5`_ The console** (implemented 2026-11-14; [See The console](./PLAN-P10.5-console.md)) (_`D369`_, _`D377`_): the console's two modes, the fading lines, the counter, errors, the switch at run time (_`O60`_).
 
 ## Decisions
 
@@ -54,7 +54,7 @@ Taken from _`S10`_ (SPEC-S10-presentation.md):
 - [x] _`O62`_ (SPEC-S10-presentation.md; resolved by _`D393`_, _`D395`_ (PLAN-P10.3-keys.md), _`D404`_ (PLAN-P10.4-code-pane.md)) What the shown host information gains for the code pane, and how included files reach the showroom.
 - [x] _`O63`_ (SPEC-S10-presentation.md; resolved by _`D405`_ (PLAN-P10.4-code-pane.md)) The code pane's minimum and maximum number of lines, and the width at which it stacks.
 - [ ] _`O64`_ (SPEC-S10-presentation.md) Implementation notes: the `pre` override with a gutter, the copy button outside secure contexts, the modal's tabs.
-- [ ] _`O65`_ (SPEC-S10-presentation.md) The tests and documentation of each plan segment.
+- [x] _`O65`_ (SPEC-S10-presentation.md; done by _`P10.1`_–_`P10.5`_, each for its part) The tests and documentation of each plan segment.
 - [x] _`O66`_ (SPEC-S10-presentation.md; resolved by _`D382`_) A split to consider with _`O61`_.
 
 - [x] _`O67`_ (resolved by _`D406`_ (PLAN-P10.4-code-pane.md)) From review 2026-11-13 #13 (of _`P10.3`_): for _`P10.4`_: in `serve`, a changed included file that no showcase frame uses (e.g. a `ts` include it doesn't import) changes no frame's hash, so `serve` sends nothing and its tab goes stale: `serve` signals the change, or the tabs refetch.

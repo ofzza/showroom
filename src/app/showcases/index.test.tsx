@@ -158,6 +158,7 @@ describe('app/showcases', () => {
       expect(html).toContain('loading="lazy"');
       expect(html).toContain(`height:calc(${DEFAULT_FRAME_HEIGHT}px + 2 * var(--strokeWidthThin))`);
       expect(html).toContain('color-scheme:dark');
+      expect(html).not.toContain('min-height');
       // The showcase is the host repository's own code, so it isn't sandboxed, and keeps its storage and cookies
       expect(html).not.toContain('sandbox');
       expect(render('light')).toContain('&amp;theme=light');
