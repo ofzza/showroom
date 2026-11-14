@@ -280,6 +280,12 @@ None (_`D61`_).
 
 - _`P10`_ Presenting showcases (approved 2026-11-13, for its split and order; implemented 2026-11-14): the code pane beside showcases, linked showcases shown as blocks, `include=`, code blocks with line numbers and a copy button, the console apart from what a showcase renders (_`S10`_, SPEC-S10-presentation.md), in five child segments _`P10.1`_–_`P10.5`_. [See Presenting showcases](./PLAN-P10-presentation.md)
 
+## The `angular` showcase adapter
+
+- _`P11`_ Showcases: the `angular` showcase adapter (implemented 2026-11-14; approved 2026-11-14, for its split and decisions), in two child segments, _`P11.1`_ the showcase adapter and _`P11.2`_ its example (_`S6.4`_, SPEC-S6-showcases.md). [See The `angular` showcase adapter](./PLAN-P11-angular.md)
+- _`P12`_ The code sidebar (implemented 2026-11-14; approved 2026-11-14): linked files and the code pane's tabs in a modal panel from the right, replacing the modal and the code pane's full state (_`D474`_–_`D477`_, SPEC-S10-presentation.md). [See The code sidebar](./PLAN-P12-code-sidebar.md)
+- _`P13`_ The Markdown tab, on request (implemented 2026-11-14; approved 2026-11-14): a showcase shown as a block shows its Markdown tab only when `showroom.json` sets `exposeShowcaseMarkdownSyntax`, then first and selected (_`D484`_, SPEC-S10-presentation.md). [See The Markdown tab, on request](./PLAN-P13-markdown-tab.md)
+
 ## Known open issues
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: _`P9`_. Status: picked up by _`P9`_; resolved by _`D323`_ (SPEC.md), implemented by _`P9`_ 2026-11-13.

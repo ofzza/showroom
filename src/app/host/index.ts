@@ -10,7 +10,7 @@ export { getFolder };
 // #region Shown host information
 
 /**
- * Represents where a tab of a showcase's code pane (or modal) gets its content: a virtual file's content, shipped with it (`virtual`); a
+ * Represents where a tab of a showcase's code pane (or code sidebar) gets its content: a virtual file's content, shipped with it (`virtual`); a
  * documentation file, looked up in the shown documentation files (`documentation`); a linked file, fetched from its URL (`file`); or a file that
  * isn't copied into the showroom (`missing`: a linked showcase's entry point `check` left out of the linked files, with a warning)
  */
@@ -54,7 +54,7 @@ export type ShownTabSource =
     };
 
 /**
- * Represents a tab of a showcase's code pane, or of its modal: one of its files, the entry point first, then its included files
+ * Represents a tab of a showcase's code pane, or of its code sidebar: one of its files, the entry point first, then its included files
  */
 export interface ShownTab {
   /**

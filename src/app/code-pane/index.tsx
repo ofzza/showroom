@@ -1,15 +1,15 @@
 /**
- * The code pane: a showcase shown as a block, its showcase frame beside its code (a tab per file), the code hidden, beside the showcase frame or over
- * it, switched by one cycling button; side by side, or stacked when the block is narrow, by a container query alone, around a showcase frame that is
- * never moved, so it never reloads
+ * The code pane: a showcase shown as a block, its showcase frame beside its code (a tab per file), the code hidden, beside the showcase frame, or in
+ * the code sidebar, switched by one cycling button; side by side, or stacked when the block is narrow, by a container query alone, around a showcase
+ * frame that is never moved, so it never reloads
  */
 
 import { useId, useState, type CSSProperties, type ReactNode } from 'react';
 import { Button, makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
-import { ArrowMaximize16Regular, Code16Regular, EyeOff16Regular } from '@fluentui/react-icons';
+import { Code16Regular, PanelRight16Regular } from '@fluentui/react-icons';
 import type { DocumentationFile } from '../../host/index.js';
 import { CopyButton, countLines } from '../code/index.js';
-import { ShownTabList, ShownTabView, getFetchedTabUrl, getShownTabText, getTabId, useLinkedFileContent } from '../file-modal/index.js';
+import { CodeSidebar, ShownTabList, ShownTabView, getFetchedTabUrl, getShownTabText, getTabId, useLinkedFileContent } from '../code-sidebar/index.js';
 import type { ShownShowcase } from '../host/index.js';
 import { ShowcaseFrame } from '../showcases/index.js';
 
@@ -17,9 +17,9 @@ import { ShowcaseFrame } from '../showcases/index.js';
 
 /**
  * Represents the state of a code pane: hidden (the showcase frame alone), half (the code pane beside the showcase frame, or below it when stacked),
- * or full (the code pane over the showcase frame, covering it)
+ * or sidebar (the showcase frame alone, its tabs in the code sidebar, without the cycling button until the code sidebar closes)
  */
-export type CodePaneState = 'hidden' | 'half' | 'full';
+export type CodePaneState = 'hidden' | 'half' | 'sidebar';
 
 /**
  * The state every code pane starts in, each time a page is shown
@@ -27,21 +27,21 @@ export type CodePaneState = 'hidden' | 'half' | 'full';
 export const INITIAL_CODE_PANE_STATE: CodePaneState = 'hidden';
 
 /**
- * Gets the state the cycling button switches a code pane to: hidden, then half, then full, then hidden again
+ * Gets the state the cycling button switches a code pane to: hidden, then half, then sidebar; closing the code sidebar goes back to hidden
  * @param state The code pane's state
  * @returns The next state
  */
 export function getNextCodePaneState(state: CodePaneState): CodePaneState {
-  return state === 'hidden' ? 'half' : state === 'half' ? 'full' : 'hidden';
+  return state === 'hidden' ? 'half' : state === 'half' ? 'sidebar' : 'hidden';
 }
 
 /**
- * Labels of the cycling button (its tooltip and accessible name), by the code pane's state: each says what the button switches to
+ * Labels of the cycling button (its tooltip and accessible name), by the code pane's state: each says what the button switches to; there is no
+ * cycling button while the code sidebar is open
  */
-export const CODE_PANE_BUTTON_LABELS: Record<CodePaneState, string> = {
+export const CODE_PANE_BUTTON_LABELS: Record<Exclude<CodePaneState, 'sidebar'>, string> = {
   hidden: 'Show the code',
-  half: 'Show the code over the showcase',
-  full: 'Hide the code',
+  half: 'Show the code in a sidebar',
 };
 
 // #endregion
@@ -54,7 +54,7 @@ export const CODE_PANE_BUTTON_LABELS: Record<CodePaneState, string> = {
 export const CODE_PANE_MIN_LINES = 6;
 
 /**
- * The most lines of code the code pane shows when it takes its content's height (stacked, or full); beyond them it scrolls
+ * The most lines of code the code pane shows when it takes its content's height (stacked); beyond them it scrolls
  */
 export const CODE_PANE_MAX_LINES = 20;
 
@@ -172,14 +172,11 @@ const _useStyles = makeStyles({
       borderTop: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
     },
   },
-  // Over the showcase frame, in its cell, at least as high as it
-  paneFull: { gridColumn: '1', gridRow: '1', zIndex: 1 },
   // The tab list, then the copy button at its right end, room left for the cycling button beside it
   header: { display: 'flex', alignItems: 'center', minHeight: _HEADER_HEIGHT, paddingRight: '36px', overflowX: 'auto' },
   copy: { marginLeft: 'auto', flexShrink: 0 },
   code: { flex: '1 1 auto', minHeight: '0', display: 'flex', flexDirection: 'column' },
-  // Stacked, or full: the code takes its content's height, between the minimum and the maximum
-  codeBounded: { minHeight: _MIN_CODE_HEIGHT, maxHeight: _MAX_CODE_HEIGHT },
+  // Stacked: the code takes its content's height, between the minimum and the maximum
   codeHalf: { [_STACKED]: { minHeight: _MIN_CODE_HEIGHT, maxHeight: _MAX_CODE_HEIGHT } },
   // The cycling button: in the code pane's top-right corner, or the showcase frame's while the code pane is hidden
   button: { gridColumn: '1', gridRow: '1', justifySelf: 'end', alignSelf: 'start', zIndex: 2, margin: tokens.spacingVerticalXS },
@@ -207,7 +204,7 @@ export interface ShowcaseBlockProps {
 
 /**
  * Renders a showcase shown as a block: its showcase frame and its code pane (the tab list and the copy button above the selected tab's code), and
- * the cycling button
+ * the cycling button; in the sidebar state, the showcase frame alone, and the code sidebar with its tabs, from the selected one
  * @param props Properties of the component
  * @returns The block
  */
@@ -219,46 +216,37 @@ export function ShowcaseBlock({ showcase, documentation, initialState = INITIAL_
   const tabs = showcase.tabs;
   const index = Math.min(selected, tabs.length - 1);
   const tab = tabs[index];
-  // Fetched once shown: never while the code pane is hidden
-  const content = useLinkedFileContent(state === 'hidden' ? undefined : getFetchedTabUrl(tab));
+  // Fetched once shown beside the showcase frame: the code sidebar fetches its own
+  const content = useLinkedFileContent(state === 'half' ? getFetchedTabUrl(tab) : undefined);
   const text = getShownTabText(tab, documentation, content);
-  const label = CODE_PANE_BUTTON_LABELS[state];
   return (
     <div className={styles.container} data-code-pane-state={state} style={{ [_MIN_LINES_PROPERTY]: getCodePaneMinLines(text) } as CSSProperties}>
       <div className={mergeClasses(styles.grid, state === 'half' && styles.gridHalf)}>
-        <div className={styles.frame} inert={state === 'full'}>
+        <div className={styles.frame}>
           <ShowcaseFrame showcase={showcase} className={styles.frameIframe} minHeight={SHOWCASE_BLOCK_FRAME_MIN_HEIGHT} />
         </div>
-        <div
-          className={mergeClasses(
-            styles.pane,
-            state === 'hidden' && styles.paneHidden,
-            state === 'half' && styles.paneHalf,
-            state === 'full' && styles.paneFull,
-          )}
-        >
+        <div className={mergeClasses(styles.pane, state === 'half' ? styles.paneHalf : styles.paneHidden)}>
           <div className={styles.header}>
             <ShownTabList tabs={tabs} selected={index} onSelect={setSelected} idPrefix={idPrefix} />
             {text !== undefined && <CopyButton text={text} className={styles.copy} />}
           </div>
-          <div
-            className={mergeClasses(styles.code, state === 'full' && styles.codeBounded, state === 'half' && styles.codeHalf)}
-            role="tabpanel"
-            aria-labelledby={getTabId(idPrefix, index)}
-          >
+          <div className={mergeClasses(styles.code, styles.codeHalf)} role="tabpanel" aria-labelledby={getTabId(idPrefix, index)}>
             {tab && <ShownTabView tab={tab} documentation={documentation} content={content} fill copy={false} />}
           </div>
         </div>
-        <Button
-          className={mergeClasses(styles.button, state === 'half' && styles.buttonHalf, state === 'hidden' && styles.buttonHidden)}
-          appearance="subtle"
-          size="small"
-          icon={state === 'hidden' ? <Code16Regular /> : state === 'half' ? <ArrowMaximize16Regular /> : <EyeOff16Regular />}
-          aria-label={label}
-          title={label}
-          onClick={() => setState(getNextCodePaneState)}
-        />
+        {state !== 'sidebar' && (
+          <Button
+            className={mergeClasses(styles.button, state === 'half' && styles.buttonHalf, state === 'hidden' && styles.buttonHidden)}
+            appearance="subtle"
+            size="small"
+            icon={state === 'hidden' ? <Code16Regular /> : <PanelRight16Regular />}
+            aria-label={CODE_PANE_BUTTON_LABELS[state]}
+            title={CODE_PANE_BUTTON_LABELS[state]}
+            onClick={() => setState(getNextCodePaneState)}
+          />
+        )}
       </div>
+      <CodeSidebar tabs={tabs} documentation={documentation} open={state === 'sidebar'} initialTab={index} onClose={() => setState('hidden')} />
     </div>
   );
 }

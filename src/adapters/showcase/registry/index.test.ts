@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { copyFixture } from '../../../testing/index.js';
 import { HtmlShowcaseAdapter } from '../html/index.js';
+import { AngularShowcaseAdapter } from '../angular/index.js';
 import { ReactShowcaseAdapter } from '../react/index.js';
 import { TsShowcaseAdapter } from '../ts/index.js';
 import { checkHostCheckResult, createShowcaseAdapter, getShowcaseAdapterNames, loadCustomShowcaseAdapters, PLANNED_SHOWCASE_ADAPTER_NAMES } from './index.js';
@@ -22,17 +23,17 @@ describe('adapters/showcase/registry', () => {
   // way of getting it wrong. Each module's default export is a factory of showcase adapter objects.
 
   it('Lists and creates the built-in showcase adapters', () => {
-    expect(getShowcaseAdapterNames()).toEqual(['html', 'react', 'ts']);
+    expect(getShowcaseAdapterNames()).toEqual(['angular', 'html', 'react', 'ts']);
     expect(createShowcaseAdapter('html')).toBeInstanceOf(HtmlShowcaseAdapter);
     expect(createShowcaseAdapter('html')).not.toBe(createShowcaseAdapter('html'));
     expect(createShowcaseAdapter('ts')).toBeInstanceOf(TsShowcaseAdapter);
     expect(createShowcaseAdapter('react')).toBeInstanceOf(ReactShowcaseAdapter);
-    expect(createShowcaseAdapter('angular')).toBeUndefined();
+    expect(createShowcaseAdapter('angular')).toBeInstanceOf(AngularShowcaseAdapter);
     expect(createShowcaseAdapter('toString')).toBeUndefined();
   });
 
-  it('Reserves the planned built-in names', () => {
-    expect(PLANNED_SHOWCASE_ADAPTER_NAMES).toEqual(['angular']);
+  it('Reserves no planned built-in name, now that angular is built in', () => {
+    expect(PLANNED_SHOWCASE_ADAPTER_NAMES).toEqual([]);
   });
 
   it('Loads custom showcase adapters', async () => {

@@ -1,28 +1,25 @@
 /**
- * The linked files' modal: a text linked file's content, fetched when it opens, highlighted with line numbers, under its path, with a link opening
- * the file in a new tab, and a close button; for a linked showcase shown inline with included files, a tab per file. Also what the code pane shares
- * with it: fetching a linked file by its URL, the tab list, and a tab's content.
+ * The code sidebar: a panel opening from the right over the showroom, showing a text linked file's content, fetched when it opens, highlighted with
+ * line numbers, under its name, with a link opening the file in a new tab, and a close button; for a linked showcase shown inline with included
+ * files, or a code pane, a tab per file. Also what the code pane shares with it: fetching a linked file by its URL, the tab list, and a tab's content.
  */
 
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import {
   Button,
-  Dialog,
-  DialogActions,
-  DialogBody,
-  DialogContent,
-  DialogSurface,
-  DialogTitle,
+  DrawerBody,
+  DrawerHeader,
   Link,
   MessageBar,
   MessageBarBody,
+  OverlayDrawer,
   Spinner,
   Tab,
   TabList,
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
-import { Open16Regular } from '@fluentui/react-icons';
+import { Dismiss24Regular, Open16Regular } from '@fluentui/react-icons';
 import type { DocumentationFile, LinkedFile } from '../../host/index.js';
 import { getLanguage, getLinkedFileUrl } from '../../linked-files/index.js';
 import { HighlightedCode } from '../code/index.js';
@@ -31,7 +28,7 @@ import type { ShownTab } from '../host/index.js';
 // #region Content
 
 /**
- * Represents the content of a linked file shown in the modal or a tab: being fetched, fetched, or failed to fetch
+ * Represents the content of a linked file shown in the code sidebar or a tab: being fetched, fetched, or failed to fetch
  */
 export type LinkedFileContent =
   | {
@@ -144,7 +141,7 @@ export const MISSING_FILE_MESSAGE = "This file isn't copied into the showroom.";
 export const MISSING_DOCUMENTATION_MESSAGE = "This documentation file isn't in the showroom.";
 
 /**
- * Represents the properties of a linked file's content in the modal
+ * Represents the properties of a linked file's content in the code sidebar
  */
 export interface LinkedFileViewProps {
   /**
@@ -335,46 +332,55 @@ export function ShownTabList({ tabs, selected, onSelect, idPrefix, className }: 
 
 // #endregion
 
-// #region Modal
+// #region Code sidebar
 
 /**
- * Space the modal always leaves above and below it, so it never fills the viewport's height, in pixels
+ * The code sidebar's width, as a share of the viewport's
  */
-export const DIALOG_VERTICAL_MARGIN = 32;
+export const CODE_SIDEBAR_WIDTH = '66vw';
 
 /**
- * Padding of FluentUI's dialog surface, which its body's maximum height leaves out
+ * The code sidebar's minimum width, in pixels, unless the viewport is narrower
  */
-const _SURFACE_PADDING = '24px';
+export const CODE_SIDEBAR_MIN_WIDTH = 400;
 
 /**
- * Styles of the modal
+ * The code sidebar's maximum width, in pixels
+ */
+export const CODE_SIDEBAR_MAX_WIDTH = 1200;
+
+/**
+ * Styles of the code sidebar
  */
 const _useStyles = makeStyles({
-  // A little shorter than the viewport: FluentUI's own surface fills it (100vh), with its body scrolling inside
-  surface: {
-    maxWidth: 'min(1200px, calc(100vw - 32px))',
-    width: '100%',
-    maxHeight: [`calc(100vh - ${2 * DIALOG_VERTICAL_MARGIN}px)`, `calc(100dvh - ${2 * DIALOG_VERTICAL_MARGIN}px)`],
+  // Switched by CSS alone: never wider than the viewport, so it fills a phone's
+  drawer: {
+    width: `clamp(min(${CODE_SIDEBAR_MIN_WIDTH}px, 100vw), ${CODE_SIDEBAR_WIDTH}, min(${CODE_SIDEBAR_MAX_WIDTH}px, 100vw))`,
+    maxWidth: '100vw',
   },
-  body: {
-    maxHeight: [
-      `calc(100vh - ${2 * DIALOG_VERTICAL_MARGIN}px - 2 * ${_SURFACE_PADDING})`,
-      `calc(100dvh - ${2 * DIALOG_VERTICAL_MARGIN}px - 2 * ${_SURFACE_PADDING})`,
-    ],
+  // The title (or the tab list) takes the room left by the link and the close button
+  header: { display: 'flex', alignItems: 'center', columnGap: tokens.spacingHorizontalM, minWidth: '0' },
+  title: {
+    flex: '1 1 auto',
+    minWidth: '0',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    fontFamily: tokens.fontFamilyMonospace,
+    fontSize: tokens.fontSizeBase400,
+    lineHeight: tokens.lineHeightBase400,
+    fontWeight: tokens.fontWeightSemibold,
   },
-  title: { fontFamily: tokens.fontFamilyMonospace, fontSize: tokens.fontSizeBase400, lineHeight: tokens.lineHeightBase400, overflowWrap: 'anywhere' },
-  content: { minHeight: '64px' },
-  // The link to open the file in a new tab well apart from the close button
-  actions: { alignItems: 'center', columnGap: tokens.spacingHorizontalXXL },
+  tabs: { flex: '1 1 auto', minWidth: '0', overflowX: 'auto' },
+  actions: { display: 'flex', alignItems: 'center', columnGap: tokens.spacingHorizontalS, flexShrink: 0 },
 });
 
 /**
- * Represents what the modal shows: the file alone, or the selected tab
+ * Represents what the code sidebar shows: the file alone, or the selected tab
  */
-export interface DialogView {
+export interface SidebarView {
   /**
-   * The selected tab, when the modal shows tabs
+   * The selected tab, when the code sidebar shows tabs
    */
   tab?: ShownTab;
   /**
@@ -382,9 +388,9 @@ export interface DialogView {
    */
   index: number;
   /**
-   * The title: the file's, or the selected tab's, path
+   * The title, the file's name, when it shows a file alone (with tabs, the tab list is the title)
    */
-  title: string;
+  title?: string;
   /**
    * URL to fetch the content from, if any (see getFetchedTabUrl())
    */
@@ -396,33 +402,34 @@ export interface DialogView {
 }
 
 /**
- * Gets what the modal shows: with more than one tab, the selected tab (its path as the title, the link for a linked file only); otherwise the file
- * alone, as it always was
- * @param file The linked file the modal opened for
- * @param tabs The tabs of the linked showcase shown inline it is the entry point of, if any
+ * Gets what the code sidebar shows: a file alone (a linked file, or a linked showcase shown inline with no included files), its name as the title;
+ * otherwise the selected tab, the link for a linked file only
+ * @param file The linked file it opened for, if any (none for a code pane's tabs, which are always shown)
+ * @param tabs The tabs: a linked showcase shown inline's, or a code pane's, if any
  * @param selected Index of the selected tab
- * @returns What the modal shows
+ * @returns What the code sidebar shows
  */
-export function getDialogView(file: LinkedFile, tabs: ShownTab[] | undefined, selected: number): DialogView {
-  if (!tabs || tabs.length < 2) {
+export function getSidebarView(file: LinkedFile | undefined, tabs: ShownTab[] | undefined, selected: number): SidebarView {
+  if (file && (!tabs || tabs.length < 2)) {
     const url = getLinkedFileUrl(file.path);
-    return { index: 0, title: file.path, fetchUrl: url, openUrl: url };
+    return { index: 0, title: file.path.slice(file.path.lastIndexOf('/') + 1), fetchUrl: url, openUrl: url };
   }
-  const index = Math.min(selected, tabs.length - 1);
-  const tab = tabs[index];
-  return { tab, index, title: tab.path, fetchUrl: getFetchedTabUrl(tab), openUrl: tab.source.kind === 'file' ? tab.source.url : undefined };
+  const shown = tabs ?? [];
+  const index = Math.max(0, Math.min(selected, shown.length - 1));
+  const tab = shown[index];
+  return { tab, index, fetchUrl: getFetchedTabUrl(tab), openUrl: tab?.source.kind === 'file' ? tab.source.url : undefined };
 }
 
 /**
- * Represents the properties of the modal
+ * Represents the properties of the code sidebar
  */
-export interface LinkedFileDialogProps {
+export interface CodeSidebarProps {
   /**
-   * The linked file shown, or undefined while the modal is closed
+   * The linked file shown (alone, or with its linked showcase's tabs), if any
    */
   file?: LinkedFile;
   /**
-   * The tabs to show instead of the file alone, the file's first (a linked showcase shown inline, with included files), if any
+   * The tabs shown: a linked showcase shown inline's (the file's first, with included files), or a code pane's, if any
    */
   tabs?: ShownTab[];
   /**
@@ -430,66 +437,83 @@ export interface LinkedFileDialogProps {
    */
   documentation?: DocumentationFile[];
   /**
-   * Closes the modal
+   * True while it is open: by default, while a file or tabs are given
+   */
+  open?: boolean;
+  /**
+   * Index of the tab it opens at (0 by default)
+   */
+  initialTab?: number;
+  /**
+   * Closes it
    */
   onClose: () => void;
 }
 
 /**
- * Renders the modal showing a text linked file: its path as the title, its content, a link opening the file in a new tab, and a close button; with
- * tabs, a tab list above the selected tab's content, which gives the title, and the link for a linked file only. Its content is fetched each time it
- * opens.
+ * Renders the code sidebar (FluentUI's `OverlayDrawer`, from the right, modal): a text linked file's content, or a showcase's tabs, highlighted,
+ * under a header holding the file's name (or the tab list), the link opening the file in a new tab, and a close button; it closes on Escape, on a
+ * click beside it, or on the close button. Its content is fetched each time it opens.
  * @param props Properties of the component
- * @returns The modal
+ * @returns The code sidebar
  */
-export function LinkedFileDialog({ file, tabs, documentation = [], onClose }: LinkedFileDialogProps): ReactNode {
-  // Rendered only while open, so each opening fetches anew
-  return file ? <OpenLinkedFileDialog file={file} tabs={tabs} documentation={documentation} onClose={onClose} /> : null;
+export function CodeSidebar({ file, tabs, documentation = [], open, initialTab = 0, onClose }: CodeSidebarProps): ReactNode {
+  const styles = _useStyles();
+  const isOpen = open ?? (file !== undefined || tabs !== undefined);
+  return (
+    <OverlayDrawer className={styles.drawer} position="end" open={isOpen} onOpenChange={(_event, data) => !data.open && onClose()}>
+      {/* Rendered only while open, so each opening fetches anew, and starts at its initial tab */}
+      {isOpen && <CodeSidebarView file={file} tabs={tabs} documentation={documentation} initialTab={initialTab} onClose={onClose} />}
+    </OverlayDrawer>
+  );
 }
 
 /**
- * Renders the open modal (see LinkedFileDialog()); exported only as ESLint's React hooks rules take a `_`-prefixed function for no component
+ * Renders the code sidebar's header and body (see CodeSidebar()); rendered on its own by the tests, as FluentUI's drawer renders nothing on the
+ * server (through its portal)
  * @param props Properties of the component
- * @returns The modal
+ * @returns The header and the body
  */
-export function OpenLinkedFileDialog({
+export function CodeSidebarView({
   file,
   tabs,
   documentation,
+  initialTab = 0,
   onClose,
-}: LinkedFileDialogProps & { file: LinkedFile; documentation: DocumentationFile[] }): ReactNode {
+}: Omit<CodeSidebarProps, 'open' | 'documentation'> & { documentation: DocumentationFile[] }): ReactNode {
   const styles = _useStyles();
   const idPrefix = useId();
-  const [selected, setSelected] = useState(0);
-  const view = getDialogView(file, tabs, selected);
+  const [selected, setSelected] = useState(initialTab);
+  const view = getSidebarView(file, tabs, selected);
   const content = useLinkedFileContent(view.fetchUrl);
   const tab = view.tab;
   return (
-    <Dialog open onOpenChange={(_event, data) => !data.open && onClose()}>
-      <DialogSurface className={styles.surface}>
-        <DialogBody className={styles.body}>
-          <DialogTitle className={styles.title}>{view.title}</DialogTitle>
-          <DialogContent className={styles.content}>
-            {tab ? (
-              <>
-                <ShownTabList tabs={tabs!} selected={view.index} onSelect={setSelected} idPrefix={idPrefix} />
-                <div role="tabpanel" aria-labelledby={getTabId(idPrefix, view.index)}>
-                  <ShownTabView tab={tab} documentation={documentation} content={content} />
-                </div>
-              </>
-            ) : (
-              <LinkedFileView path={file.path} content={content} />
-            )}
-          </DialogContent>
-          <DialogActions className={styles.actions}>
+    <>
+      <DrawerHeader>
+        <div className={styles.header}>
+          {tab ? (
+            <ShownTabList className={styles.tabs} tabs={tabs!} selected={view.index} onSelect={setSelected} idPrefix={idPrefix} />
+          ) : (
+            <h2 className={styles.title} title={file?.path}>
+              {view.title}
+            </h2>
+          )}
+          <div className={styles.actions}>
             {view.openUrl !== undefined && <NewTabLink href={view.openUrl} />}
-            <Button appearance="primary" onClick={onClose}>
-              Close
-            </Button>
-          </DialogActions>
-        </DialogBody>
-      </DialogSurface>
-    </Dialog>
+            <Button appearance="subtle" icon={<Dismiss24Regular />} aria-label="Close" title="Close" onClick={onClose} />
+          </div>
+        </div>
+      </DrawerHeader>
+      <DrawerBody>
+        {tab ? (
+          <div role="tabpanel" aria-labelledby={getTabId(idPrefix, view.index)}>
+            <ShownTabView tab={tab} documentation={documentation} content={content} />
+          </div>
+        ) : (
+          file && <LinkedFileView path={file.path} content={content} />
+        )}
+      </DrawerBody>
+    </>
   );
 }
 

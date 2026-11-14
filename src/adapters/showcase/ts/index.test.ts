@@ -15,6 +15,7 @@ import {
   createVirtualFilesPlugin,
   getBuildErrors,
   getBuildWarning,
+  getCompiledOxcOptions,
   getHostPath,
   getImportCandidates,
   getImportLine,
@@ -22,6 +23,7 @@ import {
   getTsPage,
   getVirtualFileDataUrl,
   getVirtualFilesByPath,
+  placeCompiledModuleErrors,
   placeGeneratedModuleErrors,
   RESOLVE_EXTENSIONS,
   TsShowcaseAdapter,
@@ -165,6 +167,22 @@ describe('adapters/showcase/ts', () => {
         'Unknown option "size" of the react showcase adapter; its options are "typeCheck" and "allowJs"',
         'The react showcase adapter\'s options must be an object, e.g. "showcase=react({ typeCheck: false })"',
       ]);
+    });
+
+    it('Takes the options of the showcase adapter building on it, with their defaults, and lists them in the errors', () => {
+      const errors: string[] = [];
+      const defaults = { typeCheck: true, zone: false };
+      expect(validateTsShowcaseOptions('angular', undefined, errors, defaults)).toEqual({ typeCheck: true, zone: false });
+      expect(validateTsShowcaseOptions('angular', { zone: true }, errors, defaults)).toEqual({ typeCheck: true, zone: true });
+      expect(validateTsShowcaseOptions('angular', { allowJs: true, zone: 'yes' }, errors, defaults)).toEqual({ typeCheck: true, zone: false });
+      expect(validateTsShowcaseOptions('three', { size: 1 }, errors, { a: true, b: false, c: false })).toEqual({ a: true, b: false, c: false });
+      expect(errors).toEqual([
+        'Unknown option "allowJs" of the angular showcase adapter; its options are "typeCheck" and "zone"',
+        'The angular showcase adapter\'s option "zone" must be true or false',
+        'Unknown option "size" of the three showcase adapter; its options are "a", "b" and "c"',
+      ]);
+      // The defaults given are never changed
+      expect(defaults).toEqual({ typeCheck: true, zone: false });
     });
   });
 
@@ -367,6 +385,43 @@ describe('adapters/showcase/ts', () => {
         { message: 'elsewhere', path: 'lazy.ts', line: 2 },
         { message: 'nowhere' },
       ]);
+    });
+  });
+
+  describe('Compiled modules', () => {
+    // Tests what the shared build does for modules a showcase adapter compiled before Vite (e.g. angular's): placing the errors in them without a
+    // line, and excluding them from Vite's own TypeScript transform; its effect on a build is an integration test.
+
+    const virtualFiles = getVirtualFilesByPath(_ROOT, [_virtual('README.showcase-1.ts', 'export {};')]);
+    const compiled = new Set([_abs('README.showcase-1.ts'), _abs('lazy.ts')]);
+
+    it('Places the errors in compiled modules at their file, without a line, and leaves the others', () => {
+      const errors: ShowcaseBuildError[] = [
+        { message: 'in a virtual compiled module', path: 'README.showcase-1.ts', line: 3 },
+        { message: 'in a real compiled module', path: 'lazy.ts', line: 2 },
+        { message: 'elsewhere', path: 'util.ts', line: 4 },
+        { message: 'without a line', path: 'lazy.ts' },
+        { message: 'nowhere' },
+      ];
+      expect(placeCompiledModuleErrors(_ROOT, virtualFiles, compiled, errors)).toEqual([
+        { message: 'in a virtual compiled module', path: 'README.showcase-1.ts' },
+        { message: 'in a real compiled module', path: 'lazy.ts' },
+        { message: 'elsewhere', path: 'util.ts', line: 4 },
+        { message: 'without a line', path: 'lazy.ts' },
+        { message: 'nowhere' },
+      ]);
+      expect(placeCompiledModuleErrors(_ROOT, virtualFiles, new Set(), errors)).toEqual(errors);
+    });
+
+    it("Excludes compiled modules from Oxc's transform, keeping its default exclude or the one pinned", () => {
+      const jsx = { jsx: { runtime: 'automatic' as const } };
+      expect(getCompiledOxcOptions(undefined, new Set())).toBeUndefined();
+      expect(getCompiledOxcOptions(jsx, new Set())).toBe(jsx);
+      expect(getCompiledOxcOptions(undefined, compiled)).toEqual({ exclude: [/\.js$/, ...compiled] });
+      expect(getCompiledOxcOptions(jsx, compiled)).toEqual({ ...jsx, exclude: [/\.js$/, ...compiled] });
+      expect(getCompiledOxcOptions({ exclude: /\.mjs$/ }, compiled)).toEqual({ exclude: [/\.mjs$/, ...compiled] });
+      expect(getCompiledOxcOptions({ exclude: ['a.ts', /\.mjs$/] }, compiled)).toEqual({ exclude: ['a.ts', /\.mjs$/, ...compiled] });
+      expect(getCompiledOxcOptions(false, compiled)).toBe(false);
     });
   });
 

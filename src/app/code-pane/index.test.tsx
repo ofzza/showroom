@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-components';
 import type { ShownShowcase } from '../host/index.js';
-import { MISSING_FILE_MESSAGE } from '../file-modal/index.js';
+import { MISSING_FILE_MESSAGE } from '../code-sidebar/index.js';
 import {
   CODE_PANE_BUTTON_LABELS,
   INITIAL_CODE_PANE_STATE,
@@ -53,9 +53,9 @@ describe('app/code-pane', () => {
   // Tests the showcase block by rendering it on the server in each state (effects don't run, so nothing is fetched, and the layout itself, a
   // container query, is only checked in a browser, see AGENTS.md › Testing), and the cycling button's order of states.
 
-  it('Cycles hidden, half, full, and back, starting hidden', () => {
+  it('Cycles hidden, half, sidebar, and back, starting hidden', () => {
     expect(INITIAL_CODE_PANE_STATE).toBe('hidden');
-    expect([getNextCodePaneState('hidden'), getNextCodePaneState('half'), getNextCodePaneState('full')]).toEqual(['half', 'full', 'hidden']);
+    expect([getNextCodePaneState('hidden'), getNextCodePaneState('half'), getNextCodePaneState('sidebar')]).toEqual(['half', 'sidebar', 'hidden']);
   });
 
   it('Renders the showcase frame first, then the code pane with its tabs, copy button and selected tab, then the cycling button', () => {
@@ -81,7 +81,7 @@ describe('app/code-pane', () => {
   it('Gives the showcase frame a minimum height in every state', () => {
     // A short showcase frame would put a console panel's counter, at its bottom, under the cycling button floating over its top-right corner
     expect(SHOWCASE_BLOCK_FRAME_MIN_HEIGHT).toBe(64);
-    for (const state of ['hidden', 'half', 'full'] as const) {
+    for (const state of ['hidden', 'half', 'sidebar'] as const) {
       expect(_render(_SHOWCASE, state)).toMatch(new RegExp(`<iframe [^>]*style="[^"]*min-height:${SHOWCASE_BLOCK_FRAME_MIN_HEIGHT}px`));
     }
   });
@@ -91,14 +91,24 @@ describe('app/code-pane', () => {
     expect(_render({ ..._SHOWCASE, tabs: [_SHOWCASE.tabs[0]] })).toMatch(/role="tablist".*>HTML</s);
   });
 
-  it('Labels the cycling button by the state it switches to, and makes the showcase frame inert at full only', () => {
-    for (const state of ['hidden', 'half', 'full'] as const) {
+  it('Labels the cycling button by the state it switches to, and never makes the showcase frame inert', () => {
+    for (const state of ['hidden', 'half'] as const) {
       const html = _render(_SHOWCASE, state);
       expect(html).toContain(`data-code-pane-state="${state}"`);
       expect(html).toContain(`aria-label="${CODE_PANE_BUTTON_LABELS[state]}"`);
-      expect(/<div [^>]*inert=""[^>]*><iframe/.test(html)).toBe(state === 'full');
+      expect(html).not.toContain('inert');
     }
-    expect(CODE_PANE_BUTTON_LABELS).toEqual({ hidden: 'Show the code', half: 'Show the code over the showcase', full: 'Hide the code' });
+    expect(CODE_PANE_BUTTON_LABELS).toEqual({ hidden: 'Show the code', half: 'Show the code in a sidebar' });
+  });
+
+  it('Hides the cycling button while the code sidebar is open', () => {
+    // The code sidebar itself renders nothing on the server (FluentUI's drawer, through its portal); its content is tested in src/app/code-sidebar/
+    const html = _render(_SHOWCASE, 'sidebar');
+    expect(html).toContain('data-code-pane-state="sidebar"');
+    expect(html).toContain('<iframe');
+    expect(html).not.toContain(`aria-label="${CODE_PANE_BUTTON_LABELS.hidden}"`);
+    expect(html).not.toContain(`aria-label="${CODE_PANE_BUTTON_LABELS.half}"`);
+    expect(html).not.toContain('inert');
   });
 
   it("Shows a missing file's tab saying so, with no copy button", () => {

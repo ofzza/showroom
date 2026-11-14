@@ -2,14 +2,17 @@
  * Integration tests of the ts showcase adapter: buildShowcases() on fixture host repositories with ts showcases, built with Vite
  */
 
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import type { Plugin } from 'vite';
 import { describe, expect, it } from 'vitest';
 import { check } from '../../../cli/check/index.js';
 import { readConfiguration } from '../../../configuration/index.js';
 import { getFrameScript } from '../../../frame/index.js';
 import { buildShowcases, type ShowcaseFrame } from '../../../showcases/index.js';
-import { FIXTURES } from '../../../testing/index.js';
+import { createScratchFolder, FIXTURES } from '../../../testing/index.js';
 import { CONSOLE_PANEL_ID, getConsoleScript } from './console/index.js';
+import { buildTsShowcase } from './index.js';
+import { resolveTypeScript } from './typecheck/index.js';
 
 /**
  * Checks a fixture, then builds its showcases
@@ -42,8 +45,9 @@ describe('adapters/showcase/ts (integration)', () => {
   // folder, virtual files in its folder and in another one, by a path without an extension, a .js specifier and a folder, a virtual CSS file, JSON,
   // an asset, and a dynamic import with CSS, under a tsconfig turning useDefineForClassFields off; a JavaScript code block showcase; and a linked one
   // importing a virtual file), in each mode, type checked under its tsconfig; the `showcase-ts-errors` fixture's build errors and warning; the
-  // `showcase-ts-types` fixture's type errors, and the `showcase-ts-defaults` fixture's, without a tsconfig; and the `showcase-ts-many` fixture's 10
-  // showcases. The fixtures are only read.
+  // `showcase-ts-types` fixture's type errors, and the `showcase-ts-defaults` fixture's, without a tsconfig; the `showcase-ts-many` fixture's 10
+  // showcases; and buildTsShowcase() called directly on `showcase-ts-defaults` with modules compiled before Vite, as the `angular` showcase adapter
+  // builds. The fixtures are only read.
 
   it('Builds ts showcases into showcase frames, with the page, the bundle, and the files read', async () => {
     const { frames, errors, warnings, issues, watched } = await _build('showcase-ts');
@@ -225,5 +229,76 @@ describe('adapters/showcase/ts (integration)', () => {
     expect(errors.size).toBe(0);
     expect(frames.size).toBe(10);
     expect(_file(frames.get('README.md#10')!, /\.js$/).content).toContain('Showcase 10: ');
+  });
+
+  describe('Compiled modules', () => {
+    // Calls buildTsShowcase() as a showcase adapter compiling before Vite does: a plugin of its own loads the "compiled" JavaScript of the
+    // `showcase-ts-defaults` fixture's virtual entry point (whose TypeScript has a type error), and a spy after every transform sees what reaches the
+    // bundle.
+
+    /**
+     * Builds the `showcase-ts-defaults` fixture's showcase with compiled modules, loaded by a plugin, with the type check off
+     * @param modules The compiled modules' code, by path relative to the root (the entry point is `README.showcase-1.ts`)
+     * @returns The build's result, and the code each module had after every transform, by path relative to the root
+     */
+    async function _buildCompiled(modules: Record<string, string>) {
+      const root = join(FIXTURES, 'showcase-ts-defaults');
+      const { host } = await check(root);
+      if (!host) throw new Error("The fixture doesn't pass the check");
+      const compiled = new Map(Object.entries(modules).map(([path, code]) => [resolve(root, path), code]));
+      const transformed: Record<string, string> = {};
+      const plugins: Plugin[] = [
+        {
+          name: 'compiled',
+          enforce: 'pre',
+          resolveId: (source, importer) => (importer && compiled.has(resolve(root, source)) ? resolve(root, source) : null),
+          load: (id) => (compiled.has(id) ? { code: compiled.get(id)!, moduleType: 'js' } : null),
+        },
+        { name: 'spy', enforce: 'post', transform: (code, id) => void (id.startsWith(`${root}/`) && (transformed[id.slice(root.length + 1)] = code)) },
+      ];
+      const scratch = await createScratchFolder('compiled-');
+      try {
+        const result = await buildTsShowcase({
+          request: {
+            root,
+            showcase: host.showcases[0],
+            options: { typeCheck: true, allowJs: false },
+            virtualFiles: host.virtualFiles,
+            hostVirtualFiles: host.virtualFiles,
+            mode: 'development',
+            scratchFolder: scratch.path,
+          },
+          plugins,
+          compiled: new Set(compiled.keys()),
+          typeCheck: false,
+          sourceFiles: new Map(),
+          resolveTypeScript,
+        });
+        return { result, transformed };
+      } finally {
+        await scratch.remove();
+      }
+    }
+
+    it("Bundles what its own plugins load, ahead of the virtual files, untouched by Vite's TypeScript transform, and skips the type check", async () => {
+      // Vite's Oxc transform filters by id, so without its exclude it would transform the compiled JavaScript of a .ts id again, and drop an import
+      // whose bindings are unused (TypeScript's import elision), which JavaScript keeps for its side effects
+      const { result, transformed } = await _buildCompiled({
+        'README.showcase-1.ts': "import { present } from './compiled-helper.ts';\nconsole.log('entry');\n",
+        'compiled-helper.ts': "export const present = 1;\nconsole.log('helper');\n",
+      });
+      expect(result.errors).toBeUndefined();
+      expect(Object.keys(transformed).sort()).toEqual(['README.showcase-1.ts', 'compiled-helper.ts']);
+      expect(result.reads).toEqual(['README.md', 'compiled-helper.ts']);
+    });
+
+    it('Places a bundle error in a compiled module at its file, without a line', async () => {
+      // The bundler's position points into the compiled JavaScript, not into the TypeScript a line would be read against (D460)
+      const { result } = await _buildCompiled({
+        'README.showcase-1.ts': "import { missing } from './compiled-helper.ts';\nconsole.log(missing);\n",
+        'compiled-helper.ts': 'export const present = 1;\n',
+      });
+      expect(result.errors).toEqual([{ message: expect.stringContaining('"missing" is not exported') as string, path: 'README.showcase-1.ts' }]);
+    });
   });
 });

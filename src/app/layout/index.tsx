@@ -33,16 +33,36 @@ import type { ThemeName } from '../theme/index.js';
 export const NARROW_VIEWPORT = '@media (max-width: 767.98px)';
 
 /**
+ * The content's maximum width, in pixels
+ */
+export const CONTENT_MAX_WIDTH = 960;
+
+/**
+ * Width of the inline navigation drawer, in pixels (FluentUI's `small` drawer)
+ */
+export const NAVIGATION_WIDTH = 320;
+
+/**
+ * The layout's maximum width, in pixels: the navigation and the content beside it, centered in the viewport, with the header's contents above them
+ */
+export const LAYOUT_MAX_WIDTH = NAVIGATION_WIDTH + CONTENT_MAX_WIDTH;
+
+/**
  * Styles of the layout
  */
 const _useStyles = makeStyles({
   root: { display: 'flex', flexDirection: 'column', minHeight: '100vh' },
-  header: {
+  // The border spans the viewport; the contents sit in the centered container, as wide as the body
+  header: { borderBottom: `1px solid ${tokens.colorNeutralStroke2}` },
+  headerContent: {
+    boxSizing: 'border-box',
+    width: '100%',
+    maxWidth: `${LAYOUT_MAX_WIDTH}px`,
+    margin: '0 auto',
     display: 'flex',
     alignItems: 'center',
     gap: tokens.spacingHorizontalM,
     padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     [NARROW_VIEWPORT]: { gap: tokens.spacingHorizontalS, padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}` },
   },
   menu: { display: 'none', [NARROW_VIEWPORT]: { display: 'inline-flex' } },
@@ -67,7 +87,8 @@ const _useStyles = makeStyles({
     whiteSpace: 'nowrap',
     [NARROW_VIEWPORT]: { position: 'absolute', width: '1px', height: '1px', padding: '0', margin: '-1px', overflow: 'hidden', clip: 'rect(0 0 0 0)' },
   },
-  body: { display: 'flex', flexGrow: 1, minHeight: '0' },
+  // The navigation and the content, centered together
+  body: { display: 'flex', flexGrow: 1, minHeight: '0', width: '100%', maxWidth: `${LAYOUT_MAX_WIDTH}px`, margin: '0 auto' },
   // Stretched to the page's height, but at most the viewport's (FluentUI's own cap is `100vh`), and kept in view while the page scrolls
   drawer: { position: 'sticky', top: '0', maxHeight: '100dvh', [NARROW_VIEWPORT]: { display: 'none' } },
   navigation: { listStyleType: 'none', margin: '0', padding: '0', display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS },
@@ -76,7 +97,7 @@ const _useStyles = makeStyles({
     flexGrow: 1,
     minWidth: '0',
     padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalXXL}`,
-    maxWidth: '960px',
+    maxWidth: `${CONTENT_MAX_WIDTH}px`,
     [NARROW_VIEWPORT]: { padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalM}` },
   },
 });
@@ -178,31 +199,33 @@ export function Layout({ project, navigation, current, theme, onThemeChange, chi
   return (
     <div className={styles.root}>
       <header className={styles.header}>
-        <Button
-          className={styles.menu}
-          appearance="subtle"
-          icon={<Navigation24Regular />}
-          aria-label="Open the navigation"
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen(true)}
-        />
-        <Link href={formatRoute()} className={styles.name} title={project.name}>
-          {project.name}
-        </Link>
-        {project.version ? (
-          <Badge className={styles.version} appearance="tint" color="informative">
-            {project.version}
-          </Badge>
-        ) : null}
-        <Switch
-          className={styles.toggle}
-          label={{ children: 'Dark theme', className: styles.toggleLabel }}
-          checked={theme === 'dark'}
-          onChange={(_event, data) => onThemeChange(data.checked ? 'dark' : 'light')}
-        />
+        <div className={styles.headerContent}>
+          <Button
+            className={styles.menu}
+            appearance="subtle"
+            icon={<Navigation24Regular />}
+            aria-label="Open the navigation"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(true)}
+          />
+          <Link href={formatRoute()} className={styles.name} title={project.name}>
+            {project.name}
+          </Link>
+          {project.version ? (
+            <Badge className={styles.version} appearance="tint" color="informative">
+              {project.version}
+            </Badge>
+          ) : null}
+          <Switch
+            className={styles.toggle}
+            label={{ children: 'Dark theme', className: styles.toggleLabel }}
+            checked={theme === 'dark'}
+            onChange={(_event, data) => onThemeChange(data.checked ? 'dark' : 'light')}
+          />
+        </div>
       </header>
       <div className={styles.body}>
-        <InlineDrawer open separator className={styles.drawer}>
+        <InlineDrawer open separator size="small" className={styles.drawer}>
           <DrawerBody>
             <_Navigation navigation={navigation} current={current} />
           </DrawerBody>

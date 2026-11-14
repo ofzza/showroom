@@ -1,0 +1,5 @@
+<div class="display">{{ display() }}</div>
+<div class="row">
+  <button type="button" (click)="toggle()">{{ startedAt() === undefined ? 'Start' : 'Stop' }}</button>
+  <button type="button" (click)="reset()">Reset</button>
+</div>

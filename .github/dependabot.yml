@@ -10,7 +10,23 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Dependabot puts an update into the first group that matches, so these come before `dev-dependencies`
     groups:
+      # A React major changes the showroom itself (`getReactAliases()`) and the supported React majors
+      # (the majors guard in `src/testing/`), so it gets a pull request of its own; minor and patch
+      # updates stay where they would be without this group
+      react:
+        patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
+        update-types: ['major']
+      # Likewise an Angular major: it changes the supported Angular majors (the majors guard, and the
+      # installed fixtures of the older ones)
+      angular:
+        patterns: ['@angular/*', 'rxjs', 'zone.js']
+        update-types: ['major']
+      # Every TypeScript update on its own, as even a minor one can leave `@angular/compiler-cli`'s
+      # `typescript` peer range
+      typescript:
+        patterns: ['typescript']
       dev-dependencies:
         dependency-type: development
     ignore:

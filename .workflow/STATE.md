@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** between segments: _`P1`_–_`P10`_ implemented (_`P10.5`_, the last of _`P10`_, on 2026-11-14).
-- **Next free:** _`D439`_, _`S11`_, _`P11`_, _`O68`_, _`L15`_, _`R33`_, _`H1`_, _`K20`_
-- **Working on:** nothing in progress; _`P10.5`_ implemented and committed.
-- **Next step:** ask the user what to work on next (e.g. the open points of _`S6`_ (_`O16`_–_`O19`_), the known open issues in `PLAN.md`, or a new specification segment).
+- **Stage:** _`P1`_–_`P13`_ implemented (_`P13`_, the Markdown tab on request, the last).
+- **Next free:** _`D486`_, _`S11`_, _`P14`_, _`O81`_, _`L15`_, _`R40`_, _`H1`_, _`K20`_
+- **Working on:** nothing in progress.
+- **Next step:** the user's choice of what comes next (the known open issues in `./.workflow/PLAN.md`).
 
 ## Open questions
 
@@ -18,7 +18,7 @@
 
 ## Running
 
-- The dogfood `serve` (http://localhost:5180/), started for the fast path's checkpoint; a new session finds it gone.
+- The dogfood `serve` of this repository: http://localhost:5180/.
 
 ## History
 
@@ -264,3 +264,44 @@
 - 2026-11-14: _`P10.5`_ implemented, re-approved with _`D436`_, _`D437`_ and committed (option chosen: "Approve and commit"); `npm run ci` green; _`P10`_ implemented.
 - 2026-11-14: _`P10.5`_'s working files deleted and both `serve`s stopped (option chosen: "Delete and stop (Rec.)").
 - 2026-11-14: Fast path (option chosen: "Yes, as described (Rec.)"): the console panel keeps the newest 128 lines, saying how many were dropped (_`D438`_), picking up _`L14`_; `npm run ci` green; approved and committed (option chosen: "Approve and commit").
+- 2026-11-14: Planning the `angular` showcase adapter started (the user: "Let's start planning the angular adapter", meaning the showcase adapter). _`K9`_'s spike run on the user's go-ahead ("if there are any spikes you need to run before we get started, do so now"): the host's own `@angular/compiler-cli` (`NgtscProgram`) in a Vite plugin of `showroom`'s, with virtual files from memory and the Angular Linker, builds and runs on Angular 19–22, with template type checking; Analog (files on disk only) and plain JIT (no signal inputs) don't fit. Findings in `./.workflow/.temp/spike-angular/FINDINGS.md`.
+- 2026-11-14: After the spike, the user chose the format first (option chosen: "Format first (Rec.)"), and to clear the context before it (option chosen: "Clear first").
+- 2026-11-14: The Angular showcase format's 8 choices settled (_`D439`_–_`D446`_ in _`S6.4`_, _`R33`_): Q1 after an explanation of the build (option chosen: "Accept A (Rec.)"), Q3 "No setup at all" with the idea for later for Angular and React (the user: "I am leaning towards \"No setup at all\" unless you tell me that it is much easier to implement thin now than later?"; then "Yes, as described (Rec.)"), the other six by their recommendations (option chosen: "Discuss some", naming only Q1 and Q3); _`K9`_ resolved by _`D439`_.
+- 2026-11-14: _`S6.4`_ re-approved with _`R33`_ (option chosen: "Approve and commit (Rec.)").
+- 2026-11-14: _`P11`_ drafted (`PLAN-P11-angular.md`); its five choices settled (_`D447`_–_`D451`_): "P11.1 + P11.2 (Rec.)"; per showcase, no measurement (the user: "I prefer simplicity and stability where we can get it"; then "Per showcase (Rec.)"); "Every JS module (Rec.)"; every supported major tested (the user: "Could we do 20, 21 and 22 with our eye on supporting all upcoming major versions going forward?"; then "Policy, 20+21 installed (Rec.)"); the new devDependencies, with `zone.js` (option chosen: "Add, with zone.js").
+- 2026-11-14: _`P11`_'s draft reviewed (one zero-context reviewer, 13 findings, stray-write check clean): QA settled as a guard test of the supported majors (_`D452`_), the user's idea of an accepted-versions test critiqued (option chosen: "Targeted majors guard (Rec.)", replacing "Ignore majors + open pt"); fixes for #2–#13 applied (option chosen: "Apply all, skip (Rec.)"): open points _`O74`_–_`O80`_, back-references on _`D245`_, _`D255`_, _`D307`_, _`D349`_, pitfalls _`K12`_, _`K13`_.
+- 2026-11-14: _`P11`_ approved, for its split and _`D447`_–_`D452`_ (option chosen: "Approve and commit (Rec.)"); `review-p11/` deleted.
+- 2026-11-14: Stop and report: the agent deleted `./.workflow/.temp/questions-angular-format/` without the user's confirmation (only `review-p11/`'s deletion was approved); its outcomes were already in _`D439`_–_`D446`_; the user said "Resume".
+- 2026-11-14: _`P11.1`_ drafted (`PLAN-P11.1-angular.md`): its 13 choices settled as a batch (_`D453`_–_`D465`_; option chosen: "Accept all (Rec.)"), resolving _`O68`_–_`O78`_.
+- 2026-11-14: _`P11.1`_'s draft reviewed (one zero-context reviewer, 18 findings, stray-write check clean): QB settled (_`D466`_ replacing _`D455`_; option chosen: "attachView, drop D455's wrap (Rec.)"); fixes for #1–#8, #10–#18 applied (option chosen: "Apply, then re-review (Rec.)"): _`D467`_ added, steps reordered, _`P11`_ revised (_`R34`_), _`S6.4`_ revised (_`R35`_), back-references on _`D263`_, _`D288`_, _`D289`_, _`D439`_, _`D440`_, _`D445`_.
+- 2026-11-14: _`P11.1`_'s second review (one zero-context reviewer, 14 findings, stray-write check clean): QC "No line mapping", QD "Show as warnings (Rec.)", QE "State it, no new group (Rec.)"; fixes applied, the Glossary's "Console panel" change accepted for step 8 (option chosen: "Apply, targeted check (Rec.)"); _`D467`_ checked against Angular's `readConfiguration()`.
+- 2026-11-14: _`P11.1`_ approved, with _`P11`_ (_`R34`_) and _`S6.4`_ (_`R35`_) re-approved (option chosen: "Approve and commit (Rec.)"); `review-p11.1/` and `questions-p11.1/` deleted (option chosen: "Delete both (Rec.)").
+- 2026-11-14: Both dogfood `serve`s (ports 5180 and 5173) stopped at the user's request.
+- 2026-11-14: _`P11.1`_ step 1 implemented (option chosen: "Start step 1 (Rec.)").
+- 2026-11-14: _`D468`_ recorded in _`P11.1`_: the `angular` adapter's minimum version created in step 2, for the majors guard (option chosen: "Stub constant now (Rec.)").
+- 2026-11-14: _`P11.1`_ step 2 implemented.
+- 2026-11-14: _`P11.1`_ step 3 implemented.
+- 2026-11-14: _`P11.1`_ step 4 implemented.
+- 2026-11-14: _`P11.1`_ step 5 implemented.
+- 2026-11-14: _`P11.1`_ step 6 implemented.
+- 2026-11-14: _`P11.1`_ step 7 implemented.
+- 2026-11-14: _`P11.1`_ step 8 implemented.
+- 2026-11-14: _`P11.1`_ step 9: `npm run ci` green; the browser check served.
+- 2026-11-14: _`P11.1`_'s browser check: the user saw the zone showcase stay at 0. Two causes, fixed: the mount module now creates the component inside the application's `NgZone` (as bootstrapping does); and Angular 22 compiles components `OnPush` by default, so the fixture's zone showcase now sets `changeDetection: ChangeDetectionStrategy.Eager`. Seen showing 1 in a headless browser.
+- 2026-11-14: _`P11.1`_ approved as implemented, after the browser check (option chosen: "Approve and commit (Rec.)").
+- 2026-11-14: `scratch/` and `browser-check-angular/` deleted (option chosen: "Delete both (Rec.)").
+- 2026-11-14: _`P11.2`_ planning started; its choices settled as _`D469`_–_`D472`_ (options chosen: "Mirror ticker (Rec.)"; "templateUrl/styleUrl files (Rec.)", "Virtual template (Rec.)", "zone option (Rec.)"; "Root tsconfig as is (Rec.)"; "Strict, as ng new (Rec.)"), and drafted in `PLAN-P11.2-angular-example.md`.
+- 2026-11-14: _`P11.2`_'s plan approved, and _`S8`_ re-approved with _`R36`_, without a zero-context review (option chosen: "Approve and commit (Rec.)").
+- 2026-11-14: _`P11.2`_ steps 1–6: the `tock` example, `README.md`'s `angular` part, `AGENTS.md`, `CONTRIBUTE.md`; the integration test's list of examples gains `angular`; `npm run ci` green; the browser check served.
+- 2026-11-14: _`P11.2`_ approved as implemented, after the browser check (option chosen: "Approve and commit (Rec.)"); _`P11`_ implemented.
+- 2026-11-14: Specification stage re-entered for the code sidebar: the user's request, settled in dialogs Q1–Q6 ("Yes, the code pane"; the cycling button hidden while open, then hidden; "Modal, backdrop closes (Rec.)"; "400px to 1200px (Rec.)"; "Code sidebar (Rec.)"; tabs in place of the file name), recorded as _`D474`_–_`D477`_; _`S10`_ revised (_`R37`_), _`S9`_ revised (_`R38`_).
+- 2026-11-14: _`P12`_ drafted; its choices settled as _`D478`_–_`D480`_ (options chosen: "Rename to code-sidebar/ (Rec.)"; "The pane's selected tab (Rec.)"; ""Show the code in a sidebar", panel icon (Rec.)").
+- 2026-11-14: _`S10`_ and _`S9`_ re-approved, and _`P12`_ approved, without a zero-context review (option chosen: "Approve and commit (Rec.)").
+- 2026-11-14: _`P12`_ steps 1–5: `src/app/file-modal/` moved to `src/app/code-sidebar/`, the code sidebar replacing the modal, the code pane's `sidebar` state; `LINKED_FILE_MODAL_LIMIT` renamed `LINKED_FILE_SIDEBAR_LIMIT`; tests and docs; `npm run ci` green; the dogfood `serve` restarted for the browser check.
+- 2026-11-14: _`P12`_ approved as implemented, after the browser check (option chosen: "Approve and commit (Rec.)").
+- 2026-11-14: Fast-path change: the layout (navigation and content) and the header's contents centered at 1280 px (`LAYOUT_MAX_WIDTH`), the header's border full width; `npm run ci` green; the dogfood `serve` restarted for the browser check.
+- 2026-11-14: The fast-path centering approved, after the browser check (option chosen: "Approve and commit (Rec.)").
+- 2026-11-14: _`P13`_'s choices settled in one dialog (Markdown tab on blocks only, only with an undocumented `showroom.json` setting, named `exposeShowcaseMarkdownSyntax` by the user; "Fast path + P13"), recorded as _`D484`_ (_`S10`_ revised, _`R39`_); _`P13`_ drafted with _`D485`_.
+- 2026-11-14: _`S10`_ re-approved (_`R39`_), and _`P13`_ approved, without a zero-context review (option chosen: "Approve and commit (Rec.)").
+- 2026-11-14: _`P13`_ steps 1–4: the `exposeShowcaseMarkdownSyntax` setting, this repository's `showroom.json` setting it; tests and docs; `npm run ci` green; the dogfood `serve` restarted (every block's first tab is Markdown).
+- 2026-11-14: _`P13`_ approved as implemented, after the browser check (option chosen: "Approve and commit (Rec.)").

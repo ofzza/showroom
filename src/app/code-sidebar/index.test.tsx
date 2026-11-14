@@ -1,5 +1,5 @@
 /**
- * Tests of the linked files' modal
+ * Tests of the code sidebar
  */
 
 import { afterEach, describe, it, expect, vi } from 'vitest';
@@ -8,7 +8,11 @@ import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-comp
 import type { DocumentationFile, LinkedFile } from '../../host/index.js';
 import type { ShownTab } from '../host/index.js';
 import {
-  LinkedFileDialog,
+  CODE_SIDEBAR_MAX_WIDTH,
+  CODE_SIDEBAR_MIN_WIDTH,
+  CODE_SIDEBAR_WIDTH,
+  CodeSidebar,
+  CodeSidebarView,
   LinkedFileView,
   MISSING_DOCUMENTATION_MESSAGE,
   MISSING_FILE_MESSAGE,
@@ -16,7 +20,7 @@ import {
   ShownTabList,
   ShownTabView,
   fetchLinkedFile,
-  getDialogView,
+  getSidebarView,
   getFetchedTabUrl,
   getShownTabText,
   type LinkedFileContent,
@@ -61,17 +65,17 @@ const _TABS = {
  */
 const _DOCUMENTATION: DocumentationFile[] = [{ path: 'docs/guide.md', kind: 'other', extension: '.md', content: '# A guide\n' }];
 
-describe('app/file-modal', () => {
-  // Tests the modal's and the tabs' content by rendering it on the server with given content (effects don't run, and FluentUI's dialog renders
-  // through a portal, so nothing of it is rendered on the server), what the modal shows with and without tabs (getDialogView()), and fetching a
-  // linked file with a stubbed `fetch`.
+describe('app/code-sidebar', () => {
+  // Tests the code sidebar's header and body (CodeSidebarView) and the tabs' content by rendering them on the server with given content (effects
+  // don't run, and FluentUI's drawer renders through a portal, so CodeSidebar itself renders nothing on the server), what the code sidebar shows with
+  // and without tabs (getSidebarView()), and fetching a linked file with a stubbed `fetch`.
 
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
   describe('LinkedFileView', () => {
-    // The modal's content in each of its states.
+    // A linked file's content in each of its states.
 
     it('Shows a spinner while the file is fetched', () => {
       expect(_render(<LinkedFileView path={_FILE.path} content={{ status: 'loading' }} />)).toContain('Loading…');
@@ -174,38 +178,74 @@ describe('app/file-modal', () => {
     ]);
   });
 
-  describe('getDialogView', () => {
-    // What the modal shows: the file alone, or the selected tab of a linked showcase shown inline with included files.
+  describe('getSidebarView', () => {
+    // What the code sidebar shows: the file alone, or the selected tab of a linked showcase shown inline with included files, or of a code pane.
 
-    it('Shows the file alone without tabs, or with one', () => {
-      const alone = { index: 0, title: 'src/my index.ts', fetchUrl: 'files/src/my%20index.ts', openUrl: 'files/src/my%20index.ts' };
-      expect(getDialogView(_FILE, undefined, 0)).toEqual(alone);
-      expect(getDialogView(_FILE, [_TABS.file], 0)).toEqual(alone);
+    it('Shows the file alone, titled with its name, without tabs, or with one', () => {
+      const alone = { index: 0, title: 'my index.ts', fetchUrl: 'files/src/my%20index.ts', openUrl: 'files/src/my%20index.ts' };
+      expect(getSidebarView(_FILE, undefined, 0)).toEqual(alone);
+      expect(getSidebarView(_FILE, [_TABS.file], 0)).toEqual(alone);
     });
 
-    it('Shows the selected tab, titled with its path, with a link for a linked file only', () => {
+    it('Shows the selected tab, untitled as the tab list is its title, with a link for a linked file only', () => {
       const tabs = [_TABS.file, _TABS.virtual, _TABS.binary];
-      expect(getDialogView(_FILE, tabs, 0)).toEqual({
+      expect(getSidebarView(_FILE, tabs, 0)).toEqual({
         tab: _TABS.file,
         index: 0,
-        title: 'src/my index.ts',
         fetchUrl: 'files/src/my%20index.ts?hash=0123abcd',
         openUrl: 'files/src/my%20index.ts?hash=0123abcd',
       });
-      expect(getDialogView(_FILE, tabs, 1)).toEqual({ tab: _TABS.virtual, index: 1, title: 'README.showcase-1.html', fetchUrl: undefined, openUrl: undefined });
-      expect(getDialogView(_FILE, tabs, 2)).toMatchObject({ fetchUrl: undefined, openUrl: 'files/logo.png' });
+      expect(getSidebarView(_FILE, tabs, 1)).toEqual({ tab: _TABS.virtual, index: 1, fetchUrl: undefined, openUrl: undefined });
+      expect(getSidebarView(_FILE, tabs, 2)).toMatchObject({ fetchUrl: undefined, openUrl: 'files/logo.png' });
       // A selection beyond the tabs (after the tabs changed) falls back to the last
-      expect(getDialogView(_FILE, tabs, 7).index).toBe(2);
+      expect(getSidebarView(_FILE, tabs, 7).index).toBe(2);
+    });
+
+    it("Shows a code pane's tabs, even a single one, with no file", () => {
+      // A code pane always shows its tab list (D408), so its single tab is a tab, not a file alone
+      expect(getSidebarView(undefined, [_TABS.virtual], 0)).toEqual({ tab: _TABS.virtual, index: 0, fetchUrl: undefined, openUrl: undefined });
     });
   });
 
-  it('Renders nothing while no file is shown', () => {
+  describe('CodeSidebarView', () => {
+    // The code sidebar's header (the title or the tab list, the link, the close button) and body, rendered on the server.
+
+    it('Titles a file alone with its name, its path as the tooltip, before the link and the close button, above its content', () => {
+      const html = _render(<CodeSidebarView file={_FILE} documentation={[]} onClose={() => undefined} />);
+      expect(html).toMatch(/<h2 [^>]*title="src\/my index.ts"[^>]*>my index.ts<\/h2>/);
+      const link = html.indexOf('Open in a new tab');
+      const close = html.indexOf('aria-label="Close"');
+      const loading = html.indexOf('Loading…');
+      expect([link > -1, link < close, close < loading]).toEqual([true, true, true]);
+      expect(html).toContain('href="files/src/my%20index.ts"');
+      expect(html).not.toContain('role="tablist"');
+    });
+
+    it('Puts the tab list in place of the title, from the initial tab, with the link for a linked file only', () => {
+      const tabs = [_TABS.file, _TABS.virtual];
+      const first = _render(<CodeSidebarView file={_FILE} tabs={tabs} documentation={[]} onClose={() => undefined} />);
+      expect(first).toMatch(/role="tablist".*>src\/my index.ts<.*>HTML</s);
+      expect(first).not.toContain('<h2');
+      expect(first).toContain('Open in a new tab');
+      const second = _render(<CodeSidebarView tabs={tabs} documentation={[]} initialTab={1} onClose={() => undefined} />);
+      expect(second).toContain('class="hljs language-html"');
+      expect(second).not.toContain('Open in a new tab');
+      expect(second).toContain('aria-label="Close"');
+    });
+  });
+
+  it('Is 66% of the viewport wide, between 400 and 1200 pixels', () => {
+    expect([CODE_SIDEBAR_WIDTH, CODE_SIDEBAR_MIN_WIDTH, CODE_SIDEBAR_MAX_WIDTH]).toEqual(['66vw', 400, 1200]);
+  });
+
+  it('Renders nothing while closed', () => {
     const without = _render(<span>Page</span>);
     expect(
       _render(
         <>
           <span>Page</span>
-          <LinkedFileDialog onClose={() => undefined} />
+          <CodeSidebar onClose={() => undefined} />
+          <CodeSidebar tabs={[_TABS.virtual]} open={false} onClose={() => undefined} />
         </>,
       ),
     ).toBe(without);

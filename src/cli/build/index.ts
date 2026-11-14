@@ -156,7 +156,9 @@ export async function build({ root, outDir, output, appDir = getAppDir() }: Buil
     return 1;
   }
   const frames = showcases.frames;
-  const host = getShownHostInformation(result.host, frames, await getTabFileHashes(root, result.host));
+  const host = getShownHostInformation(result.host, frames, await getTabFileHashes(root, result.host), {
+    exposeShowcaseMarkdownSyntax: configuration.exposeShowcaseMarkdownSyntax,
+  });
 
   // Build, with Vite's cache in a fresh folder of its own, removed afterwards
   const cacheDir = await mkdtemp(join(tmpdir(), 'showroom-'));

@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { symlink, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LINKED_FILE_MODAL_LIMIT } from '../../linked-files/index.js';
+import { LINKED_FILE_SIDEBAR_LIMIT } from '../../linked-files/index.js';
 import { copyFixture, createScratchFolder } from '../../testing/index.js';
 import { BUILT_IN_DOCUMENTATION, check } from './index.js';
 
@@ -300,7 +300,7 @@ describe('cli/check', () => {
         // The custom showcase adapters
         'showroom.json:undefined: Custom showcase adapter "broken": "./adapters/missing.js" not found',
         // The showcases: unknown adapters, linked entry points, validation
-        'errors/adapters.md:3: Unknown showcase adapter "nope"; the showcase adapters are: html, needy, react, throwing, ts',
+        'errors/adapters.md:3: Unknown showcase adapter "nope"; the showcase adapters are: angular, html, needy, react, throwing, ts',
         'errors/adapters.md:12: needy takes no options',
         'errors/adapters.md:15: Showcase adapter "throwing" failed to validate the showcase: validate broke',
         `errors/entries.md:3: A linked showcase's entry point "errors/missing.html" not found`,
@@ -367,7 +367,7 @@ describe('cli/check', () => {
   describe('Linked files', () => {
     // The linked-files fixture: text, code, extensionless, binary (linked and shown as an image) and ignored files, a linked showcase's entry point,
     // and links that name no linked file (a documentation file, folders, a missing file, the output folder, an absolute URL); scratch copies of it
-    // for a symbolic link leading outside the host repository, and a text file over the modal's limit.
+    // for a symbolic link leading outside the host repository, and a text file over the code sidebar's limit.
 
     it('Collects the linked files, once each, ignored or not, sorted by path', async () => {
       const result = await check(_fixture('linked-files'));
@@ -430,7 +430,7 @@ describe('cli/check', () => {
         const result = await check(host.path);
         expect(result.passed).toBe(false);
         expect(result.issues.filter(({ path }) => path === 'docs/README.md')).toEqual([
-          { severity: 'error', message: 'Unknown showcase adapter "x"; the showcase adapters are: html, react, ts', path: 'docs/README.md', line: 3 },
+          { severity: 'error', message: 'Unknown showcase adapter "x"; the showcase adapters are: angular, html, react, ts', path: 'docs/README.md', line: 3 },
           {
             severity: 'error',
             message: 'Included file "out/stale.txt" is in the output folder, which `showroom build` empties',
@@ -451,14 +451,14 @@ describe('cli/check', () => {
       }
     });
 
-    it("Marks a text file over the modal's limit as not text", async () => {
+    it("Marks a text file over the code sidebar's limit as not text", async () => {
       const host = await copyFixture('linked-files');
       try {
-        await writeFile(join(host.path, 'notes.txt'), 'a'.repeat(LINKED_FILE_MODAL_LIMIT + 1));
-        await writeFile(join(host.path, 'src', 'index.ts'), 'a'.repeat(LINKED_FILE_MODAL_LIMIT));
+        await writeFile(join(host.path, 'notes.txt'), 'a'.repeat(LINKED_FILE_SIDEBAR_LIMIT + 1));
+        await writeFile(join(host.path, 'src', 'index.ts'), 'a'.repeat(LINKED_FILE_SIDEBAR_LIMIT));
         const linkedFiles = (await check(host.path)).host?.linkedFiles;
-        expect(linkedFiles).toContainEqual({ path: 'notes.txt', size: LINKED_FILE_MODAL_LIMIT + 1, text: false });
-        expect(linkedFiles).toContainEqual({ path: 'src/index.ts', size: LINKED_FILE_MODAL_LIMIT, text: true });
+        expect(linkedFiles).toContainEqual({ path: 'notes.txt', size: LINKED_FILE_SIDEBAR_LIMIT + 1, text: false });
+        expect(linkedFiles).toContainEqual({ path: 'src/index.ts', size: LINKED_FILE_SIDEBAR_LIMIT, text: true });
       } finally {
         await host.remove();
       }

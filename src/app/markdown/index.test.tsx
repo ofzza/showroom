@@ -106,9 +106,9 @@ describe('app/markdown', () => {
     expect(html).toMatch(/<a [^>]*href="https:\/\/example.com"[^>]*target="_blank"[^>]*rel="noopener noreferrer"[^>]*>Site<\/a>/);
   });
 
-  it('Links text linked files to their copies, opened in the modal on click, and other linked files to a new tab', () => {
+  it('Links text linked files to their copies, opened in the code sidebar on click, and other linked files to a new tab', () => {
     const html = _render('[code](../src/index.ts#L2) [big](../src/big.json) [diagram](diagram.png)');
-    // The modal opens on click, which needs effects; the link still names the copy, for the browser's own "open in a new tab"
+    // The code sidebar opens on click, which needs effects; the link still names the copy, for the browser's own "open in a new tab"
     expect(html).toMatch(/<a [^>]*href="files\/src\/index.ts"[^>]*>code<svg [^>]*aria-hidden="true"[^>]*>.*?<\/svg><\/a>/);
     expect(html).not.toMatch(/<a [^>]*href="files\/src\/index.ts"[^>]*target=/);
     expect(html).toMatch(/<a [^>]*href="files\/src\/big.json"[^>]*target="_blank"[^>]*rel="noopener noreferrer"[^>]*>big<svg [^>]*>.*?<\/svg><\/a>/);
