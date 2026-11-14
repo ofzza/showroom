@@ -9,6 +9,7 @@ import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { SHOWCASE_ADAPTER_NAME } from '../../../markdown/index.js';
 import { HtmlShowcaseAdapter } from '../html/index.js';
+import { AngularShowcaseAdapter } from '../angular/index.js';
 import type { ShowcaseAdapter, ShowcaseHostCheck } from '../index.js';
 import { ReactShowcaseAdapter } from '../react/index.js';
 import { TsShowcaseAdapter } from '../ts/index.js';
@@ -22,12 +23,13 @@ const _SHOWCASE_ADAPTERS: Record<string, () => ShowcaseAdapter> = {
   html: () => new HtmlShowcaseAdapter(),
   ts: () => new TsShowcaseAdapter(),
   react: () => new ReactShowcaseAdapter(),
+  angular: () => new AngularShowcaseAdapter(),
 };
 
 /**
  * Names of the showcase adapters planned as built-in ones, which custom showcase adapters can't take either
  */
-export const PLANNED_SHOWCASE_ADAPTER_NAMES: readonly string[] = ['angular'];
+export const PLANNED_SHOWCASE_ADAPTER_NAMES: readonly string[] = [];
 
 /**
  * Gets the names of the built-in showcase adapters

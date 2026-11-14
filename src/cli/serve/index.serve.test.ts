@@ -214,6 +214,20 @@ describe('cli/serve (serve)', () => {
     expect(code).toContain('createRoot)(document.getElementById("root"))');
   });
 
+  it("Serves angular showcase frames, compiled by the host's Angular, built in development mode", async () => {
+    const { url, stderr } = await start('showcase-angular');
+    expect(stderr()).toBe('');
+    const urls = getShowcaseUrls(await fetchHostModule(url));
+    expect(Object.keys(urls)).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'README.md#4', 'solution/README.md#1']);
+    const page = await (await fetch(new URL(urls['README.md#1'], url))).text();
+    expect(page).toContain('<div id="root"></div><div id="showroom-console" hidden></div>');
+    const module = /<script type="module" crossorigin src="\.\/(assets\/[^"]+)"/.exec(page)![1];
+    const code = await (await fetch(new URL(`showcases/README.md/1/${module}`, url))).text();
+    expect(code).toContain('host-counter');
+    expect(code).toContain('ngDevMode');
+    expect(code).toContain('provideZonelessChangeDetection');
+  });
+
   it('Serves the linked files from the host repository, and nothing else in their folder', async () => {
     const { url } = await start('linked-files');
     const source = await fetchHostModule(url);

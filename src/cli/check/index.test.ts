@@ -300,7 +300,7 @@ describe('cli/check', () => {
         // The custom showcase adapters
         'showroom.json:undefined: Custom showcase adapter "broken": "./adapters/missing.js" not found',
         // The showcases: unknown adapters, linked entry points, validation
-        'errors/adapters.md:3: Unknown showcase adapter "nope"; the showcase adapters are: html, needy, react, throwing, ts',
+        'errors/adapters.md:3: Unknown showcase adapter "nope"; the showcase adapters are: angular, html, needy, react, throwing, ts',
         'errors/adapters.md:12: needy takes no options',
         'errors/adapters.md:15: Showcase adapter "throwing" failed to validate the showcase: validate broke',
         `errors/entries.md:3: A linked showcase's entry point "errors/missing.html" not found`,
@@ -430,7 +430,7 @@ describe('cli/check', () => {
         const result = await check(host.path);
         expect(result.passed).toBe(false);
         expect(result.issues.filter(({ path }) => path === 'docs/README.md')).toEqual([
-          { severity: 'error', message: 'Unknown showcase adapter "x"; the showcase adapters are: html, react, ts', path: 'docs/README.md', line: 3 },
+          { severity: 'error', message: 'Unknown showcase adapter "x"; the showcase adapters are: angular, html, react, ts', path: 'docs/README.md', line: 3 },
           {
             severity: 'error',
             message: 'Included file "out/stale.txt" is in the output folder, which `showroom build` empties',

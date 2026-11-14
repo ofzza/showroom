@@ -13,8 +13,8 @@ import { OUTPUT_FOLDER_MARKER, OUTPUT_FOLDER_MARKER_CONTENT, build } from './ind
 
 describe('cli/build (end to end)', () => {
   // Calls build() in-process on fixture copies, each in a scratch folder of its own removed after the test, with the showroom the `e2e` project's
-  // global setup compiled (`appDir`), so the tests never depend on, or write to, `dist/`; and on a copy of an installed fixture (`installedFixtures`),
-  // with its own React. Only the passing builds run Vite; the others stop before.
+  // global setup compiled (`appDir`), so the tests never depend on, or write to, `dist/`; and on copies of installed fixtures (`installedFixtures`),
+  // with their own React or Angular. Only the passing builds run Vite; the others stop before.
 
   const copies: ScratchFolder[] = [];
 
@@ -155,6 +155,32 @@ describe('cli/build (end to end)', () => {
     const [entry] = await readdir(join(frame, 'assets'));
     expect(entry).toMatch(/^README\.showcase-1\.tsx\.showroom-mount-[\w-]+\.js$/);
     expect(await readFile(join(frame, 'assets', entry), 'utf8')).toMatch(/[`"]18\.3\.1[`"]/);
+  });
+
+  it("Builds angular showcases, compiled ahead of time by the host's Angular, into their showcase frames", async () => {
+    const root = await copy('showcase-angular');
+    const { code, stderr } = await run(root);
+    expect({ code, stderr }).toEqual({ code: 0, stderr: '' });
+    const frame = join(root, 'showroom', 'showcases', 'README.md', '1');
+    expect(await readFile(join(frame, 'index.html'), 'utf8')).toContain('<div id="root"></div><div id="showroom-console" hidden></div>');
+    const [entry] = await readdir(join(frame, 'assets'));
+    expect(entry).toMatch(/^README\.showcase-1\.ts\.showroom-mount-[\w-]+\.js$/);
+    const bundle = await readFile(join(frame, 'assets', entry), 'utf8');
+    expect(bundle).toContain('host-counter');
+    expect(bundle).not.toContain('ngDevMode');
+    expect(existsSync(join(root, 'showroom', 'showcases', 'solution', 'README.md', '1', 'index.html'))).toBe(true);
+  });
+
+  it("Builds angular showcases with the host's own Angular, on an installed fixture's copy", async () => {
+    // The installed fixture (with its own Angular 20 and TypeScript 5.8 in its node_modules) is copied, as build() writes into it
+    const scratch = await createScratchFolder('showcase-angular-20-');
+    copies.push(scratch);
+    await cp(inject('installedFixtures')['showcase-angular-20'], scratch.path, { recursive: true });
+    const { code, stderr } = await run(scratch.path);
+    expect({ code, stderr }).toEqual({ code: 0, stderr: '' });
+    const assets = join(scratch.path, 'showroom', 'showcases', 'README.md', '1', 'assets');
+    const [entry] = await readdir(assets);
+    expect(await readFile(join(assets, entry), 'utf8')).toContain('`20.3.35`');
   });
 
   it('Fails on a type error, placed in the documentation file', async () => {
