@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning _`P11.1`_, the `angular` showcase adapter; _`P11`_ approved; _`P1`_–_`P10`_ implemented.
-- **Next free:** _`D453`_, _`S11`_, _`P12`_, _`O81`_, _`L15`_, _`R34`_, _`H1`_, _`K20`_
-- **Working on:** the `angular` showcase adapter: the format is settled (_`S6.4`_); the spike's findings are in _`D439`_'s evidence, and its "Not covered" list still to be taken into _`P11`_.
-- **Next step:** plan _`P11.1`_ in its own file (`PLAN-P11.1-angular.md`), starting with its open points _`O68`_–_`O78`_ (in `PLAN-P11-angular.md`), with `./.workflow/.temp/spike-angular/` (its plugin script) as input.
+- **Stage:** implementing _`P11.1`_, the `angular` showcase adapter (approved); _`P1`_–_`P10`_ implemented.
+- **Next free:** _`D468`_, _`S11`_, _`P12`_, _`O81`_, _`L15`_, _`R36`_, _`H1`_, _`K20`_
+- **Working on:** _`P11.1`_ (`PLAN-P11.1-angular.md`), not started.
+- **Next step:** _`P11.1`_ step 1 (the Angular devDependencies, `npm install --save-dev`, needs the npm registry; `.github/dependabot.yml`'s groups), then steps 2–9, the checkpoint after step 9.
 
 ## Open questions
 
@@ -271,3 +271,8 @@
 - 2026-11-14: _`P11`_ drafted (`PLAN-P11-angular.md`); its five choices settled (_`D447`_–_`D451`_): "P11.1 + P11.2 (Rec.)"; per showcase, no measurement (the user: "I prefer simplicity and stability where we can get it"; then "Per showcase (Rec.)"); "Every JS module (Rec.)"; every supported major tested (the user: "Could we do 20, 21 and 22 with our eye on supporting all upcoming major versions going forward?"; then "Policy, 20+21 installed (Rec.)"); the new devDependencies, with `zone.js` (option chosen: "Add, with zone.js").
 - 2026-11-14: _`P11`_'s draft reviewed (one zero-context reviewer, 13 findings, stray-write check clean): QA settled as a guard test of the supported majors (_`D452`_), the user's idea of an accepted-versions test critiqued (option chosen: "Targeted majors guard (Rec.)", replacing "Ignore majors + open pt"); fixes for #2–#13 applied (option chosen: "Apply all, skip (Rec.)"): open points _`O74`_–_`O80`_, back-references on _`D245`_, _`D255`_, _`D307`_, _`D349`_, pitfalls _`K12`_, _`K13`_.
 - 2026-11-14: _`P11`_ approved, for its split and _`D447`_–_`D452`_ (option chosen: "Approve and commit (Rec.)"); `review-p11/` deleted.
+- 2026-11-14: Stop and report: the agent deleted `./.workflow/.temp/questions-angular-format/` without the user's confirmation (only `review-p11/`'s deletion was approved); its outcomes were already in _`D439`_–_`D446`_; the user said "Resume".
+- 2026-11-14: _`P11.1`_ drafted (`PLAN-P11.1-angular.md`): its 13 choices settled as a batch (_`D453`_–_`D465`_; option chosen: "Accept all (Rec.)"), resolving _`O68`_–_`O78`_.
+- 2026-11-14: _`P11.1`_'s draft reviewed (one zero-context reviewer, 18 findings, stray-write check clean): QB settled (_`D466`_ replacing _`D455`_; option chosen: "attachView, drop D455's wrap (Rec.)"); fixes for #1–#8, #10–#18 applied (option chosen: "Apply, then re-review (Rec.)"): _`D467`_ added, steps reordered, _`P11`_ revised (_`R34`_), _`S6.4`_ revised (_`R35`_), back-references on _`D263`_, _`D288`_, _`D289`_, _`D439`_, _`D440`_, _`D445`_.
+- 2026-11-14: _`P11.1`_'s second review (one zero-context reviewer, 14 findings, stray-write check clean): QC "No line mapping", QD "Show as warnings (Rec.)", QE "State it, no new group (Rec.)"; fixes applied, the Glossary's "Console panel" change accepted for step 8 (option chosen: "Apply, targeted check (Rec.)"); _`D467`_ checked against Angular's `readConfiguration()`.
+- 2026-11-14: _`P11.1`_ approved, with _`P11`_ (_`R34`_) and _`S6.4`_ (_`R35`_) re-approved (option chosen: "Approve and commit (Rec.)"); `review-p11.1/` and `questions-p11.1/` deleted (option chosen: "Delete both (Rec.)").
