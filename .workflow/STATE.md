@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** _`P13`_, the Markdown tab on request, approved, to be implemented; _`P1`_–_`P12`_ implemented.
+- **Stage:** _`P1`_–_`P13`_ implemented (_`P13`_, the Markdown tab on request, the last).
 - **Next free:** _`D486`_, _`S11`_, _`P14`_, _`O81`_, _`L15`_, _`R40`_, _`H1`_, _`K20`_
-- **Working on:** implementing _`P13`_ (`./.workflow/PLAN-P13-markdown-tab.md`).
-- **Next step:** _`P13`_ step 1 (the setting).
+- **Working on:** nothing in progress.
+- **Next step:** the user's choice of what comes next (the known open issues in `./.workflow/PLAN.md`).
 
 ## Open questions
 
@@ -303,3 +303,5 @@
 - 2026-11-14: The fast-path centering approved, after the browser check (option chosen: "Approve and commit (Rec.)").
 - 2026-11-14: _`P13`_'s choices settled in one dialog (Markdown tab on blocks only, only with an undocumented `showroom.json` setting, named `exposeShowcaseMarkdownSyntax` by the user; "Fast path + P13"), recorded as _`D484`_ (_`S10`_ revised, _`R39`_); _`P13`_ drafted with _`D485`_.
 - 2026-11-14: _`S10`_ re-approved (_`R39`_), and _`P13`_ approved, without a zero-context review (option chosen: "Approve and commit (Rec.)").
+- 2026-11-14: _`P13`_ steps 1–4: the `exposeShowcaseMarkdownSyntax` setting, this repository's `showroom.json` setting it; tests and docs; `npm run ci` green; the dogfood `serve` restarted (every block's first tab is Markdown).
+- 2026-11-14: _`P13`_ approved as implemented, after the browser check (option chosen: "Approve and commit (Rec.)").

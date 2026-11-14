@@ -16,7 +16,14 @@ import type { ShownHostInformation, ShownShowcase } from '../../app/host/index.j
 import { readConfiguration } from '../../configuration/index.js';
 import type { HostInformation } from '../../host/index.js';
 import { buildShowcases, getBuildShowcasesIssues, getErrorFrame, type BuildShowcasesResult, type ShowcaseFrame } from '../../showcases/index.js';
-import { RESOLVED_HOST_MODULE_ID, getAppDir, getShownHostInformation, getTabFileHashes, getViteConfiguration } from '../../vite/index.js';
+import {
+  RESOLVED_HOST_MODULE_ID,
+  getAppDir,
+  getShownHostInformation,
+  getTabFileHashes,
+  getViteConfiguration,
+  type ShownHostOptions,
+} from '../../vite/index.js';
 
 // #region Ignored paths
 
@@ -236,6 +243,10 @@ export interface HostWatcherOptions {
    * Gets the hashes of the text linked files shown as tabs, after a successful check (see getTabFileHashes()); none if not given
    */
   hashFiles?: (host: HostInformation) => Promise<ReadonlyMap<string, string>>;
+  /**
+   * Gets the shown host information's options from the configuration, after a successful check (see ShownHostOptions); none if not given
+   */
+  readShownOptions?: () => Promise<ShownHostOptions>;
 }
 
 /**
@@ -345,9 +356,10 @@ export function createHostWatcher(options: HostWatcherOptions): HostWatcher {
       if (closed) return;
       matcher = (await options.readMatcher()) ?? matcher;
       const hashes = (await options.hashFiles?.(result.host)) ?? new Map<string, string>();
+      const shownOptions = (await options.readShownOptions?.()) ?? {};
       if (closed) return;
       next = {
-        host: getShownHostInformation(result.host, built.frames, hashes),
+        host: getShownHostInformation(result.host, built.frames, hashes, shownOptions),
         frames: built.frames,
         issues: [...result.issues, ...built.issues],
         watched: built.watched,
@@ -494,6 +506,16 @@ async function _buildShowcases(root: string, host: HostInformation): Promise<Bui
 }
 
 /**
+ * Reads the shown host information's options from the configuration, again on each run, so a change to it applies without a restart
+ * @param root Path of the host repository's root
+ * @returns The options; none if the configuration can't be read (the check reports it)
+ */
+async function _readShownOptions(root: string): Promise<ShownHostOptions> {
+  const { configuration } = await readConfiguration(root);
+  return { exposeShowcaseMarkdownSyntax: configuration?.exposeShowcaseMarkdownSyntax };
+}
+
+/**
  * Serves the showroom of a host repository with Vite's dev server, until the process is asked to stop: checks it, builds every showcase, then
  * listens. A showcase that doesn't build shows its build errors in its showcase frame, and never stops `serve`.
  * @param options Options of the command
@@ -509,7 +531,7 @@ export async function serve({ root, port = DEFAULT_PORT, outDir, output, appDir 
   const build = (host: HostInformation) => _buildShowcases(root, host);
   const built = await runBuild(first.host, build, new Map());
   const initial: ServedState = {
-    host: getShownHostInformation(first.host, built.frames, await getTabFileHashes(root, first.host)),
+    host: getShownHostInformation(first.host, built.frames, await getTabFileHashes(root, first.host), await _readShownOptions(root)),
     frames: built.frames,
     issues: [...first.issues, ...built.issues],
     watched: built.watched,
@@ -550,6 +572,7 @@ export async function serve({ root, port = DEFAULT_PORT, outDir, output, appDir 
       build,
       readMatcher: () => readIgnoreMatcher(root, outDir),
       hashFiles: (host) => getTabFileHashes(root, host),
+      readShownOptions: () => _readShownOptions(root),
       watch: (paths, matcher) => watchTargets(getWatchTargets(paths, matcher)),
       output,
       target: {

@@ -180,7 +180,7 @@ describe('vite', () => {
     expect(getShownHostInformation(_HOST, new Map([['README.md#1', _FRAMES.get('README.md#1')!]])).showcases.map(({ id }) => id)).toEqual(['README.md#1']);
   });
 
-  it('Adds a Markdown tab, last, to a showcase shown as a block only, with its source as written', () => {
+  it('Adds a Markdown tab, first, to a showcase shown as a block only, with its source as written, only where the configuration asks for it', () => {
     const content = '# Hi\n\n```html showcase include=a.css\n<p>1</p>\n```\n\nSee [demo](demo.html "showcase").\n';
     const host: HostInformation = {
       ..._HOST,
@@ -194,15 +194,18 @@ describe('vite', () => {
       ['README.md#1', _FRAMES.get('README.md#1')!],
       ['my docs/a #1.md#2', _FRAMES.get('my docs/a #1.md#2')!],
     ]);
-    const [block, inline] = getShownHostInformation(host, frames).showcases;
-    expect(block.tabs.map(({ label }) => label)).toEqual(['HTML', 'a.css', MARKDOWN_TAB_LABEL]);
-    expect(block.tabs[2]).toEqual({
+    // None by default (D484)
+    expect(getShownHostInformation(host, frames).showcases[0].tabs.map(({ label }) => label)).toEqual(['HTML', 'a.css']);
+    expect(getShownHostInformation(host, frames, new Map(), { exposeShowcaseMarkdownSyntax: false }).showcases[0].tabs).toHaveLength(2);
+    const [block, inline] = getShownHostInformation(host, frames, new Map(), { exposeShowcaseMarkdownSyntax: true }).showcases;
+    expect(block.tabs.map(({ label }) => label)).toEqual([MARKDOWN_TAB_LABEL, 'HTML', 'a.css']);
+    expect(block.tabs[0]).toEqual({
       label: 'Markdown',
       path: 'README.md',
       language: 'md',
       source: { kind: 'virtual', content: '```html showcase include=a.css\n<p>1</p>\n```' },
     });
-    // The code sidebar of a linked showcase shown inline has no Markdown tab (D421)
+    // The code sidebar of a linked showcase shown inline has no Markdown tab (D421, D484)
     expect(inline.tabs.map(({ label }) => label)).toEqual(['demo.html']);
   });
 

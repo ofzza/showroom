@@ -31,6 +31,7 @@ describe('configuration', () => {
         code: ['*.ts'],
         documentation: ['docs/*.md'],
         customShowcaseAdapters: { mine: './adapters/mine.js' },
+        exposeShowcaseMarkdownSyntax: true,
       };
       expect(validateConfiguration(value)).toEqual({ configuration: value, errors: [] });
     });
@@ -55,13 +56,16 @@ describe('configuration', () => {
     });
 
     it('Rejects values of the wrong type', () => {
-      expect(validateConfiguration({ stack: '', sourceRoot: 1, outDir: [], ignore: 'x', code: [1], documentation: {} }).errors).toEqual([
+      expect(
+        validateConfiguration({ stack: '', sourceRoot: 1, outDir: [], ignore: 'x', code: [1], documentation: {}, exposeShowcaseMarkdownSyntax: 'yes' }).errors,
+      ).toEqual([
         'showroom.json: "stack" must be a non-empty string',
         'showroom.json: "sourceRoot" must be a non-empty string',
         'showroom.json: "outDir" must be a non-empty string',
         'showroom.json: "ignore" must be an array of strings',
         'showroom.json: "code" must be an array of strings',
         'showroom.json: "documentation" must be an array of strings',
+        'showroom.json: "exposeShowcaseMarkdownSyntax" must be a boolean',
       ]);
     });
 

@@ -31,10 +31,21 @@ export const HOST_MODULE_ID = 'virtual:showroom-host';
 export const RESOLVED_HOST_MODULE_ID = `\0${HOST_MODULE_ID}`;
 
 /**
+ * Represents the options of the shown host information, from the configuration
+ */
+export interface ShownHostOptions {
+  /**
+   * True to give every showcase shown as a block its Markdown tab, first (see Configuration's `exposeShowcaseMarkdownSyntax`)
+   */
+  exposeShowcaseMarkdownSyntax?: boolean;
+}
+
+/**
  * Gets the shown host information: the part of the host information the showroom presents
  * @param host Host information
  * @param frames The showcase frames built, by showcase id; none when they aren't built
  * @param hashes The hashes of the text linked files shown as tabs, by path (see getTabFileHashes()); a tab without one has no hash in its URL
+ * @param options Options from the configuration: whether showcases shown as blocks get their Markdown tab
  * @returns The project information, documentation files and linked files, without the code file index, and the showcases with a showcase frame,
  * each with its tabs
  */
@@ -42,8 +53,9 @@ export function getShownHostInformation(
   host: HostInformation,
   frames?: ReadonlyMap<string, Pick<ShowcaseFrame, 'folder' | 'page' | 'files'>>,
   hashes: ReadonlyMap<string, string> = new Map(),
+  options: ShownHostOptions = {},
 ): ShownHostInformation {
-  // Each documentation file holding a shown showcase shown as a block is parsed once, for its showcases' Markdown tabs
+  // Each documentation file holding a shown showcase shown as a block is parsed once, for its showcases' Markdown tabs, when they have them
   const sources = new Map<string, Map<number, string>>();
   const getSources = (path: string) => {
     if (!sources.has(path)) sources.set(path, getShowcaseSources(host.documentation.find((file) => file.path === path)?.content ?? ''));
@@ -54,8 +66,8 @@ export function getShownHostInformation(
     if (!frame) return [];
     const { id, documentation, offset, display } = showcase;
     const tabs = getShownTabs(host, showcase, hashes);
-    const markdown = display === 'block' ? getSources(documentation).get(offset) : undefined;
-    if (markdown !== undefined) tabs.push(getMarkdownTab(showcase, markdown));
+    const markdown = options.exposeShowcaseMarkdownSyntax && display === 'block' ? getSources(documentation).get(offset) : undefined;
+    if (markdown !== undefined) tabs.unshift(getMarkdownTab(showcase, markdown));
     return [{ id, documentation, offset, display, tabs, url: getShowcaseFrameUrl(frame) }];
   });
   return { project: host.project, documentation: host.documentation, showcases, linkedFiles: host.linkedFiles };
@@ -84,7 +96,8 @@ export function getShownTabs(host: HostInformation, showcase: Showcase, hashes: 
 export const MARKDOWN_TAB_LABEL = 'Markdown';
 
 /**
- * Gets a showcase's Markdown tab, the last of its code pane's tabs: the showcase as written in its documentation file (its fence, or its link)
+ * Gets a showcase's Markdown tab, the first of its code pane's tabs where the configuration asks for it (`exposeShowcaseMarkdownSyntax`): the
+ * showcase as written in its documentation file (its fence, or its link)
  * @param showcase The showcase, shown as a block
  * @param source Its Markdown source (see getShowcaseSources())
  * @returns The tab, under the documentation file's path

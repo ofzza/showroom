@@ -44,6 +44,11 @@ export interface Configuration {
    * Custom showcase adapters (experimental): paths of their JavaScript modules, relative to the host repository's root, by showcase adapter name
    */
   customShowcaseAdapters?: Record<string, string>;
+  /**
+   * True to give every showcase shown as a block its Markdown tab (the showcase as written in its documentation file), as its first tab, selected
+   * by default; false by default, with no Markdown tab. Meant for `showroom`'s own repository, which documents its markers with live showcases
+   */
+  exposeShowcaseMarkdownSyntax?: boolean;
 }
 
 /**
@@ -71,6 +76,7 @@ const _KEYS: Record<keyof Configuration, (value: unknown) => boolean> = {
   code: _isStringArray,
   documentation: _isStringArray,
   customShowcaseAdapters: _isStringRecord,
+  exposeShowcaseMarkdownSyntax: (value) => typeof value === 'boolean',
 };
 
 /**
@@ -84,6 +90,7 @@ const _EXPECTED: Record<keyof Configuration, string> = {
   code: 'an array of strings',
   documentation: 'an array of strings',
   customShowcaseAdapters: 'an object mapping showcase adapter names to paths (non-empty strings)',
+  exposeShowcaseMarkdownSyntax: 'a boolean',
 };
 
 /**

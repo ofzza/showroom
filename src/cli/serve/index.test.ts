@@ -317,6 +317,22 @@ describe('cli/serve', () => {
       expect(record.events).toEqual([[SHOWCASES_EVENT, watcher.getHost().showcases]]);
     });
 
+    it("Takes the configuration's Markdown tab setting again on each run", async () => {
+      // A change to showroom.json applies without a restart (D485)
+      const content = '[demo](a.html "showcase block")\n';
+      const base = _host(content, [], 1);
+      const host: HostInformation = { ...base, showcases: [{ ...base.showcases[0], display: 'block', offset: 0 }] };
+      let exposeShowcaseMarkdownSyntax = false;
+      const { watcher } = _watcher(await _initial(host), [{ passed: true, host, issues: [] }], {
+        readShownOptions: async () => ({ exposeShowcaseMarkdownSyntax }),
+      });
+      await watcher.update();
+      expect(watcher.getHost().showcases[0].tabs.map(({ label }) => label)).toEqual(['a.html']);
+      exposeShowcaseMarkdownSyntax = true;
+      await watcher.update();
+      expect(watcher.getHost().showcases[0].tabs.map(({ label }) => label)).toEqual(['Markdown', 'a.html']);
+    });
+
     it('Serves an error frame, and sends the build errors as issues, when a showcase stops building', async () => {
       const host = _host('first', [], 2);
       const { watcher, record } = _watcher(await _initial(host), [{ passed: true, host, issues: [] }], { build: _build('first', ['README.md#2']) });
