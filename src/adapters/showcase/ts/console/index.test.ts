@@ -10,6 +10,7 @@ import {
   CONSOLE_LEVELS,
   CONSOLE_LINE_FADE_MS,
   CONSOLE_LINE_SHOWN_MS,
+  CONSOLE_MAX_LINES,
   CONSOLE_MODE_CEILING_MS,
   CONSOLE_PANEL_ID,
   CONSOLE_PANEL_LINES,
@@ -116,6 +117,16 @@ class _FakeElement extends _FakeNode {
     child.parentNode?.removeChild(child);
     child.parentNode = this;
     this.childNodes.push(child);
+    return child;
+  }
+  public get firstChild(): _FakeNode | null {
+    return this.childNodes[0] ?? null;
+  }
+  public insertBefore<TNode extends _FakeNode>(child: TNode, before: _FakeNode | null): TNode {
+    child.parentNode?.removeChild(child);
+    child.parentNode = this;
+    const index = before ? this.childNodes.indexOf(before) : -1;
+    this.childNodes.splice(index < 0 ? this.childNodes.length : index, 0, child);
     return child;
   }
   public removeChild<TNode extends _FakeNode>(child: TNode): TNode {
@@ -642,6 +653,27 @@ describe('adapters/showcase/ts/console', () => {
       expect(alone.mode()).toBe('alone');
       expect(alone.isOpen()).toBe(false);
     });
+  });
+
+  it('Keeps the newest lines only, saying how many were dropped, still counting every line', () => {
+    const frame = _run();
+    frame.add(frame.root, frame.create('div'));
+    frame.load();
+    for (let line = 1; line <= CONSOLE_MAX_LINES; line++) frame.console.log(line);
+    expect(frame.lines()).toHaveLength(CONSOLE_MAX_LINES);
+    frame.console.log('one more');
+    expect(frame.lines()).toHaveLength(CONSOLE_MAX_LINES + 1);
+    expect(frame.lines()[0]).toEqual(['line debug dropped', '… 1 earlier line dropped']);
+    expect(frame.lines()[1]).toEqual(['line log', '2']);
+    frame.console.log('and another');
+    frame.console.error('and an error');
+    expect(frame.lines()[0]).toEqual(['line debug dropped', '… 3 earlier lines dropped']);
+    expect(frame.lines()[1]).toEqual(['line log', '4']);
+    expect(frame.lines().at(-1)).toEqual(['line error', 'and an error']);
+    expect(frame.lines()).toHaveLength(CONSOLE_MAX_LINES + 1);
+    expect(frame.counter?.textContent).toBe(`>_ ${CONSOLE_MAX_LINES + 3} · 1 error`);
+    frame.counter?.click();
+    expect(frame.title?.textContent).toBe(`Console · ${CONSOLE_MAX_LINES + 3} lines`);
   });
 
   it('Follows new lines only while scrolled to the bottom', () => {

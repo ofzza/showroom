@@ -25,6 +25,11 @@ export const CONSOLE_PANEL_ID = 'showroom-console';
 export const CONSOLE_PANEL_LINES = 8;
 
 /**
+ * Number of lines the console panel keeps at most: each line beyond them drops the oldest, and a first line says how many were dropped
+ */
+export const CONSOLE_MAX_LINES = 128;
+
+/**
  * Room the open console panel always leaves at the top of a showcase frame, in pixels, so it never covers the code pane's cycling button floating
  * over the showcase frame's top-right corner (the height of the code pane's header row, `src/app/code-pane/`)
  */
@@ -81,6 +86,10 @@ export interface ConsoleScriptConstants {
    */
   panelLines: number;
   /**
+   * See CONSOLE_MAX_LINES
+   */
+  maxLines: number;
+  /**
    * See CONSOLE_TOP_ROOM
    */
   topRoom: number;
@@ -121,6 +130,7 @@ export const CONSOLE_SCRIPT_CONSTANTS: ConsoleScriptConstants = {
   rootId: SHOWCASE_FRAME_ROOT_ID,
   panelId: CONSOLE_PANEL_ID,
   panelLines: CONSOLE_PANEL_LINES,
+  maxLines: CONSOLE_MAX_LINES,
   topRoom: CONSOLE_TOP_ROOM,
   fadingLines: CONSOLE_FADING_LINES,
   lineShownMs: CONSOLE_LINE_SHOWN_MS,
@@ -135,7 +145,7 @@ export const CONSOLE_SCRIPT_CONSTANTS: ConsoleScriptConstants = {
  * The console script, run in a `ts` showcase frame before the showcase's module: it wraps the console's methods (still calling the originals) and
  * listens to uncaught errors and rejected promises, keeping a line for each, styled by its level. Values are shown readably: strings as they are, an
  * `Error` as its stack, objects and arrays as indented JSON (`[Circular]` for cycles, `BigInt`s, `Map`s, `Set`s, DOM nodes and functions
- * described), and anything else by `String()`.
+ * described), and anything else by `String()`. The panel keeps the newest CONSOLE_MAX_LINES lines, its first line saying how many were dropped.
  *
  * It picks its mode once the window has loaded and the grace period has passed (or at the ceiling after `DOMContentLoaded`): **alone** if the
  * showcase has rendered nothing, the panel in the page's flow at a fixed height, shown from its first line (dispatching the growth event as it
@@ -280,6 +290,10 @@ export function consoleScript(constants: ConsoleScriptConstants): void {
   let earlyUncaught = false;
   // Lines logged, and errors logged while no line was seen (before the pick, or hidden and closed)
   let count = 0;
+  // Lines kept in the panel, and lines dropped from it, counted by its first line once any is
+  let kept = 0;
+  let dropped = 0;
+  let notice: HTMLElement | undefined;
   let errors = 0;
   // `<body>`'s own inline `min-height` while the open panel grows it, or undefined
   let savedMinHeight: string | undefined;
@@ -496,6 +510,18 @@ export function consoleScript(constants: ConsoleScriptConstants): void {
     const follow = atBottom(log);
     const line = element('div', `line ${level}`, log);
     line.textContent = text;
+    // Beyond the most lines kept, the oldest is dropped, and counted by the panel's first line
+    if (++kept > constants.maxLines) {
+      log.removeChild(log.children[notice ? 1 : 0]);
+      kept--;
+      dropped++;
+      if (!notice) {
+        notice = document.createElement('div');
+        notice.className = 'line debug dropped';
+        log.insertBefore(notice, log.firstChild);
+      }
+      notice.textContent = `… ${plural(dropped, 'earlier line')} dropped`;
+    }
     if (follow) log.scrollTop = log.scrollHeight;
     count++;
     const seen = mode === 'alone' || open;

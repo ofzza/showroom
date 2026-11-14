@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** between segments: _`P1`_–_`P10`_ implemented (_`P10.5`_, the last of _`P10`_, on 2026-11-14).
-- **Next free:** _`D438`_, _`S11`_, _`P11`_, _`O68`_, _`L15`_, _`R33`_, _`H1`_, _`K20`_
+- **Next free:** _`D439`_, _`S11`_, _`P11`_, _`O68`_, _`L15`_, _`R33`_, _`H1`_, _`K20`_
 - **Working on:** nothing in progress; _`P10.5`_ implemented and committed.
-- **Next step:** ask the user what to work on next (e.g. the open points of _`S6`_ (_`O16`_–_`O19`_), the known open issues in `PLAN.md`, or a new specification segment); ask before deleting `./.workflow/.temp/p10.5-check/` and `ci-p10.5.log`.
+- **Next step:** ask the user what to work on next (e.g. the open points of _`S6`_ (_`O16`_–_`O19`_), the known open issues in `PLAN.md`, or a new specification segment).
 
 ## Open questions
 
@@ -13,13 +13,12 @@
 
 ## Waiting on me
 
-- Deleting `./.workflow/.temp/p10.5-check/` (the console's check host) and `./.workflow/.temp/ci-p10.5.log`, once the user confirms.
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
 ## Running
 
-- The dogfood `serve` (http://localhost:5180/) and the check host's `serve` (http://localhost:5181/), started for _`P10.5`_'s checkpoint; a new session finds them gone.
+- The dogfood `serve` (http://localhost:5180/), started for the fast path's checkpoint; a new session finds it gone.
 
 ## History
 
@@ -263,3 +262,5 @@
 - 2026-11-14: _`P10.5`_'s browser check: the user asked for the open console to leave the cycling button's row (_`D436`_: "Always leave 32px (Rec.)") and a minimum height for showcase frames in blocks (_`D437`_: "Blocks, 64px, showroom (Rec.)"); both implemented.
 - 2026-11-14: _`P10.5`_'s browser check passed (option chosen: "Looks good").
 - 2026-11-14: _`P10.5`_ implemented, re-approved with _`D436`_, _`D437`_ and committed (option chosen: "Approve and commit"); `npm run ci` green; _`P10`_ implemented.
+- 2026-11-14: _`P10.5`_'s working files deleted and both `serve`s stopped (option chosen: "Delete and stop (Rec.)").
+- 2026-11-14: Fast path (option chosen: "Yes, as described (Rec.)"): the console panel keeps the newest 128 lines, saying how many were dropped (_`D438`_), picking up _`L14`_; `npm run ci` green; approved and committed (option chosen: "Approve and commit").
