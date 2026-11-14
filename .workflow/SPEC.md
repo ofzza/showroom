@@ -27,7 +27,7 @@ approved 2026-11-09
   - It only builds, into an output folder: `./showroom` by default, configurable. Deploying it is the host repository's job; the README documents an example GitHub Pages workflow (_`D7`_).
   - Theming: FluentUI's built-in light and dark themes, with a toggle (_`D9`_).
   - It presents the project information and the documentation files; code blocks in rendered Markdown are syntax highlighted (_`D12`_).
-- _`D14`_ (was must-have 2; `live`): **Information taken from the host repository:**
+- _`D14`_ (was must-have 2; `live`, refined by _`D487`_): **Information taken from the host repository:**
   1.  **Project information.** How it's detected (`package.json`, `.sln`, …) is either a configuration item or part of the selected stack adapter.
   2.  **Documentation files (_`D6`_)**, mostly but not only Markdown:
       - by default, `README`, `CONTRIBUTE` and `LICENSE` in the host repository's root, and `README` files anywhere in the host repository, except what is ignored (_`D10`_);
@@ -43,7 +43,7 @@ approved 2026-11-09
 ### Ideas and later
 
 - **Showcases:** demoable, renderable, possibly editable code examples, embedded into the showroom alongside the documentation. They come later.
-- Stack adapters for other languages and frameworks (Angular, .NET, …).
+- Stack adapters for other languages and frameworks (Angular, .NET, …). The .NET one is taken by _`S11`_; Angular hosts use the TypeScript stack adapter (_`D96`_, SPEC-S6-showcases.md).
 - **SCM adapters** (GitHub, GitLab, Bitbucket, …), to link to, read or show each indexed file's contents from there (_`D3`_).
 - A typed config file, `showroom.{js,ts}`, as many NPM CLI tools have (_`D5`_).
 - **Code browsing:** showing the code file index, and later the files' contents, in the showroom (_`D3`_, _`D12`_).
@@ -167,6 +167,29 @@ From the specification of _`S9`_ (2026-11-13), discussed in `./.workflow/.temp/q
 approved 2026-11-13
 
 [See Presenting showcases](./SPEC-S10-presentation.md)
+
+## _`S11`_ The .NET stack adapter
+
+approved 2026-11-15
+
+A stack adapter for .NET host repositories (e.g. `../dotnetschema`), which _`K3`_ (SPEC-pitfalls.md) and _`D69`_ (PLAN.md) left for later. Such a host runs `showroom` through `npx --package` (_`D69`_).
+
+- _`D486`_ (`live`; the user: "let plan out .NET/C# stack adapter next"; option chosen: "Accept all (Rec.)"): **A built-in `dotnet` stack adapter** for .NET host repositories, C#, F# and VB alike. Its name matches `../dotnetschema`'s existing configuration. Rejected: `csharp` (leaves F# and VB out).
+- _`D487`_ (`live`; refines _`D14`_; option chosen: "Always require it"): **`showroom.json` gets an optional, stack-neutral `project` key**: the path, relative to the host repository's root and inside it, of the file the stack adapter reads the project information from. The `typescript` stack adapter defaults it to `package.json`. The `dotnet` stack adapter requires it, naming a `.csproj`, `.fsproj` or `.vbproj`, and finds no project by itself: without it, the project information can't be read, with an error naming the key. Rejected: finding the project through the root's solution (`.slnx`/`.sln`) by its name, which guesses; and the solution's name with a root `Directory.Build.props`, which misses metadata kept in a project file (as `../dotnetschema` keeps it).
+- _`D488`_ (`live`; option chosen: "Static XML (Rec.)"): **The `dotnet` stack adapter reads MSBuild files statically, as XML**, needing only Node, as `showroom` does (no .NET SDK):
+  - only properties in `<PropertyGroup>`s, with no `Condition` on either, count;
+  - the nearest `Directory.Build.props`, walking up from the project file's folder to the host repository's root (as MSBuild picks it), is read first, and the project file's properties override it;
+  - `$(Name)` references are resolved against those properties; a value still holding an unresolved reference is dropped;
+  - the project information is: `name` from `PackageId`, else `AssemblyName`, else the project file's name without its extension; `version` from `Version`, else `VersionPrefix` (with `-` and `VersionSuffix`, when set); `description` from `Description`; `license` from `PackageLicenseExpression`; `author` from `Authors`; `homepage` from `PackageProjectUrl`; `repository` from `RepositoryUrl`.
+
+  Rejected: `dotnet msbuild -getProperty` (exact, but needs the .NET SDK wherever `showroom` runs, and in this repository's CI). What static reading can't see is _`K20`_ (SPEC-pitfalls.md).
+
+- _`D489`_ (`live`; option chosen: "All .NET languages (Rec.)"): **The `dotnet` stack adapter's code files** are `*.cs`, `*.csx`, `*.fs`, `*.fsi`, `*.fsx`, `*.vb`, `*.razor` and `*.cshtml`. Rejected: C# only.
+- _`D490`_ (`live`; option chosen: "Accept all (Rec.)"): **The `dotnet` stack adapter's defaults**: source root `src`; ignored: `.git`, `.vs`, `bin`, `obj`, `artifacts`, `TestResults`; no documentation patterns beyond the built-in ones (`README` anywhere already finds each project's own).
+
+### Ideas and later
+
+- A showcase adapter running .NET code (e.g. C# through Blazor WebAssembly). Until then, a .NET host's documentation can use `html` showcases, which need nothing from the host.
 
 ## Pitfalls
 

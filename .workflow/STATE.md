@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** _`P1`_–_`P13`_ implemented (_`P13`_, the Markdown tab on request, the last).
-- **Next free:** _`D486`_, _`S11`_, _`P14`_, _`O81`_, _`L15`_, _`R40`_, _`H1`_, _`K20`_
-- **Working on:** nothing in progress.
-- **Next step:** the user's choice of what comes next (the known open issues in `./.workflow/PLAN.md`).
+- **Stage:** specification: _`S11`_ approved; _`P14`_, the .NET stack adapter, approved, to implement (_`P1`_–_`P13`_ implemented).
+- **Next free:** _`D495`_, _`S12`_, _`P15`_, _`O81`_, _`L15`_, _`R40`_, _`H1`_, _`K21`_
+- **Working on:** _`S11`_ (SPEC.md), the `dotnet` stack adapter; then its plan segment, _`P14`_.
+- **Next step:** implementing _`P14`_ (`PLAN-P14-dotnet.md`), from step 1.
 
 ## Open questions
 
@@ -18,7 +18,7 @@
 
 ## Running
 
-- The dogfood `serve` of this repository: http://localhost:5180/.
+- None (the dogfood `serve` of the previous session is gone).
 
 ## History
 
@@ -305,3 +305,7 @@
 - 2026-11-14: _`S10`_ re-approved (_`R39`_), and _`P13`_ approved, without a zero-context review (option chosen: "Approve and commit (Rec.)").
 - 2026-11-14: _`P13`_ steps 1–4: the `exposeShowcaseMarkdownSyntax` setting, this repository's `showroom.json` setting it; tests and docs; `npm run ci` green; the dogfood `serve` restarted (every block's first tab is Markdown).
 - 2026-11-14: _`P13`_ approved as implemented, after the browser check (option chosen: "Approve and commit (Rec.)").
+- 2026-11-15: Specification stage entered for the .NET stack adapter (the user: "let plan out .NET/C# stack adapter next"); its 5 choices answered (project information from a required `project` key; static XML; all .NET languages; the defaults; `fast-xml-parser`, for the plan); _`S11`_ drafted, with pitfall _`K20`_.
+- 2026-11-15: _`S11`_ approved (option chosen: "Approve (Rec.)").
+- 2026-11-15: The XML parser re-asked after the agent's correction (`fast-xml-parser` has 5 runtime dependencies, about 1.3 MB): `sax` chosen (option chosen: "sax (Rec.)"); _`P14`_ drafted (`PLAN-P14-dotnet.md`).
+- 2026-11-15: _`P14`_ approved (option chosen: "Approve (Rec.)"), without a zero-context review.
