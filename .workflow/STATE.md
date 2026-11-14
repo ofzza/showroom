@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** between segments: _`P1`_–_`P10`_ implemented (_`P10.5`_, the last of _`P10`_, on 2026-11-14).
-- **Next free:** _`D439`_, _`S11`_, _`P11`_, _`O68`_, _`L15`_, _`R33`_, _`H1`_, _`K20`_
-- **Working on:** nothing in progress; _`P10.5`_ implemented and committed.
-- **Next step:** ask the user what to work on next (e.g. the open points of _`S6`_ (_`O16`_–_`O19`_), the known open issues in `PLAN.md`, or a new specification segment).
+- **Stage:** planning the `angular` showcase adapter (_`P11`_); _`S6.4`_ re-approved; _`P1`_–_`P10`_ implemented.
+- **Next free:** _`D447`_, _`S11`_, _`P11`_, _`O68`_, _`L15`_, _`R34`_, _`H1`_, _`K20`_
+- **Working on:** the `angular` showcase adapter: the format is settled (_`S6.4`_); the spike's findings are in _`D439`_'s evidence, and its "Not covered" list still to be taken into _`P11`_.
+- **Next step:** plan the `angular` showcase adapter (_`P11`_): segmenting first, then its open points (the spike's "Not covered" list in `./.workflow/.temp/spike-angular/FINDINGS.md`: the host's own partially compiled library, several showcases in one program, `serve`, NgModule-based imports; _`K12`_'s installed Angular fixtures), with _`S6.4`_ (_`D439`_–_`D446`_), _`P7`_ and _`P7.2`_ as the models.
 
 ## Open questions
 
@@ -18,7 +18,7 @@
 
 ## Running
 
-- The dogfood `serve` (http://localhost:5180/), started for the fast path's checkpoint; a new session finds it gone.
+- Two dogfood `serve`s from earlier sessions, still running: http://localhost:5180/ (current) and http://localhost:5173/ (older); the user hasn't said whether to stop the older one.
 
 ## History
 
@@ -264,3 +264,7 @@
 - 2026-11-14: _`P10.5`_ implemented, re-approved with _`D436`_, _`D437`_ and committed (option chosen: "Approve and commit"); `npm run ci` green; _`P10`_ implemented.
 - 2026-11-14: _`P10.5`_'s working files deleted and both `serve`s stopped (option chosen: "Delete and stop (Rec.)").
 - 2026-11-14: Fast path (option chosen: "Yes, as described (Rec.)"): the console panel keeps the newest 128 lines, saying how many were dropped (_`D438`_), picking up _`L14`_; `npm run ci` green; approved and committed (option chosen: "Approve and commit").
+- 2026-11-14: Planning the `angular` showcase adapter started (the user: "Let's start planning the angular adapter", meaning the showcase adapter). _`K9`_'s spike run on the user's go-ahead ("if there are any spikes you need to run before we get started, do so now"): the host's own `@angular/compiler-cli` (`NgtscProgram`) in a Vite plugin of `showroom`'s, with virtual files from memory and the Angular Linker, builds and runs on Angular 19–22, with template type checking; Analog (files on disk only) and plain JIT (no signal inputs) don't fit. Findings in `./.workflow/.temp/spike-angular/FINDINGS.md`.
+- 2026-11-14: After the spike, the user chose the format first (option chosen: "Format first (Rec.)"), and to clear the context before it (option chosen: "Clear first").
+- 2026-11-14: The Angular showcase format's 8 choices settled (_`D439`_–_`D446`_ in _`S6.4`_, _`R33`_): Q1 after an explanation of the build (option chosen: "Accept A (Rec.)"), Q3 "No setup at all" with the idea for later for Angular and React (the user: "I am leaning towards \"No setup at all\" unless you tell me that it is much easier to implement thin now than later?"; then "Yes, as described (Rec.)"), the other six by their recommendations (option chosen: "Discuss some", naming only Q1 and Q3); _`K9`_ resolved by _`D439`_.
+- 2026-11-14: _`S6.4`_ re-approved with _`R33`_ (option chosen: "Approve and commit (Rec.)").
