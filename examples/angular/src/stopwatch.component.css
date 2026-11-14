@@ -1,0 +1,13 @@
+/* The stopwatch's styles: tabular figures, following the showroom's theme with light-dark() */
+
+.display {
+  font: 2rem monospace;
+  font-variant-numeric: tabular-nums;
+  color: light-dark(#c3002f, #ff6b81);
+}
+
+.row {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}

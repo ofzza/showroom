@@ -1,6 +1,6 @@
 # _`P11.2`_ The `angular` showcase adapter example
 
-approved 2026-11-14 (option chosen: "Approve and commit (Rec.)"), without a zero-context review; choices _`D469`_–_`D472`_ settled 2026-11-14
+implemented 2026-11-14 (option chosen: "Approve and commit (Rec.)"; _`D473`_); approved 2026-11-14 (option chosen: "Approve and commit (Rec.)"), without a zero-context review; choices _`D469`_–_`D472`_ settled 2026-11-14
 
 ## Goals
 
@@ -16,6 +16,8 @@ Settled 2026-11-14 in one dialog, Q1–Q4.
 - _`D470`_ (`live`; Q2): **What the example shows**, beyond the basics (signal inputs and an output logging to the console panel, a root service, following the theme, a standalone pipe of `@angular/common`, e.g. `DecimalPipe`): the library's stopwatch keeps its template and styles in real files (`templateUrl`, `styleUrl`), rendered by the first showcase; a showcase whose `templateUrl` names a virtual ` ```html showcase file=… ` resource; and one showcase with the `zone` option (`showcase=angular({ zone: true })`), its component `ChangeDetectionStrategy.Eager`, refreshed by zone-based change detection after a plain field changes (options chosen: "templateUrl/styleUrl files (Rec.)", "Virtual template (Rec.)", "zone option (Rec.)"). Rejected: an NgModule import (legacy for new code; the `showcase-angular` fixture covers it, _`D464`_ (PLAN-P11.1-angular.md)).
 - _`D471`_ (`live`; Q3; resolves _`O80`_ (PLAN-P11-angular.md)): **`README.md`'s copy of the first showcase is type checked with the root `tsconfig.json` as it is**, as its `react` copy already is: the program is the entry point and the tsconfig's declaration files (_`D453`_ (PLAN-P11.1-angular.md)), and `@Component` classes type check without `experimentalDecorators` (found in _`P11.1`_); `ci:showroom` and the `integration` test fail on any break. Its templates are checked without `strictTemplates` there, and with it in the example's own copy (_`D472`_) (option chosen: "Root tsconfig as is (Rec.)"). Rejected: `angularCompilerOptions` in the root `tsconfig.json` (the example's settings mixed into the repository's own configuration).
 - _`D472`_ (`live`; Q4; refines _`D307`_ (SPEC.md)): **`examples/angular/tsconfig.json`** holds the other examples' options (`types: []`, `strict`, `noEmit`, `module: esnext`, `moduleResolution: bundler`, `isolatedModules`, `lib` with the DOM), and the `angularCompilerOptions` `ng new` sets: `strictTemplates`, `strictInjectionParameters`, `strictInputAccessModifiers`; no `experimentalDecorators` (option chosen: "Strict, as ng new (Rec.)"). Rejected: no `angularCompilerOptions` (templates checked less strictly than a real host's).
+
+- _`D473`_ (`live`; from _`P11.2`_'s checkpoint, option chosen: "Approve and commit (Rec.)"): **_`P11.2`_'s deviation from its steps, approved**: step 5's integration test changed after all, its list of the examples' showcase adapters gaining `angular`; `CONTRIBUTE.md`'s list of the examples also gained the missing `react/`.
 
 ## Steps
 

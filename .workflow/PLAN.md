@@ -282,7 +282,7 @@ None (_`D61`_).
 
 ## The `angular` showcase adapter
 
-- _`P11`_ Showcases: the `angular` showcase adapter (approved 2026-11-14, for its split and decisions), in two child segments, _`P11.1`_ the showcase adapter and _`P11.2`_ its example (_`S6.4`_, SPEC-S6-showcases.md). [See The `angular` showcase adapter](./PLAN-P11-angular.md)
+- _`P11`_ Showcases: the `angular` showcase adapter (implemented 2026-11-14; approved 2026-11-14, for its split and decisions), in two child segments, _`P11.1`_ the showcase adapter and _`P11.2`_ its example (_`S6.4`_, SPEC-S6-showcases.md). [See The `angular` showcase adapter](./PLAN-P11-angular.md)
 
 ## Known open issues
 

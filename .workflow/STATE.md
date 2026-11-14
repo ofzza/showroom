@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** _`P11.2`_, the `angular` showcase adapter example, approved, to be implemented; _`P1`_–_`P10`_ and _`P11.1`_ implemented.
-- **Next free:** _`D473`_, _`S11`_, _`P12`_, _`O81`_, _`L15`_, _`R37`_, _`H1`_, _`K20`_
-- **Working on:** nothing in progress; _`P11.2`_'s plan is `./.workflow/PLAN-P11.2-angular-example.md`.
-- **Next step:** implement _`P11.2`_, step 1 (the library).
+- **Stage:** _`P1`_–_`P11`_ implemented (_`P11.2`_, the `angular` showcase adapter example, the last).
+- **Next free:** _`D474`_, _`S11`_, _`P12`_, _`O81`_, _`L15`_, _`R37`_, _`H1`_, _`K20`_
+- **Working on:** nothing in progress.
+- **Next step:** the user's choice of what comes next (the plan's remaining segments and known open issues in `./.workflow/PLAN.md`).
 
 ## Open questions
 
@@ -292,3 +292,5 @@
 - 2026-11-14: `scratch/` and `browser-check-angular/` deleted (option chosen: "Delete both (Rec.)").
 - 2026-11-14: _`P11.2`_ planning started; its choices settled as _`D469`_–_`D472`_ (options chosen: "Mirror ticker (Rec.)"; "templateUrl/styleUrl files (Rec.)", "Virtual template (Rec.)", "zone option (Rec.)"; "Root tsconfig as is (Rec.)"; "Strict, as ng new (Rec.)"), and drafted in `PLAN-P11.2-angular-example.md`.
 - 2026-11-14: _`P11.2`_'s plan approved, and _`S8`_ re-approved with _`R36`_, without a zero-context review (option chosen: "Approve and commit (Rec.)").
+- 2026-11-14: _`P11.2`_ steps 1–6: the `tock` example, `README.md`'s `angular` part, `AGENTS.md`, `CONTRIBUTE.md`; the integration test's list of examples gains `angular`; `npm run ci` green; the browser check served.
+- 2026-11-14: _`P11.2`_ approved as implemented, after the browser check (option chosen: "Approve and commit (Rec.)"); _`P11`_ implemented.
