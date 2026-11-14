@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning the `angular` showcase adapter (_`P11`_); _`S6.4`_ re-approved; _`P1`_–_`P10`_ implemented.
-- **Next free:** _`D447`_, _`S11`_, _`P11`_, _`O68`_, _`L15`_, _`R34`_, _`H1`_, _`K20`_
+- **Stage:** planning _`P11.1`_, the `angular` showcase adapter; _`P11`_ approved; _`P1`_–_`P10`_ implemented.
+- **Next free:** _`D453`_, _`S11`_, _`P12`_, _`O81`_, _`L15`_, _`R34`_, _`H1`_, _`K20`_
 - **Working on:** the `angular` showcase adapter: the format is settled (_`S6.4`_); the spike's findings are in _`D439`_'s evidence, and its "Not covered" list still to be taken into _`P11`_.
-- **Next step:** plan the `angular` showcase adapter (_`P11`_): segmenting first, then its open points (the spike's "Not covered" list in `./.workflow/.temp/spike-angular/FINDINGS.md`: the host's own partially compiled library, several showcases in one program, `serve`, NgModule-based imports; _`K12`_'s installed Angular fixtures), with _`S6.4`_ (_`D439`_–_`D446`_), _`P7`_ and _`P7.2`_ as the models.
+- **Next step:** plan _`P11.1`_ in its own file (`PLAN-P11.1-angular.md`), starting with its open points _`O68`_–_`O78`_ (in `PLAN-P11-angular.md`), with `./.workflow/.temp/spike-angular/` (its plugin script) as input.
 
 ## Open questions
 
@@ -268,3 +268,6 @@
 - 2026-11-14: After the spike, the user chose the format first (option chosen: "Format first (Rec.)"), and to clear the context before it (option chosen: "Clear first").
 - 2026-11-14: The Angular showcase format's 8 choices settled (_`D439`_–_`D446`_ in _`S6.4`_, _`R33`_): Q1 after an explanation of the build (option chosen: "Accept A (Rec.)"), Q3 "No setup at all" with the idea for later for Angular and React (the user: "I am leaning towards \"No setup at all\" unless you tell me that it is much easier to implement thin now than later?"; then "Yes, as described (Rec.)"), the other six by their recommendations (option chosen: "Discuss some", naming only Q1 and Q3); _`K9`_ resolved by _`D439`_.
 - 2026-11-14: _`S6.4`_ re-approved with _`R33`_ (option chosen: "Approve and commit (Rec.)").
+- 2026-11-14: _`P11`_ drafted (`PLAN-P11-angular.md`); its five choices settled (_`D447`_–_`D451`_): "P11.1 + P11.2 (Rec.)"; per showcase, no measurement (the user: "I prefer simplicity and stability where we can get it"; then "Per showcase (Rec.)"); "Every JS module (Rec.)"; every supported major tested (the user: "Could we do 20, 21 and 22 with our eye on supporting all upcoming major versions going forward?"; then "Policy, 20+21 installed (Rec.)"); the new devDependencies, with `zone.js` (option chosen: "Add, with zone.js").
+- 2026-11-14: _`P11`_'s draft reviewed (one zero-context reviewer, 13 findings, stray-write check clean): QA settled as a guard test of the supported majors (_`D452`_), the user's idea of an accepted-versions test critiqued (option chosen: "Targeted majors guard (Rec.)", replacing "Ignore majors + open pt"); fixes for #2–#13 applied (option chosen: "Apply all, skip (Rec.)"): open points _`O74`_–_`O80`_, back-references on _`D245`_, _`D255`_, _`D307`_, _`D349`_, pitfalls _`K12`_, _`K13`_.
+- 2026-11-14: _`P11`_ approved, for its split and _`D447`_–_`D452`_ (option chosen: "Approve and commit (Rec.)"); `review-p11/` deleted.
