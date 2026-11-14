@@ -22,6 +22,8 @@ import {
   judgeTypeScriptVersion,
   loadTypeScript,
   mapDiagnostic,
+  readPackageJson,
+  resolvePackage,
   resolveTypeScript,
   typeCheckShowcase,
   type SourceFileCache,
@@ -45,7 +47,7 @@ const _TYPESCRIPT = join(REPOSITORY_ROOT, 'node_modules', 'typescript');
  * @returns The showcase
  */
 function _showcase(documentation: string, entry: string, options: unknown = { typeCheck: true, allowJs: false }): Showcase {
-  return { id: `${documentation}#1`, documentation, line: 1, offset: 0, kind: 'inline', adapter: 'ts', entry, options };
+  return { id: `${documentation}#1`, documentation, line: 1, offset: 0, kind: 'code-block', display: 'block', adapter: 'ts', entry, include: [], options };
 }
 
 /**
@@ -81,6 +83,14 @@ describe('adapters/showcase/ts/typecheck', () => {
       expect(findTypeScript(_ROOT)).toEqual({ folder: _TYPESCRIPT, version: ts.version, support: 'supported' });
       expect(findTypeScript(_ROOT, () => undefined)).toBeUndefined();
       expect(loadTypeScript(_TYPESCRIPT).version).toBe(ts.version);
+    });
+
+    it("Resolves any package as Node does, by its package.json, or from its main module when that isn't exported", () => {
+      expect(resolvePackage(_ROOT, 'react')).toBe(join(REPOSITORY_ROOT, 'node_modules', 'react'));
+      expect(resolvePackage(_ROOT, '@types/react')).toBe(join(REPOSITORY_ROOT, 'node_modules', '@types', 'react'));
+      expect(resolvePackage(_ROOT, 'not-installed-package')).toBeUndefined();
+      expect(readPackageJson(join(REPOSITORY_ROOT, 'node_modules', 'react'))).toMatchObject({ name: 'react' });
+      expect(readPackageJson(join(_ROOT, 'missing'))).toBeUndefined();
     });
 
     it('Judges TypeScript versions: 5.x and 6.x are supported', () => {
@@ -138,6 +148,10 @@ describe('adapters/showcase/ts/typecheck', () => {
         });
         expect(asked).toEqual(['a', 'b', 'c', 'none'].map((name) => join(_ROOT, name)));
         expect(checkTypeScript(_ROOT, [], resolver)).toEqual({ errors: [], warnings: [] });
+        // A showcase adapter building on ts names itself
+        expect(checkTypeScript(_ROOT, [showcases[4]], resolver, 'react').errors).toEqual([
+          'the react showcases of "none" type check, but no TypeScript is installed where it can be found: install "typescript" (5.x or 6.x), or set "typeCheck: false"',
+        ]);
       } finally {
         await scratch.remove();
       }
@@ -194,6 +208,24 @@ describe('adapters/showcase/ts/typecheck', () => {
       const solution = getTypeCheckConfiguration(ts, { root: _ROOT, folder, entry: join(folder, 'a.ts'), allowJs: false });
       expect(solution.rootNames).toEqual([join(folder, 'a.ts')]);
       expect(solution.diagnostics).toEqual([]);
+    });
+
+    it('Sets jsx: react-jsx when asked, only where the tsconfig, or its absence, leaves jsx unset; and allowJs for a jsx entry point', () => {
+      const defaults = join(FIXTURES, 'showcase-ts-defaults');
+      const entry = join(defaults, 'README.showcase-1.tsx');
+      expect(getTypeCheckConfiguration(ts, { root: defaults, folder: defaults, entry, allowJs: false, jsx: true }).options).toEqual({
+        jsx: ts.JsxEmit.ReactJSX,
+        noEmit: true,
+      });
+      expect(getTypeCheckConfiguration(ts, { root: _ROOT, folder: _ROOT, entry: join(_ROOT, 'a.tsx'), allowJs: false, jsx: true }).options.jsx).toBe(
+        ts.JsxEmit.ReactJSX,
+      );
+      expect(getTypeCheckConfiguration(ts, { root: _ROOT, folder: _ROOT, entry: join(_ROOT, 'a.tsx'), allowJs: false }).options).not.toHaveProperty('jsx');
+      const classic = join(FIXTURES, 'showcase-react', 'classic');
+      const root = join(FIXTURES, 'showcase-react');
+      expect(getTypeCheckConfiguration(ts, { root, folder: classic, entry: join(classic, 'a.tsx'), allowJs: false, jsx: true }).options.jsx).toBe(
+        ts.JsxEmit.React,
+      );
     });
 
     it("Reports the tsconfig's own errors in it, without No inputs were found", () => {
@@ -340,6 +372,21 @@ describe('adapters/showcase/ts/typecheck', () => {
         virtualFiles: [_virtual(entry, content)],
         sourceFiles,
       });
+
+    it('Type checks a jsx entry point with allowJs, and JSX with the react-jsx default', () => {
+      // Without allowJs, a .jsx root is not part of the program at all, and nothing is reported; with it, but without checkJs, only syntax errors are
+      const result = typeCheckShowcase({
+        ts,
+        typeScriptFolder: _TYPESCRIPT,
+        root: _ROOT,
+        showcase: _showcase('README.md', 'README.showcase-1.jsx'),
+        allowJs: false,
+        jsx: true,
+        virtualFiles: [_virtual('README.showcase-1.jsx', 'export const fine = () => <p />;\nexport default () => <p>;\n')],
+        sourceFiles: new Map(),
+      });
+      expect(result.errors).toContainEqual({ message: "TS17008: JSX element 'p' has no corresponding closing tag.", path: 'README.showcase-1.jsx', line: 2 });
+    });
 
     it('Reports the errors of the files the showcase reaches only, outside default library files', () => {
       // src/unreached.ts is a root of the program, but the showcase never reaches it

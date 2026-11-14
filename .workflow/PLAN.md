@@ -266,7 +266,7 @@ None (_`D61`_).
 
 ## The `ts` and `react` showcase adapters
 
-- _`P7`_ Showcases: the `ts` and `react` showcase adapters (approved 2026-11-13), in two child segments, _`P7.1`_ `ts` and _`P7.2`_ `react`. [See The `ts` and `react` showcase adapters](./PLAN-P7-ts-react.md)
+- _`P7`_ Showcases: the `ts` and `react` showcase adapters (implemented 2026-11-13), in two child segments, _`P7.1`_ `ts` and _`P7.2`_ `react`. [See The `ts` and `react` showcase adapters](./PLAN-P7-ts-react.md)
 
 ## Showcase adapter examples
 
@@ -275,6 +275,10 @@ None (_`D61`_).
 ## Linked files
 
 - _`P9`_ Linked files (approved 2026-11-13): files that documentation files link to, copied into the showroom, opened in a modal or a new tab; relative images shown (_`S9`_, SPEC.md). [See Linked files](./PLAN-P9-linked-files.md)
+
+## Presenting showcases
+
+- _`P10`_ Presenting showcases (approved 2026-11-13, for its split and order; implemented 2026-11-14): the code pane beside showcases, linked showcases shown as blocks, `include=`, code blocks with line numbers and a copy button, the console apart from what a showcase renders (_`S10`_, SPEC-S10-presentation.md), in five child segments _`P10.1`_–_`P10.5`_. [See Presenting showcases](./PLAN-P10-presentation.md)
 
 ## Known open issues
 
@@ -291,3 +295,4 @@ None (_`D61`_).
 - _`L11`_ A Vite dev server with hot updates for `ts` and `react` showcase frames in `serve` (_`K13`_; _`D243`_ (PLAN-P7-ts-react.md)): the _`K10`_ spike showed a second Vite dev server in middleware mode works. Deferred: rebuilding on change, as for `html`, keeps `serve` as it is. Segment: not yet assigned. Status: `open`.
 - _`L12`_ Type checking on TypeScript 7 (_`K16`_ (SPEC-pitfalls.md); _`D273`_, _`D274`_ (PLAN-P7.1-ts.md)): TypeScript 7 has no classic compiler API, and its unstable API changed between 7.0 and 7.1; type checking is skipped there with a warning. Deferred: until TypeScript 7's API is stable (the user: "Let's not support TS7 for now"). Segment: not yet assigned. Status: `open`.
 - _`L13`_ Customizing the showroom's navigation menu (the user, 2026-11-13, after checking it with several showcase adapter examples (_`D310`_, SPEC.md): "Fine as is for now. We'll need to address the ability to customize the menu at some later point ..."): e.g. titles, grouping and order of documentation files. Deferred: the navigation works as it is. Segment: not yet assigned. Status: `open`.
+- _`L14`_ The console panel keeps every line (review 2026-11-14 #19, of _`P10.5`_'s draft): a showcase logging in a loop grows the panel's shadow DOM without bound, as before _`P10.5`_; a cap on the lines kept (the count kept whole) would bound it. Deferred: not part of _`D369`_, and unchanged from today. Segment: not yet assigned. Status: picked up by _`D438`_ (PLAN-P10.5-console.md), a fast-path change 2026-11-14.

@@ -10,6 +10,7 @@ import type { Showcase, VirtualFile } from '../../../host/index.js';
 import type { ShowcaseBuildError } from '../index.js';
 import { CONSOLE_PANEL_ID, getConsoleScript, SHOWCASE_FRAME_ROOT_ID } from './console/index.js';
 import {
+  createGeneratedModulesPlugin,
   createReadsPlugin,
   createVirtualFilesPlugin,
   getBuildErrors,
@@ -21,8 +22,10 @@ import {
   getTsPage,
   getVirtualFileDataUrl,
   getVirtualFilesByPath,
+  placeGeneratedModuleErrors,
   RESOLVE_EXTENSIONS,
   TsShowcaseAdapter,
+  validateTsShowcaseOptions,
 } from './index.js';
 
 /**
@@ -38,7 +41,18 @@ const _ROOT = fileURLToPath(new URL('../../../../test/fixtures/showcase-ts', imp
  * @returns The showcase
  */
 function _showcase(kind: Showcase['kind'], entry: string, extra: Partial<Showcase> = {}): Showcase {
-  return { id: 'README.md#1', documentation: 'README.md', line: 1, offset: 0, kind, adapter: 'ts', entry, ...extra };
+  return {
+    id: 'README.md#1',
+    documentation: 'README.md',
+    line: 1,
+    offset: 0,
+    kind,
+    display: kind === 'code-block' ? 'block' : 'inline',
+    adapter: 'ts',
+    entry,
+    include: [],
+    ...extra,
+  };
 }
 
 /**
@@ -90,10 +104,11 @@ function _abs(path: string): string {
 }
 
 describe('adapters/showcase/ts', () => {
-  // Tests the ts showcase adapter's parts on hand-made showcases and virtual files: its validation, the resolution and reads plugins (their hooks
-  // called directly, with a fake plugin context, against the `showcase-ts` fixture's real files), error and warning mapping on hand-written errors in
-  // the shapes Vite and its bundler throw, the Vite configuration of each mode, and the page; and its host check, with an injected resolver. Building
-  // with Vite, and type checking, are in the integration tests (type checking's parts are tested in `./typecheck/`).
+  // Tests the ts showcase adapter's parts on hand-made showcases and virtual files: its validation, the resolution, reads and generated modules
+  // plugins (their hooks called directly, with a fake plugin context, against the `showcase-ts` fixture's real files), placing errors in generated
+  // modules, error and warning mapping on hand-written errors in the shapes Vite and its bundler throw, the Vite configuration of each mode, and the
+  // page; and its host check, with an injected resolver. Building with Vite, and type checking, are in the integration tests (type checking's parts
+  // are tested in `./typecheck/`).
 
   describe('Validation', () => {
     // Tests validate() on every language of an entry point, and on its options.
@@ -102,30 +117,30 @@ describe('adapters/showcase/ts', () => {
 
     it('Accepts TypeScript and JavaScript entry points, with typeCheck on and allowJs off by default', () => {
       for (const entry of ['README.showcase-1.ts', 'README.showcase-1.js', 'README.showcase-1.mts', 'README.showcase-1.mjs']) {
-        expect(adapter.validate(_showcase('inline', entry))).toEqual({ options: { typeCheck: true, allowJs: false }, errors: [] });
+        expect(adapter.validate(_showcase('code-block', entry))).toEqual({ options: { typeCheck: true, allowJs: false }, errors: [] });
       }
       for (const entry of ['demo.ts', 'demo.MTS', 'demos/demo.js', 'demo.mjs']) {
-        expect(adapter.validate(_showcase('linked', entry))).toEqual({ options: { typeCheck: true, allowJs: false }, errors: [] });
+        expect(adapter.validate(_showcase('link', entry))).toEqual({ options: { typeCheck: true, allowJs: false }, errors: [] });
       }
     });
 
     it('Rejects other entry points, pointing tsx and jsx at the react showcase adapter', () => {
-      expect(adapter.validate(_showcase('inline', 'README.showcase-1.html')).errors).toEqual([
+      expect(adapter.validate(_showcase('code-block', 'README.showcase-1.html')).errors).toEqual([
         'The ts showcase adapter needs a "ts", "js", "mts" or "mjs" code block',
       ]);
-      expect(adapter.validate(_showcase('inline', 'README.showcase-1.tsx')).errors).toEqual([
+      expect(adapter.validate(_showcase('code-block', 'README.showcase-1.tsx')).errors).toEqual([
         'The ts showcase adapter needs a "ts", "js", "mts" or "mjs" code block; for tsx and jsx, use the react showcase adapter',
       ]);
-      expect(adapter.validate(_showcase('linked', 'demo.jsx')).errors).toEqual([
+      expect(adapter.validate(_showcase('link', 'demo.jsx')).errors).toEqual([
         'The ts showcase adapter needs a link to a .ts, .mts, .js or .mjs file, not "demo.jsx"; for tsx and jsx, use the react showcase adapter',
       ]);
-      expect(adapter.validate(_showcase('linked', 'demo.cts')).errors).toEqual([
+      expect(adapter.validate(_showcase('link', 'demo.cts')).errors).toEqual([
         'The ts showcase adapter needs a link to a .ts, .mts, .js or .mjs file, not "demo.cts"',
       ]);
     });
 
     it('Takes typeCheck and allowJs, both booleans, as its options', () => {
-      const options = (value: unknown) => adapter.validate(_showcase('inline', 'a.ts', { options: value }));
+      const options = (value: unknown) => adapter.validate(_showcase('code-block', 'a.ts', { options: value }));
       expect(options({ typeCheck: false })).toEqual({ options: { typeCheck: false, allowJs: false }, errors: [] });
       expect(options({ allowJs: true })).toEqual({ options: { typeCheck: true, allowJs: true }, errors: [] });
       expect(options({ typeCheck: false, allowJs: true })).toEqual({ options: { typeCheck: false, allowJs: true }, errors: [] });
@@ -136,10 +151,20 @@ describe('adapters/showcase/ts', () => {
         'Unknown option "size" of the ts showcase adapter; its options are "typeCheck" and "allowJs"',
       ]);
       for (const options of [[true], 'typeCheck', null]) {
-        expect(adapter.validate(_showcase('inline', 'a.ts', { options })).errors).toEqual([
+        expect(adapter.validate(_showcase('code-block', 'a.ts', { options })).errors).toEqual([
           'The ts showcase adapter\'s options must be an object, e.g. "showcase=ts({ typeCheck: false })"',
         ]);
       }
+    });
+
+    it('Names the showcase adapter building on it in the errors about its options', () => {
+      const errors: string[] = [];
+      expect(validateTsShowcaseOptions('react', { allowJs: true, size: 2 }, errors)).toEqual({ typeCheck: true, allowJs: true });
+      expect(validateTsShowcaseOptions('react', 'x', errors)).toEqual({ typeCheck: true, allowJs: false });
+      expect(errors).toEqual([
+        'Unknown option "size" of the react showcase adapter; its options are "typeCheck" and "allowJs"',
+        'The react showcase adapter\'s options must be an object, e.g. "showcase=react({ typeCheck: false })"',
+      ]);
     });
   });
 
@@ -150,8 +175,8 @@ describe('adapters/showcase/ts', () => {
       const asked: string[] = [];
       const adapter = new TsShowcaseAdapter((folder) => void asked.push(folder));
       const showcases = [
-        _showcase('inline', 'README.showcase-1.ts', { options: { typeCheck: true, allowJs: false } }),
-        _showcase('inline', 'docs/guide.showcase-1.ts', { documentation: 'docs/guide.md', options: { typeCheck: false, allowJs: false } }),
+        _showcase('code-block', 'README.showcase-1.ts', { options: { typeCheck: true, allowJs: false } }),
+        _showcase('code-block', 'docs/guide.showcase-1.ts', { documentation: 'docs/guide.md', options: { typeCheck: false, allowJs: false } }),
       ];
       expect(adapter.check(_ROOT, showcases)).toEqual({
         errors: [
@@ -308,6 +333,41 @@ describe('adapters/showcase/ts', () => {
       }
       expect([...reads]).toEqual(['docs/guide.md', 'lazy.css', 'lazy.ts']);
     });
+
+    it('Never records a generated module', () => {
+      const reads = new Set<string>();
+      const plugin = createReadsPlugin(_ROOT, new Map(), reads, new Set([_abs('README.showcase-1.tsx.showroom-mount.js')]));
+      expect(_load(plugin, _abs('README.showcase-1.tsx.showroom-mount.js'))).toBeNull();
+      expect([...reads]).toEqual([]);
+    });
+  });
+
+  describe('Generated modules', () => {
+    // Tests the modules showcase adapters generate (e.g. react's mount module): the plugin serving them, and placing the errors in them.
+
+    const mount = _abs('README.showcase-1.tsx.showroom-mount.js');
+    const modules = new Map([[mount, { source: 'export {};', errorsAt: 'README.showcase-1.tsx' }]]);
+
+    it('Resolves and loads the generated modules by their absolute paths, and nothing else', async () => {
+      const plugin = createGeneratedModulesPlugin(modules);
+      expect(await _resolve(plugin, mount)).toBe(mount);
+      expect(await _resolve(plugin, './other.js', mount)).toBeNull();
+      expect(_load(plugin, mount)).toBe('export {};');
+      expect(_load(plugin, _abs('lazy.ts'))).toBeNull();
+    });
+
+    it('Places the errors in a generated module where it says, at line 1, and leaves the others', () => {
+      const errors: ShowcaseBuildError[] = [
+        { message: 'in the mount module', path: 'README.showcase-1.tsx.showroom-mount.js', line: 3 },
+        { message: 'elsewhere', path: 'lazy.ts', line: 2 },
+        { message: 'nowhere' },
+      ];
+      expect(placeGeneratedModuleErrors(_ROOT, modules, errors)).toEqual([
+        { message: 'in the mount module', path: 'README.showcase-1.tsx', line: 1 },
+        { message: 'elsewhere', path: 'lazy.ts', line: 2 },
+        { message: 'nowhere' },
+      ]);
+    });
   });
 
   describe('Errors', () => {
@@ -394,6 +454,12 @@ describe('adapters/showcase/ts', () => {
         css: { postcss: {} },
         build: { write: false, copyPublicDir: false, modulePreload: { polyfill: false }, rolldownOptions: { input: options.entry } },
       });
+    });
+
+    it("Sets Oxc's options only when given", () => {
+      expect(getTsBuildConfiguration({ ...options, mode: 'production' })).not.toHaveProperty('oxc');
+      const oxc = { jsx: { runtime: 'automatic' as const } };
+      expect(getTsBuildConfiguration({ ...options, mode: 'production', oxc }).oxc).toEqual(oxc);
     });
 
     it("Pins each mode in the configuration, whatever NODE_ENV says (see AGENTS.md › The ts showcase adapter's mode is pinned)", () => {

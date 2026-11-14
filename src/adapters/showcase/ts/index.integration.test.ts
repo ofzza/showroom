@@ -38,9 +38,9 @@ function _file(frame: ShowcaseFrame, pattern: RegExp): { path: string; content: 
 }
 
 describe('adapters/showcase/ts (integration)', () => {
-  // Builds the showcases of the `showcase-ts` fixture (an inline showcase importing the host's own package by its name through a committed `lib/`
+  // Builds the showcases of the `showcase-ts` fixture (a code block showcase importing the host's own package by its name through a committed `lib/`
   // folder, virtual files in its folder and in another one, by a path without an extension, a .js specifier and a folder, a virtual CSS file, JSON,
-  // an asset, and a dynamic import with CSS, under a tsconfig turning useDefineForClassFields off; an inline JavaScript showcase; and a linked one
+  // an asset, and a dynamic import with CSS, under a tsconfig turning useDefineForClassFields off; a JavaScript code block showcase; and a linked one
   // importing a virtual file), in each mode, type checked under its tsconfig; the `showcase-ts-errors` fixture's build errors and warning; the
   // `showcase-ts-types` fixture's type errors, and the `showcase-ts-defaults` fixture's, without a tsconfig; and the `showcase-ts-many` fixture's 10
   // showcases. The fixtures are only read.

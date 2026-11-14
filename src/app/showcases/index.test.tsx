@@ -18,15 +18,18 @@ import { DEFAULT_FRAME_HEIGHT, ShowcaseFrame, getShowcaseFrameTitle, remarkShowc
 const _PATH = 'docs/guide.md';
 
 /**
- * Gets the shown showcases of a documentation file, as `check` finds them, each with a URL naming its position
+ * Gets the shown showcases of a documentation file, as `check` finds them, each with a URL naming its position, and one tab whose content names
+ * it (`code of <n>`)
  * @param content Markdown content of the documentation file
  * @returns The shown showcases
  */
 function _showcases(content: string): ShownShowcase[] {
-  return scanMarkdown(_PATH, content).showcases.map(({ id, documentation, offset }) => ({
+  return scanMarkdown(_PATH, content).showcases.map(({ id, documentation, offset, display, entry }) => ({
     id,
     documentation,
     offset,
+    display,
+    tabs: [{ label: 'HTML', path: entry, language: 'html', source: { kind: 'virtual', content: `code of ${id.slice(id.lastIndexOf('#') + 1)}` } }],
     url: `showcases/${id.replace('#', '/')}/index.html?hash=0123abcd`,
   }));
 }
@@ -55,15 +58,36 @@ function _render(content: string, showcases = _showcases(content), theme: ThemeN
 }
 
 describe('app/showcases', () => {
-  // Tests placing showcase frames through the Markdown component, on hand-written Markdown whose showcases `scanMarkdown()` finds (so offsets are
+  // Tests placing showcase frames and blocks through the Markdown component, on hand-written Markdown whose showcases `scanMarkdown()` finds (so offsets are
   // the ones `check` gives), with each showcase frame's iframe reduced to its position; and the iframe itself, server-rendered.
 
   describe('Placement', () => {
-    // Where the remark plugin puts each showcase frame: before the nearest paragraph, heading, table or code block holding its entry point.
+    // Where the remark plugin puts each showcase: a showcase shown inline before the nearest paragraph, heading, table or code block holding its
+    // entry point; a showcase shown as a block (its code pane marked by `data-code-pane-state`) in its fence's or paragraph's place.
 
-    it('Places an inline showcase before its fence, and a linked one before its paragraph', () => {
+    it("Places a code block showcase as a block in its fence's place, and a linked one shown inline before its paragraph", () => {
       const html = _render('Intro\n\n```html showcase\n<p>x</p>\n```\n\nSee [the demo](demo.html "showcase") here.');
-      expect(html).toMatch(/<p>Intro<\/p>\s*\[1\]\s*<pre>.*<\/pre>\s*\[2\]\s*<p>See /s);
+      expect(html).toMatch(/<p>Intro<\/p>\s*<div [^>]*data-code-pane-state="hidden"[^>]*>.*\[1\].*code of 1.*\[2\]\s*<p>See /s);
+      // The fence itself is gone: its code is only in the code pane
+      expect(html).not.toContain('&lt;p&gt;x&lt;/p&gt;');
+    });
+
+    it("Places a linked showcase shown as a block in its paragraph's place, in a list item and a blockquote too", () => {
+      const html = _render('Before\n\n[a](a.html "showcase block")\n\n- [b](b.html "showcase block")\n\n> [c](c.html "showcase block")');
+      expect(html).toMatch(/<p>Before<\/p>\s*<div [^>]*data-code-pane-state[^>]*>.*\[1\].*code of 1/s);
+      expect(html).toMatch(/<li>\s*<div [^>]*data-code-pane-state[^>]*>.*\[2\]/s);
+      expect(html).toMatch(/<blockquote>\s*<div [^>]*data-code-pane-state[^>]*>.*\[3\]/s);
+      // The links' text isn't shown
+      expect(html).not.toMatch(/>a<\/a>|>b<\/a>|>c<\/a>/);
+    });
+
+    it('Leaves a showcase with no showcase frame as plain Markdown', () => {
+      // A showcase missing from the shown showcases, e.g. while serve's first build threw
+      const html = _render('```html showcase\n<p>x</p>\n```\n\n[a](a.html "showcase block")', []);
+      expect(html).toContain('<code class="hljs language-html">');
+      // Its paragraph stays (the link to a.html points to nothing here, so it is plain text)
+      expect(html).toMatch(/<p><span [^>]*>a<\/span><\/p>/);
+      expect(html).not.toContain('data-code-pane-state');
     });
 
     it('Places several showcases before one paragraph, in document order', () => {
@@ -106,6 +130,8 @@ describe('app/showcases', () => {
       id: 'docs/my notes.md#2',
       documentation: 'docs/my notes.md',
       offset: 0,
+      display: 'inline',
+      tabs: [],
       url: 'showcases/docs/my%20notes.md/2/index.html?hash=0123abcd',
     };
 
@@ -132,6 +158,7 @@ describe('app/showcases', () => {
       expect(html).toContain('loading="lazy"');
       expect(html).toContain(`height:calc(${DEFAULT_FRAME_HEIGHT}px + 2 * var(--strokeWidthThin))`);
       expect(html).toContain('color-scheme:dark');
+      expect(html).not.toContain('min-height');
       // The showcase is the host repository's own code, so it isn't sandboxed, and keeps its storage and cookies
       expect(html).not.toContain('sandbox');
       expect(render('light')).toContain('&amp;theme=light');

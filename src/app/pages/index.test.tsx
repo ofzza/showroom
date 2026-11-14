@@ -9,6 +9,7 @@ import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-comp
 import type { DocumentationFile, ProjectInformation } from '../../host/index.js';
 import { scanMarkdown } from '../../markdown/index.js';
 import { DocumentationPage, HomePage, NotFoundPage } from './index.js';
+import type { ShownShowcase } from '../host/index.js';
 
 /**
  * Renders a page to HTML on the server
@@ -68,7 +69,9 @@ describe('app/pages', () => {
       // The README is still rendered whole, so showcase frames placed by their offsets in it still find their place
       const content = '# Welcome\n\n```html showcase\n<b>Hi</b>\n```\n';
       const [found] = scanMarkdown('README.md', content).showcases;
-      const showcases = [{ id: found!.id, documentation: 'README.md', offset: found!.offset, url: 'showcases/README.md/1/index.html?hash=00000001' }];
+      const showcases: ShownShowcase[] = [
+        { id: found!.id, documentation: 'README.md', offset: found!.offset, display: 'block', tabs: [], url: 'showcases/README.md/1/index.html?hash=00000001' },
+      ];
       const html = _render(<HomePage project={project} readme={{ ...readme, content }} documentation={documentation} showcases={showcases} />);
       expect(html.indexOf('Jane Doe')).toBeLessThan(html.indexOf('<iframe'));
       expect(html).toContain('showcases/README.md/1/index.html?hash=00000001');

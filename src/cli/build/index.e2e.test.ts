@@ -3,17 +3,18 @@
  */
 
 import { existsSync } from 'node:fs';
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, sep } from 'node:path';
 import { afterEach, describe, expect, inject, it } from 'vitest';
 import { getFrameScript } from '../../frame/index.js';
 import { getShowcaseFrameHash } from '../../showcases/index.js';
-import { copyFixture, type ScratchFolder } from '../../testing/index.js';
+import { copyFixture, createScratchFolder, type ScratchFolder } from '../../testing/index.js';
 import { OUTPUT_FOLDER_MARKER, OUTPUT_FOLDER_MARKER_CONTENT, build } from './index.js';
 
 describe('cli/build (end to end)', () => {
   // Calls build() in-process on fixture copies, each in a scratch folder of its own removed after the test, with the showroom the `e2e` project's
-  // global setup compiled (`appDir`), so the tests never depend on, or write to, `dist/`. Only the passing build runs Vite; the others stop before.
+  // global setup compiled (`appDir`), so the tests never depend on, or write to, `dist/`; and on a copy of an installed fixture (`installedFixtures`),
+  // with its own React. Only the passing builds run Vite; the others stop before.
 
   const copies: ScratchFolder[] = [];
 
@@ -66,6 +67,10 @@ describe('cli/build (end to end)', () => {
     for (const n of [1, 2, 3]) {
       expect(await readFile(join(out, 'showcases', 'README.md', String(n), 'fragment.js'), 'utf8')).toContain("textContent += ', with a resource'");
     }
+    // The linked page's included stylesheet, next to its page, and copied as a linked file too
+    const css = await readFile(join(root, 'demos', 'page.css'), 'utf8');
+    expect(await readFile(join(out, 'showcases', 'README.md', '3', 'page.css'), 'utf8')).toBe(css);
+    expect(await readFile(join(out, 'files', 'demos', 'page.css'), 'utf8')).toBe(css);
     const custom = join(out, 'showcases', 'docs', 'my notes #1.md', '1');
     expect(await readFile(join(custom, 'index.html'), 'utf8')).toContain('Widget ✓');
     expect(await readFile(join(custom, 'assets', 'style.css'), 'utf8')).toBe('body { font-family: sans-serif; }');
@@ -80,6 +85,8 @@ describe('cli/build (end to end)', () => {
     );
     expect(bundle).toContain(`showcases/README.md/1/index.html?hash=${getShowcaseFrameHash(first)}`);
     expect(bundle).toMatch(/showcases\/docs\/my%20notes%20%231\.md\/1\/index\.html\?hash=[0-9a-f]{8}/);
+    // And the showcases' tabs: the linked page's included stylesheet by its linked file's URL, with its content's hash
+    expect(bundle).toContain(`files/demos/page.css?hash=${getShowcaseFrameHash([{ path: 'demos/page.css', content: Buffer.from(css) }])}`);
   });
 
   it('Copies exactly the linked files into the output folder, at files/<path>', async () => {
@@ -134,6 +141,20 @@ describe('cli/build (end to end)', () => {
     expect(page).toContain(`<script type="module" crossorigin src="./assets/${entry}"></script>`);
     expect(await readFile(join(frame, 'assets', entry), 'utf8')).toContain('`production`');
     expect(await readFile(join(root, 'showroom', 'showcases', 'README.md', '3', 'index.html'), 'utf8')).toContain('src="./assets/linked-');
+  });
+
+  it("Builds react showcases with the host's own React, on an installed fixture's copy", async () => {
+    // The installed fixture (with its own React 18 in its node_modules) is copied, as build() writes into it
+    const scratch = await createScratchFolder('showcase-react-18-');
+    copies.push(scratch);
+    await cp(inject('installedFixtures')['showcase-react-18'], scratch.path, { recursive: true });
+    const { code, stderr } = await run(scratch.path);
+    expect({ code, stderr }).toEqual({ code: 0, stderr: '' });
+    const frame = join(scratch.path, 'showroom', 'showcases', 'README.md', '1');
+    expect(await readFile(join(frame, 'index.html'), 'utf8')).toContain('<div id="root"></div><div id="showroom-console" hidden></div>');
+    const [entry] = await readdir(join(frame, 'assets'));
+    expect(entry).toMatch(/^README\.showcase-1\.tsx\.showroom-mount-[\w-]+\.js$/);
+    expect(await readFile(join(frame, 'assets', entry), 'utf8')).toMatch(/[`"]18\.3\.1[`"]/);
   });
 
   it('Fails on a type error, placed in the documentation file', async () => {

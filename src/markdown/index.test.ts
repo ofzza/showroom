@@ -5,6 +5,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   getFolder,
+  getRelativePath,
+  getShowcaseSources,
   getOpeningTitleOffset,
   isAbsoluteUrl,
   isMarkdownPath,
@@ -34,6 +36,25 @@ describe('markdown', () => {
       expect(getFolder('README.md')).toBe('');
       expect(getFolder('docs/guide.md')).toBe('docs');
       expect(getFolder('a/b/c.md')).toBe('a/b');
+    });
+
+    it('Gets the source of fences and links, exactly as written, by their offsets', () => {
+      const content = 'See [a](a.html "showcase").\n\n> ```html showcase\n> <p>x</p>\n> ```\n';
+      const sources = getShowcaseSources(content);
+      expect(sources.get(content.indexOf('[a]'))).toBe('[a](a.html "showcase")');
+      // In a blockquote, its prefixes stay (D421)
+      expect(sources.get(content.indexOf('```'))).toBe('```html showcase\n> <p>x</p>\n> ```');
+      expect(sources.size).toBe(2);
+    });
+
+    it("Gets a path relative to a file's folder, without a leading ./", () => {
+      expect(getRelativePath('README.md', 'theme.css')).toBe('theme.css');
+      expect(getRelativePath('docs/guide.md', 'docs/demos/clock.html')).toBe('demos/clock.html');
+      expect(getRelativePath('docs/guide.md', 'shared/theme.css')).toBe('../shared/theme.css');
+      expect(getRelativePath('a/b/c.md', 'a/x/y.ts')).toBe('../x/y.ts');
+      expect(getRelativePath('docs/guide.md', 'README.md')).toBe('../README.md');
+      // A folder named like the file's folder is no common folder
+      expect(getRelativePath('docs/guide.md', 'docs')).toBe('../docs');
     });
 
     it('Recognises absolute URLs', () => {
@@ -89,6 +110,33 @@ describe('markdown', () => {
       expect(parseShowcaseMarker('  showcase   file=a.js  ')).toEqual({ marker: { hasOptions: false, file: 'a.js' } });
     });
 
+    it('Parses the inline, block and include keys', () => {
+      expect(parseShowcaseMarker('showcase inline')).toEqual({ marker: { hasOptions: false, display: 'inline' } });
+      expect(parseShowcaseMarker('showcase=x({ a: 1 }) block include=./a.css')).toEqual({
+        marker: { adapter: 'x', hasOptions: true, options: { a: 1 }, display: 'block', include: ['./a.css'] },
+      });
+      // Paths are URL-decoded as link targets are, after their raw text is judged
+      expect(parseShowcaseMarker('showcase include=a.css,../b%20c.ts,d%3F.js').marker?.include).toEqual(['a.css', '../b c.ts', 'd?.js']);
+    });
+
+    it('Rejects misused inline, block and include keys', () => {
+      expect(parseShowcaseMarker('showcase block=yes').error).toMatch(/^The key "block" takes no value/);
+      expect(parseShowcaseMarker('showcase inline=').error).toMatch(/^The key "inline" takes no value/);
+      expect(parseShowcaseMarker('showcase inline block').error).toMatch(/^The keys "inline" and "block" can't be used together/);
+      expect(parseShowcaseMarker('showcase block block').error).toMatch(/^Repeated key "block"/);
+      expect(parseShowcaseMarker('showcase include=a include=b').error).toMatch(/^Repeated key "include"/);
+      expect(parseShowcaseMarker('showcase Block').error).toMatch(/^Unknown key "Block"/);
+      expect(parseShowcaseMarker('showcase include=').error).toMatch(/^The key "include" needs paths/);
+      expect(parseShowcaseMarker('showcase include').error).toMatch(/^The key "include" needs paths/);
+      for (const value of ['a,,b', 'a,', ',a']) {
+        expect(parseShowcaseMarker(`showcase include=${value}`).error).toMatch(/^Empty path in "include=/);
+      }
+      for (const path of ['a.css?x', 'a.css#x', '/a.css']) {
+        expect(parseShowcaseMarker(`showcase include=${path}`).error).toMatch(/^Invalid included path/);
+      }
+      expect(parseShowcaseMarker('showcase include=%E0%A4%A').error).toMatch(/^Included path "%E0%A4%A" can't be URL-decoded/);
+    });
+
     it('Rejects invalid adapter names, options and keys', () => {
       expect(parseShowcaseMarker('showcase=').error).toMatch(/^Invalid showcase adapter name ""/);
       expect(parseShowcaseMarker('showcase=React').error).toMatch(/^Invalid showcase adapter name "React"/);
@@ -140,23 +188,35 @@ describe('markdown', () => {
   describe('Scanning', () => {
     // Tests scanMarkdown() on small Markdown documents, each focusing on one kind of embed.
 
-    it('Finds inline showcases and their generated entry points', () => {
+    it('Finds code block showcases and their generated entry points', () => {
       const scan = scanMarkdown(
         'docs/guide.md',
         ['# Guide', '', '```html showcase', '<p>Hi</p>', '```', '', '```TypeScript showcase=ts({ strict: false })', 'log(1);', '```'].join('\n'),
       );
       expect(scan.errors).toEqual([]);
       expect(scan.showcases).toEqual([
-        { id: 'docs/guide.md#1', documentation: 'docs/guide.md', line: 3, offset: 9, kind: 'inline', adapter: 'html', entry: 'docs/guide.showcase-1.html' },
+        {
+          id: 'docs/guide.md#1',
+          documentation: 'docs/guide.md',
+          line: 3,
+          offset: 9,
+          kind: 'code-block',
+          display: 'block',
+          adapter: 'html',
+          entry: 'docs/guide.showcase-1.html',
+          include: [],
+        },
         {
           id: 'docs/guide.md#2',
           documentation: 'docs/guide.md',
           line: 7,
           offset: 41,
-          kind: 'inline',
+          kind: 'code-block',
+          display: 'block',
           adapter: 'ts',
           options: { strict: false },
           entry: 'docs/guide.showcase-2.ts',
+          include: [],
         },
       ]);
       expect(scan.virtualFiles).toEqual([
@@ -216,18 +276,75 @@ describe('markdown', () => {
       expect(scan.virtualFiles).toEqual([]);
     });
 
-    it('Finds linked showcases, numbered with the inline ones', () => {
+    it('Finds linked showcases, numbered with the code block ones', () => {
       const scan = scanMarkdown(
         'docs/guide.md',
         ['See [the demo](./demo.html "showcase") and [another](/examples/other%20one.js \'showcase=x({ a: 1 })\').', '', '```html showcase', '```'].join('\n'),
       );
       expect(scan.errors).toEqual([]);
       expect(scan.showcases.map(({ id, kind, adapter, options, entry, line }) => ({ id, kind, adapter, options, entry, line }))).toEqual([
-        { id: 'docs/guide.md#1', kind: 'linked', adapter: 'html', options: undefined, entry: 'docs/demo.html', line: 1 },
-        { id: 'docs/guide.md#2', kind: 'linked', adapter: 'x', options: { a: 1 }, entry: 'examples/other one.js', line: 1 },
-        { id: 'docs/guide.md#3', kind: 'inline', adapter: 'html', options: undefined, entry: 'docs/guide.showcase-3.html', line: 3 },
+        { id: 'docs/guide.md#1', kind: 'link', adapter: 'html', options: undefined, entry: 'docs/demo.html', line: 1 },
+        { id: 'docs/guide.md#2', kind: 'link', adapter: 'x', options: { a: 1 }, entry: 'examples/other one.js', line: 1 },
+        { id: 'docs/guide.md#3', kind: 'code-block', adapter: 'html', options: undefined, entry: 'docs/guide.showcase-3.html', line: 3 },
       ]);
       expect(scan.links).toEqual([]);
+    });
+
+    it('Finds how showcases are shown, and their included files, resolved against the documentation file', () => {
+      const scan = scanMarkdown(
+        'docs/guide.md',
+        [
+          'See [a](./a.html "showcase") and [b](./b.html "showcase inline include=./b.css,../shared/theme.css").',
+          '',
+          '[c](./c.html "showcase block")',
+          '',
+          '- [d](./d.html "showcase block include=d%20one.css")',
+          '',
+          '>   [e](./e.html "showcase block")  ',
+          '',
+          '```html showcase include=./b.css,README.showcase-1.html',
+          '```',
+        ].join('\n'),
+      );
+      expect(scan.errors).toEqual([]);
+      expect(scan.showcases.map(({ kind, display, include }) => ({ kind, display, include }))).toEqual([
+        { kind: 'link', display: 'inline', include: [] },
+        { kind: 'link', display: 'inline', include: ['docs/b.css', 'shared/theme.css'] },
+        { kind: 'link', display: 'block', include: [] },
+        { kind: 'link', display: 'block', include: ['docs/d one.css'] },
+        { kind: 'link', display: 'block', include: [] },
+        { kind: 'code-block', display: 'block', include: ['docs/b.css', 'docs/README.showcase-1.html'] },
+      ]);
+    });
+
+    it('Reports the inline, block and include keys where they can not be', () => {
+      const errors = (markdown: string) => scanMarkdown('docs/guide.md', markdown).errors.map(({ message }) => message);
+      expect(errors('```html showcase block\n```')).toEqual([expect.stringMatching(/^A code block showcase is always shown as a block/)]);
+      expect(errors('```html showcase inline\n```')).toEqual([expect.stringMatching(/^A code block showcase is always shown as a block/)]);
+      expect(errors('```css showcase file=a.css block\n```')).toEqual([expect.stringMatching(/^A code block showcase is always shown as a block/)]);
+      expect(errors('```css showcase file=a.css include=b.css\n```')).toEqual([expect.stringMatching(/^A resource can't include files/)]);
+      // A block must be a paragraph's only content, apart from whitespace
+      expect(errors('See [c](./c.html "showcase block").')).toEqual(['A linked showcase shown as a block must be alone in its paragraph']);
+      expect(errors('[c](./c.html "showcase block") [d](./d.html "showcase")')).toEqual(['A linked showcase shown as a block must be alone in its paragraph']);
+      expect(errors('*[c](./c.html "showcase block")*')).toEqual([
+        expect.stringMatching(/^A linked showcase shown as a block must be alone in a paragraph, not in a "emphasis" node/),
+      ]);
+      expect(errors('## [c](./c.html "showcase block")')).toEqual([expect.stringMatching(/not in a "heading" node/)]);
+      expect(errors('| x |\n| - |\n| [c](./c.html "showcase block") |')).toEqual([expect.stringMatching(/not in a "tableCell" node/)]);
+      expect(errors('Text[^1]\n\n[^1]: [c](./c.html "showcase block")')).toEqual(["A linked showcase shown as a block can't be in a footnote"]);
+      // The included files, resolved
+      expect(errors('[c](./c.html "showcase include=../../x.css")')).toEqual(['Included file "../../x.css" is outside the host repository']);
+      for (const path of ['./css/', '.', '..']) {
+        expect(errors(`[c](./c.html "showcase include=${path}")`)).toEqual([`Included file "${path}" must name a file, not a folder`]);
+      }
+      expect(errors('[c](./c.html "showcase include=c.html")')).toEqual(['Included file "c.html" is the showcase\'s own entry point']);
+      expect(errors('```html showcase include=guide.showcase-1.html\n```')).toEqual([
+        'Included file "guide.showcase-1.html" is the showcase\'s own entry point',
+      ]);
+      expect(errors('[c](./c.html "showcase include=./a.css,a.css")')).toEqual(['Included file "docs/a.css" is listed twice']);
+      // A showcase with an error is left out, and not numbered, as for any marker error
+      const scan = scanMarkdown('docs/guide.md', 'See [c](./c.html "showcase block").\n\n[d](./d.html "showcase block")');
+      expect(scan.showcases.map(({ id }) => id)).toEqual(['docs/guide.md#1']);
     });
 
     it('Reports linked showcases whose entry point is not a relative path to a file', () => {

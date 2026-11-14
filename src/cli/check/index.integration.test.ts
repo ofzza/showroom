@@ -64,12 +64,12 @@ describe('cli/check (integration)', () => {
     const result = await check(_ROOT, { showcases: true });
     expect(result.issues).toEqual([]);
     const showcases = result.host!.showcases.filter((showcase) => showcase.documentation === 'README.md');
-    expect(showcases[0]).toMatchObject({ kind: 'inline', adapter: 'html', entry: 'README.showcase-1.html' });
-    expect(showcases.map((showcase) => showcase.kind)).toEqual(expect.arrayContaining(['inline', 'linked']));
+    expect(showcases[0]).toMatchObject({ kind: 'code-block', adapter: 'html', entry: 'README.showcase-1.html' });
+    expect(showcases.map((showcase) => showcase.kind)).toEqual(expect.arrayContaining(['code-block', 'link']));
     expect(result.host!.virtualFiles.filter((file) => file.documentation === 'README.md').map((file) => file.kind)).toContain('resource');
     const examples = result.host!.showcases.filter((showcase) => showcase.documentation.startsWith('examples/'));
     expect(new Set(examples.map((showcase) => `${showcase.documentation} ${showcase.adapter}`))).toEqual(
-      new Set(['examples/html/README.md html', 'examples/ts/README.md ts', 'examples/number-table/README.md number-table']),
+      new Set(['examples/html/README.md html', 'examples/ts/README.md ts', 'examples/react/README.md react', 'examples/number-table/README.md number-table']),
     );
   });
 

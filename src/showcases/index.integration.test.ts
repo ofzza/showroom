@@ -26,19 +26,19 @@ async function _build(name: string) {
 }
 
 describe('showcases (integration)', () => {
-  // Builds the showcases of the `showcase-frames` fixture (html pages, a fragment, a linked page, a resource next to each, and a custom showcase
-  // adapter's page with assets) and of the `showcase-build-errors` fixture (a custom showcase adapter failing with errors, one throwing, one
-  // returning an invalid result, and a showcase that builds). The fixtures are only read; the build's temporary folder is in the project's own OS
-  // temp folder.
+  // Builds the showcases of the `showcase-frames` fixture (html pages, a fragment including its folder's resource, a linked page including its
+  // stylesheet, a resource next to each, and a custom showcase adapter's page with assets) and of the `showcase-build-errors` fixture (a custom
+  // showcase adapter failing with errors, one throwing, one returning an invalid result, and a showcase that builds). The fixtures are only read;
+  // the build's temporary folder is in the project's own OS temp folder.
 
   it('Builds every showcase frame, with the frame script in its page', async () => {
-    const { frames, errors, issues } = await _build('showcase-frames');
+    const { frames, errors, issues, watched } = await _build('showcase-frames');
     expect(issues).toEqual([]);
     expect(errors.size).toBe(0);
     expect([...frames.keys()]).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'docs/my notes #1.md#1']);
     const script = `<script>${getFrameScript()}</script>`;
 
-    // An inline page, the script after its head
+    // A code block showcase's page, the script after its head
     const page = frames.get('README.md#1')!;
     expect(page).toMatchObject({ folder: 'showcases/README.md/1', page: 'index.html', reads: ['README.md'] });
     expect(page.files).toEqual([
@@ -52,12 +52,13 @@ describe('showcases (integration)', () => {
     // A fragment, wrapped
     expect(frames.get('README.md#2')!.files[0].content).toContain(`<head><meta charset="utf-8">${script}<meta name="viewport"`);
     expect(frames.get('README.md#2')!.files[0].content).toContain('<body><p class="fragment">A fragment</p><script src="./fragment.js"></script></body>');
+    // Including the resource of its own folder copies it once
     expect(frames.get('README.md#2')!.files.map((file) => file.path)).toEqual(['index.html', 'fragment.js']);
 
-    // A linked page, after its own charset
+    // A linked page, after its own charset, with its included stylesheet next to it, as it sits next to the page on disk
     const linked = frames.get('README.md#3')!;
-    expect(linked.reads).toEqual(['demos/page.html', 'README.md']);
-    expect(linked.files.map((file) => file.path)).toEqual(['index.html', 'fragment.js']);
+    expect(linked.reads).toEqual(['demos/page.html', 'README.md', 'demos/page.css']);
+    expect(linked.files.map((file) => file.path)).toEqual(['index.html', 'fragment.js', 'page.css']);
     expect(linked.files[0].content).toContain(`<meta charset="utf-8" />${script}`);
 
     // A custom showcase adapter's page given as bytes, with its assets
@@ -68,6 +69,9 @@ describe('showcases (integration)', () => {
     expect(custom.files[0].content).toContain(`<head><meta charset="utf-8">${script}<link`);
     expect(custom.files[0].content).toContain('Widget ✓');
     expect(custom.files[2].content).toBeInstanceOf(Uint8Array);
+
+    // The files to watch, sorted: the custom showcase adapter module, the included files and the reads
+    expect(watched).toEqual(['README.md', 'adapters/assets.js', 'demos/page.css', 'demos/page.html', 'demos/widget.txt']);
   });
 
   it('Reports every build error by showcase, where it is in the documentation, and builds the other showcases', async () => {

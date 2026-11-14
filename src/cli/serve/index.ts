@@ -16,7 +16,7 @@ import type { ShownHostInformation, ShownShowcase } from '../../app/host/index.j
 import { readConfiguration } from '../../configuration/index.js';
 import type { HostInformation } from '../../host/index.js';
 import { buildShowcases, getBuildShowcasesIssues, getErrorFrame, type BuildShowcasesResult, type ShowcaseFrame } from '../../showcases/index.js';
-import { RESOLVED_HOST_MODULE_ID, getAppDir, getShownHostInformation, getViteConfiguration } from '../../vite/index.js';
+import { RESOLVED_HOST_MODULE_ID, getAppDir, getShownHostInformation, getTabFileHashes, getViteConfiguration } from '../../vite/index.js';
 
 // #region Ignored paths
 
@@ -118,14 +118,22 @@ export function getServedFrames(host: HostInformation, built: Pick<BuildShowcase
 export type ShownChange = 'none' | 'showcases' | 'reload';
 
 /**
- * Gets what changed between two shown host informations: anything but the showcase frames' URLs needs a full reload (a documentation file, the
- * project information, a showcase added, removed or moved); changed URLs alone only need the changed showcase frames reloaded
+ * Gets what changed between two shown host informations: anything but the URLs of the showcase frames and of their tabs needs a full reload (a
+ * documentation file, the project information, a showcase added, removed or moved); changed URLs alone only need the changed showcase frames
+ * reloaded, and the changed tabs fetched again
  * @param previous The shown host information shown so far
  * @param next The new one
  * @returns What changed
  */
 export function getShownChange(previous: ShownHostInformation, next: ShownHostInformation): ShownChange {
-  const withoutUrls = (shown: ShownHostInformation) => JSON.stringify({ ...shown, showcases: shown.showcases.map(({ url: _url, ...rest }) => rest) });
+  const withoutUrls = (shown: ShownHostInformation) =>
+    JSON.stringify({
+      ...shown,
+      showcases: shown.showcases.map(({ url: _url, tabs, ...rest }) => ({
+        ...rest,
+        tabs: tabs.map((tab) => (tab.source.kind === 'file' ? { ...tab, source: { ...tab.source, url: tab.source.url.split('?')[0] } } : tab)),
+      })),
+    });
   if (withoutUrls(previous) !== withoutUrls(next)) return 'reload';
   return JSON.stringify(previous.showcases) === JSON.stringify(next.showcases) ? 'none' : 'showcases';
 }
@@ -135,7 +143,7 @@ export function getShownChange(previous: ShownHostInformation, next: ShownHostIn
 // #region Host watcher
 
 /**
- * Name of the custom HMR event telling the showroom the showcase frames' new URLs, with every shown showcase as its data
+ * Name of the custom HMR event telling the showroom the new URLs of the showcase frames and of their tabs, with every shown showcase as its data
  */
 export const SHOWCASES_EVENT = 'showroom:showcases';
 
@@ -224,6 +232,10 @@ export interface HostWatcherOptions {
    * @param matcher The ignore matcher of the latest successful check
    */
   watch?: (watched: readonly string[], matcher: Ignore | undefined) => void;
+  /**
+   * Gets the hashes of the text linked files shown as tabs, after a successful check (see getTabFileHashes()); none if not given
+   */
+  hashFiles?: (host: HostInformation) => Promise<ReadonlyMap<string, string>>;
 }
 
 /**
@@ -332,8 +344,10 @@ export function createHostWatcher(options: HostWatcherOptions): HostWatcher {
       const built = await runBuild(result.host, options.build, state.frames, state.watched);
       if (closed) return;
       matcher = (await options.readMatcher()) ?? matcher;
+      const hashes = (await options.hashFiles?.(result.host)) ?? new Map<string, string>();
+      if (closed) return;
       next = {
-        host: getShownHostInformation(result.host, built.frames),
+        host: getShownHostInformation(result.host, built.frames, hashes),
         frames: built.frames,
         issues: [...result.issues, ...built.issues],
         watched: built.watched,
@@ -495,7 +509,7 @@ export async function serve({ root, port = DEFAULT_PORT, outDir, output, appDir 
   const build = (host: HostInformation) => _buildShowcases(root, host);
   const built = await runBuild(first.host, build, new Map());
   const initial: ServedState = {
-    host: getShownHostInformation(first.host, built.frames),
+    host: getShownHostInformation(first.host, built.frames, await getTabFileHashes(root, first.host)),
     frames: built.frames,
     issues: [...first.issues, ...built.issues],
     watched: built.watched,
@@ -535,6 +549,7 @@ export async function serve({ root, port = DEFAULT_PORT, outDir, output, appDir 
       check: () => check(root, { outDir }),
       build,
       readMatcher: () => readIgnoreMatcher(root, outDir),
+      hashFiles: (host) => getTabFileHashes(root, host),
       watch: (paths, matcher) => watchTargets(getWatchTargets(paths, matcher)),
       output,
       target: {

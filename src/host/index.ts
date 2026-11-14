@@ -74,9 +74,15 @@ export interface DocumentationFile {
 // #region Showcases
 
 /**
- * Represents the kind of a showcase: `inline`, its entry point a fenced code block; or `linked`, its entry point a file a link names
+ * Represents the kind of a showcase: `code-block`, its entry point a fenced code block; or `link`, its entry point a file a link names
  */
-export type ShowcaseKind = 'inline' | 'linked';
+export type ShowcaseKind = 'code-block' | 'link';
+
+/**
+ * Represents how a showcase is shown: `inline`, a linked showcase's showcase frame before the paragraph holding its link; or `block`, its code pane
+ * and showcase frame in place of its code block, or of the paragraph holding its link
+ */
+export type ShowcaseDisplay = 'inline' | 'block';
 
 /**
  * Represents a showcase embedded in a documentation file
@@ -103,6 +109,10 @@ export interface Showcase {
    */
   kind: ShowcaseKind;
   /**
+   * How the showcase is shown: `block` for a code block showcase, and for a linked showcase marked `block`; `inline` for any other linked showcase
+   */
+  display: ShowcaseDisplay;
+  /**
    * Name of the showcase adapter building the showcase (`html` for a naked marker)
    */
   adapter: string;
@@ -111,19 +121,23 @@ export interface Showcase {
    */
   options?: unknown;
   /**
-   * POSIX-style path of the entry point, relative to the host repository's root: the virtual file of an inline showcase, or the file a linked one
+   * POSIX-style path of the entry point, relative to the host repository's root: the virtual file of a code block showcase, or the file a linked one
    * names
    */
   entry: string;
+  /**
+   * POSIX-style paths of its included files (`include=`), relative to the host repository's root, in the marker's order; empty if it has none
+   */
+  include: string[];
 }
 
 /**
- * Represents the kind of a virtual file: a resource (`resource`), or an inline showcase's entry point (`entry`)
+ * Represents the kind of a virtual file: a resource (`resource`), or a code block showcase's entry point (`entry`)
  */
 export type VirtualFileKind = 'resource' | 'entry';
 
 /**
- * Represents a virtual file: a fenced code block of a documentation file (a resource, or an inline showcase's entry point) that resolves like a
+ * Represents a virtual file: a fenced code block of a documentation file (a resource, or a code block showcase's entry point) that resolves like a
  * real file in its documentation file's folder
  */
 export interface VirtualFile {
@@ -132,7 +146,7 @@ export interface VirtualFile {
    */
   path: string;
   /**
-   * What the code block is: a resource (marked `showcase file=<name>`), or an inline showcase's entry point
+   * What the code block is: a resource (marked `showcase file=<name>`), or a code block showcase's entry point
    */
   kind: VirtualFileKind;
   /**
@@ -155,7 +169,7 @@ export interface VirtualFile {
 
 /**
  * Represents a linked file: a file that isn't a documentation file, which a documentation file links to (or shows as an image, or names as a linked
- * showcase's entry point) by a relative path, and which the showroom copies
+ * showcase's entry point) by a relative path, or a showcase includes (`include=`), and which the showroom copies
  */
 export interface LinkedFile {
   /**

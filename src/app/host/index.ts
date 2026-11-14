@@ -2,12 +2,79 @@
  * The shown host information: the part of the host information the showroom presents, and helpers for finding its documentation files
  */
 
-import type { DocumentationFile, HostInformation } from '../../host/index.js';
+import type { DocumentationFile, HostInformation, ShowcaseDisplay } from '../../host/index.js';
 import { getFolder, isMarkdownPath } from '../../markdown/index.js';
 
 export { getFolder };
 
 // #region Shown host information
+
+/**
+ * Represents where a tab of a showcase's code pane (or modal) gets its content: a virtual file's content, shipped with it (`virtual`); a
+ * documentation file, looked up in the shown documentation files (`documentation`); a linked file, fetched from its URL (`file`); or a file that
+ * isn't copied into the showroom (`missing`: a linked showcase's entry point `check` left out of the linked files, with a warning)
+ */
+export type ShownTabSource =
+  | {
+      /**
+       * A virtual file: a code block showcase's entry point, or an included virtual file
+       */
+      kind: 'virtual';
+      /**
+       * Its content
+       */
+      content: string;
+    }
+  | {
+      /**
+       * A documentation file, whose content the shown documentation files hold
+       */
+      kind: 'documentation';
+    }
+  | {
+      /**
+       * A linked file, fetched when its tab is shown
+       */
+      kind: 'file';
+      /**
+       * URL of the linked file, relative to the showroom's page (`files/<path>`), with its content's hash as its query (`?hash=<hash>`) when it is
+       * text, so a changed file gets a new URL
+       */
+      url: string;
+      /**
+       * True if the file can be shown as text (see LinkedFile's `text`)
+       */
+      text: boolean;
+    }
+  | {
+      /**
+       * A file that isn't copied into the showroom
+       */
+      kind: 'missing';
+    };
+
+/**
+ * Represents a tab of a showcase's code pane, or of its modal: one of its files, the entry point first, then its included files
+ */
+export interface ShownTab {
+  /**
+   * The tab's label: a code block showcase's entry point's extension, upper-cased (e.g. `HTML`); any other file's path relative to the
+   * documentation file (e.g. `clock.css`, `../shared/theme.css`)
+   */
+  label: string;
+  /**
+   * POSIX-style path of the file, relative to the host repository's root (a virtual file's as if on disk)
+   */
+  path: string;
+  /**
+   * The file's language, for highlighting: its extension, lower-cased
+   */
+  language: string;
+  /**
+   * Where the tab gets its content
+   */
+  source: ShownTabSource;
+}
 
 /**
  * Represents a shown showcase: where the showroom places a showcase's showcase frame, and the URL it loads it by
@@ -25,6 +92,14 @@ export interface ShownShowcase {
    * Offset of the showcase's entry point (the fence, or the link) in the documentation file's content, in characters, from 0
    */
   offset: number;
+  /**
+   * How the showcase is shown: as a block (a code block showcase, or a linked showcase marked `block`), with its code pane, or inline
+   */
+  display: ShowcaseDisplay;
+  /**
+   * Its files, as tabs: the entry point, then the included files, in the marker's order
+   */
+  tabs: ShownTab[];
   /**
    * URL of the showcase frame's page, relative to the showroom's page, with its content's hash as its query (`?hash=<hash>`), so a changed showcase
    * frame gets a new URL
@@ -45,16 +120,17 @@ export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentat
 };
 
 /**
- * Applies the new URLs of showcase frames to the shown showcases, by id: what `serve` sends when only showcase frames changed
+ * Applies the new URLs of showcase frames and of their tabs to the shown showcases, by id: what `serve` sends when only URLs changed
  * @param showcases The shown showcases
  * @param next The shown showcases with their new URLs, every one of them
- * @returns The shown showcases with the new URLs; the same list if no URL changed
+ * @returns The shown showcases with the new URLs (a showcase whose URLs all stayed the same is kept as it was); the same list if no URL changed
  */
-export function applyShowcaseUrls(showcases: ShownShowcase[], next: readonly Pick<ShownShowcase, 'id' | 'url'>[]): ShownShowcase[] {
-  const urls = new Map(next.map(({ id, url }) => [id, url]));
+export function applyShowcaseUrls(showcases: ShownShowcase[], next: readonly Pick<ShownShowcase, 'id' | 'url' | 'tabs'>[]): ShownShowcase[] {
+  const updates = new Map(next.map((update) => [update.id, update]));
   const applied = showcases.map((showcase) => {
-    const url = urls.get(showcase.id);
-    return url === undefined || url === showcase.url ? showcase : { ...showcase, url };
+    const update = updates.get(showcase.id);
+    if (!update || (update.url === showcase.url && JSON.stringify(update.tabs) === JSON.stringify(showcase.tabs))) return showcase;
+    return { ...showcase, url: update.url, tabs: update.tabs };
   });
   return applied.some((showcase, index) => showcase !== showcases[index]) ? applied : showcases;
 }

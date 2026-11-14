@@ -9,11 +9,11 @@ A page:
 
 A fragment:
 
-```html showcase
+```html showcase include=fragment.js
 <p class="fragment">A fragment</p><script src="./fragment.js"></script>
 ```
 
-A [linked page](./demos/page.html 'showcase'), and the [notes](docs/my%20notes%20%231.md).
+A [linked page](./demos/page.html 'showcase include=./demos/page.css'), and the [notes](docs/my%20notes%20%231.md).
 
 A resource, next to every html showcase frame of this folder:
 

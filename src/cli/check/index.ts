@@ -211,8 +211,9 @@ export async function check(root: string, options: CheckOptions = {}): Promise<C
   links.sort((a, b) => _compare(a.documentation, b.documentation) || a.line - b.line);
   await _checkVirtualFiles(root, virtualFiles, issues);
   await _checkShowcases(root, configuration, showcases, virtualFiles, issues);
+  const included = await _checkIncludes(root, documentation, showcases, virtualFiles, outputFolder.relativePath, issues);
   await _checkLinks(root, links, issues);
-  const linkedFiles = await _collectLinkedFiles(root, documentation, links, showcases, outputFolder.relativePath, issues);
+  const linkedFiles = await _collectLinkedFiles(root, documentation, links, showcases, included, outputFolder.relativePath, issues);
 
   if (!project || issues.some((issue) => issue.severity === 'error')) return fail();
   const host: HostInformation = { project, documentation, code, showcases, virtualFiles, linkedFiles };
@@ -292,12 +293,12 @@ async function _checkShowcases(
       const error = (message: string): void => void issues.push({ severity: 'error', message, path: showcase.documentation, line: showcase.line });
 
       // A linked entry point must be a real file
-      if (showcase.kind === 'linked') {
+      if (showcase.kind === 'link') {
         const kind = virtualPaths.has(showcase.entry.toLowerCase()) ? 'virtual' : await _getEntryKind(join(root, showcase.entry));
         if (kind !== 'file') {
           error(
             kind === 'virtual'
-              ? `A linked showcase's entry point "${showcase.entry}" is a virtual file; use an inline showcase instead`
+              ? `A linked showcase's entry point "${showcase.entry}" is a virtual file; use a code block showcase instead`
               : `A linked showcase's entry point "${showcase.entry}" ${kind === 'folder' ? 'is a folder' : 'not found'}`,
           );
         }
@@ -372,6 +373,97 @@ async function _checkShowcases(
 }
 
 /**
+ * Represents the included files `check` found: the real files that passed, to be collected as linked files, and those that failed
+ */
+interface _IncludedFiles {
+  /**
+   * POSIX-style paths of the included real files that passed, relative to the root, with the showcase first including each
+   */
+  passed: Map<string, { documentation: string; line: number }>;
+  /**
+   * POSIX-style paths of the included files that failed, relative to the root, whose errors stand instead of any link's warnings
+   */
+  failed: Set<string>;
+}
+
+/**
+ * Checks every showcase's included files: a virtual file (any, in any folder) or a documentation file, by its exact path, is found as it is;
+ * a real file must exist with its path's exact case on every OS, be a file, be outside the output folder, and have its real path inside the root.
+ * Each failure is an error at the showcase's line.
+ * @param root Path of the host repository's root
+ * @param documentation Documentation files
+ * @param showcases Showcases
+ * @param virtualFiles Virtual files
+ * @param outputFolder POSIX-style path of the output folder, relative to the root
+ * @param issues Issues to add the errors to
+ * @returns The included real files that passed, and the included files that failed
+ */
+async function _checkIncludes(
+  root: string,
+  documentation: DocumentationFile[],
+  showcases: Showcase[],
+  virtualFiles: VirtualFile[],
+  outputFolder: string,
+  issues: CheckIssue[],
+): Promise<_IncludedFiles> {
+  const included: _IncludedFiles = { passed: new Map(), failed: new Set() };
+  const known = new Set([...virtualFiles.map((file) => file.path), ...documentation.map((file) => file.path)]);
+  const entries = new Map<string, string[]>();
+  const realRoot = await realpath(root);
+  for (const showcase of showcases) {
+    for (const path of showcase.include) {
+      const error = (message: string): void => {
+        issues.push({ severity: 'error', message, path: showcase.documentation, line: showcase.line });
+        included.failed.add(path);
+      };
+      if (known.has(path)) continue;
+      const found = await _findExactly(root, path, entries);
+      if (found !== true) {
+        error(found ? `Included file "${path}" not found; did you mean "${found}"? (included paths are matched exactly)` : `Included file "${path}" not found`);
+        continue;
+      }
+      if (await _isDirectory(join(root, path))) {
+        error(`Included file "${path}" is a folder`);
+        continue;
+      }
+      if (path === outputFolder || path.startsWith(`${outputFolder}/`)) {
+        error(`Included file "${path}" is in the output folder, which \`showroom build\` empties`);
+        continue;
+      }
+      const real = relative(realRoot, await realpath(join(root, path)));
+      if (real === '..' || real.startsWith(`..${sep}`) || isAbsolute(real)) {
+        error(`Included file "${path}" is outside the host repository (through a symbolic link)`);
+        continue;
+      }
+      if (!included.passed.has(path)) included.passed.set(path, { documentation: showcase.documentation, line: showcase.line });
+    }
+  }
+  return included;
+}
+
+/**
+ * Finds a path on disk with its exact case, segment by segment, whatever the file system's case sensitivity
+ * @param root Path of the host repository's root
+ * @param path POSIX-style path, relative to the root
+ * @param entries Each folder's entries read so far, by its path relative to the root, filled as folders are read
+ * @returns True if every segment exists with its exact case; otherwise the path as it exists with another case, or undefined if it doesn't
+ */
+async function _findExactly(root: string, path: string, entries: Map<string, string[]>): Promise<true | string | undefined> {
+  const segments = path.split('/');
+  const actual: string[] = [];
+  for (const segment of segments) {
+    const folder = actual.join('/');
+    if (!entries.has(folder)) entries.set(folder, await readdir(join(root, folder)).catch(() => [] as string[]));
+    const names = entries.get(folder)!;
+    const name = names.includes(segment) ? segment : names.find((candidate) => candidate.toLowerCase() === segment.toLowerCase());
+    if (name === undefined) return undefined;
+    actual.push(name);
+  }
+  const found = actual.join('/');
+  return found === path ? true : found;
+}
+
+/**
  * Gets what is at a linked showcase's entry point
  * @param path Absolute path of the entry point
  * @returns `file`, `folder`, or `missing`
@@ -438,14 +530,15 @@ async function _checkLinks(root: string, links: _FoundLink[], issues: CheckIssue
 // #region Linked files
 
 /**
- * Collects the linked files: the files the links, images and linked showcases' entry points name, ignored or not, except documentation files, folders
- * and missing files (warned or errored about already). A file in the output folder, which `build` empties, and a file whose real path (following
+ * Collects the linked files: the files the links, images and linked showcases' entry points name, and the included real files that passed their
+ * check, ignored or not, except documentation files, folders and missing files (warned or errored about already). A file in the output folder, which `build` empties, and a file whose real path (following
  * symbolic links) is outside the host repository are warned about, and left out. Each file's text-ness is decided from its content, read only up
  * to the modal's limit.
  * @param root Path of the host repository's root
  * @param documentation Documentation files
  * @param links Links and images, with the documentation file holding each
  * @param showcases Showcases
+ * @param included The included files: those that passed are linked files too, and those that failed are left out with no warning
  * @param outputFolder POSIX-style path of the output folder, relative to the root
  * @param issues Issues to add the warnings to
  * @returns The linked files, sorted by path
@@ -455,11 +548,12 @@ async function _collectLinkedFiles(
   documentation: DocumentationFile[],
   links: _FoundLink[],
   showcases: Showcase[],
+  included: _IncludedFiles,
   outputFolder: string,
   issues: CheckIssue[],
 ): Promise<LinkedFile[]> {
-  // The paths named, with where each was first named
-  const named = new Map<string, { documentation: string; line: number }>();
+  // The paths named, with where each was first named: the included files that passed first, which no warning concerns
+  const named = new Map<string, { documentation: string; line: number }>(included.passed);
   const documentationPaths = new Set(documentation.map((file) => file.path.toLowerCase()));
   for (const link of links) {
     const target = splitLink(link.href);
@@ -467,7 +561,7 @@ async function _collectLinkedFiles(
     if (resolved && !resolved.isFolder && resolved.path && !named.has(resolved.path)) named.set(resolved.path, link);
   }
   for (const showcase of showcases) {
-    if (showcase.kind === 'linked' && !named.has(showcase.entry)) named.set(showcase.entry, { documentation: showcase.documentation, line: showcase.line });
+    if (showcase.kind === 'link' && !named.has(showcase.entry)) named.set(showcase.entry, { documentation: showcase.documentation, line: showcase.line });
   }
 
   // The files among them
@@ -475,7 +569,7 @@ async function _collectLinkedFiles(
   const realRoot = await realpath(root);
   for (const [path, { documentation: from, line }] of named) {
     const warn = (message: string): void => void issues.push({ severity: 'warning', message, path: from, line });
-    if (documentationPaths.has(path.toLowerCase())) continue;
+    if (documentationPaths.has(path.toLowerCase()) || included.failed.has(path)) continue;
     const info = await stat(join(root, path)).catch(() => undefined);
     if (!info?.isFile()) continue;
     if (path === outputFolder || path.startsWith(`${outputFolder}/`)) {

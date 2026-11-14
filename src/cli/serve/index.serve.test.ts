@@ -4,6 +4,10 @@
 
 import { afterEach, describe, expect, inject, it } from 'vitest';
 import { copyFixture, type ScratchFolder } from '../../testing/index.js';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import type { ShownShowcase } from '../../app/host/index.js';
 import { serve } from './index.js';
 
 /**
@@ -140,6 +144,18 @@ describe('cli/serve (serve)', () => {
     const own = await fetch(new URL('showcases/index.js', url));
     expect(own.status).toBe(200);
     expect(await own.text()).toContain('remarkShowcaseFrames');
+
+    // The linked page's tabs: its page, and its included stylesheet, each by its linked file's URL with its hash, which serves the file
+    const host = JSON.parse(/export default ([\s\S]*?);\s*export const issues/.exec(source)![1]) as { showcases: ShownShowcase[] };
+    const tabs = host.showcases.find(({ id }) => id === 'README.md#3')!.tabs;
+    expect(tabs.map(({ label }) => label)).toEqual(['demos/page.html', 'demos/page.css']);
+    const css = tabs[1].source;
+    expect(css).toMatchObject({ kind: 'file', text: true, url: expect.stringMatching(/^files\/demos\/page\.css\?hash=[0-9a-f]{8}$/) });
+    const served = await fetch(new URL((css as { url: string }).url, url));
+    expect(served.status).toBe(200);
+    expect(await served.text()).toBe(
+      await readFile(join(fileURLToPath(new URL('../../../test/fixtures/showcase-frames', import.meta.url)), 'demos', 'page.css'), 'utf8'),
+    );
   });
 
   it('Serves error frames for the showcases that do not build, and shows their build errors as issues', async () => {
@@ -185,6 +201,19 @@ describe('cli/serve (serve)', () => {
     expect(await (await fetch(new URL(`showcases/README.md/1/assets/${lazy}`, url))).text()).toContain('"later"');
   });
 
+  it("Serves react showcase frames, built in development mode with React's development build", async () => {
+    const { url, stderr } = await start('showcase-react');
+    expect(stderr()).toBe('');
+    const urls = getShowcaseUrls(await fetchHostModule(url));
+    expect(Object.keys(urls)).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'classic/README.md#1']);
+    const page = await (await fetch(new URL(urls['README.md#1'], url))).text();
+    expect(page).toContain('<div id="root"></div><div id="showroom-console" hidden></div>');
+    const module = /<script type="module" crossorigin src="\.\/(assets\/[^"]+)"/.exec(page)![1];
+    const code = await (await fetch(new URL(`showcases/README.md/1/${module}`, url))).text();
+    expect(code).toContain('react-dom-client.development.js');
+    expect(code).toContain('createRoot)(document.getElementById("root"))');
+  });
+
   it('Serves the linked files from the host repository, and nothing else in their folder', async () => {
     const { url } = await start('linked-files');
     const source = await fetchHostModule(url);
@@ -199,6 +228,8 @@ describe('cli/serve (serve)', () => {
     // Files in the host repository that aren't linked files
     expect((await fetch(new URL('files/README.md', url))).status).toBe(404);
     expect((await fetch(new URL('files/out/stale.txt', url))).status).toBe(404);
+    // The showroom's own modules, served unbundled, are never in the linked files' folder: the modal's module loads
+    expect((await fetch(new URL('file-modal/index.js', url))).status).toBe(200);
   });
 
   it('Stops at once with a signal aborted before it listens', async () => {

@@ -120,11 +120,14 @@ The **showcase marker** is `showcase`, `showcase=<adapter>`, or `showcase=<adapt
 
 - `<adapter>` names the showcase adapter: lower-case letters, digits and `-`, starting with a letter. A naked `showcase` means `showcase=html`.
 - `<options>` are [JSON5](https://json5.org/) (parsed, never evaluated), for the showcase adapter to validate. Empty options (`()`) are an error.
-- The only key is `file=<name>`, which marks a resource (below). `anchor=<name>` is reserved for later, and any other key is an error.
+- The keys:
+  - `file=<name>` marks a resource (below), and goes with no other key.
+  - `inline` or `block` says how a linked showcase is shown: inline, the default, or as a block, in place of the paragraph holding its link, which must be its paragraph's only content (in a list item or a blockquote too, never in a footnote). A code block showcase is always a block, so neither key goes on a code block.
+  - `include=<path>,<path>` lists a showcase's **included files**, which are shown with it: real files, documentation files, or virtual files (a resource, or a code block showcase's entry point, by its generated name, which changes when a showcase is added above it), in any folder. Paths are relative to the documentation file's folder, comma-separated, with no spaces, commas, `?` or `#` in them, URL-decoded as link targets are, and matched exactly, case included, on every OS. `check` reports an included file that doesn't exist, is a folder, is the showcase's own entry point, is listed twice, is in the output folder, or leads outside the host repository. Including a file only adds it: it is always available to the showcase's build (see each showcase adapter below), and a showcase still uses whatever else it uses, included or not.
+  - `anchor=<name>` is reserved for later, and any other key is an error. Keys are case-sensitive, and a repeated key is an error.
 
-An **inline showcase** is a fenced code block with the marker right after its language, which stays first so that the block is still highlighted everywhere. Its code is the showcase's entry point:
+A **code block showcase** is a fenced code block with the marker right after its language, which stays first so that the block is still highlighted everywhere. Its code is the showcase's entry point. Here is one, live: in this repository's showroom, the button in its corner shows its code, and the code pane's last tab, **Markdown**, shows the code block as written, marker included (the showcases below show theirs the same way):
 
-````md
 ```html showcase
 <style>
   .n {
@@ -143,32 +146,9 @@ An **inline showcase** is a fenced code block with the marker right after its la
 </style>
 <span class="n">1<b>,</b>234<b>,</b>567<b>.</b><i>89</i></span>
 ```
-````
 
-> Here is that block again, as a live showcase in this repository's own showroom:
->
-> ```html showcase
-> <style>
->   .n {
->     font: 1.5em monospace;
->     color: #0f6cbd;
->   }
->   .n b {
->     font-weight: normal;
->     color: #242424;
->     background: #fde300;
->   }
->   .n i {
->     font-style: normal;
->     color: #c50f1f;
->   }
-> </style>
-> <span class="n">1<b>,</b>234<b>,</b>567<b>.</b><i>89</i></span>
-> ```
+A code block marked `showcase file=<name>` is a **resource** instead: a file the showcases of its folder can use. Here, the same styles as a stylesheet, and a code block showcase using it:
 
-A code block marked `showcase file=<name>` is a **resource** instead: a file the showcases of its folder can use. Here, the same styles as a stylesheet, and an inline showcase using it:
-
-````md
 ```css showcase file=figures.css
 .figure {
   font: 1.5em monospace;
@@ -188,84 +168,84 @@ A code block marked `showcase file=<name>` is a **resource** instead: a file the
 ```html showcase
 <link rel="stylesheet" href="./figures.css" /> <span class="figure">3<b>.</b><i>14159</i></span>
 ```
-````
 
-> Here are those blocks again, live:
->
-> ```css showcase file=figures.css
-> .figure {
->   font: 1.5em monospace;
->   color: #0f6cbd;
-> }
-> .figure b {
->   font-weight: normal;
->   color: #242424;
->   background: #fde300;
-> }
-> .figure i {
->   font-style: normal;
->   color: #c50f1f;
-> }
-> ```
->
-> ```html showcase
-> <link rel="stylesheet" href="./figures.css" /> <span class="figure">3<b>.</b><i>14159</i></span>
-> ```
+The code blocks of code block showcases and resources are **virtual files**: they resolve like real files in their documentation file's folder, so every documentation file in that folder, and other folders through relative paths, can use them. A resource is named by its `file` key, a plain file name. A code block showcase's entry point gets a generated name, `<documentation file's name>.showcase-<n>.<extension>`, where `<n>` is its position among the showcases in its documentation file, and `<extension>` comes from the code block's language (`typescript` gives `ts`, `javascript` gives `js`, `htm` gives `html`; any other language is used as is). The first showcase in `README.md`, the number above, is `README.showcase-1.html`. A virtual file's name may not collide, ignoring case, with another virtual file or a real file or folder in the same folder.
 
-The code blocks of inline showcases and resources are **virtual files**: they resolve like real files in their documentation file's folder, so every documentation file in that folder, and other folders through relative paths, can use them. A resource is named by its `file` key, a plain file name. An inline showcase's entry point gets a generated name, `<documentation file's name>.showcase-<n>.<extension>`, where `<n>` is its position among the showcases in its documentation file, and `<extension>` comes from the code block's language (`typescript` gives `ts`, `javascript` gives `js`, `htm` gives `html`; any other language is used as is). The first showcase in `README.md`, the number above, is `README.showcase-1.html`. A virtual file's name may not collide, ignoring case, with another virtual file or a real file or folder in the same folder.
-
-A **linked showcase** is a link to its entry point's file, with the marker as the link's title. The link stays an ordinary link anywhere else:
+A **linked showcase** is a link to its entry point's file, with the marker as the link's title. The link stays an ordinary link anywhere else. Here it is as written, then live:
 
 ```md
 [Formatted figures](./examples/figures.html 'showcase')
 ```
 
-> Here is that link again, live:
->
-> [Formatted figures](./examples/figures.html 'showcase')
+[Formatted figures](./examples/figures.html 'showcase')
 
 The link must be an inline link (not a reference, nor an image) with a relative path, without a query or fragment, naming a file inside the host repository that isn't a virtual file. The files the entry point uses are ordinary files too, which a showcase adapter building from disk follows; the `html` showcase adapter follows none (see below). A title is a marker when its first word is `showcase`, or starts with `showcase=`, and must then be a valid marker.
 
+A linked showcase is shown **inline** by default (or with the `inline` key): its showcase frame before the paragraph holding its link, and the link opening its file in the [modal](#linked-files). With the `block` key, it is shown **as a block**, as a code block showcase is: its showcase frame and its [code pane](#the-code-pane) take the place of the paragraph holding the link, whose text isn't shown in the showroom (it is only there for the Markdown read anywhere else, where the link stays a link). The link must be alone in its paragraph. Here is the same page, as a block:
+
+[Formatted figures](./examples/figures.html 'showcase block')
+
+**Included files** (`include=`) are shown with their showcase, as more tabs of its code pane, or of its modal for a linked showcase shown inline. Here, the code block showcase using the stylesheet above lists it, so the stylesheet is shown beside it:
+
+```html showcase include=figures.css
+<link rel="stylesheet" href="./figures.css" /> <span class="figure">2<b>.</b><i>71828</i></span>
+```
+
+Tabs show only the entry point and the included files, never what a showcase also uses or imports without listing it.
+
+#### Cheat-sheet
+
+| Syntax                                                                        | What it produces                                                                                                 |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| ` ```html showcase ` + code                                                   | An `html` showcase: its code pane (the code) beside its showcase frame; its folder's resources copied next to it |
+| ` ```ts showcase=ts({ typeCheck: false }) ` + code                            | A `ts` showcase with options                                                                                     |
+| ` ```tsx showcase=react ` + code                                              | A `react` showcase: its code pane beside the rendered component                                                  |
+| ` ```html showcase include=./figures.css,theme.css ` + code                   | The same `html` showcase, with two more tabs; a real `figures.css` is copied next to its page too                |
+| ` ```ts showcase=ts include=./src/units.ts ` + code                           | A `ts` showcase with `units.ts` as another tab; it imports whatever it imports, listed or not                    |
+| ` ```css showcase file=theme.css ` + code                                     | A resource `theme.css`: a code block, usable by showcases as if on disk                                          |
+| `[Clock](./clock.html 'showcase')` within text                                | Shown inline (the default): its showcase frame before the paragraph, and the link opens the modal                |
+| `[Clock](./clock.html 'showcase inline')` within text                         | The same, said explicitly                                                                                        |
+| `[Clock](./clock.html 'showcase inline include=./clock.css')` within text     | Shown inline, with `clock.css` copied next to the page, and as a second tab in the modal                         |
+| `[Clock](./clock.html 'showcase block')` alone in a paragraph                 | Replaced by its code pane (the file) beside its showcase frame; elsewhere, the link                              |
+| `[Clock](./clock.html 'showcase block include=./clock.css')` alone            | The same, with `clock.css` as a second tab, copied next to the page                                              |
+| `[Counter](./Counter.tsx 'showcase=react block include=./Counter.css')` alone | A `react` block from a real file, with its CSS as a second tab                                                   |
+| `[clock.css](./clock.css)`                                                    | A linked file: a link with a "code" icon, opening the modal                                                      |
+| ` ```ts ` + code (no marker)                                                  | An ordinary code block, highlighted, with line numbers                                                           |
+
 The built-in showcase adapters:
 
-| Showcase adapter | Entry point                                                                                                       | Options                | Needs from the host repository                                                         |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------- |
-| `html`           | an `html` or `htm` code block, or an `.html` or `.htm` file                                                       | none                   | nothing                                                                                |
-| `ts`             | a `ts`, `js`, `mts` or `mjs` code block (or `typescript`, `javascript`), or a `.ts`, `.mts`, `.js` or `.mjs` file | `typeCheck`, `allowJs` | the packages its showcases import, and `typescript` (5.x or 6.x) where they type check |
+| Showcase adapter | Entry point                                                                                                       | Options                | Needs from the host repository                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------ |
+| `html`           | an `html` or `htm` code block, or an `.html` or `.htm` file                                                       | none                   | nothing                                                                                    |
+| `ts`             | a `ts`, `js`, `mts` or `mjs` code block (or `typescript`, `javascript`), or a `.ts`, `.mts`, `.js` or `.mjs` file | `typeCheck`, `allowJs` | the packages its showcases import, and `typescript` (5.x or 6.x) where they type check     |
+| `react`          | a `tsx` or `jsx` code block, or a `.tsx` or `.jsx` file                                                           | `typeCheck`, `allowJs` | `ts`'s, and `react` and `react-dom` 18 or later, with `@types/react` where they type check |
 
-`react` and `angular` showcase adapters are planned. A broken showcase is an error `showroom check` reports, with its documentation file and line: a broken marker, a marker anywhere else than after a code block's language or in an inline link's title, an unknown showcase adapter, options or an entry point the showcase adapter rejects, a virtual file's name that collides, a linked file that doesn't exist, and a showcase adapter's missing host requirements (reported once per run, with no documentation file or line; a showcase adapter can also warn about the host repository).
+An `angular` showcase adapter is planned. A broken showcase is an error `showroom check` reports, with its documentation file and line: a broken marker, a marker anywhere else than after a code block's language or in an inline link's title, an unknown showcase adapter, options or an entry point the showcase adapter rejects, a virtual file's name that collides, a linked file that doesn't exist, and a showcase adapter's missing host requirements (reported once per run, with no documentation file or line; a showcase adapter can also warn about the host repository).
 
 ### `html` showcases
 
-An `html` showcase's showcase frame is its entry point, as the page, and **every resource of its documentation file's folder**, next to the page under its name, whether the page uses it or not. An entry point that starts (after whitespace and comments) with `<!doctype`, `<html`, `<head` or `<?xml` is a complete page, used as it is; anything else is a fragment, wrapped into a page of its own. Pages are UTF-8. Nothing else is followed or copied: the page isn't read for its relative references (`<script src>`, `<link href>`, `<img src>`), so they only reach those resources, and resolve as written for an inline showcase, or a linked page in its documentation file's folder. Keep other styles and scripts inline, or use absolute URLs. A resource named `index.html` would replace the page, and fails the build. (A script needs its closing tag, `<script src="./demo.js"></script>`: HTML has no self-closing `<script />`.)
+An `html` showcase's showcase frame is its entry point, as the page, **every resource of its documentation file's folder**, next to the page under its name, whether the page uses it or not, and **its included files**, next to the page as they sit next to the entry point (so they must be inside the entry point's folder). An entry point that starts (after whitespace and comments) with `<!doctype`, `<html`, `<head` or `<?xml` is a complete page, used as it is; anything else is a fragment, wrapped into a page of its own. Pages are UTF-8. Nothing else is followed or copied: the page isn't read for its relative references (`<script src>`, `<link href>`, `<img src>`), so they only reach those resources, and resolve as written for a code block showcase, or a linked page in its documentation file's folder. Keep other styles and scripts inline, or use absolute URLs. A resource named `index.html` would replace the page, and fails the build; so does an included file landing where a resource of the documentation file's folder does (including that resource itself is fine), and `check` reports an included file named `index.html`, in any case. (A script needs its closing tag, `<script src="./demo.js"></script>`: HTML has no self-closing `<script />`.)
 
-The [`html` example](./examples/html/README.md) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md)) documents `numerals`, a made-up CSS library, on its own showcases. Its first showcase is a page of its own, [`clock.html`](./examples/html/clock.html), linked as a showcase:
+The [`html` example](./examples/html/README.md) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md)) documents `numerals`, a made-up CSS library, on its own showcases. Its first showcase is a page of its own, [`clock.html`](./examples/html/clock.html), linked as a showcase shown as a block, beside its code:
 
-```md
-[A 7-segment clock](./examples/html/clock.html 'showcase')
-```
-
-> Here is that link again, live:
->
-> [A 7-segment clock](./examples/html/clock.html 'showcase')
+[A 7-segment clock](./examples/html/clock.html 'showcase block')
 
 See the rest in the example: its stylesheet as a [resource](./examples/html/README.md#the-stylesheet) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#the-stylesheet)), [tabular figures](./examples/html/README.md#tabular-figures) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#tabular-figures)), [grouped digits](./examples/html/README.md#grouped-digits) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#grouped-digits)), [comic digits](./examples/html/README.md#comic-digits) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#comic-digits)) and [large figures](./examples/html/README.md#large-figures-and-displays) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#large-figures-and-displays)), following the showroom's theme.
 
 ### `ts` showcases
 
-A `ts` showcase's entry point is a TypeScript or JavaScript module, which `showroom` bundles with its own Vite (no Vite, PostCSS or bundler configuration of the host repository is read) and runs in its showcase frame's page. The page holds an empty `<div id="root">`, the **showcase frame root**, for the showcase to write to, and below it the **console panel**, listing what the showcase writes to the browser's console (`console.log`, `info`, `warn`, `error` and `debug`, styled by level), its uncaught errors and its rejected promises. The panel is hidden until something is logged, scrolls once it holds about 12 lines, and follows the showroom's theme; every call still reaches the browser's console. Values are shown readably: strings as they are, errors as their stack, objects and arrays as indented JSON. The page has no other content and no styles of its own beyond the browser's: write into `#root`, rather than replacing `document.body`, which holds the console panel too.
+A `ts` showcase's entry point is a TypeScript or JavaScript module, which `showroom` bundles with its own Vite (no Vite, PostCSS or bundler configuration of the host repository is read) and runs in its showcase frame's page. The page holds an empty `<div id="root">`, the **showcase frame root**, for the showcase to write to, and after it the **console panel**, listing what the showcase writes to the browser's console (`console.log`, `info`, `warn`, `error` and `debug`, styled by level), its uncaught errors and its rejected promises. Values are shown readably: strings as they are, errors as their stack, objects and arrays as indented JSON. The panel keeps the newest 128 lines, its first line saying how many earlier ones were dropped; every call still reaches the browser's console, and the panel follows the showroom's theme. How it shows depends on whether the showcase renders anything, which it decides once the page has loaded (or 2 seconds after it was parsed, at the latest):
 
-The [`ts` example](./examples/ts/README.md) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md)) documents `tempo`, a made-up TypeScript library of durations, relative times and rounding, typed throughout. Its first showcase is [`countdown.ts`](./examples/ts/demo/countdown.ts), a module importing the library, linked as a showcase:
+- **A showcase that renders nothing** (one that only logs) shows its console panel on its own, below the empty showcase frame root, about 8 lines high from its first line, scrolling beyond them. Nothing is shown while nothing is logged.
+- **A showcase that renders** keeps its console panel hidden, so the showcase frame is only as tall as the showcase: each new line shows briefly at the bottom of the showcase frame, then fades, and a counter in the bottom-right corner (`>_ 12`) says how many lines were logged. The counter turns red, with the number of errors, while errors are unseen. Clicking it opens the whole console panel over the showcase, at the same height (growing a shorter showcase frame to fit it); its close button, or Escape, closes it. Open, it always leaves the top 32 px of the showcase frame uncovered, where a block's code pane button sits. The first uncaught error or rejected promise opens it by itself, once, so a crash that empties the page is seen.
 
-```md
-[A countdown to the new year](./examples/ts/demo/countdown.ts 'showcase=ts')
-```
+Any content in the showcase frame root counts as rendering, as does text or a visual element (an image, a canvas, an SVG, a form control, …) elsewhere in `<body>`; an empty element outside `#root` (e.g. a library's portal container) doesn't. A showcase that starts rendering later switches its console panel to hidden then, for good. The page has no other content and no styles of its own beyond the browser's: write into `#root`, rather than replacing `document.body`, which holds the console panel too.
 
-> Here is that link again, live (see the console panel below it):
->
-> [A countdown to the new year](./examples/ts/demo/countdown.ts 'showcase=ts')
+The [`ts` example](./examples/ts/README.md) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md)) documents `tempo`, a made-up TypeScript library of durations, relative times and rounding, typed throughout. Its first showcase is [`countdown.ts`](./examples/ts/demo/countdown.ts), a module importing the library, linked as a showcase shown as a block, beside its code (what it logs fades in at the bottom of its showcase frame, and the counter opens the console panel):
 
-See the rest in the example: [inline showcases importing the library](./examples/ts/README.md#durations) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#durations)), [a virtual TypeScript file](./examples/ts/README.md#a-shared-helper) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#a-shared-helper)) two showcases import, [relative times](./examples/ts/README.md#relative-times) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#relative-times)), [rounding with an `enum`](./examples/ts/README.md#rounding) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#rounding)), and [a `js` showcase](./examples/ts/README.md#from-javascript) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#from-javascript)) importing TypeScript, each type checked with the example's own `tsconfig.json`.
+[A countdown to the new year](./examples/ts/demo/countdown.ts 'showcase=ts block')
+
+See the rest in the example: [code block showcases importing the library](./examples/ts/README.md#durations) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#durations)), [a virtual TypeScript file](./examples/ts/README.md#a-shared-helper) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#a-shared-helper)) two showcases import, [relative times](./examples/ts/README.md#relative-times) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#relative-times)), [rounding with an `enum`](./examples/ts/README.md#rounding) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#rounding)), and [a `js` showcase](./examples/ts/README.md#from-javascript) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#from-javascript)) importing TypeScript, each type checked with the example's own `tsconfig.json`.
 
 What a `ts` showcase can import:
 
@@ -275,7 +255,7 @@ What a `ts` showcase can import:
 
 Not supported for now: tsconfig `paths` aliases, and anything needing the host repository's own bundler configuration (e.g. SCSS without `sass` installed, environment variables). The host's PostCSS configuration is ignored; the settings Vite's TypeScript transform reads from the nearest `tsconfig.json` (e.g. `experimentalDecorators`, `useDefineForClassFields`) apply. There is no setup shared by a host repository's showcases: a showcase imports what it needs (global styles, polyfills) itself.
 
-`showroom serve` builds showcases in development mode (unminified, with inline source maps), and `build` and `check --showcases` in production mode (minified); `process.env.NODE_ENV`, `import.meta.env.MODE`, `import.meta.env.DEV` and `import.meta.env.PROD` follow the mode, as do packages' `development` and `production` conditions. Its options are `typeCheck` and `allowJs`, both booleans (see [Type checking](#type-checking)). A `tsx` or `jsx` entry point is the planned `react` showcase adapter's.
+`showroom serve` builds showcases in development mode (unminified, with inline source maps), and `build` and `check --showcases` in production mode (minified); `process.env.NODE_ENV`, `import.meta.env.MODE`, `import.meta.env.DEV` and `import.meta.env.PROD` follow the mode, as do packages' `development` and `production` conditions. Its options are `typeCheck` and `allowJs`, both booleans (see [Type checking](#type-checking)). A `tsx` or `jsx` entry point is the [`react` showcase adapter](#react-showcases)'s.
 
 #### Type checking
 
@@ -288,15 +268,41 @@ Unless its `typeCheck` option is `false` (`showcase=ts({ typeCheck: false })`), 
 - **Two differences from the bundle**: type checking follows the host's own module resolution (e.g. under `node16` or `nodenext`, an extensionless import, which Vite bundles, is an error, TS2835), and applies the documentation folder's tsconfig to every file, where Vite's transform looks one up per file.
 - **JavaScript**: a `js` or `mjs` entry point is type checked with `allowJs`, so its TypeScript imports are checked (the entry point itself only with the tsconfig's `checkJs`). Importing a `.js` file without declarations is an error under `strict` (TS7016), as it is in the host's own code: the `allowJs` option (`showcase=ts({ allowJs: true })`) type checks that showcase with `allowJs`, leaving the tsconfig as it is.
 
+### `react` showcases
+
+A `react` showcase's entry point is a TSX or JSX module whose **default export is a component**, which `showroom` renders into the showcase frame root with the host repository's own React (`react-dom/client`'s `createRoot`), without `StrictMode`:
+
+```tsx
+import { useState } from 'react';
+
+export default function Demo() {
+  const [count, setCount] = useState(0);
+  return <button onClick={() => setCount(count + 1)}>Clicked {count} times</button>;
+}
+```
+
+It builds on the [`ts` showcase adapter](#ts-showcases): it is bundled the same way, can import the same things, runs on the same page (the showcase frame root, and the console panel, which also shows React's warnings and render errors), and is [type checked](#type-checking) the same way, with the same options, `typeCheck` and `allowJs`. Beyond that:
+
+- **React comes from the host repository**: `react` and `react-dom`, 18 or later, found as Node finds them from the documentation file's folder, which `showroom check` reports when missing or older; and where the showcases type check, React's types (`@types/react`, unless `react` ships its own). Each showcase frame bundles its own copy of React.
+- **The default export** can be any component React renders: a function, a class, or what `memo()`, `forwardRef()` or `lazy()` return. A module without one fails the build, at the entry point; named exports are allowed, and ignored. A default export React can't render fails in the showcase frame, as React's own error in the console panel.
+- **JSX always uses the automatic runtime** (no `import React` needed), whatever the tsconfig's `jsx` says; its `jsxImportSource` applies. Type checking uses `jsx: react-jsx` where the nearest tsconfig (or its absence) leaves `jsx` unset, and the tsconfig's own `jsx` otherwise. A `jsx` entry point is type checked with `allowJs`, as a `js` one is.
+- **No setup shared by the showcases**: a showcase that needs providers (a theme, a router, a store), global styles or `StrictMode` wraps itself in them, in its own code.
+- **The theme**: like any page in a showcase frame, a showcase reads the showroom's theme from `<html>`'s `data-showroom-theme` attribute and `color-scheme` (see [Showcase frames](#showcase-frames)); a hook can follow it with a `MutationObserver`, as the example's [`useShowroomTheme()`](./examples/react/src/useShowroomTheme.ts) does.
+
+The [`react` example](./examples/react/README.md) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md)) documents `ticker`, a made-up React component library of a stopwatch, counters and a theme hook. Its first showcase is [`Stopwatch.tsx`](./examples/react/demo/Stopwatch.tsx), a module whose default export renders the library's stopwatch, linked as a showcase shown as a block, beside its code:
+
+[A stopwatch](./examples/react/demo/Stopwatch.tsx 'showcase=react block')
+
+See the rest in the example: [counters with props](./examples/react/README.md#counters) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#counters)) logging to the console panel, [following the theme](./examples/react/README.md#following-the-theme) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#following-the-theme)), [a virtual TSX file](./examples/react/README.md#a-shared-component) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#a-shared-component)) the [next showcase](./examples/react/README.md#composing) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#composing)) imports, [a memoized component](./examples/react/README.md#memoized-components) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#memoized-components)), and [a `jsx` showcase](./examples/react/README.md#from-jsx) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#from-jsx)), each type checked with the example's own `tsconfig.json`.
+
 ### Showcase frames
 
-Each showcase is shown in its own iframe, a showcase frame, right before the block holding its entry point: before an inline showcase's code block, or before the paragraph (or heading, or table) holding a linked showcase's link. The code blocks and links stay as they are. A showcase frame is as wide as the text, and as high as its content, which `showroom` measures with a small script it adds to every showcase frame page: down to the bottom margin of `<body>`, or of its lowest element if that reaches further. Don't size a showcase to its viewport (`100vh`, or `height: 100%` on `html` and `body`): it would grow with its own iframe, which `showroom` stops after a few steps.
+Each showcase is shown in its own iframe, a showcase frame. A code block showcase, and a linked showcase shown as a block, take their entry point's place: the code block, or the paragraph holding the link, is replaced by the showcase frame and its [code pane](#the-code-pane). A linked showcase shown inline gets its showcase frame right before the block holding its link (the paragraph, heading or table), and the link stays as it is. A showcase whose showcase frame isn't there (e.g. while `serve`'s first build fails as a whole) leaves its code block or link as it is. A showcase frame is as wide as the text, and as high as its content, which `showroom` measures with a small script it adds to every showcase frame page: down to the bottom margin of `<body>`, or of its lowest element if that reaches further. Don't size a showcase to its viewport (`100vh`, or `height: 100%` on `html` and `body`): it would grow with its own iframe, which `showroom` stops after a few steps.
 
 The showroom loads a showcase frame's page by a URL whose query carries a hash of the showcase frame's content (`index.html?hash=<hash>&theme=<theme>`), so a changed showcase frame gets a new URL, and a browser never shows a cached earlier page. Its other files keep their names: a static host may still serve a cached earlier version of one of them after a new build.
 
-The showcase frame follows the showroom's light or dark theme: the script sets it as the `data-showroom-theme` attribute (`light` or `dark`) and the `color-scheme` of the page's `<html>`, from the first paint on, and whenever the theme changes. A showcase can follow it with `[data-showroom-theme='dark']` selectors, or with CSS's `light-dark()`:
+The showcase frame follows the showroom's light or dark theme: the script sets it as the `data-showroom-theme` attribute (`light` or `dark`) and the `color-scheme` of the page's `<html>`, from the first paint on, and whenever the theme changes. A showcase can follow it with `[data-showroom-theme='dark']` selectors, or with CSS's `light-dark()`; switch the showroom's theme to see this one change:
 
-````md
 ```html showcase
 <style>
   .themed {
@@ -315,28 +321,12 @@ The showcase frame follows the showroom's light or dark theme: the script sets i
 </style>
 <span class="themed">2<b>.</b><i>71828</i></span>
 ```
-````
 
-> Here is that block again, live (switch the showroom's theme to see it change):
->
-> ```html showcase
-> <style>
->   .themed {
->     font: 1.5em monospace;
->     color: light-dark(#0f6cbd, #479ef5);
->   }
->   .themed b {
->     font-weight: normal;
->     color: light-dark(#242424, #ffffff);
->     background: light-dark(#fde300, #8a3707);
->   }
->   .themed i {
->     font-style: normal;
->     color: light-dark(#c50f1f, #f1707b);
->   }
-> </style>
-> <span class="themed">2<b>.</b><i>71828</i></span>
-> ```
+### The code pane
+
+A code block showcase, and a linked showcase shown as a block, are shown with their **code pane**: their files' code, a tab per file (the entry point first, labelled by its language for a code block showcase, e.g. `HTML`; then the [included files](#showcases), each labelled by its path relative to the documentation file; and last, **Markdown**, the showcase as written in its documentation file: its code block, or its link, marker included), highlighted with line numbers, with a copy button beside the tabs copying the selected tab's code. A file that isn't text (or is over 1 MB) says so in its tab, with a link opening it; a linked showcase's entry point that isn't copied into the showroom (see [Linked files](#linked-files)) says so too.
+
+The code pane has three states, switched in turn by its button, in the showcase frame's top-right corner (or the code pane's, once it is shown): **hidden**, the showcase frame alone, where every code pane starts, each time a page is shown; **half**, the code pane beside the showcase frame (on its right), or below it when the block is narrower than 720 px (a block in a list item or a blockquote is narrower than the text); and **full**, the code pane over the showcase frame, covering it. The showcase frame keeps its own height (at least 64 px, so the button never sits on a console panel's counter), and never reloads when the state changes. The code pane shows at least 6 lines of code (or all of them, when there are fewer), so a short showcase with longer code sits in a block at least that tall; below the showcase frame, or over it, it is as tall as its code, up to 20 lines; beyond that, it scrolls.
 
 ## Custom showcase adapters (experimental)
 
@@ -355,7 +345,7 @@ A host repository can bring its own showcase adapter: a JavaScript (ES) module w
 [My widget](./src/widget.js 'showcase=my-frames({ "size": 2 })')
 ```
 
-Names follow the marker's rules, and can't be a built-in showcase adapter's (or a planned one's: `react`, `angular`). Paths are relative to the host repository's root, inside it, to a `.js` or `.mjs` file. Every listed module is loaded by every `showroom check`, used or not, so each listed module runs the host repository's code; one that doesn't load, or doesn't implement the interface, is an error. Each module is loaded once per process, and once more whenever its content changes (in `serve`; the modules it imports are not loaded again), and its default export is called once per run (a `check`, then the showcases' build in `build`, `serve` or `check --showcases`; `serve` runs both again after every change), so every run gets a fresh showcase adapter object, closed at the end of that run.
+Names follow the marker's rules, and can't be a built-in showcase adapter's (or a planned one's: `angular`). Paths are relative to the host repository's root, inside it, to a `.js` or `.mjs` file. Every listed module is loaded by every `showroom check`, used or not, so each listed module runs the host repository's code; one that doesn't load, or doesn't implement the interface, is an error. Each module is loaded once per process, and once more whenever its content changes (in `serve`; the modules it imports are not loaded again), and its default export is called once per run (a `check`, then the showcases' build in `build`, `serve` or `check --showcases`; `serve` runs both again after every change), so every run gets a fresh showcase adapter object, closed at the end of that run.
 
 ```ts
 import type { ShowcaseAdapter } from '@ofzza/showroom';
@@ -381,22 +371,17 @@ export default (): ShowcaseAdapter => ({
 });
 ```
 
+- Every method gets the `Showcase` with its `display` (`inline` or `block`) and its `include`d files (paths relative to the root), which a custom showcase adapter may use as it sees fit (e.g. to copy them, as the `html` showcase adapter does).
 - `validate(showcase)` gets the `Showcase` with its options as the marker gives them, and returns `{ options, errors: [] }` (the options as the adapter will use them) or `{ errors: [...] }`.
 - `check?(root, showcases)` checks the host repository for what the adapter needs (e.g. a package installed), once per run when some showcase uses the adapter. It gets the `showcases` using the adapter whose validation passed, with their validated options, and returns a `ShowcaseHostCheck`: `{ errors, warnings }`, two lists of messages, either of them empty. Errors (the host requirements that are missing) fail the check, warnings don't; `showroom` prefixes both with the adapter's name. This is a breaking change: `check?()` used to return the list of errors alone; return it as `{ errors: <the list>, warnings: [] }`. Any other result, or a `check?()` that throws, is an error of the adapter.
-- `build(request)` builds one showcase, called by `showroom build`, `showroom serve` and `showroom check --showcases`, one showcase at a time. It gets a `ShowcaseBuildRequest`: the host repository's absolute `root`, the `showcase`, its validated `options`, the `virtualFiles` of its documentation file's folder, resources and inline showcases' entry points told apart by their `kind` (in memory: they aren't on disk, so put them before your tooling yourself), every virtual file of the host repository as `hostVirtualFiles` (for imports reaching other folders), the `mode` to build in (`development` in `serve`, `production` in `build` and `check --showcases`), and an empty `scratchFolder` for tools that must write to disk, removed after the build. It returns a `ShowcaseBuildResult`, with the files it `reads` (paths relative to the root), and optionally `warnings` (shaped like errors, below; reported as warnings, failing nothing), either way:
+- `build(request)` builds one showcase, called by `showroom build`, `showroom serve` and `showroom check --showcases`, one showcase at a time. It gets a `ShowcaseBuildRequest`: the host repository's absolute `root`, the `showcase`, its validated `options`, the `virtualFiles` of its documentation file's folder, resources and code block showcases' entry points told apart by their `kind` (in memory: they aren't on disk, so put them before your tooling yourself), every virtual file of the host repository as `hostVirtualFiles` (for imports reaching other folders), the `mode` to build in (`development` in `serve`, `production` in `build` and `check --showcases`), and an empty `scratchFolder` for tools that must write to disk, removed after the build. It returns a `ShowcaseBuildResult`, with the files it `reads` (paths relative to the root), and optionally `warnings` (shaped like errors, below; reported as warnings, failing nothing), either way:
   - the showcase frame: its `files`, each with a `path` relative to the showcase frame's folder (POSIX-style, with no `.`, `..` or empty segments, unique ignoring case) and its `content` (a string, or bytes as a `Uint8Array`), and the `page` among them (an `.html` or `.htm` file, UTF-8 if given as bytes). `showroom` adds its frame script to the page, and writes the files into the showcase frame's folder (`showcases/<documentation file's path>/<n>/` in the output folder), so relative references between them work;
   - or `errors`, each with a `message`, and the `path` (relative to the root) and `line` it concerns, if any. An error in a virtual file is reported in its documentation file, at its code block's line plus the error's; one without a path, at the showcase's entry point. A `build()` that throws, or returns anything else, fails the showcase too.
 - `close?()` is called once at the end of a run, so an adapter can share work between its showcases.
 
-The [`number-table` example](./examples/number-table/README.md) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md)) is a custom showcase adapter of this repository's own, listed in its `showroom.json`: a JSON array of rows, shown as a table with its numbers formatted. Its first showcase is [`planets.json`](./examples/number-table/planets.json), linked as a showcase:
+The [`number-table` example](./examples/number-table/README.md) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md)) is a custom showcase adapter of this repository's own, listed in its `showroom.json`: a JSON array of rows, shown as a table with its numbers formatted. Its first showcase is [`planets.json`](./examples/number-table/planets.json), linked as a showcase shown as a block, beside its code:
 
-```md
-[The planets](./examples/number-table/planets.json 'showcase=number-table({ caption: "The planets" })')
-```
-
-> Here is that link again, live:
->
-> [The planets](./examples/number-table/planets.json 'showcase=number-table({ caption: "The planets" })')
+[The planets](./examples/number-table/planets.json 'showcase=number-table({ caption: "The planets" }) block')
 
 See the rest in the example: [its options](./examples/number-table/README.md#options) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md#options)), checked by `validate()`, its [errors and warnings](./examples/number-table/README.md#errors-and-warnings) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md#errors-and-warnings)), and [the module](./examples/number-table/README.md#the-module) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md#the-module)).
 
@@ -404,12 +389,14 @@ See the rest in the example: [its options](./examples/number-table/README.md#opt
 
 A file that a Markdown documentation file links to by a relative path, and that isn't a documentation file, is a **linked file**: a code file, an image, any other file in the host repository. Links to linked files work in the showroom, which copies each of them, and only them, never whole folders:
 
-- a text file up to 1 MB opens in a modal, its content syntax highlighted (by its extension, or its name when it has none, e.g. `Makefile`; plain text for a language highlight.js doesn't know) with line numbers, under its path, with a link opening the file in a new tab;
+- a link to a linked file is marked with a "code" icon after its text;
+- a text file up to 1 MB opens in a modal, its content syntax highlighted (by its extension, or its name when it has none, e.g. `Makefile`; plain text for a language highlight.js doesn't know) with line numbers and a copy button, as code blocks are, under its path, with a link opening the file in a new tab;
 - any other file (a binary file, or a text file over 1 MB) opens in a new tab;
 - a relative image (`![logo](./docs/logo.png)`) is shown from its linked file;
-- a linked showcase's entry point is a linked file too: its link, below its showcase frame, opens its source in the modal.
+- a linked showcase's entry point is a linked file too: shown inline, its link, below its showcase frame, opens its source in the modal, with its included files as more tabs, each titled with its path (the link opening a file in a new tab is there for a linked file's tab only); shown as a block, its code pane shows it;
+- a showcase's included real files (`include=`) are linked files too, copied whether a link names them or not.
 
-Whether a file is text is decided from its content (UTF-8 with no NUL byte), whatever its name. A link's fragment (e.g. `#L10`) is ignored. A linked file is copied even when the `ignore` patterns skip it (e.g. a file in `dist/`): the link states the intent, but a file missing where `showroom` runs (e.g. a build output not built in CI) is a broken link. It isn't copied when it is in the output folder, which `build` empties first, or when its real path leads outside the host repository through a symbolic link; `check` warns about both. A link to a folder with no `README` stays plain text.
+Whether a file is text is decided from its content (UTF-8 with no NUL byte), whatever its name. A link's fragment (e.g. `#L10`) is ignored. A linked file is copied even when the `ignore` patterns skip it (e.g. a file in `dist/`): the link states the intent, but a file missing where `showroom` runs (e.g. a build output not built in CI) is a broken link. It isn't copied when it is in the output folder, which `build` empties first, or when its real path leads outside the host repository through a symbolic link; `check` warns about both, and reports them as errors for an included file. A link to a folder with no `README` stays plain text.
 
 `serve` and `build` hand out the linked files at `files/<path>`, next to the showroom's page: `build` copies them into the output folder, and `serve` answers only them there, from the host repository, so what you preview is what gets published.
 
@@ -439,14 +426,24 @@ The host information has this shape (types `HostInformation`, `ProjectInformatio
   "documentation": [{ "path": "README.md", "kind": "readme", "extension": ".md", "content": "# My library\n\n```html showcase\n<p>Hi</p>\n```\n" }],
   "code": ["src/index.ts"],
   "showcases": [
-    { "id": "README.md#1", "documentation": "README.md", "line": 3, "offset": 14, "kind": "inline", "adapter": "html", "entry": "README.showcase-1.html" }
+    {
+      "id": "README.md#1",
+      "documentation": "README.md",
+      "line": 3,
+      "offset": 14,
+      "kind": "code-block",
+      "display": "block",
+      "adapter": "html",
+      "entry": "README.showcase-1.html",
+      "include": []
+    }
   ],
   "virtualFiles": [{ "path": "README.showcase-1.html", "kind": "entry", "content": "<p>Hi</p>", "documentation": "README.md", "line": 3 }],
   "linkedFiles": [{ "path": "src/index.ts", "size": 1024, "text": true }]
 }
 ````
 
-Documentation files have a `kind` of `readme`, `contribute`, `license`, or `other` for the files the `documentation` patterns add. A showcase has an `id` (its documentation file and its position there), the `line` and character `offset` of its entry point (the code block, or the link), its `kind` (`inline` or `linked`), its showcase `adapter`, its `options` as the showcase adapter validated them (left out when there are none), and the path of its `entry` point (a virtual file, or the linked file). A virtual file has its `path`, its `kind` (`resource`, or `entry` for an inline showcase's entry point), its `content`, and the `documentation` file and `line` of its code block. A linked file has its `path`, its `size` in bytes, and whether it is `text` (UTF-8 with no NUL byte, and no larger than 1 MB, so the showroom shows it in the modal). Paths are POSIX-style and relative to the host repository's root. Documentation files and linked files are sorted by path, showcases and virtual files by documentation file and line.
+Documentation files have a `kind` of `readme`, `contribute`, `license`, or `other` for the files the `documentation` patterns add. A showcase has an `id` (its documentation file and its position there), the `line` and character `offset` of its entry point (the code block, or the link), its `kind` (`code-block` or `link`), how it is shown (`display`: `block`, or `inline` for a linked showcase without the `block` key), its showcase `adapter`, its `options` as the showcase adapter validated them (left out when there are none), the path of its `entry` point (a virtual file, or the linked file), and the paths of its included files (`include`, in the marker's order; empty when it has none). A virtual file has its `path`, its `kind` (`resource`, or `entry` for a code block showcase's entry point), its `content`, and the `documentation` file and `line` of its code block. A linked file has its `path`, its `size` in bytes, and whether it is `text` (UTF-8 with no NUL byte, and no larger than 1 MB, so the showroom shows it in the modal). Paths are POSIX-style and relative to the host repository's root. Documentation files and linked files are sorted by path, showcases and virtual files by documentation file and line.
 
 ## `showroom serve`
 
@@ -459,14 +456,15 @@ $ npx showroom serve [--root <dir>] [--port <port>] [--out-dir <dir>]
 - It checks the host repository first, as `showroom check` does. If the check fails, it writes the issues to `stderr` and exits with `1` without serving.
 - It then builds every showcase, in development mode, and writes the check's issues and the showcases' build errors and warnings to `stderr`. A showcase that doesn't build doesn't stop it: its showcase frame shows its build errors instead (with each error's file and line), and every other showcase is shown as usual.
 - It then serves the showroom with Vite's dev server on `--port` (default: `5173`, or the next free port), writing its URL to `stdout`, until you stop it with Ctrl+C. The showcase frames are served from memory, and the [linked files](#linked-files) from the host repository, at the same paths `build` writes them to; nothing is written into the host repository.
-- It watches the host repository, skipping the files the `ignore` patterns skip, and the output folder (`--out-dir`, as for `check`). After any change it checks the host repository again and, when the check passes, builds every showcase again. It reloads the page when the project information or a documentation file changed, a showcase was added, removed or moved, or a linked file was added or removed, or changed its size; when only showcase frames changed (e.g. a linked showcase's page, or another file a build reads), only their iframes reload, and the page stays where it is. An inline showcase's code and a resource are part of their documentation file, which the page shows too, so editing them reloads the page. A failed check keeps showing the last good data. Changes to `showroom.json` apply without a restart, custom showcase adapters included.
+- It watches the host repository, skipping the files the `ignore` patterns skip, and the output folder (`--out-dir`, as for `check`). After any change it checks the host repository again and, when the check passes, builds every showcase again. It reloads the page when the project information or a documentation file changed, a showcase was added, removed or moved, or a linked file was added or removed, or changed its size; when only showcase frames changed (e.g. a linked showcase's page, or another file a build reads), only their iframes reload, and the page stays where it is; when a text file a code pane or modal tab shows changed (e.g. an included file no build reads), only that tab fetches it again. A code block showcase's code and a resource are part of their documentation file, which the page shows too, so editing them reloads the page. A failed check keeps showing the last good data. Changes to `showroom.json` apply without a restart, custom showcase adapters included.
 - The current issues (the check's errors and warnings, and the showcases' build errors and warnings) are shown in a bar at the top of the page, which you can collapse, and are written to `stderr` whenever they change. The bar is gone once there are none.
 - A changed [custom showcase adapter](#custom-showcase-adapters-experimental) module is loaded again, but the modules it imports aren't: restart `serve` after changing them.
 - Files the `ignore` patterns skip (e.g. under `dist/`) aren't watched, except the files the latest showcase builds read (e.g. the host's own package's `dist/`, which a `ts` showcase imports by the package's name), the custom showcase adapter modules, and the linked files: a change to one checks and builds again, as any change does, so `tsc --watch` running alongside `serve` updates the showcases. While a showcase doesn't build, the files earlier builds read stay watched too, so it recovers once they're back (e.g. after `dist/` is deleted and built again). They never become documentation or code files, and files under `node_modules` or `.git` are never watched.
 
 The showroom has a page per documentation file, its address in the URL's hash (e.g. `#/docs/guide.md`), and a home page with the project information and the root `README` (when the `README` opens with a level-1 heading, that heading is the home page's title, and the project information follows it). The navigation lists `README` (the home page), `CONTRIBUTING` and `LICENSE` first, whatever the root files' actual names (e.g. `CONTRIBUTE.md`, `LICENCE.txt`), then every other documentation file by its path. `.md` files are rendered as GitHub-flavoured Markdown, with syntax-highlighted code blocks and the same heading ids as on GitHub; other documentation files are shown as plain text. The navigation stays in view as a page scrolls; on a narrow (phone) viewport, below 768 px, it opens from the header's menu button instead. In Markdown:
 
-- relative links to documentation files (or to folders whose `README` is one) open their page; relative links to [linked files](#linked-files) open them in the modal, or in a new tab; other relative links (e.g. to a folder with no `README`, or a missing file) are shown as plain text;
+- every code block is syntax highlighted with line numbers (which are never copied with the code), whatever its length, and has a copy button (shown only where the browser allows writing to the clipboard: over HTTPS, or on `localhost`);
+- relative links to documentation files (or to folders whose `README` is one) open their page; relative links to [linked files](#linked-files), marked with a "code" icon, open them in the modal, or in a new tab; other relative links (e.g. to a folder with no `README`, or a missing file) are shown as plain text;
 - relative images are shown from their linked files, or as their alt text when they're missing; absolute image URLs work;
 - raw HTML tags are left out, keeping the Markdown between them.
 
@@ -567,7 +565,7 @@ console.log(getStackAdapterNames(), project, errors);
 - `getStackAdapter(name)` / `getStackAdapterNames()`: look up the built-in stack adapters, which implement the `StackAdapter` interface; `TypeScriptStackAdapter` is the `typescript` one.
 - `main(args, output?)`: runs the command line with the given arguments, resolving to its exit code; `USAGE` is its help text.
 - Constants: `CONFIGURATION_FILE_NAME` (`showroom.json`), `DEFAULT_OUT_DIR` (`./showroom`), and `BUILT_IN_DOCUMENTATION` (the built-in documentation patterns).
-- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase`, `ShowcaseKind`, `VirtualFile`, `VirtualFileKind`, `LinkedFile`, `Configuration`, `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.
+- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase`, `ShowcaseKind`, `ShowcaseDisplay`, `VirtualFile`, `VirtualFileKind`, `LinkedFile`, `Configuration`, `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.
 - Experimental types, for [custom showcase adapters](#custom-showcase-adapters-experimental): `ShowcaseAdapter`, `ShowcaseValidation`, `ShowcaseHostCheck`, `ShowcaseBuildRequest`, `ShowcaseBuildResult`, `ShowcaseBuildFile` and `ShowcaseBuildError`.
 
 # Development
@@ -577,7 +575,7 @@ console.log(getStackAdapterNames(), project, errors);
 - `npm start` - runs the built command line, `dist/cli/bin.js`; pass it arguments after `--`, e.g. `npm start -- check --root test/fixtures/minimal`. Try `build` on a copy of a host repository (never on a fixture in `test/fixtures/`, which tests rely on), and serve its output folder over HTTP to look at it. To preview the showroom while working on it, serve a host repository with `npm start -- serve --root <host>` while `npm run dev` recompiles `src/app/` into `dist/app/`, and reload the page after a change. `npm run build` empties `dist/` first, so restart `serve` after it.
 - `npm test` - runs every `test:*` script.
   - `npm run test:unit` - a single Vitest invocation that executes test files (`*.test.ts(x)`), runs their runtime expectations, and type checks them, reporting type errors as test failures. Tests run against the fixture host repositories in `test/fixtures/`; the showroom's tests render it to HTML with `react-dom/server`.
-  - `npm run test:integration` - real showcase adapter builds (`*.integration.test.ts`), on the fixture host repositories.
+  - `npm run test:integration` - real showcase adapter builds (`*.integration.test.ts`), on the fixture host repositories. A fixture on another React than `showroom`'s own (`test/fixtures/showcase-react-18/`) carries a lockfile, and is installed with `npm ci` once per lockfile into `node_modules/.cache/showroom-tests/installs/` (by `test:integration` and `test:e2e`), so their first run needs the npm registry.
   - `npm run test:e2e` - the command line, and `build()` with Vite's build of the showroom, on copies of the fixture host repositories (`*.e2e.test.ts`). It first compiles `src/` once into a scratch folder, so it never depends on, or writes to, `dist/`. Tests copy fixtures, and create scratch folders, only inside `node_modules/.cache/showroom-tests/`, and remove them afterwards. The integration, end-to-end and dev server tests also see a temporary folder of their own there as the system's temporary folder (`TMPDIR`, `TMP`, `TEMP`).
   - `npm run test:serve` - the dev server (`*.serve.test.ts`): `serve()` on copies of the fixture host repositories, on a free port, fetching the showroom, its showcase frames and their files, with the showroom compiled as for `test:e2e`. Updates after a change are only unit-tested, as the dev server doesn't watch the copies (they are under `node_modules/`).
 - `npm run ci` - runs every `ci:*` script: build, ESLint, Prettier, the tests, and `showroom check --showcases --quiet` on this repository itself, with the command line just built (`ci:showroom`). This is what GitHub Actions runs on every pull request targeting, and every push to, `master` or `develop`, against Node 22 and 24. It also runs on `prepublishOnly`, so `npm publish` refuses to publish a failing build.

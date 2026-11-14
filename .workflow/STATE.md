@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation stage; _`P9`_ (linked files, `PLAN-P9-linked-files.md`) implemented; _`S9`_ (`SPEC.md`) re-approved. _`P7.2`_ (the `react` showcase adapter, `PLAN-P7-ts-react.md`) waits behind it, not yet planned. Specification: _`S6`_, _`S7`_ and _`S8`_ approved; _`P1`_–_`P6`_, _`P7.1`_ and _`P8`_ implemented.
-- **Next free:** _`D340`_, _`S10`_, _`P10`_, _`O60`_, _`L14`_, _`R21`_, _`H1`_, _`K17`_
-- **Working on:** nothing.
-- **Next step:** plan _`P7.2`_ (the `react` showcase adapter).
+- **Stage:** between segments: _`P1`_–_`P10`_ implemented (_`P10.5`_, the last of _`P10`_, on 2026-11-14).
+- **Next free:** _`D439`_, _`S11`_, _`P11`_, _`O68`_, _`L15`_, _`R33`_, _`H1`_, _`K20`_
+- **Working on:** nothing in progress; _`P10.5`_ implemented and committed.
+- **Next step:** ask the user what to work on next (e.g. the open points of _`S6`_ (_`O16`_–_`O19`_), the known open issues in `PLAN.md`, or a new specification segment).
 
 ## Open questions
 
@@ -13,13 +13,12 @@
 
 ## Waiting on me
 
-- `./.workflow/.temp/spike-react-host/` (the _`K10`_ spike, written into `PLAN-P7-ts-react.md`) is kept until _`P7.2`_, at the user's request ("Keep until P7.2"); ask again then.
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
 ## Running
 
-- Nothing.
+- The dogfood `serve` (http://localhost:5180/), started for the fast path's checkpoint; a new session finds it gone.
 
 ## History
 
@@ -208,3 +207,60 @@
 - 2026-11-13: _`P9`_ implemented (steps 1–6: collection, copying and serving, links and images, the modal, tests, documentation); the full test suite passed; awaiting the browser check and the checkpoint.
 - 2026-11-13: _`P9`_'s browser check passed ("Works great!"); _`P9`_ approved and committed (option chosen: "Approve and commit"), with _`D339`_ recording its deviations, and `PUBLISH.md` and `WORKFLOW.md` kept as linked files ("Keep as linked files (Rec.)"); _`L1`_ resolved, _`S9`_ implemented.
 - 2026-11-13: `p9-check/` working files deleted ("Delete it (Rec.)").
+- 2026-11-13: Planning stage entered for _`P7.2`_ (the `react` showcase adapter): `PLAN-P7.2-react.md` drafted, with 11 choices in `questions-p7.2-plan/`.
+- 2026-11-13: _`P7.2`_'s choices Q1–Q11 settled as recommended (_`D340`_–_`D350`_; option chosen: "Accept all (Rec.)"); _`S6.3`_ revised (_`R21`_, by _`D343`_); _`O29`_, _`O39`_–_`O42`_ resolved.
+- 2026-11-13: _`P7.2`_ The `react` showcase adapter approved, and _`S6.3`_ re-approved with _`R21`_ (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
+- 2026-11-13: `questions-p7.2-plan/` working files deleted ("Delete, implement (Rec.)"); implementation of _`P7.2`_ started.
+- 2026-11-13: _`P7.2`_ implemented (steps 1–7: the shared build, the `react` showcase adapter, the JSX type check default, fixtures and the React 18 install, tests, `examples/react/`, documentation); `npm run ci` green; awaiting the browser check and the checkpoint.
+- 2026-11-13: _`P7.2`_'s browser check passed ("I see all the showcases rendering and functionaling").
+- 2026-11-13: _`P7.2`_ approved and committed (option chosen: "Approve and commit"), with _`D351`_ recording its deviations; _`P7`_ and _`S6.3`_ implemented, _`K10`_ resolved.
+- 2026-11-13: `p7.2-check/` and `spike-react-host/` working files deleted ("Delete both (Rec.)").
+- 2026-11-13: Specification stage entered for _`S10`_ Presenting showcases: the user's proposal (code beside showcases, unified code presentation, extra files, the console) critiqued and iterated on freely; settled with "Rename terms (Rec.)", "As proposed (Rec.)", "Draft S10 (Rec.)"; drafted as _`D352`_–_`D371`_, pitfalls _`K17`_–_`K19`_, open points _`O60`_–_`O63`_.
+- 2026-11-13: `showroom serve` stopped ("Stop it (Rec.)"); zero-context review of _`S10`_ started, 2 agents ("Review first").
+- 2026-11-13: Zero-context review of _`S10`_ done (2 agents, 34 findings, no stray writes; record in `review-s10/`); its 12 questions settled ("Discuss some": Q2, Q8, Q10, Q12 in the user's words; the rest "Yes, apply (Rec.)"); _`S10`_ edited before approval (_`D372`_–_`D381`_ added), _`S6.5`_, _`S6.7`_ and _`S9`_ revised (_`R22`_–_`R24`_), _`K17`_, _`K18`_ reworded, open points _`O64`_–_`O66`_ added.
+- 2026-11-13: _`S10`_ Presenting showcases approved, and _`S6.5`_, _`S6.7`_ and _`S9`_ re-approved with _`R22`_–_`R24`_ (option chosen: "Approve and commit (Rec.)"); Glossary changes applied to `CONTRIBUTE.md` ("Code block showcase", "Code pane", "Included file", and four entries updated); `review-s10/` working files deleted ("Delete it (Rec.)").
+- 2026-11-13: Planning stage entered for _`P10`_ Presenting showcases: `PLAN-P10-presentation.md` drafted; its 4 choices settled as recommended (_`D382`_–_`D385`_: "Five children (Rec.)", "As listed (Rec.)", "One at a time (Rec.)", "Spike before P10.4 (Rec.)"); _`O61`_, _`O66`_ and _`K19`_ resolved.
+- 2026-11-13: _`P10`_ Presenting showcases approved, for its split and order (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
+- 2026-11-13: _`P10.1`_ The rename drafted (`PLAN-P10.1-rename.md`), with no choices left beyond _`D371`_ and _`D381`_.
+- 2026-11-13: _`P10.1`_ The rename approved (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
+- 2026-11-13: _`P10.1`_ implemented (27 files: kinds, wording, tests, `README.md`, `AGENTS.md`, examples); `npm run ci` green; awaiting the checkpoint.
+- 2026-11-13: _`P10.1`_ approved and committed (option chosen: "Approve and commit"); `p10.1-check/` working files deleted with it.
+- 2026-11-13: _`P10.2`_ drafted; its 4 choices settled (_`D386`_–_`D389`_: "pre override (Rec.)", "API only, hide", "As recommended (Rec.)", "One code icon (Rec.)"); _`S10`_ revised (_`R25`_, by _`D387`_).
+- 2026-11-13: _`P10.2`_ approved, and _`S10`_ re-approved with _`R25`_ (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
+- 2026-11-13: _`P10.2`_ implemented (the shared `CodeBlock`, the `pre` override, resource captions, the copy button, the "code" icon; tests and documentation); `npm run ci` green after an ESLint fix (the copy button exported as `CopyButton`, its clipboard check through `useSyncExternalStore`); awaiting the browser check.
+- 2026-11-13: Fast path (during _`P10.2`_'s browser check; the user: "it displays a blank page due to `http://localhost:5173/files/index.js` 404-ing"): `serve` showed a blank page since _`P9`_, as the linked files middleware claimed the showroom's own `files/index.js`; `src/app/files/` renamed `src/app/file-modal/`, with a guard test and a `serve` test (option chosen: "Fast path, rename (Rec.)"); approved and committed (option chosen: "Approve and commit"), with _`P10.2`_'s work stashed meanwhile.
+- 2026-11-13: _`P10.2`_'s browser check passed (the user: "Everything works"), but for resource captions: discussed, and dropped (_`D390`_ replacing _`D379`_, option chosen: "Drop it entirely (Rec.)"); _`S10`_ and _`P10.2`_ revised (_`R26`_), pending re-approval; the code changed to match.
+- 2026-11-13: _`P10.2`_ approved and committed, reviewed on the dogfood `serve` first (the user: "Please start the dogfooding serve session (now and for every checkpoint) so that I can review before approving"; option chosen: "Approve and commit"); _`S10`_ and _`P10.2`_ re-approved with _`R26`_; _`D391`_ records its deviations; `p10.2-check/` working files deleted.
+- 2026-11-13: _`P10.3`_ drafted; its 3 choices settled as recommended (_`D392`_–_`D394`_: "Always present (Rec.)", "As linked files (Rec.)", "Move to P10.4 (Rec.)"); _`P10`_ revised (_`R27`_, by _`D394`_).
+- 2026-11-13: Zero-context review of _`P10.3`_ started, 1 agent (option chosen: "Review first (Rec.)").
+- 2026-11-13: Zero-context review of _`P10.3`_ done (1 agent, 15 findings, no stray writes; record in `review-p10.3/`): Q1 and Q2 allowed (the user: "I would just allow including Q1 and Q2 cases. Everything else I agree"), the rest as recommended: _`D395`_–_`D401`_, 11 fixes to the steps, _`O67`_ for _`P10.4`_, one skip; _`P10`_ revised (_`R28`_, by _`D398`_).
+- 2026-11-13: _`P10.3`_ approved, and _`P10`_ re-approved with _`R27`_, _`R28`_ (option chosen: "Approve and commit (Rec.)"); `review-p10.3/` working files deleted ("Delete it (Rec.)").
+- 2026-11-13: _`P10.3`_ implemented (the grammar, `Showcase`'s `display` and `include`, `_checkIncludes()`, the `html` showcase adapter's included files, watching them; a new `showcase-keys` fixture; tests and documentation); `npm run ci` running.
+- 2026-11-13: _`P10.3`_'s `npm run ci` green after updating `src/cli/index.e2e.test.ts`'s count of `showcase-errors`' issues (30 to 39); the dogfood `serve` started for the checkpoint.
+- 2026-11-13: _`P10.3`_ approved and committed (option chosen: "Approve and commit"), reviewed on the dogfood `serve`; _`D402`_ records its deviations; `p10.3-check/` working files deleted.
+- 2026-11-13: Spike for _`P10.4`_ (_`D385`_): the code pane's layout (a container query, the three states, the frame never moved or stretched) built in `spike-code-pane/`, measured with Playwright and checked by the user ("Works, use it"); recorded as _`D403`_ with its evidence, resolving _`K17`_ and _`K18`_.
+- 2026-11-14: `spike-code-pane/` working files deleted, and the workflow files committed ("Delete and commit (Rec.)"); the user chose to clear the context before planning _`P10.4`_ ("Clear, then plan (Rec.)").
+- 2026-11-14: _`P10.4`_ drafted; its 7 choices settled (_`D404`_–_`D410`_: "Tabs built in Node (Rec.)", "6 / 20 / 720 px", "Hash in tab URL (Rec.)", "One cycling button", "Pane always, modal >1 (Rec.)", "Lazily, when shown (Rec.)", "Blocks in both (Rec.)"); _`S10`_ revised (_`R29`_, by _`D407`_).
+- 2026-11-14: Zero-context review of _`P10.4`_ started, 1 agent (option chosen: "Review first (Rec.)").
+- 2026-11-14: Zero-context review of _`P10.4`_ done (1 agent, 14 findings, no stray writes; record in `review-p10.4/`): QA–QC settled (_`D411`_–_`D413`_: "Keep tab, say why (Rec.)", "Extension, upper-cased (Rec.)", "Frame left, code right (Rec.)"), 12 fixes applied to the steps ("Apply all (Rec.)"); _`S10`_ revised (_`R30`_).
+- 2026-11-14: _`P10.4`_ approved, and _`S10`_ re-approved with _`R29`_, _`R30`_ (option chosen: "Approve and commit (Rec.)"); `review-p10.4/` working files deleted.
+- 2026-11-14: _`P10.4`_ implemented (the shown tabs and their hashes, blocks in place of their entry points, the code pane, the modal's tabs; tests and documentation); Griffel's `@container` support confirmed first; the layout measured with Playwright on the dogfood `serve` (every state, stacking below 720 px, the frame never reloaded); `npm run ci` running.
+- 2026-11-14: _`P10.4`_'s `npm run ci` green (after formatting one test file); the dogfood `serve` started for the checkpoint.
+- 2026-11-14: _`P10.4`_'s checkpoint: the user asked for 4 changes (_`D414`_–_`D417`_: start hidden, the copy button beside the cycling button, a shorter minimum for short code, a smaller modal title); _`S10`_ revised (_`R31`_), pending re-approval.
+- 2026-11-14: _`D414`_–_`D417`_ implemented (with room for a horizontal scrollbar in the code's minimum and maximum, found in the browser); `npm run ci` green; both `serve`s restarted for the checkpoint.
+- 2026-11-14: _`P10.4`_'s second checkpoint: the user asked for the modal to stay a little shorter than the viewport (_`D418`_).
+- 2026-11-14: _`D418`_ implemented, measured in the browser; `npm run ci` green; both `serve`s restarted for the checkpoint.
+- 2026-11-14: _`P10.4`_'s checkpoint: the user asked for an icon on "Open in a new tab", more room before "Close" (_`D419`_), and the "code" icon on the cycling button while hidden (_`D420`_).
+- 2026-11-14: _`D419`_, _`D420`_ implemented, checked in the browser; `npm run ci` green; both `serve`s restarted for the checkpoint.
+- 2026-11-14: _`P10.4`_'s checkpoint: the user asked to rethink `README.md`'s quoted live demonstrations; settled as a Markdown tab in the code pane, and each demonstration shown once, live (_`D421`_, _`D422`_: "Markdown tab, live only (Rec.)", "Code pane only", "Exactly as written (Rec.)"); _`S10`_ revised (_`R32`_).
+- 2026-11-14: _`D421`_, _`D422`_ implemented (the Markdown tab; `README.md`'s demonstrations shown once, live), checked in the browser; `npm run ci` green; both `serve`s restarted for the checkpoint.
+- 2026-11-14: _`P10.4`_ implemented, approved and committed (option chosen: "Approve and commit"), reviewed on the dogfood `serve`; _`S10`_ re-approved with _`R31`_, _`R32`_; _`D423`_ records its deviations; `p10.4-check/` working files deleted.
+- 2026-11-14: _`P10.5`_ planning started; its six choices settled (_`D424`_–_`D429`_; Q1: "8 lines, separate", Q2–Q6 the recommendations); drafted in `PLAN-P10.5-console.md`.
+- 2026-11-14: _`P10.5`_'s draft reviewed (one zero-context reviewer, 20 findings, stray-write check clean); QA–QD settled (_`D432`_–_`D435`_: "Once per load (Rec.)", "Text or visual only (Rec.)", "Accept (Rec.)", "2 s ceiling (Rec.)"); 15 fixes applied to the draft; _`L14`_ recorded.
+- 2026-11-14: _`P10.5`_ approved (option chosen: "Approve and commit (Rec.)"), after its zero-context review; _`O60`_ resolved.
+- 2026-11-14: _`P10.5`_ steps 1–3 implemented (the console script, its tests, the documentation); `npm run ci` green; the check host and both `serve`s started for the user's browser check.
+- 2026-11-14: _`P10.5`_'s browser check: the user asked for the open console to leave the cycling button's row (_`D436`_: "Always leave 32px (Rec.)") and a minimum height for showcase frames in blocks (_`D437`_: "Blocks, 64px, showroom (Rec.)"); both implemented.
+- 2026-11-14: _`P10.5`_'s browser check passed (option chosen: "Looks good").
+- 2026-11-14: _`P10.5`_ implemented, re-approved with _`D436`_, _`D437`_ and committed (option chosen: "Approve and commit"); `npm run ci` green; _`P10`_ implemented.
+- 2026-11-14: _`P10.5`_'s working files deleted and both `serve`s stopped (option chosen: "Delete and stop (Rec.)").
+- 2026-11-14: Fast path (option chosen: "Yes, as described (Rec.)"): the console panel keeps the newest 128 lines, saying how many were dropped (_`D438`_), picking up _`L14`_; `npm run ci` green; approved and committed (option chosen: "Approve and commit").

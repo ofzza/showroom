@@ -10,6 +10,7 @@ import type { CheckIssue, CheckResult } from '../check/index.js';
 import type { HostInformation, LinkedFile } from '../../host/index.js';
 import { getErrorFrame, getShowcaseFrameFolder, type ShowcaseFrame } from '../../showcases/index.js';
 import { getShownHostInformation } from '../../vite/index.js';
+import type { ShownHostInformation } from '../../app/host/index.js';
 import {
   ISSUES_EVENT,
   SHOWCASES_EVENT,
@@ -50,9 +51,11 @@ function _host(content: string, code: string[] = [], showcases = 0): HostInforma
       documentation: 'README.md',
       line: index + 1,
       offset: index * 10,
-      kind: 'linked' as const,
+      kind: 'link' as const,
+      display: 'inline' as const,
       adapter: 'html',
       entry: 'a.html',
+      include: [],
     })),
     virtualFiles: [],
     linkedFiles: [],
@@ -223,12 +226,19 @@ describe('cli/serve', () => {
   });
 
   describe('getShownChange', () => {
-    // What a change of the shown host information needs: nothing, the changed showcase frames, or a full reload.
+    // What a change of the shown host information needs: nothing, the changed showcase frames and tabs, or a full reload.
 
-    const shown = (content: string, urls: string[], linkedFiles: LinkedFile[] = []) => ({
+    const shown = (content: string, urls: string[], linkedFiles: LinkedFile[] = [], tabUrl = 'files/a.css?hash=00000001'): ShownHostInformation => ({
       project: { name: 'p' },
       documentation: _host(content).documentation,
-      showcases: urls.map((url, index) => ({ id: `README.md#${index + 1}`, documentation: 'README.md', offset: index, url })),
+      showcases: urls.map((url, index) => ({
+        id: `README.md#${index + 1}`,
+        documentation: 'README.md',
+        offset: index,
+        display: 'block' as const,
+        tabs: [{ label: 'a.css', path: 'a.css', language: 'css', source: { kind: 'file' as const, url: tabUrl, text: true } }],
+        url,
+      })),
       linkedFiles,
     });
 
@@ -240,6 +250,12 @@ describe('cli/serve', () => {
       expect(getShownChange(shown('a', ['u1', 'u2']), shown('a', ['u1', 'u3']))).toBe('showcases');
     });
 
+    it('Needs only the tabs when only their URLs changed', () => {
+      // A changed included file that no showcase frame uses changes no showcase frame's hash (D406)
+      expect(getShownChange(shown('a', ['u1']), shown('a', ['u1'], [], 'files/a.css?hash=00000002'))).toBe('showcases');
+      expect(getShownChange(shown('a', ['u1']), shown('a', ['u1'], [], 'files/b.css?hash=00000001'))).toBe('reload');
+    });
+
     it('Needs a full reload when anything else changed', () => {
       expect(getShownChange(shown('a', ['u1']), shown('b', ['u1']))).toBe('reload');
       expect(getShownChange(shown('a', ['u1']), shown('a', ['u1', 'u2']))).toBe('reload');
@@ -249,7 +265,8 @@ describe('cli/serve', () => {
   });
 
   describe('createHostWatcher', () => {
-    // When the host watcher reloads or sends events, what it writes, and which data, showcase frames, issues and matcher it keeps.
+    // When the host watcher reloads or sends events, what it writes, and which data, showcase frames, issues and matcher it keeps; the tabs' hashes
+    // come from a fake `hashFiles`.
 
     it('Reloads, with the new data, when the shown host information changed', async () => {
       const { watcher, record } = _watcher(await _initial(_host('first')), [{ passed: true, host: _host('second'), issues: [] }]);
@@ -284,6 +301,20 @@ describe('cli/serve', () => {
       expect(after.map(({ url }) => url)).not.toEqual(before.map(({ url }) => url));
       expect(record.events).toEqual([[SHOWCASES_EVENT, after]]);
       expect(watcher.getFrames().get('README.md#1')!.files[0].content).toBe('second');
+    });
+
+    it("Sends every showcase, without a reload, when only a tab's file changed", async () => {
+      const host: HostInformation = { ..._host('first', [], 1), linkedFiles: [{ path: 'a.html', size: 1, text: true }] };
+      let hash = 'aaaaaaaa';
+      const hashFiles = async () => new Map([['a.html', hash]]);
+      const built = await runBuild(host, _build('first'), new Map());
+      const initial = { host: getShownHostInformation(host, built.frames, await hashFiles()), frames: built.frames, issues: [], watched: built.watched };
+      const { watcher, record } = _watcher(initial, [{ passed: true, host, issues: [] }], { hashFiles });
+      hash = 'bbbbbbbb';
+      await watcher.update();
+      expect(record.reloads).toBe(0);
+      expect(watcher.getHost().showcases[0].tabs[0].source).toEqual({ kind: 'file', url: 'files/a.html?hash=bbbbbbbb', text: true });
+      expect(record.events).toEqual([[SHOWCASES_EVENT, watcher.getHost().showcases]]);
     });
 
     it('Serves an error frame, and sends the build errors as issues, when a showcase stops building', async () => {

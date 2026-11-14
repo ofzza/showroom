@@ -6,13 +6,13 @@
 
 ## A countdown
 
-A linked showcase: [`demo/countdown.ts`](./demo/countdown.ts) imports the library like any module would, and writes into the showcase frame root, `#root`. What it logs shows in the console panel below it.
+A linked showcase, shown as a block beside its code: [`demo/countdown.ts`](./demo/countdown.ts) imports the library like any module would, and writes into the showcase frame root, `#root`. What it logs fades in at the bottom of its showcase frame, and the counter in its corner opens the console panel.
 
-[A countdown to the new year](./demo/countdown.ts 'showcase=ts')
+[A countdown to the new year](./demo/countdown.ts 'showcase=ts block')
 
 ## Durations
 
-An inline showcase, importing the library by relative paths from this documentation file's folder. Everything it logs shows in the console panel.
+A code block showcase, importing the library by relative paths from this documentation file's folder. Everything it logs shows in the console panel.
 
 ```ts showcase=ts
 import { Duration } from './src/duration.js';
