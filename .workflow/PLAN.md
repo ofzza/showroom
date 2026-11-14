@@ -284,6 +284,7 @@ None (_`D61`_).
 
 - _`P11`_ Showcases: the `angular` showcase adapter (implemented 2026-11-14; approved 2026-11-14, for its split and decisions), in two child segments, _`P11.1`_ the showcase adapter and _`P11.2`_ its example (_`S6.4`_, SPEC-S6-showcases.md). [See The `angular` showcase adapter](./PLAN-P11-angular.md)
 - _`P12`_ The code sidebar (implemented 2026-11-14; approved 2026-11-14): linked files and the code pane's tabs in a modal panel from the right, replacing the modal and the code pane's full state (_`D474`_–_`D477`_, SPEC-S10-presentation.md). [See The code sidebar](./PLAN-P12-code-sidebar.md)
+- _`P13`_ The Markdown tab, on request (approved 2026-11-14): a showcase shown as a block shows its Markdown tab only when `showroom.json` sets `exposeShowcaseMarkdownSyntax`, then first and selected (_`D484`_, SPEC-S10-presentation.md). [See The Markdown tab, on request](./PLAN-P13-markdown-tab.md)
 
 ## Known open issues
 
