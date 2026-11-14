@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning stage (_`P10.5`_); _`P10`_ Presenting showcases approved for its split (_`P10.1`_–_`P10.5`_); _`P10.1`_–_`P10.4`_ implemented. _`P1`_–_`P9`_ implemented.
-- **Next free:** _`D424`_, _`S11`_, _`P11`_, _`O68`_, _`L14`_, _`R33`_, _`H1`_, _`K20`_
-- **Working on:** nothing in progress; _`P10.4`_ implemented and committed.
-- **Next step:** plan _`P10.5`_ The console (_`D369`_, _`D377`_ (SPEC-S10-presentation.md), _`O60`_).
+- **Stage:** implementation stage (_`P10.5`_); _`P10`_ Presenting showcases approved for its split (_`P10.1`_–_`P10.5`_); _`P10.1`_–_`P10.4`_ implemented, _`P10.5`_ approved. _`P1`_–_`P9`_ implemented.
+- **Next free:** _`D436`_, _`S11`_, _`P11`_, _`O68`_, _`L15`_, _`R33`_, _`H1`_, _`K20`_
+- **Working on:** _`P10.5`_ The console, approved (`./.workflow/PLAN-P10.5-console.md`), not started.
+- **Next step:** implement _`P10.5`_, step 1 (the console script).
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- Deleting `./.workflow/.temp/review-p10.5/` (its outcomes are written into `PLAN-P10.5-console.md` and `PLAN.md`) once the user confirms.
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
 
@@ -255,3 +256,6 @@
 - 2026-11-14: _`P10.4`_'s checkpoint: the user asked to rethink `README.md`'s quoted live demonstrations; settled as a Markdown tab in the code pane, and each demonstration shown once, live (_`D421`_, _`D422`_: "Markdown tab, live only (Rec.)", "Code pane only", "Exactly as written (Rec.)"); _`S10`_ revised (_`R32`_).
 - 2026-11-14: _`D421`_, _`D422`_ implemented (the Markdown tab; `README.md`'s demonstrations shown once, live), checked in the browser; `npm run ci` green; both `serve`s restarted for the checkpoint.
 - 2026-11-14: _`P10.4`_ implemented, approved and committed (option chosen: "Approve and commit"), reviewed on the dogfood `serve`; _`S10`_ re-approved with _`R31`_, _`R32`_; _`D423`_ records its deviations; `p10.4-check/` working files deleted.
+- 2026-11-14: _`P10.5`_ planning started; its six choices settled (_`D424`_–_`D429`_; Q1: "8 lines, separate", Q2–Q6 the recommendations); drafted in `PLAN-P10.5-console.md`.
+- 2026-11-14: _`P10.5`_'s draft reviewed (one zero-context reviewer, 20 findings, stray-write check clean); QA–QD settled (_`D432`_–_`D435`_: "Once per load (Rec.)", "Text or visual only (Rec.)", "Accept (Rec.)", "2 s ceiling (Rec.)"); 15 fixes applied to the draft; _`L14`_ recorded.
+- 2026-11-14: _`P10.5`_ approved (option chosen: "Approve and commit (Rec.)"), after its zero-context review; _`O60`_ resolved.
