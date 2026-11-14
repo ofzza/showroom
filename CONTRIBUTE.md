@@ -68,7 +68,7 @@ src/
     issues/             The issues bar, showing serve's current issues
     showcases/          Placing showcase frames and blocks in rendered Markdown, and their iframes
     pages/              The home, documentation and not-found pages
-    layout/             The header and the navigation (inline, or an overlay on narrow viewports)
+    layout/             The header and the navigation (inline, or an overlay on narrow viewports), centered at a maximum width
 test/fixtures/          Fixture host repositories the tests run against
 examples/               README.md's own linked showcase's page, and the showcase adapter examples (html/, ts/, react/, angular/, number-table/)
 ```

@@ -100,7 +100,7 @@ src/
     issues/                The issues bar (serve's current issues)
     showcases/             The remark plugin placing showcase frames and showcase blocks, and the showcase frame's iframe
     pages/                 The home, documentation and not-found pages
-    layout/                The header, the navigation drawers (inline; an overlay on narrow viewports) and the page
+    layout/                The header, the navigation drawers (inline; an overlay on narrow viewports) and the page, centered at a maximum width (the header's contents too)
 test/fixtures/             Fixture host repositories the tests run against; outside src/, so never built, linted or published
 examples/                  README.md's own linked showcase's page (figures.html), and the showcase adapter examples, one folder per showcase adapter (html/, ts/, react/, angular/, number-table/), each a mock project with its README.md; outside src/, so never built, linted, type checked by tsc or published
 tsconfig.json              Type checking config. Includes all .ts/.tsx (tests too), emits nothing

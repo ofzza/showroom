@@ -4,8 +4,8 @@
 
 - **Stage:** _`P1`_–_`P12`_ implemented (_`P12`_, the code sidebar, the last).
 - **Next free:** _`D484`_, _`S11`_, _`P13`_, _`O81`_, _`L15`_, _`R39`_, _`H1`_, _`K20`_
-- **Working on:** nothing in progress.
-- **Next step:** the user's choice of what comes next (the known open issues in `./.workflow/PLAN.md`).
+- **Working on:** _`P13`_: the `exposeShowcaseMarkdownSyntax` setting (the Markdown tab only when set, then first and selected), through the specification first.
+- **Next step:** _`P13`_'s specification decisions in _`S10`_.
 
 ## Open questions
 
@@ -299,3 +299,5 @@
 - 2026-11-14: _`S10`_ and _`S9`_ re-approved, and _`P12`_ approved, without a zero-context review (option chosen: "Approve and commit (Rec.)").
 - 2026-11-14: _`P12`_ steps 1–5: `src/app/file-modal/` moved to `src/app/code-sidebar/`, the code sidebar replacing the modal, the code pane's `sidebar` state; `LINKED_FILE_MODAL_LIMIT` renamed `LINKED_FILE_SIDEBAR_LIMIT`; tests and docs; `npm run ci` green; the dogfood `serve` restarted for the browser check.
 - 2026-11-14: _`P12`_ approved as implemented, after the browser check (option chosen: "Approve and commit (Rec.)").
+- 2026-11-14: Fast-path change: the layout (navigation and content) and the header's contents centered at 1280 px (`LAYOUT_MAX_WIDTH`), the header's border full width; `npm run ci` green; the dogfood `serve` restarted for the browser check.
+- 2026-11-14: The fast-path centering approved, after the browser check (option chosen: "Approve and commit (Rec.)").

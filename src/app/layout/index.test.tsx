@@ -8,7 +8,7 @@ import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-comp
 import type { ProjectInformation } from '../../host/index.js';
 import type { NavigationItem } from '../navigation/index.js';
 import type { ThemeName } from '../theme/index.js';
-import { Layout } from './index.js';
+import { CONTENT_MAX_WIDTH, LAYOUT_MAX_WIDTH, Layout, NAVIGATION_WIDTH } from './index.js';
 
 /**
  * Renders the layout around a placeholder page to HTML on the server
@@ -64,7 +64,7 @@ describe('app/layout', () => {
 
   it("Has a menu button for the narrow viewport's navigation, closed at first", () => {
     const html = _render({ name: 'p' });
-    expect(html).toMatch(/<header[^>]*><button [^>]*aria-label="Open the navigation"[^>]*>/);
+    expect(html).toMatch(/<header[^>]*><div[^>]*><button [^>]*aria-label="Open the navigation"[^>]*>/);
     expect(html).toMatch(/<button [^>]*aria-expanded="false"/);
   });
 
@@ -78,5 +78,11 @@ describe('app/layout', () => {
     const html = _render({ name: 'a-very-long-project-name' });
     expect(html).toMatch(/<header[^>]*>.*<a [^>]*href="#\/"[^>]*>a-very-long-project-name<\/a>/s);
     expect(html).toMatch(/<a [^>]*title="a-very-long-project-name"[^>]*>/);
+  });
+
+  it("Centers the navigation and the content, and the header's contents, at the same maximum width", () => {
+    // The width itself is a style (Griffel's class), checked in a browser; the constants keep the two containers in step
+    expect([NAVIGATION_WIDTH, CONTENT_MAX_WIDTH, LAYOUT_MAX_WIDTH]).toEqual([320, 960, 1280]);
+    expect(_render({ name: 'p' })).toMatch(/<header[^>]*><div[^>]*>.*Dark theme.*<\/div><\/header>/s);
   });
 });
