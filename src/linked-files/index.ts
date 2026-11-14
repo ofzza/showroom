@@ -1,5 +1,5 @@
 /**
- * Linked files: where the showroom serves and publishes them, the limit of the modal showing them, telling text from binary content, and their
+ * Linked files: where the showroom serves and publishes them, the limit of the code sidebar showing them, telling text from binary content, and their
  * highlighting language. Node-free, so `check`, `serve`, `build` and the showroom can all use it; internal, never re-exported.
  */
 
@@ -24,9 +24,9 @@ export function getLinkedFileUrl(path: string): string {
 // #region Content
 
 /**
- * Size up to which a text file opens in the modal, in bytes (1 MB); a larger one opens directly, as highlighting it would freeze the page
+ * Size up to which a text file opens in the code sidebar, in bytes (1 MB); a larger one opens directly, as highlighting it would freeze the page
  */
-export const LINKED_FILE_MODAL_LIMIT = 1024 * 1024;
+export const LINKED_FILE_SIDEBAR_LIMIT = 1024 * 1024;
 
 /**
  * Checks if content is text: valid UTF-8 with no NUL byte, whatever the file's name

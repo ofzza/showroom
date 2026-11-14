@@ -10,7 +10,7 @@ import { checkHostCheckResult, createShowcaseAdapter, getShowcaseAdapterNames, l
 import { getStackAdapter, getStackAdapterNames } from '../../adapters/stack/index.js';
 import { readConfiguration, CONFIGURATION_FILE_NAME, type Configuration } from '../../configuration/index.js';
 import type { DocumentationFile, DocumentationKind, HostInformation, LinkedFile, ProjectInformation, Showcase, VirtualFile } from '../../host/index.js';
-import { isText, LINKED_FILE_MODAL_LIMIT } from '../../linked-files/index.js';
+import { isText, LINKED_FILE_SIDEBAR_LIMIT } from '../../linked-files/index.js';
 import { getFolder, isMarkdownPath, resolvePath, scanMarkdown, splitLink, type MarkdownLink } from '../../markdown/index.js';
 import { buildShowcases, getBuildShowcasesIssues } from '../../showcases/index.js';
 import { createIgnoreMatcher, resolveOutputFolder } from './internal/index.js';
@@ -533,7 +533,7 @@ async function _checkLinks(root: string, links: _FoundLink[], issues: CheckIssue
  * Collects the linked files: the files the links, images and linked showcases' entry points name, and the included real files that passed their
  * check, ignored or not, except documentation files, folders and missing files (warned or errored about already). A file in the output folder, which `build` empties, and a file whose real path (following
  * symbolic links) is outside the host repository are warned about, and left out. Each file's text-ness is decided from its content, read only up
- * to the modal's limit.
+ * to the code sidebar's limit.
  * @param root Path of the host repository's root
  * @param documentation Documentation files
  * @param links Links and images, with the documentation file holding each
@@ -581,7 +581,7 @@ async function _collectLinkedFiles(
       warn(`Linked file "${path}" is outside the host repository (through a symbolic link); it isn't copied into the showroom`);
       continue;
     }
-    linkedFiles.push({ path, size: info.size, text: info.size <= LINKED_FILE_MODAL_LIMIT && isText(await _readStart(join(root, path), info.size)) });
+    linkedFiles.push({ path, size: info.size, text: info.size <= LINKED_FILE_SIDEBAR_LIMIT && isText(await _readStart(join(root, path), info.size)) });
   }
   return linkedFiles.sort((a, b) => _compare(a.path, b.path));
 }

@@ -1,6 +1,6 @@
 # _`P12`_ The code sidebar
 
-approved 2026-11-14 (option chosen: "Approve and commit (Rec.)"), without a zero-context review; choices _`D478`_–_`D480`_ settled 2026-11-14
+implemented 2026-11-14 (option chosen: "Approve and commit (Rec.)"; _`D483`_); approved 2026-11-14 (option chosen: "Approve and commit (Rec.)"), without a zero-context review; choices _`D478`_–_`D480`_ settled 2026-11-14
 
 ## Goals
 
@@ -17,6 +17,8 @@ Settled 2026-11-14 in one dialog, Q1–Q3.
 - _`D480`_ (`live`; Q3, option chosen: ""Show the code in a sidebar", panel icon (Rec.)"): **The cycling button at half** is labelled "Show the code in a sidebar", with FluentUI's `PanelRight16Regular` (a panel on the right; `PanelRightExpand` has no 16 px size, and the block's icons are 16 px); hidden keeps "Show the code" and the code icon. Rejected: keeping `ArrowMaximize16Regular`.
 - _`D481`_ (`live`; the design, from the outline the user approved 2026-11-14): **The component**: `getSidebarView(file, tabs, selected)` replaces `getDialogView()`: a linked file alone (no tabs, or fewer than two from a linked showcase) gets its base name as the title, and its URL to fetch and to open; with tabs (a linked showcase shown inline with included files, or a code pane, whose tabs are always shown), the selected tab, no title (the tab list is the title), and the "Open in a new tab" URL for a `file` tab only. `CodeSidebar({ file?, tabs?, documentation, initialTab?, onClose })` replaces `LinkedFileDialog`: FluentUI's `OverlayDrawer` (as `src/app/layout/`'s navigation), `position="end"`, modal, closing through `onOpenChange` (ESC, the backdrop) and the × button (`Dismiss24Regular`, labelled "Close"); its content rendered only while open, so each opening fetches anew; the header and body an exported component of their own (`CodeSidebarView`), which the tests render on the server, as `OverlayDrawer` renders nothing there (its portal). The width is `clamp(min(400px, 100vw), 66vw, min(1200px, 100vw))` from constants (_`D476`_ (SPEC-S10-presentation.md)).
 - _`D482`_ (`live`; the design, as _`D481`_): **The code pane**: `CodePaneState` is `'hidden' | 'half' | 'sidebar'`, `getNextCodePaneState()` cycles hidden → half → sidebar → hidden; in `sidebar`, the block lays out as hidden, without the cycling button, and `CodeSidebar` is open with the showcase's tabs from the selected tab (_`D479`_), closing to hidden (_`D477`_ (SPEC-S10-presentation.md)); the full state's styles and the showcase frame's `inert` go. Half, side by side or stacked, is unchanged.
+
+- _`D483`_ (`live`; from _`P12`_'s checkpoint, option chosen: "Approve and commit (Rec.)"): **_`P12`_'s deviations from its steps, approved**: the internal constant `LINKED_FILE_MODAL_LIMIT` (`src/linked-files/`) is renamed `LINKED_FILE_SIDEBAR_LIMIT`, and comments naming the modal across `src/` are reworded to the code sidebar; `CodeSidebar` takes an `open` property, so a code pane keeps it mounted while closed; the code pane's tests of the full state (its place in the cycle, the showcase frame's `inert`) are removed with it.
 
 ## Steps
 

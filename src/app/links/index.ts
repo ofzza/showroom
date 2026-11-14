@@ -40,7 +40,7 @@ export type ResolvedLink =
     }
   | {
       /**
-       * A linked file: a text file up to 1 MB opens in the modal, any other file in a new tab
+       * A linked file: a text file up to 1 MB opens in the code sidebar, any other file in a new tab
        */
       kind: 'file';
       /**

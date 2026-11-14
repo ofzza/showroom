@@ -1,5 +1,5 @@
 /**
- * Highlighted code, shared by rendered Markdown and the linked files' modal: highlight.js's token colours, as FluentUI tokens; the code block every
+ * Highlighted code, shared by rendered Markdown and the code sidebar: highlight.js's token colours, as FluentUI tokens; the code block every
  * piece of code is shown in (line numbers in a gutter, a copy button); and a highlighted code block of a text, rendered through the same
  * `react-markdown` and `rehype-highlight` as Markdown's code blocks
  */

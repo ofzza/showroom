@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** _`P12`_, the code sidebar, approved, to be implemented; _`P1`_–_`P11`_ implemented.
-- **Next free:** _`D483`_, _`S11`_, _`P13`_, _`O81`_, _`L15`_, _`R39`_, _`H1`_, _`K20`_
-- **Working on:** nothing in progress; _`P12`_'s plan is `./.workflow/PLAN-P12-code-sidebar.md`.
-- **Next step:** implement _`P12`_, step 1 (the code sidebar).
+- **Stage:** _`P1`_–_`P12`_ implemented (_`P12`_, the code sidebar, the last).
+- **Next free:** _`D484`_, _`S11`_, _`P13`_, _`O81`_, _`L15`_, _`R39`_, _`H1`_, _`K20`_
+- **Working on:** nothing in progress.
+- **Next step:** the user's choice of what comes next (the known open issues in `./.workflow/PLAN.md`).
 
 ## Open questions
 
@@ -297,3 +297,5 @@
 - 2026-11-14: Specification stage re-entered for the code sidebar: the user's request, settled in dialogs Q1–Q6 ("Yes, the code pane"; the cycling button hidden while open, then hidden; "Modal, backdrop closes (Rec.)"; "400px to 1200px (Rec.)"; "Code sidebar (Rec.)"; tabs in place of the file name), recorded as _`D474`_–_`D477`_; _`S10`_ revised (_`R37`_), _`S9`_ revised (_`R38`_).
 - 2026-11-14: _`P12`_ drafted; its choices settled as _`D478`_–_`D480`_ (options chosen: "Rename to code-sidebar/ (Rec.)"; "The pane's selected tab (Rec.)"; ""Show the code in a sidebar", panel icon (Rec.)").
 - 2026-11-14: _`S10`_ and _`S9`_ re-approved, and _`P12`_ approved, without a zero-context review (option chosen: "Approve and commit (Rec.)").
+- 2026-11-14: _`P12`_ steps 1–5: `src/app/file-modal/` moved to `src/app/code-sidebar/`, the code sidebar replacing the modal, the code pane's `sidebar` state; `LINKED_FILE_MODAL_LIMIT` renamed `LINKED_FILE_SIDEBAR_LIMIT`; tests and docs; `npm run ci` green; the dogfood `serve` restarted for the browser check.
+- 2026-11-14: _`P12`_ approved as implemented, after the browser check (option chosen: "Approve and commit (Rec.)").

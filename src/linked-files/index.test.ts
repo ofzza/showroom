@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getLanguage, getLinkedFileUrl, isText, LINKED_FILE_MODAL_LIMIT, LINKED_FILES_FOLDER } from './index.js';
+import { getLanguage, getLinkedFileUrl, isText, LINKED_FILE_SIDEBAR_LIMIT, LINKED_FILES_FOLDER } from './index.js';
 
 describe('linked-files', () => {
   // Tests the Node-free helpers on hand-written paths and bytes.
@@ -14,8 +14,8 @@ describe('linked-files', () => {
     expect(getLinkedFileUrl('docs/my notes/#1?.txt')).toBe('files/docs/my%20notes/%231%3F.txt');
   });
 
-  it('Limits the modal to 1 MB', () => {
-    expect(LINKED_FILE_MODAL_LIMIT).toBe(1024 * 1024);
+  it('Limits the code sidebar to 1 MB', () => {
+    expect(LINKED_FILE_SIDEBAR_LIMIT).toBe(1024 * 1024);
   });
 
   it('Tells text from binary content', () => {

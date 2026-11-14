@@ -181,7 +181,7 @@ export interface LinkedFile {
    */
   size: number;
   /**
-   * True if the file is text (valid UTF-8 with no NUL byte) and no larger than 1 MB, so the showroom shows it in a modal; false for a binary file,
+   * True if the file is text (valid UTF-8 with no NUL byte) and no larger than 1 MB, so the showroom shows it in the code sidebar; false for a binary file,
    * or any file larger than 1 MB, which the showroom opens directly
    */
   text: boolean;

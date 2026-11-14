@@ -202,7 +202,7 @@ describe('vite', () => {
       language: 'md',
       source: { kind: 'virtual', content: '```html showcase include=a.css\n<p>1</p>\n```' },
     });
-    // The modal of a linked showcase shown inline has no Markdown tab (D421)
+    // The code sidebar of a linked showcase shown inline has no Markdown tab (D421)
     expect(inline.tabs.map(({ label }) => label)).toEqual(['demo.html']);
   });
 

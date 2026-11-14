@@ -1,7 +1,7 @@
 /**
  * Markdown rendering of documentation files: GitHub-flavoured Markdown, with heading ids, syntax-highlighted code blocks with line numbers and a copy
  * button, links resolved inside the showroom (linked files marked with a "code" icon, opening in the
- * modal, or in a new tab; a linked showcase shown inline with included files, with its tabs), relative images shown from their linked files (or as
+ * code sidebar, or in a new tab; a linked showcase shown inline with included files, with its tabs), relative images shown from their linked files (or as
  * their alt text), showcase frames placed before their entry points, showcases shown as blocks in their entry points' place, and no raw HTML
  */
 
@@ -16,7 +16,7 @@ import type { DocumentationFile, LinkedFile } from '../../host/index.js';
 import { getOpeningTitleOffset } from '../../markdown/index.js';
 import { CodeBlock } from '../code/index.js';
 import { ShowcaseBlock } from '../code-pane/index.js';
-import { LinkedFileDialog } from '../file-modal/index.js';
+import { CodeSidebar } from '../code-sidebar/index.js';
 import type { ShownShowcase } from '../host/index.js';
 import { resolveImage, resolveLink } from '../links/index.js';
 import { scrollToAnchor } from '../routing/index.js';
@@ -111,7 +111,7 @@ const _NO_LINKED_FILES: LinkedFile[] = [];
  */
 export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, linkedFiles = _NO_LINKED_FILES, afterTitle }: MarkdownProps): ReactNode {
   const styles = _useStyles();
-  // The linked file shown in the modal, if any, with the id of the linked showcase shown inline whose tabs it shows
+  // The linked file shown in the code sidebar, if any, with the id of the linked showcase shown inline whose tabs it shows
   const [shown, setShown] = useState<{ file: LinkedFile; showcase?: string } | undefined>(undefined);
   const titleOffset = useMemo(() => (afterTitle === undefined ? undefined : getOpeningTitleOffset(file.content)), [afterTitle, file.content]);
   const fileShowcases = useMemo(() => showcases.filter((showcase) => showcase.documentation === file.path), [showcases, file.path]);
@@ -172,7 +172,7 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, linke
           {file.content}
         </ReactMarkdown>
       </_ShowcasesContext.Provider>
-      <LinkedFileDialog
+      <CodeSidebar
         file={shown?.file}
         tabs={shown?.showcase === undefined ? undefined : fileShowcases.find((showcase) => showcase.id === shown.showcase)?.tabs}
         documentation={documentation}
@@ -250,7 +250,7 @@ export interface MarkdownLinkProps {
    */
   linkedFiles: LinkedFile[];
   /**
-   * Shows a linked file in the modal, with the tabs of the linked showcase shown inline it is the entry point of, if any
+   * Shows a linked file in the code sidebar, with the tabs of the linked showcase shown inline it is the entry point of, if any
    */
   onShowFile: (file: LinkedFile, showcase?: string) => void;
   /**
@@ -269,7 +269,7 @@ export interface MarkdownLinkProps {
 
 /**
  * Renders a link in rendered Markdown: to an absolute URL in a new tab, to a page of the showroom, to a linked file (a text file up to 1 MB in the
- * modal, any other in a new tab; a linked showcase shown inline with included files, with its tabs), marked with a "code" icon, or as plain text
+ * code sidebar, any other in a new tab; a linked showcase shown inline with included files, with its tabs), marked with a "code" icon, or as plain text
  * with a tooltip when it points to nothing in the showroom; exported only as ESLint's React hooks rules take a `_`-prefixed function for no component
  * @param props Properties of the component
  * @returns The rendered link
