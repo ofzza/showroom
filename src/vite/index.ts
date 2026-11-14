@@ -12,10 +12,11 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Alias, InlineConfig, Plugin } from 'vite';
 import type { CheckIssue } from '../cli/check/index.js';
-import type { HostInformation, LinkedFile } from '../host/index.js';
-import { LINKED_FILES_FOLDER } from '../linked-files/index.js';
-import type { ShownHostInformation } from '../app/host/index.js';
-import { getShowcaseFrameUrl, type ShowcaseFrame } from '../showcases/index.js';
+import type { HostInformation, LinkedFile, Showcase } from '../host/index.js';
+import { LINKED_FILES_FOLDER, getLanguage, getLinkedFileUrl } from '../linked-files/index.js';
+import { getRelativePath, getShowcaseSources } from '../markdown/index.js';
+import type { ShownHostInformation, ShownTab, ShownTabSource } from '../app/host/index.js';
+import { HASH_PARAMETER, getShowcaseFrameHash, getShowcaseFrameUrl, type ShowcaseFrame } from '../showcases/index.js';
 
 // #region Shown host information
 
@@ -33,17 +34,100 @@ export const RESOLVED_HOST_MODULE_ID = `\0${HOST_MODULE_ID}`;
  * Gets the shown host information: the part of the host information the showroom presents
  * @param host Host information
  * @param frames The showcase frames built, by showcase id; none when they aren't built
- * @returns The project information, documentation files and linked files, without the code file index, and the showcases with a showcase frame
+ * @param hashes The hashes of the text linked files shown as tabs, by path (see getTabFileHashes()); a tab without one has no hash in its URL
+ * @returns The project information, documentation files and linked files, without the code file index, and the showcases with a showcase frame,
+ * each with its tabs
  */
 export function getShownHostInformation(
   host: HostInformation,
   frames?: ReadonlyMap<string, Pick<ShowcaseFrame, 'folder' | 'page' | 'files'>>,
+  hashes: ReadonlyMap<string, string> = new Map(),
 ): ShownHostInformation {
-  const showcases = host.showcases.flatMap(({ id, documentation, offset }) => {
-    const frame = frames?.get(id);
-    return frame ? [{ id, documentation, offset, url: getShowcaseFrameUrl(frame) }] : [];
+  // Each documentation file holding a shown showcase shown as a block is parsed once, for its showcases' Markdown tabs
+  const sources = new Map<string, Map<number, string>>();
+  const getSources = (path: string) => {
+    if (!sources.has(path)) sources.set(path, getShowcaseSources(host.documentation.find((file) => file.path === path)?.content ?? ''));
+    return sources.get(path)!;
+  };
+  const showcases = host.showcases.flatMap((showcase) => {
+    const frame = frames?.get(showcase.id);
+    if (!frame) return [];
+    const { id, documentation, offset, display } = showcase;
+    const tabs = getShownTabs(host, showcase, hashes);
+    const markdown = display === 'block' ? getSources(documentation).get(offset) : undefined;
+    if (markdown !== undefined) tabs.push(getMarkdownTab(showcase, markdown));
+    return [{ id, documentation, offset, display, tabs, url: getShowcaseFrameUrl(frame) }];
   });
   return { project: host.project, documentation: host.documentation, showcases, linkedFiles: host.linkedFiles };
+}
+
+/**
+ * Gets a showcase's tabs: its entry point, then its included files, each looked up in the virtual files, the documentation files, then the linked
+ * files; a file in none of them (a linked showcase's entry point `check` didn't collect) is a missing tab
+ * @param host Host information
+ * @param showcase The showcase
+ * @param hashes The hashes of the text linked files shown as tabs, by path
+ * @returns The tabs
+ */
+export function getShownTabs(host: HostInformation, showcase: Showcase, hashes: ReadonlyMap<string, string> = new Map()): ShownTab[] {
+  return [showcase.entry, ...showcase.include].map((path, index) => ({
+    label: index === 0 && showcase.kind === 'code-block' ? getLanguage(path).toUpperCase() : getRelativePath(showcase.documentation, path),
+    path,
+    language: getLanguage(path),
+    source: _getTabSource(host, path, hashes),
+  }));
+}
+
+/**
+ * Label of a showcase's Markdown tab
+ */
+export const MARKDOWN_TAB_LABEL = 'Markdown';
+
+/**
+ * Gets a showcase's Markdown tab, the last of its code pane's tabs: the showcase as written in its documentation file (its fence, or its link)
+ * @param showcase The showcase, shown as a block
+ * @param source Its Markdown source (see getShowcaseSources())
+ * @returns The tab, under the documentation file's path
+ */
+export function getMarkdownTab(showcase: Showcase, source: string): ShownTab {
+  return { label: MARKDOWN_TAB_LABEL, path: showcase.documentation, language: 'md', source: { kind: 'virtual', content: source } };
+}
+
+/**
+ * Gets where a tab gets its content
+ * @param host Host information
+ * @param path POSIX-style path of the tab's file, relative to the host repository's root
+ * @param hashes The hashes of the text linked files shown as tabs, by path
+ * @returns The tab's source
+ */
+function _getTabSource(host: HostInformation, path: string, hashes: ReadonlyMap<string, string>): ShownTabSource {
+  const virtual = host.virtualFiles.find((file) => file.path === path);
+  if (virtual) return { kind: 'virtual', content: virtual.content };
+  if (host.documentation.some((file) => file.path === path)) return { kind: 'documentation' };
+  const linked = host.linkedFiles.find((file) => file.path === path);
+  if (!linked) return { kind: 'missing' };
+  const hash = linked.text ? hashes.get(path) : undefined;
+  return { kind: 'file', url: hash === undefined ? getLinkedFileUrl(path) : `${getLinkedFileUrl(path)}?${HASH_PARAMETER}=${hash}`, text: linked.text };
+}
+
+/**
+ * Gets the hashes of the text linked files that showcases show as tabs (a linked showcase's entry point, an included file), reading each; a file
+ * that isn't text is never read, as its tab only links to it, and one that can't be read gets no hash
+ * @param root Path of the host repository's root
+ * @param host Host information
+ * @returns The hashes (as getShowcaseFrameHash() gives them for the file alone), by POSIX-style path relative to the root
+ */
+export async function getTabFileHashes(root: string, host: HostInformation): Promise<Map<string, string>> {
+  const text = new Set(host.linkedFiles.filter((file) => file.text).map((file) => file.path));
+  const paths = [...new Set(host.showcases.flatMap((showcase) => [showcase.entry, ...showcase.include]))].filter((path) => text.has(path));
+  const hashes = new Map<string, string>();
+  await Promise.all(
+    paths.map(async (path) => {
+      const content = await readFile(join(root, path)).catch(() => undefined);
+      if (content) hashes.set(path, getShowcaseFrameHash([{ path, content }]));
+    }),
+  );
+  return hashes;
 }
 
 /**

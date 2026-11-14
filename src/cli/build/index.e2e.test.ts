@@ -85,6 +85,8 @@ describe('cli/build (end to end)', () => {
     );
     expect(bundle).toContain(`showcases/README.md/1/index.html?hash=${getShowcaseFrameHash(first)}`);
     expect(bundle).toMatch(/showcases\/docs\/my%20notes%20%231\.md\/1\/index\.html\?hash=[0-9a-f]{8}/);
+    // And the showcases' tabs: the linked page's included stylesheet by its linked file's URL, with its content's hash
+    expect(bundle).toContain(`files/demos/page.css?hash=${getShowcaseFrameHash([{ path: 'demos/page.css', content: Buffer.from(css) }])}`);
   });
 
   it('Copies exactly the linked files into the output folder, at files/<path>', async () => {

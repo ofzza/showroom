@@ -7,7 +7,7 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
-import { Button, makeStyles, tokens, type GriffelStyle } from '@fluentui/react-components';
+import { Button, makeStyles, mergeClasses, tokens, type GriffelStyle } from '@fluentui/react-components';
 import { Checkmark16Regular, Copy16Regular, ErrorCircle16Regular } from '@fluentui/react-icons';
 
 // #region Token colours
@@ -80,6 +80,9 @@ const _useStyles = makeStyles({
     ...TOKEN_STYLES,
   },
   scroll: { display: 'flex', overflowX: 'auto' },
+  // Filling its parent, a flex column (the code pane's code), and scrolling both ways inside it, its copy button staying in place
+  fillBlock: { margin: '0', flex: '1 1 auto', minHeight: '0', display: 'flex', flexDirection: 'column' },
+  fillScroll: { flex: '1 1 auto', minHeight: '0', overflow: 'auto', alignItems: 'flex-start' },
   // Sticky, so line numbers stay in place while long lines scroll sideways
   gutter: {
     position: 'sticky',
@@ -117,6 +120,15 @@ export interface CodeBlockProps {
    * The highlighted code: a `pre` element holding a `code` element
    */
   children: ReactNode;
+  /**
+   * True to fill its parent, a flex column, with no margin, scrolling both ways inside it (the code pane's code); otherwise as high as its code,
+   * scrolling sideways
+   */
+  fill?: boolean;
+  /**
+   * False to leave out its copy button (the code pane has one of its own, in its header); true by default
+   */
+  copy?: boolean;
 }
 
 /**
@@ -124,17 +136,17 @@ export interface CodeBlockProps {
  * @param props Properties of the component
  * @returns The code block
  */
-export function CodeBlock({ text, children }: CodeBlockProps): ReactNode {
+export function CodeBlock({ text, children, fill = false, copy = true }: CodeBlockProps): ReactNode {
   const styles = _useStyles();
   return (
-    <div className={styles.block}>
-      <div className={styles.scroll}>
+    <div className={mergeClasses(styles.block, fill && styles.fillBlock)}>
+      <div className={mergeClasses(styles.scroll, fill && styles.fillScroll)}>
         <pre className={styles.gutter} aria-hidden="true">
           {Array.from({ length: countLines(text) }, (_, index) => index + 1).join('\n')}
         </pre>
         <div className={styles.code}>{children}</div>
       </div>
-      <CopyButton text={text} className={styles.copy} />
+      {copy && <CopyButton text={text} className={styles.copy} />}
     </div>
   );
 }
@@ -271,6 +283,14 @@ export interface HighlightedCodeProps {
    * The highlighting language (e.g. `ts`); one highlight.js doesn't know is shown as plain text
    */
   language: string;
+  /**
+   * True to fill its parent (see CodeBlockProps' `fill`)
+   */
+  fill?: boolean;
+  /**
+   * False to leave out its copy button (see CodeBlockProps' `copy`)
+   */
+  copy?: boolean;
 }
 
 /**
@@ -278,9 +298,9 @@ export interface HighlightedCodeProps {
  * @param props Properties of the component
  * @returns The code block
  */
-export function HighlightedCode({ content, language }: HighlightedCodeProps): ReactNode {
+export function HighlightedCode({ content, language, fill, copy }: HighlightedCodeProps): ReactNode {
   return (
-    <CodeBlock text={content}>
+    <CodeBlock text={content} fill={fill} copy={copy}>
       <ReactMarkdown rehypePlugins={[rehypeHighlight]} skipHtml>
         {getFence(content, language).markdown}
       </ReactMarkdown>

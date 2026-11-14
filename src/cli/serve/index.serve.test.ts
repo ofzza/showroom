@@ -4,6 +4,10 @@
 
 import { afterEach, describe, expect, inject, it } from 'vitest';
 import { copyFixture, type ScratchFolder } from '../../testing/index.js';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import type { ShownShowcase } from '../../app/host/index.js';
 import { serve } from './index.js';
 
 /**
@@ -140,6 +144,18 @@ describe('cli/serve (serve)', () => {
     const own = await fetch(new URL('showcases/index.js', url));
     expect(own.status).toBe(200);
     expect(await own.text()).toContain('remarkShowcaseFrames');
+
+    // The linked page's tabs: its page, and its included stylesheet, each by its linked file's URL with its hash, which serves the file
+    const host = JSON.parse(/export default ([\s\S]*?);\s*export const issues/.exec(source)![1]) as { showcases: ShownShowcase[] };
+    const tabs = host.showcases.find(({ id }) => id === 'README.md#3')!.tabs;
+    expect(tabs.map(({ label }) => label)).toEqual(['demos/page.html', 'demos/page.css']);
+    const css = tabs[1].source;
+    expect(css).toMatchObject({ kind: 'file', text: true, url: expect.stringMatching(/^files\/demos\/page\.css\?hash=[0-9a-f]{8}$/) });
+    const served = await fetch(new URL((css as { url: string }).url, url));
+    expect(served.status).toBe(200);
+    expect(await served.text()).toBe(
+      await readFile(join(fileURLToPath(new URL('../../../test/fixtures/showcase-frames', import.meta.url)), 'demos', 'page.css'), 'utf8'),
+    );
   });
 
   it('Serves error frames for the showcases that do not build, and shows their build errors as issues', async () => {

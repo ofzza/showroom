@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation stage (_`P10.4`_); _`P10`_ Presenting showcases approved for its split (_`P10.1`_–_`P10.5`_); _`P10.1`_–_`P10.3`_ implemented. _`P1`_–_`P9`_ implemented.
-- **Next free:** _`D414`_, _`S11`_, _`P11`_, _`O68`_, _`L14`_, _`R31`_, _`H1`_, _`K20`_
-- **Working on:** _`P10.4`_ The code pane (`PLAN-P10.4-code-pane.md`): approved; not yet implemented.
-- **Next step:** implement _`P10.4`_'s steps 1–6, starting by confirming Griffel's `@container` support (step 3's first action, done first as it can stop the segment).
+- **Stage:** planning stage (_`P10.5`_); _`P10`_ Presenting showcases approved for its split (_`P10.1`_–_`P10.5`_); _`P10.1`_–_`P10.4`_ implemented. _`P1`_–_`P9`_ implemented.
+- **Next free:** _`D424`_, _`S11`_, _`P11`_, _`O68`_, _`L14`_, _`R33`_, _`H1`_, _`K20`_
+- **Working on:** nothing in progress; _`P10.4`_ implemented and committed.
+- **Next step:** plan _`P10.5`_ The console (_`D369`_, _`D377`_ (SPEC-S10-presentation.md), _`O60`_).
 
 ## Open questions
 
@@ -244,3 +244,14 @@
 - 2026-11-14: Zero-context review of _`P10.4`_ started, 1 agent (option chosen: "Review first (Rec.)").
 - 2026-11-14: Zero-context review of _`P10.4`_ done (1 agent, 14 findings, no stray writes; record in `review-p10.4/`): QA–QC settled (_`D411`_–_`D413`_: "Keep tab, say why (Rec.)", "Extension, upper-cased (Rec.)", "Frame left, code right (Rec.)"), 12 fixes applied to the steps ("Apply all (Rec.)"); _`S10`_ revised (_`R30`_).
 - 2026-11-14: _`P10.4`_ approved, and _`S10`_ re-approved with _`R29`_, _`R30`_ (option chosen: "Approve and commit (Rec.)"); `review-p10.4/` working files deleted.
+- 2026-11-14: _`P10.4`_ implemented (the shown tabs and their hashes, blocks in place of their entry points, the code pane, the modal's tabs; tests and documentation); Griffel's `@container` support confirmed first; the layout measured with Playwright on the dogfood `serve` (every state, stacking below 720 px, the frame never reloaded); `npm run ci` running.
+- 2026-11-14: _`P10.4`_'s `npm run ci` green (after formatting one test file); the dogfood `serve` started for the checkpoint.
+- 2026-11-14: _`P10.4`_'s checkpoint: the user asked for 4 changes (_`D414`_–_`D417`_: start hidden, the copy button beside the cycling button, a shorter minimum for short code, a smaller modal title); _`S10`_ revised (_`R31`_), pending re-approval.
+- 2026-11-14: _`D414`_–_`D417`_ implemented (with room for a horizontal scrollbar in the code's minimum and maximum, found in the browser); `npm run ci` green; both `serve`s restarted for the checkpoint.
+- 2026-11-14: _`P10.4`_'s second checkpoint: the user asked for the modal to stay a little shorter than the viewport (_`D418`_).
+- 2026-11-14: _`D418`_ implemented, measured in the browser; `npm run ci` green; both `serve`s restarted for the checkpoint.
+- 2026-11-14: _`P10.4`_'s checkpoint: the user asked for an icon on "Open in a new tab", more room before "Close" (_`D419`_), and the "code" icon on the cycling button while hidden (_`D420`_).
+- 2026-11-14: _`D419`_, _`D420`_ implemented, checked in the browser; `npm run ci` green; both `serve`s restarted for the checkpoint.
+- 2026-11-14: _`P10.4`_'s checkpoint: the user asked to rethink `README.md`'s quoted live demonstrations; settled as a Markdown tab in the code pane, and each demonstration shown once, live (_`D421`_, _`D422`_: "Markdown tab, live only (Rec.)", "Code pane only", "Exactly as written (Rec.)"); _`S10`_ revised (_`R32`_).
+- 2026-11-14: _`D421`_, _`D422`_ implemented (the Markdown tab; `README.md`'s demonstrations shown once, live), checked in the browser; `npm run ci` green; both `serve`s restarted for the checkpoint.
+- 2026-11-14: _`P10.4`_ implemented, approved and committed (option chosen: "Approve and commit"), reviewed on the dogfood `serve`; _`S10`_ re-approved with _`R31`_, _`R32`_; _`D423`_ records its deviations; `p10.4-check/` working files deleted.

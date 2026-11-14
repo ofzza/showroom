@@ -33,6 +33,20 @@ export function getFolder(path: string): string {
 }
 
 /**
+ * Gets the path of a file relative to another file's folder, as a link from that file would write it, without a leading `./`
+ * @param from POSIX-style path of the file the path is written in, relative to the host repository's root
+ * @param to POSIX-style path of the file, relative to the host repository's root
+ * @returns The relative path (e.g. `clock.css`, `styles/clock.css`, `../shared/theme.css`)
+ */
+export function getRelativePath(from: string, to: string): string {
+  const folder = getFolder(from).split('/').filter(Boolean);
+  const target = to.split('/');
+  let common = 0;
+  while (common < folder.length && common < target.length - 1 && folder[common] === target[common]) common++;
+  return [...folder.slice(common).map(() => '..'), ...target.slice(common)].join('/');
+}
+
+/**
  * Checks if a URL is absolute: it has a scheme (e.g. `https:`, `mailto:`), or is protocol-relative (`//`)
  * @param url URL
  * @returns True if the URL is absolute
@@ -372,7 +386,7 @@ export interface MarkdownScan {
 interface _Node {
   type: string;
   children?: _Node[];
-  position?: { start: { line: number; offset?: number } };
+  position?: { start: { line: number; offset?: number }; end?: { offset?: number } };
   depth?: number;
   lang?: string | null;
   meta?: string | null;
@@ -393,6 +407,22 @@ const _EXTENSIONS: Record<string, string> = { typescript: 'ts', javascript: 'js'
  */
 function _parse(content: string): _Node {
   return unified().use(remarkParse).use(remarkGfm).parse(content) as unknown as _Node;
+}
+
+/**
+ * Gets the Markdown source of the fences and links of a documentation file, exactly as written (a blockquote's `>` and a list's indentation
+ * included), by their offsets: what a showcase's code pane shows as its Markdown tab
+ * @param content Markdown text
+ * @returns The source of each fenced code block and link, by its offset in the content
+ */
+export function getShowcaseSources(content: string): Map<number, string> {
+  const sources = new Map<number, string>();
+  _visit(_parse(content), [], (node) => {
+    const start = node.position?.start.offset;
+    const end = node.position?.end?.offset;
+    if ((node.type === 'code' || node.type === 'link') && start !== undefined && end !== undefined) sources.set(start, content.slice(start, end));
+  });
+  return sources;
 }
 
 /**

@@ -1,8 +1,8 @@
 /**
  * Markdown rendering of documentation files: GitHub-flavoured Markdown, with heading ids, syntax-highlighted code blocks with line numbers and a copy
  * button, links resolved inside the showroom (linked files marked with a "code" icon, opening in the
- * modal, or in a new tab), relative images shown from their linked files (or as their alt text), showcase frames placed before their entry points,
- * and no raw HTML
+ * modal, or in a new tab; a linked showcase shown inline with included files, with its tabs), relative images shown from their linked files (or as
+ * their alt text), showcase frames placed before their entry points, showcases shown as blocks in their entry points' place, and no raw HTML
  */
 
 import { createContext, useContext, useMemo, useState, type ComponentProps, type ReactNode } from 'react';
@@ -15,11 +15,12 @@ import { Code16Regular } from '@fluentui/react-icons';
 import type { DocumentationFile, LinkedFile } from '../../host/index.js';
 import { getOpeningTitleOffset } from '../../markdown/index.js';
 import { CodeBlock } from '../code/index.js';
+import { ShowcaseBlock } from '../code-pane/index.js';
 import { LinkedFileDialog } from '../file-modal/index.js';
 import type { ShownShowcase } from '../host/index.js';
 import { resolveImage, resolveLink } from '../links/index.js';
 import { scrollToAnchor } from '../routing/index.js';
-import { SHOWCASE_FRAME_ELEMENT, SHOWCASE_ID_PROPERTY, ShowcaseFrame, remarkShowcaseFrames } from '../showcases/index.js';
+import { SHOWCASE_BLOCK_ELEMENT, SHOWCASE_FRAME_ELEMENT, SHOWCASE_ID_PROPERTY, ShowcaseFrame, remarkShowcaseFrames } from '../showcases/index.js';
 
 // #region Styles
 
@@ -110,8 +111,8 @@ const _NO_LINKED_FILES: LinkedFile[] = [];
  */
 export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, linkedFiles = _NO_LINKED_FILES, afterTitle }: MarkdownProps): ReactNode {
   const styles = _useStyles();
-  // The linked file shown in the modal, if any
-  const [shownFile, setShownFile] = useState<LinkedFile | undefined>(undefined);
+  // The linked file shown in the modal, if any, with the id of the linked showcase shown inline whose tabs it shows
+  const [shown, setShown] = useState<{ file: LinkedFile; showcase?: string } | undefined>(undefined);
   const titleOffset = useMemo(() => (afterTitle === undefined ? undefined : getOpeningTitleOffset(file.content)), [afterTitle, file.content]);
   const fileShowcases = useMemo(() => showcases.filter((showcase) => showcase.documentation === file.path), [showcases, file.path]);
   const remarkPlugins = useMemo<Options['remarkPlugins']>(() => [remarkGfm, [remarkShowcaseFrames, { showcases: fileShowcases }]], [fileShowcases]);
@@ -119,18 +120,19 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, linke
   // showcase frames through contexts, so neither a theme change nor a showcase frame's new URL remounts them
   const components = useMemo<Components>(
     () => ({
-      a: ({ href, children }) => (
-        <_MarkdownLink
+      a: ({ node, href, children }) => (
+        <MarkdownLink
           href={href}
+          offset={node?.position?.start.offset}
           from={file}
           documentation={documentation}
           linkedFiles={linkedFiles}
-          onShowFile={setShownFile}
+          onShowFile={(shownFile, showcase) => setShown({ file: shownFile, showcase })}
           fileIconClassName={styles.fileIcon}
           unresolvedClassName={styles.unresolved}
         >
           {children}
-        </_MarkdownLink>
+        </MarkdownLink>
       ),
       // The opening title is told apart by its offset, as the file is rendered whole (showcase frames are placed by offsets too)
       h1: ({ node, ...props }) =>
@@ -158,6 +160,7 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, linke
       // An element react-markdown's types don't know, as the remark plugin names it
       ...({
         [SHOWCASE_FRAME_ELEMENT]: (props: Record<string, unknown>) => <PlacedShowcaseFrame id={props[SHOWCASE_ID_PROPERTY]} />,
+        [SHOWCASE_BLOCK_ELEMENT]: (props: Record<string, unknown>) => <PlacedShowcaseBlock id={props[SHOWCASE_ID_PROPERTY]} documentation={documentation} />,
       } as Components),
     }),
     [file, documentation, linkedFiles, styles.fileIcon, styles.unresolved, titleOffset, afterTitle],
@@ -169,7 +172,12 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, linke
           {file.content}
         </ReactMarkdown>
       </_ShowcasesContext.Provider>
-      <LinkedFileDialog file={shownFile} onClose={() => setShownFile(undefined)} />
+      <LinkedFileDialog
+        file={shown?.file}
+        tabs={shown?.showcase === undefined ? undefined : fileShowcases.find((showcase) => showcase.id === shown.showcase)?.tabs}
+        documentation={documentation}
+        onClose={() => setShown(undefined)}
+      />
     </div>
   );
 }
@@ -208,13 +216,27 @@ export function PlacedShowcaseFrame({ id }: { id: unknown }): ReactNode {
 }
 
 /**
+ * Renders a showcase shown as a block that the remark plugin placed, looking its showcase up by id in the documentation file's showcases
+ * @param props Properties of the component: the showcase's id, and the shown documentation files
+ * @returns The block, or nothing if no showcase has that id
+ */
+export function PlacedShowcaseBlock({ id, documentation }: { id: unknown; documentation: DocumentationFile[] }): ReactNode {
+  const showcase = useContext(_ShowcasesContext).find((candidate) => candidate.id === id);
+  return showcase ? <ShowcaseBlock showcase={showcase} documentation={documentation} /> : null;
+}
+
+/**
  * Represents the properties of a link in rendered Markdown
  */
-interface _MarkdownLinkProps {
+export interface MarkdownLinkProps {
   /**
    * The link's target, as written in the Markdown
    */
   href?: string;
+  /**
+   * Offset of the link in the documentation file's content, which tells a linked showcase's link apart
+   */
+  offset?: number;
   /**
    * The documentation file holding the link
    */
@@ -228,9 +250,9 @@ interface _MarkdownLinkProps {
    */
   linkedFiles: LinkedFile[];
   /**
-   * Shows a linked file in the modal
+   * Shows a linked file in the modal, with the tabs of the linked showcase shown inline it is the entry point of, if any
    */
-  onShowFile: (file: LinkedFile) => void;
+  onShowFile: (file: LinkedFile, showcase?: string) => void;
   /**
    * Class name of the "code" icon after a link to a linked file
    */
@@ -247,12 +269,14 @@ interface _MarkdownLinkProps {
 
 /**
  * Renders a link in rendered Markdown: to an absolute URL in a new tab, to a page of the showroom, to a linked file (a text file up to 1 MB in the
- * modal, any other in a new tab), marked with a "code" icon, or as plain text with a tooltip when it points to nothing in the showroom
+ * modal, any other in a new tab; a linked showcase shown inline with included files, with its tabs), marked with a "code" icon, or as plain text
+ * with a tooltip when it points to nothing in the showroom; exported only as ESLint's React hooks rules take a `_`-prefixed function for no component
  * @param props Properties of the component
  * @returns The rendered link
  */
-function _MarkdownLink({
+export function MarkdownLink({
   href,
+  offset,
   from,
   documentation,
   linkedFiles,
@@ -260,8 +284,12 @@ function _MarkdownLink({
   fileIconClassName,
   unresolvedClassName,
   children,
-}: _MarkdownLinkProps): ReactNode {
+}: MarkdownLinkProps): ReactNode {
   const link = href === undefined ? ({ kind: 'unresolved' } as const) : resolveLink(href, from, documentation, linkedFiles);
+  // The linked showcase shown inline this link is the entry point of, when it has included files to show as tabs
+  const showcase = useContext(_ShowcasesContext).find(
+    (candidate) => candidate.offset === offset && candidate.display === 'inline' && candidate.tabs.length > 1,
+  );
   switch (link.kind) {
     case 'external':
       return (
@@ -291,7 +319,7 @@ function _MarkdownLink({
           onClick={(event) => {
             if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
             event.preventDefault();
-            onShowFile(link.file);
+            onShowFile(link.file, showcase?.id);
           }}
         >
           {children}

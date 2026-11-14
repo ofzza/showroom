@@ -26,6 +26,9 @@ import {
   getLinkedFileContentType,
   getReactAliases,
   getShownHostInformation,
+  MARKDOWN_TAB_LABEL,
+  getShownTabs,
+  getTabFileHashes,
   getViteConfiguration,
 } from './index.js';
 
@@ -60,7 +63,7 @@ const _HOST: HostInformation = {
       include: [],
     },
   ],
-  virtualFiles: [],
+  virtualFiles: [{ path: 'README.showcase-1.html', kind: 'entry', content: '<p>1</p>', documentation: 'README.md', line: 3 }],
   linkedFiles: [{ path: 'src/index.ts', size: 75, text: true }],
 };
 
@@ -156,15 +159,100 @@ describe('vite', () => {
 
   it('Gets the shown showcases with their showcase frames, by URL-encoded relative URLs', () => {
     expect(getShownHostInformation(_HOST, _FRAMES).showcases).toEqual([
-      { id: 'README.md#1', documentation: 'README.md', offset: 10, url: `showcases/README.md/1/index.html?hash=${_hash('README.md#1')}` },
+      {
+        id: 'README.md#1',
+        documentation: 'README.md',
+        offset: 10,
+        display: 'block',
+        tabs: [{ label: 'HTML', path: 'README.showcase-1.html', language: 'html', source: { kind: 'virtual', content: '<p>1</p>' } }],
+        url: `showcases/README.md/1/index.html?hash=${_hash('README.md#1')}`,
+      },
       {
         id: 'my docs/a #1.md#2',
         documentation: 'my docs/a #1.md',
         offset: 40,
+        display: 'inline',
+        // Not among the linked files (check left it out, with a warning)
+        tabs: [{ label: '../demo.html', path: 'demo.html', language: 'html', source: { kind: 'missing' } }],
         url: `showcases/my%20docs/a%20%231.md/2/pages/index.html?hash=${_hash('my docs/a #1.md#2')}`,
       },
     ]);
     expect(getShownHostInformation(_HOST, new Map([['README.md#1', _FRAMES.get('README.md#1')!]])).showcases.map(({ id }) => id)).toEqual(['README.md#1']);
+  });
+
+  it('Adds a Markdown tab, last, to a showcase shown as a block only, with its source as written', () => {
+    const content = '# Hi\n\n```html showcase include=a.css\n<p>1</p>\n```\n\nSee [demo](demo.html "showcase").\n';
+    const host: HostInformation = {
+      ..._HOST,
+      documentation: [{ path: 'README.md', kind: 'readme', extension: '.md', content }],
+      showcases: [
+        { ..._HOST.showcases[0], offset: content.indexOf('```'), include: ['a.css'] },
+        { ..._HOST.showcases[1], documentation: 'README.md', offset: content.indexOf('[demo]') },
+      ],
+    };
+    const frames = new Map([
+      ['README.md#1', _FRAMES.get('README.md#1')!],
+      ['my docs/a #1.md#2', _FRAMES.get('my docs/a #1.md#2')!],
+    ]);
+    const [block, inline] = getShownHostInformation(host, frames).showcases;
+    expect(block.tabs.map(({ label }) => label)).toEqual(['HTML', 'a.css', MARKDOWN_TAB_LABEL]);
+    expect(block.tabs[2]).toEqual({
+      label: 'Markdown',
+      path: 'README.md',
+      language: 'md',
+      source: { kind: 'virtual', content: '```html showcase include=a.css\n<p>1</p>\n```' },
+    });
+    // The modal of a linked showcase shown inline has no Markdown tab (D421)
+    expect(inline.tabs.map(({ label }) => label)).toEqual(['demo.html']);
+  });
+
+  it("Gets a showcase's tabs from every kind of source, labelled, with hashes for text linked files only", () => {
+    const host: HostInformation = {
+      ..._HOST,
+      documentation: [..._HOST.documentation, { path: 'docs/guide.md', kind: 'other', extension: '.md', content: '' }],
+      virtualFiles: [{ path: 'docs/theme.css', kind: 'resource', content: 'p {}', documentation: 'docs/guide.md', line: 1 }],
+      linkedFiles: [
+        { path: 'docs/demos/clock.html', size: 9, text: true },
+        { path: 'docs/my logo.png', size: 9, text: false },
+      ],
+    };
+    const showcase = {
+      ..._HOST.showcases[1],
+      documentation: 'docs/guide.md',
+      entry: 'docs/demos/clock.html',
+      include: ['docs/theme.css', 'README.md', 'docs/my logo.png', 'out/gone.css'],
+    };
+    const hashes = new Map([
+      ['docs/demos/clock.html', '0123abcd'],
+      ['docs/my logo.png', 'ffffffff'],
+    ]);
+    expect(getShownTabs(host, showcase, hashes)).toEqual([
+      {
+        label: 'demos/clock.html',
+        path: 'docs/demos/clock.html',
+        language: 'html',
+        source: { kind: 'file', url: 'files/docs/demos/clock.html?hash=0123abcd', text: true },
+      },
+      { label: 'theme.css', path: 'docs/theme.css', language: 'css', source: { kind: 'virtual', content: 'p {}' } },
+      { label: '../README.md', path: 'README.md', language: 'md', source: { kind: 'documentation' } },
+      { label: 'my logo.png', path: 'docs/my logo.png', language: 'png', source: { kind: 'file', url: 'files/docs/my%20logo.png', text: false } },
+      { label: '../out/gone.css', path: 'out/gone.css', language: 'css', source: { kind: 'missing' } },
+    ]);
+    // Without a hash, a text linked file's URL has none
+    expect(getShownTabs(host, showcase)[0].source).toEqual({ kind: 'file', url: 'files/docs/demos/clock.html', text: true });
+  });
+
+  it('Hashes the text linked files showcases show as tabs, reading each', async () => {
+    const showcase = { ..._HOST.showcases[1], entry: 'src/index.ts', include: ['assets/logo.png', 'Makefile', 'gone.txt'] };
+    const host: HostInformation = { ..._HOST, showcases: [showcase], linkedFiles: [..._LINKED, { path: 'gone.txt', size: 1, text: true }] };
+    const hash = async (path: string) => getShowcaseFrameHash([{ path, content: await readFile(join(_LINKED_ROOT, path)) }]);
+    // The binary file is never read, and a file that can't be read gets no hash
+    expect(await getTabFileHashes(_LINKED_ROOT, host)).toEqual(
+      new Map([
+        ['src/index.ts', await hash('src/index.ts')],
+        ['Makefile', await hash('Makefile')],
+      ]),
+    );
   });
 
   it("Emits the showcase frames' files into the build", () => {

@@ -12,7 +12,7 @@ import { formatIssues, resolveOutputFolder, SILENCED_WARNINGS } from '../check/i
 import type { CliOutput } from '../index.js';
 import { readConfiguration } from '../../configuration/index.js';
 import { buildShowcases, getBuildShowcasesIssues } from '../../showcases/index.js';
-import { getAppDir, getShownHostInformation, getViteConfiguration, type ViteConfigurationOptions } from '../../vite/index.js';
+import { getAppDir, getShownHostInformation, getTabFileHashes, getViteConfiguration, type ViteConfigurationOptions } from '../../vite/index.js';
 
 // #region Output folder marker
 
@@ -156,7 +156,7 @@ export async function build({ root, outDir, output, appDir = getAppDir() }: Buil
     return 1;
   }
   const frames = showcases.frames;
-  const host = getShownHostInformation(result.host, frames);
+  const host = getShownHostInformation(result.host, frames, await getTabFileHashes(root, result.host));
 
   // Build, with Vite's cache in a fresh folder of its own, removed afterwards
   const cacheDir = await mkdtemp(join(tmpdir(), 'showroom-'));

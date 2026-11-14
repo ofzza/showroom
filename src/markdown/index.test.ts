@@ -5,6 +5,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   getFolder,
+  getRelativePath,
+  getShowcaseSources,
   getOpeningTitleOffset,
   isAbsoluteUrl,
   isMarkdownPath,
@@ -34,6 +36,25 @@ describe('markdown', () => {
       expect(getFolder('README.md')).toBe('');
       expect(getFolder('docs/guide.md')).toBe('docs');
       expect(getFolder('a/b/c.md')).toBe('a/b');
+    });
+
+    it('Gets the source of fences and links, exactly as written, by their offsets', () => {
+      const content = 'See [a](a.html "showcase").\n\n> ```html showcase\n> <p>x</p>\n> ```\n';
+      const sources = getShowcaseSources(content);
+      expect(sources.get(content.indexOf('[a]'))).toBe('[a](a.html "showcase")');
+      // In a blockquote, its prefixes stay (D421)
+      expect(sources.get(content.indexOf('```'))).toBe('```html showcase\n> <p>x</p>\n> ```');
+      expect(sources.size).toBe(2);
+    });
+
+    it("Gets a path relative to a file's folder, without a leading ./", () => {
+      expect(getRelativePath('README.md', 'theme.css')).toBe('theme.css');
+      expect(getRelativePath('docs/guide.md', 'docs/demos/clock.html')).toBe('demos/clock.html');
+      expect(getRelativePath('docs/guide.md', 'shared/theme.css')).toBe('../shared/theme.css');
+      expect(getRelativePath('a/b/c.md', 'a/x/y.ts')).toBe('../x/y.ts');
+      expect(getRelativePath('docs/guide.md', 'README.md')).toBe('../README.md');
+      // A folder named like the file's folder is no common folder
+      expect(getRelativePath('docs/guide.md', 'docs')).toBe('../docs');
     });
 
     it('Recognises absolute URLs', () => {

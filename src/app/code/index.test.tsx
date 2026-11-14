@@ -137,6 +137,34 @@ describe('app/code', () => {
       );
       expect(html).toMatch(/<button [^>]*aria-label="Copy code"/);
     });
+
+    it('Leaves out its copy button when asked', () => {
+      const html = _renderElement(
+        <CodeBlock text="a" copy={false}>
+          <pre>
+            <code>a</code>
+          </pre>
+        </CodeBlock>,
+      );
+      expect(html).not.toContain('Copy code');
+    });
+
+    it('Takes extra classes when it fills its parent, keeping its copy button outside the scroll', () => {
+      const element = (fill: boolean) => (
+        <CodeBlock text="a" fill={fill}>
+          <pre>
+            <code>a</code>
+          </pre>
+        </CodeBlock>
+      );
+      const classes = (html: string) => [...html.matchAll(/<div class="([^"]+)"/g)].slice(0, 2).map((match) => match[1].split(' ').length);
+      const [block, scroll] = classes(_renderElement(element(true)));
+      const [plainBlock, plainScroll] = classes(_renderElement(element(false)));
+      expect(block).toBeGreaterThan(plainBlock!);
+      expect(scroll).toBeGreaterThan(plainScroll!);
+      // The copy button is the block's last child, after the scroll's closing tag
+      expect(_renderElement(element(true))).toMatch(/<\/code><\/pre><\/div><\/div><button /);
+    });
   });
 
   describe('HighlightedCode', () => {

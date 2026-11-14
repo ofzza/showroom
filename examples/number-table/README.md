@@ -14,9 +14,9 @@ Every `showroom check` of this repository loads it, and its showcases name it in
 
 ## Planets
 
-A linked showcase: [`planets.json`](./planets.json), a real file, with a caption.
+A linked showcase, shown as a block beside its code: [`planets.json`](./planets.json), a real file, with a caption.
 
-[The planets](./planets.json 'showcase=number-table({ caption: "The planets" })')
+[The planets](./planets.json 'showcase=number-table({ caption: "The planets" }) block')
 
 ## Options
 

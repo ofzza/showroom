@@ -6,9 +6,9 @@
 
 ## A 7-segment clock
 
-A page of its own, linked as a showcase. It needs nothing else: its styles and script are inline, as an `html` showcase follows no files.
+A page of its own, linked as a showcase shown as a block, beside its code. It needs nothing else: its styles and script are inline, as an `html` showcase follows no files.
 
-[A 7-segment clock](./clock.html 'showcase')
+[A 7-segment clock](./clock.html 'showcase block')
 
 ## The stylesheet
 

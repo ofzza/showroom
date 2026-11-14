@@ -130,9 +130,9 @@ export function App({ data, issues = _NO_ISSUES, route, theme: initialTheme }: A
  */
 export interface ShowroomUpdate {
   /**
-   * The shown showcases with their showcase frames' new URLs, every one of them
+   * The shown showcases with the new URLs of their showcase frames and tabs, every one of them
    */
-  showcases?: Pick<ShownShowcase, 'id' | 'url'>[];
+  showcases?: Pick<ShownShowcase, 'id' | 'url' | 'tabs'>[];
   /**
    * The current issues
    */
@@ -203,7 +203,7 @@ export function MountedShowroom({ store }: { store: ShowroomStore }): ReactNode 
 }
 
 /**
- * Gets the state after an update: showcase frames' new URLs applied to the shown showcases, and the new issues
+ * Gets the state after an update: the new URLs of showcase frames and of their tabs applied to the shown showcases, and the new issues
  * @param state The state before
  * @param update The update
  * @returns The state after; the same object if nothing changed
@@ -220,7 +220,8 @@ export function applyUpdate<TState extends MountedState>(state: TState, update: 
  * @param element Element to render the application into
  * @param data The shown host information
  * @param issues The current issues, shown in the issues bar; none if not given
- * @returns A function updating the mounted showroom: the showcase frames' URLs (only those that changed reload), and the issues
+ * @returns A function updating the mounted showroom: the URLs of the showcase frames (only those that changed reload) and of their tabs (fetched
+ * again), and the issues
  */
 export function mount(element: Element, data: ShownHostInformation, issues: CheckIssue[] = []): (update: ShowroomUpdate) => void {
   const store = createShowroomStore({ data, issues });

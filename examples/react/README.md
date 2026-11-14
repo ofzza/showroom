@@ -6,9 +6,9 @@
 
 ## A stopwatch
 
-A linked showcase: [`demo/Stopwatch.tsx`](./demo/Stopwatch.tsx) imports the library like any module would, and its default export is the component the showcase frame renders.
+A linked showcase, shown as a block beside its code: [`demo/Stopwatch.tsx`](./demo/Stopwatch.tsx) imports the library like any module would, and its default export is the component the showcase frame renders.
 
-[A stopwatch](./demo/Stopwatch.tsx 'showcase=react')
+[A stopwatch](./demo/Stopwatch.tsx 'showcase=react block')
 
 ## Counters
 

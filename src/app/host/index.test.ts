@@ -4,7 +4,27 @@
 
 import { describe, it, expect } from 'vitest';
 import type { DocumentationFile } from '../../host/index.js';
-import { applyShowcaseUrls, findDocumentationFile, findFolderReadme, getFolder, getRootReadme, isMarkdown, isRootReadme } from './index.js';
+import {
+  applyShowcaseUrls,
+  type ShownShowcase,
+  type ShownTab,
+  findDocumentationFile,
+  findFolderReadme,
+  getFolder,
+  getRootReadme,
+  isMarkdown,
+  isRootReadme,
+} from './index.js';
+
+/**
+ * Creates a tab of a text linked file
+ * @param path Path of the file
+ * @param url Its URL
+ * @returns The tab
+ */
+function _tab(path: string, url: string): ShownTab {
+  return { label: path, path, language: 'html', source: { kind: 'file', url, text: true } };
+}
 
 /**
  * Creates a documentation file with empty content
@@ -19,7 +39,7 @@ function _file(path: string, kind: DocumentationFile['kind'] = 'other'): Documen
 }
 
 describe('app/host', () => {
-  // Tests the helpers finding documentation files, on hand-made lists of documentation files, and applying showcase frames' new URLs.
+  // Tests the helpers finding documentation files, on hand-made lists of documentation files, and applying the new URLs of showcase frames and tabs.
 
   const documentation = [_file('LICENSE', 'license'), _file('README.md', 'readme'), _file('docs/Guide.md'), _file('docs/ReadMe.txt', 'readme')];
 
@@ -59,18 +79,26 @@ describe('app/host', () => {
   });
 
   it("Applies showcase frames' new URLs by id, keeping the list when none changed", () => {
-    const showcases = [
-      { id: 'README.md#1', documentation: 'README.md', offset: 0, url: 'a?hash=1' },
-      { id: 'README.md#2', documentation: 'README.md', offset: 9, url: 'b?hash=1' },
+    const showcases: ShownShowcase[] = [
+      { id: 'README.md#1', documentation: 'README.md', offset: 0, display: 'block', tabs: [_tab('a.html', 'files/a.html?hash=1')], url: 'a?hash=1' },
+      { id: 'README.md#2', documentation: 'README.md', offset: 9, display: 'block', tabs: [], url: 'b?hash=1' },
     ];
     const applied = applyShowcaseUrls(showcases, [
-      { id: 'README.md#1', url: 'a?hash=1' },
-      { id: 'README.md#2', url: 'b?hash=2' },
-      { id: 'README.md#3', url: 'c?hash=1' },
+      { id: 'README.md#1', url: 'a?hash=1', tabs: showcases[0].tabs },
+      { id: 'README.md#2', url: 'b?hash=2', tabs: [] },
+      { id: 'README.md#3', url: 'c?hash=1', tabs: [] },
     ]);
     expect(applied).toEqual([showcases[0], { ...showcases[1], url: 'b?hash=2' }]);
     // The unchanged showcase stays the same object, so its showcase frame isn't touched
     expect(applied[0]).toBe(showcases[0]);
-    expect(applyShowcaseUrls(showcases, [{ id: 'README.md#1', url: 'a?hash=1' }])).toBe(showcases);
+    expect(applyShowcaseUrls(showcases, [{ id: 'README.md#1', url: 'a?hash=1', tabs: [_tab('a.html', 'files/a.html?hash=1')] }])).toBe(showcases);
+  });
+
+  it("Applies a tab's new URL alone, keeping its showcase frame's", () => {
+    const showcases: ShownShowcase[] = [
+      { id: 'README.md#1', documentation: 'README.md', offset: 0, display: 'block', tabs: [_tab('a.html', 'files/a.html?hash=1')], url: 'a?hash=1' },
+    ];
+    const tabs = [_tab('a.html', 'files/a.html?hash=2')];
+    expect(applyShowcaseUrls(showcases, [{ id: 'README.md#1', url: 'a?hash=1', tabs }])).toEqual([{ ...showcases[0], tabs }]);
   });
 });
