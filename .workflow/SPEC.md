@@ -197,6 +197,12 @@ approved 2026-11-15 (option chosen: "Approve and commit (Rec.)")
 
 [See Showcase views](./SPEC-S12-showcase-views.md)
 
+## _`S13`_ The navigation
+
+approved 2026-11-16 (option chosen: "Approve and commit (Rec.)")
+
+[See The navigation](./SPEC-S13-navigation.md)
+
 ## Pitfalls
 
 [See Pitfalls](./SPEC-pitfalls.md)
