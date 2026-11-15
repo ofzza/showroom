@@ -116,30 +116,37 @@ describe('adapters/showcase/angular (integration)', () => {
     expect(sources).toEqual(expect.arrayContaining(['README.showcase-1.ts', 'src/counter.component.ts']));
   });
 
-  it('Reports errors at their lines, whatever fails them, and a warning, and builds the other showcases', async () => {
-    const { frames, errors, warnings } = await _build(join(FIXTURES, 'showcase-angular-errors'));
-    expect([...frames.keys()]).toEqual(['README.md#7']);
+  it('Reports errors at their lines, whatever fails them, and a warning, and keeps the files beside the type errors', async () => {
+    const { frames, errors, warnings, checks } = await _build(join(FIXTURES, 'showcase-angular-errors'));
+    // Type errors leave the files usable, and name the type check; a failed compile or bundle runs none (D557, .workflow/PLAN-P15.2-checks-and-issues.md)
+    expect([...frames.keys()]).toEqual(['README.md#4', 'README.md#5', 'README.md#6', 'README.md#7']);
+    expect([...checks].filter(([, names]) => names.length).map(([id]) => id)).toEqual(['README.md#4', 'README.md#5', 'README.md#6', 'README.md#7']);
     const error = (id: string, line: number, message: string | object, path: string, at: number) => [
       id,
       [{ severity: 'error', message: typeof message === 'string' ? `Showcase ${id} (README.md:${line}): ${message}` : message, path, line: at }],
+    ];
+    const typeError = (id: string, line: number, message: string, path: string, at: number) => [
+      id,
+      [{ severity: 'error', message: `Showcase ${id} (README.md:${line}): type check: ${message}`, path, line: at, check: 'type check' }],
     ];
     expect([...errors]).toEqual([
       // A missing default export fails the bundle, at the entry point
       error('README.md#1', 5, expect.stringContaining('"default" is not exported by "README.showcase-1.ts"'), 'README.md', 6),
       error('README.md#2', 14, 'The default export of an angular showcase must be a standalone component', 'README.md', 18),
       error('README.md#3', 23, 'The default export of an angular showcase must be a standalone component', 'README.md', 24),
-      error('README.md#4', 29, "TS2322: Type 'string' is not assignable to type 'number'.", 'README.md', 34),
-      error('README.md#5', 40, "TS2339: Property 'missing' does not exist on type 'Inline'.", 'README.md', 46),
-      error('README.md#6', 56, "TS2339: Property 'nope' does not exist on type 'BrokenComponent'.", 'src/broken.component.html', 2),
+      typeError('README.md#4', 29, "TS2322: Type 'string' is not assignable to type 'number'.", 'README.md', 34),
+      typeError('README.md#5', 40, "TS2339: Property 'missing' does not exist on type 'Inline'.", 'README.md', 46),
+      typeError('README.md#6', 56, "TS2339: Property 'nope' does not exist on type 'BrokenComponent'.", 'src/broken.component.html', 2),
       // Without type checking, the bundle's error in a compiled module is at its file, without a line (D460): the showcase's line
       error('README.md#8', 77, expect.stringContaining('"missing" is not exported by "src/parts.ts"'), 'README.md', 77),
     ]);
     expect(warnings).toEqual([
       {
         severity: 'warning',
-        message: expect.stringMatching(/^Showcase README\.md#7 \(README\.md:66\): NG8107: The left side of this optional chain/) as string,
+        message: expect.stringMatching(/^Showcase README\.md#7 \(README\.md:66\): type check: NG8107: The left side of this optional chain/) as string,
         path: 'README.md',
         line: 69,
+        check: 'type check',
       },
     ]);
   });

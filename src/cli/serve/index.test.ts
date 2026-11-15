@@ -80,7 +80,7 @@ function _build(page: string, failing: string[] = [], watched: string[] = []): H
         frames.set(showcase.id, { folder: getShowcaseFrameFolder(showcase), page: 'index.html', files: [{ path: 'index.html', content: page }], reads: [] });
       }
     }
-    return { frames, errors, warnings: [], issues: [], watched };
+    return { frames, errors, warnings: [], checks: new Map(), issues: [], watched };
   };
 }
 
@@ -207,6 +207,16 @@ describe('cli/serve', () => {
       expect(frames.get('README.md#2')).toEqual(
         getErrorFrame(host.showcases[1], [{ severity: 'error', message: 'README.md#2 broke', path: 'README.md', line: 2 }]),
       );
+    });
+
+    it("Serves the error frame of a showcase with errors, even when it has files too (a type check's errors)", async () => {
+      // See PLAN-P15.2 D558: until P15.5, serve shows its error frame on any error
+      const host = _host('x', [], 1);
+      const built = await _build('ok')(host);
+      const errors = [{ severity: 'error' as const, message: 'type check: broke', check: 'type check' }];
+      const frames = getServedFrames(host, { ...built, errors: new Map([['README.md#1', errors]]) });
+      expect(built.frames.has('README.md#1')).toBe(true);
+      expect(frames.get('README.md#1')).toEqual(getErrorFrame(host.showcases[0], errors));
     });
 
     it('Keeps the last showcase frames and files to watch, with an issue, when the build throws', async () => {

@@ -66,63 +66,58 @@ export interface ShowcaseBuildFile {
 }
 
 /**
- * Represents an error building a showcase, or a warning
+ * Represents an issue of building a showcase: an error, or a warning
  */
-export interface ShowcaseBuildError {
+export interface ShowcaseBuildIssue {
   /**
-   * Description of the error
+   * Severity of the issue: an error fails `showroom build` and `showroom check --showcases`, a warning fails nothing
+   */
+  severity: 'error' | 'warning';
+  /**
+   * Description of the issue
    */
   message: string;
   /**
-   * POSIX-style path of the file the error is in, relative to the host repository's root (a virtual file's path for an error in a code block)
+   * POSIX-style path of the file the issue is in, relative to the host repository's root (a virtual file's path for an issue in a code block)
    */
   path?: string;
   /**
-   * Line of the error in that file, from 1
+   * Line of the issue in that file, from 1
    */
   line?: number;
+  /**
+   * Name of the check the issue belongs to (one of the result's `checks`, e.g. `type check`), or undefined for an issue of the build itself
+   */
+  check?: string;
 }
 
 /**
- * Represents the outcome of building a showcase: either the showcase frame's files, or the errors that prevented building it; with the files the
- * build read either way, so that they can be watched for changes, and the build's warnings, which fail nothing
+ * Represents the outcome of building a showcase: the showcase frame's page and files, unless an error of the build itself (one naming no check)
+ * prevented building it; the checks that ran to completion; the issues, errors and warnings, of the build and of its checks (errors that all name a
+ * check leave the files usable); and the files the build read, so that they can be watched for changes
  */
-export type ShowcaseBuildResult =
-  | {
-      /**
-       * POSIX-style path of the showcase frame's page among its files
-       */
-      page: string;
-      /**
-       * Files of the showcase frame: its page and its assets
-       */
-      files: ShowcaseBuildFile[];
-      /**
-       * POSIX-style paths, relative to the host repository's root, of the files the build read
-       */
-      reads: string[];
-      /**
-       * Warnings of the build, which `showroom` reports without failing anything
-       */
-      warnings?: ShowcaseBuildError[];
-      errors?: undefined;
-    }
-  | {
-      page?: undefined;
-      files?: undefined;
-      /**
-       * POSIX-style paths, relative to the host repository's root, of the files the build read
-       */
-      reads: string[];
-      /**
-       * Warnings of the build, which `showroom` reports without failing anything
-       */
-      warnings?: ShowcaseBuildError[];
-      /**
-       * Errors that prevented building the showcase
-       */
-      errors: ShowcaseBuildError[];
-    };
+export interface ShowcaseBuildResult {
+  /**
+   * POSIX-style path of the showcase frame's page among its files; present exactly when `files` is
+   */
+  page?: string;
+  /**
+   * Files of the showcase frame, its page and its assets; present unless an error names no check
+   */
+  files?: ShowcaseBuildFile[];
+  /**
+   * POSIX-style paths, relative to the host repository's root, of the files the build read
+   */
+  reads: string[];
+  /**
+   * Names of the checks that ran to completion (e.g. `type check`), distinct; every issue's check is among them
+   */
+  checks?: string[];
+  /**
+   * Issues of the build and of its checks
+   */
+  issues?: ShowcaseBuildIssue[];
+}
 
 // #endregion
 
@@ -172,7 +167,7 @@ export interface ShowcaseAdapter {
   /**
    * Builds one showcase's showcase frame, in memory
    * @param request What to build, and where it may write scratch files
-   * @returns The showcase frame's files, or the build errors
+   * @returns The showcase frame's files, its checks and its issues
    */
   build(request: ShowcaseBuildRequest): Promise<ShowcaseBuildResult>;
   /**

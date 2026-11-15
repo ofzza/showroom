@@ -8,7 +8,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Showcase } from '../../../host/index.js';
 import { getFolder } from '../../../markdown/index.js';
-import type { ShowcaseAdapter, ShowcaseBuildError, ShowcaseBuildFile, ShowcaseBuildRequest, ShowcaseBuildResult, ShowcaseValidation } from '../index.js';
+import type { ShowcaseAdapter, ShowcaseBuildFile, ShowcaseBuildIssue, ShowcaseBuildRequest, ShowcaseBuildResult, ShowcaseValidation } from '../index.js';
 
 /**
  * Represents the `html` showcase adapter
@@ -51,7 +51,7 @@ export class HtmlShowcaseAdapter implements ShowcaseAdapter {
    * an included file landing where a named virtual file does (unless it is that file), and an included file that can't be read fail the build.
    * Its reads are the files read from disk, and the documentation files holding the virtual files it uses.
    * @param request What to build
-   * @returns The showcase frame's page and files, or the build errors
+   * @returns The showcase frame's page and files, or the build's errors; it runs no checks
    */
   public async build({ root, showcase, virtualFiles, hostVirtualFiles }: ShowcaseBuildRequest): Promise<ShowcaseBuildResult> {
     let content: string;
@@ -60,7 +60,7 @@ export class HtmlShowcaseAdapter implements ShowcaseAdapter {
       reads = [showcase.documentation];
       const file = virtualFiles.find((virtualFile) => virtualFile.path === showcase.entry);
       if (!file) {
-        return { reads, errors: [{ message: `The entry point's virtual file "${showcase.entry}" is missing` }] };
+        return { reads, issues: [{ severity: 'error', message: `The entry point's virtual file "${showcase.entry}" is missing` }] };
       }
       content = file.content;
     } else {
@@ -68,7 +68,7 @@ export class HtmlShowcaseAdapter implements ShowcaseAdapter {
       try {
         content = await readFile(join(root, showcase.entry), 'utf8');
       } catch (err) {
-        return { reads, errors: [{ message: `The entry point can't be read: ${(err as Error).message}`, path: showcase.entry }] };
+        return { reads, issues: [{ severity: 'error', message: `The entry point can't be read: ${(err as Error).message}`, path: showcase.entry }] };
       }
     }
     const named = virtualFiles.filter((file) => file.named);
@@ -77,7 +77,11 @@ export class HtmlShowcaseAdapter implements ShowcaseAdapter {
     if (clashing.length) {
       return {
         reads,
-        errors: clashing.map((file) => ({ message: `The virtual file "${_getName(file.path)}" would replace the showcase frame's page`, path: file.path })),
+        issues: clashing.map((file) => ({
+          severity: 'error' as const,
+          message: `The virtual file "${_getName(file.path)}" would replace the showcase frame's page`,
+          path: file.path,
+        })),
       };
     }
 
@@ -86,13 +90,13 @@ export class HtmlShowcaseAdapter implements ShowcaseAdapter {
       { path: HTML_PAGE, content: isHtmlPage(content) ? content : wrapHtmlFragment(content) },
       ...named.map((file) => ({ path: _getName(file.path), content: file.content })),
     ];
-    const errors: ShowcaseBuildError[] = [];
+    const errors: ShowcaseBuildIssue[] = [];
     for (const path of showcase.include) {
       const placed = _getPlacedPath(showcase, path) ?? path;
       const copied = named.find((file) => _getName(file.path).toLowerCase() === placed.toLowerCase());
       if (copied?.path === path) continue; // The named virtual file itself, copied already
       if (copied) {
-        errors.push({ message: `The included file "${path}" would land where the virtual file "${copied.path}" does ("${placed}")`, path });
+        errors.push({ severity: 'error', message: `The included file "${path}" would land where the virtual file "${copied.path}" does ("${placed}")`, path });
         continue;
       }
       const virtual = hostVirtualFiles.find((file) => file.path === path);
@@ -105,10 +109,10 @@ export class HtmlShowcaseAdapter implements ShowcaseAdapter {
       try {
         files.push({ path: placed, content: new Uint8Array(await readFile(join(root, path))) });
       } catch (err) {
-        errors.push({ message: `The included file can't be read: ${(err as Error).message}`, path });
+        errors.push({ severity: 'error', message: `The included file can't be read: ${(err as Error).message}`, path });
       }
     }
-    return errors.length ? { reads, errors } : { page: HTML_PAGE, files, reads };
+    return errors.length ? { reads, issues: errors } : { page: HTML_PAGE, files, reads };
   }
 }
 

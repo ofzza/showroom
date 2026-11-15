@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
 import { describe, expect, it } from 'vitest';
 import type { Showcase, VirtualFile } from '../../../host/index.js';
-import type { ShowcaseBuildError } from '../index.js';
+import type { ShowcaseBuildMessage } from './typecheck/index.js';
 import { CONSOLE_PANEL_ID, getConsoleScript, SHOWCASE_FRAME_ROOT_ID } from './console/index.js';
 import {
   createGeneratedModulesPlugin,
@@ -304,7 +304,7 @@ describe('adapters/showcase/ts', () => {
     });
 
     it("Leaves other imports to Vite, reporting those of the host's modules it can't resolve at their line", async () => {
-      const errors: ShowcaseBuildError[] = [];
+      const errors: ShowcaseBuildMessage[] = [];
       const plugin = createVirtualFilesPlugin(_ROOT, virtualFiles, errors);
       expect(await _resolve(plugin, 'showcase-ts-host', entry, { 'showcase-ts-host': _abs('lib/index.js') })).toEqual({ id: _abs('lib/index.js') });
       await expect(_resolve(plugin, './missing', entry)).rejects.toThrow(`Can't resolve "./missing"`);
@@ -375,7 +375,7 @@ describe('adapters/showcase/ts', () => {
     });
 
     it('Places the errors in a generated module where it says, at line 1, and leaves the others', () => {
-      const errors: ShowcaseBuildError[] = [
+      const errors: ShowcaseBuildMessage[] = [
         { message: 'in the mount module', path: 'README.showcase-1.tsx.showroom-mount.js', line: 3 },
         { message: 'elsewhere', path: 'lazy.ts', line: 2 },
         { message: 'nowhere' },
@@ -396,7 +396,7 @@ describe('adapters/showcase/ts', () => {
     const compiled = new Set([_abs('README.showcase-1.ts'), _abs('lazy.ts')]);
 
     it('Places the errors in compiled modules at their file, without a line, and leaves the others', () => {
-      const errors: ShowcaseBuildError[] = [
+      const errors: ShowcaseBuildMessage[] = [
         { message: 'in a virtual compiled module', path: 'README.showcase-1.ts', line: 3 },
         { message: 'in a real compiled module', path: 'lazy.ts', line: 2 },
         { message: 'elsewhere', path: 'util.ts', line: 4 },

@@ -7,7 +7,7 @@ import { getFrameScript } from '../frame/index.js';
 import type { Showcase, VirtualFile } from '../host/index.js';
 import {
   checkBuildResult,
-  getBuildErrorIssue,
+  getBuildIssue,
   getBuildShowcasesIssues,
   getErrorFrame,
   getShowcaseFrameFolder,
@@ -173,43 +173,65 @@ describe('showcases', () => {
         page: 'index.html',
         files: [page, { path: 'a/b.png', content: new Uint8Array([1]) }],
         reads: ['x'],
-        warnings: [],
+        checks: [],
+        issues: [],
       });
       expect(checkBuildResult({ page: 'p.htm', files: [{ path: 'p.htm', content: new TextEncoder().encode('✓') }] })).toEqual({
         page: 'p.htm',
         files: [{ path: 'p.htm', content: '✓' }],
         reads: [],
-        warnings: [],
+        checks: [],
+        issues: [],
       });
     });
 
-    it('Accepts build errors', () => {
-      expect(checkBuildResult({ errors: [{ message: 'x', path: 'a.js', line: 2 }], reads: [] })).toEqual({
-        errors: [{ message: 'x', path: 'a.js', line: 2 }],
+    it('Accepts errors of the build itself, with no files', () => {
+      const issues = [
+        { severity: 'error', message: 'x', path: 'a.js', line: 2 },
+        { severity: 'warning', message: 'w' },
+      ];
+      expect(checkBuildResult({ issues, reads: [] })).toEqual({ reads: [], checks: [], issues });
+    });
+
+    it("Accepts files beside a check's errors and warnings, and the build's warnings", () => {
+      // See SPEC-S12 D508: errors that all name a check leave the files usable
+      const issues = [
+        { severity: 'error', message: 'x', check: 'type check' },
+        { severity: 'warning', message: 'y', check: 'type check' },
+        { severity: 'warning', message: 'w' },
+      ];
+      expect(checkBuildResult({ page: 'index.html', files: [page], checks: ['type check', 'lint'], issues })).toEqual({
+        page: 'index.html',
+        files: [page],
         reads: [],
-        warnings: [],
-      });
-    });
-
-    it('Accepts warnings with either outcome, and rejects invalid ones', () => {
-      const warnings = [{ message: 'w', path: 'a.js', line: 3 }];
-      expect(checkBuildResult({ errors: [{ message: 'x' }], warnings })).toEqual({ errors: [{ message: 'x' }], reads: [], warnings });
-      expect(checkBuildResult({ page: 'index.html', files: [page], warnings })).toEqual({ page: 'index.html', files: [page], reads: [], warnings });
-      expect(checkBuildResult({ page: 'index.html', files: [page], warnings: 'w' })).toEqual({
-        problem: '"warnings" must be a list of build errors, each with a message',
-      });
-      expect(checkBuildResult({ page: 'index.html', files: [page], warnings: [{ path: 'a.js' }] })).toEqual({
-        problem: '"warnings" must be a list of build errors, each with a message',
+        checks: ['type check', 'lint'],
+        issues,
       });
     });
 
     it('Rejects invalid results', () => {
       const problem = (result: unknown) => (checkBuildResult(result) as { problem?: string }).problem;
+      const error = { severity: 'error', message: 'x' };
       expect(problem(undefined)).toBe('it is not an object');
-      expect(problem({ errors: [] })).toBe('"errors" must be a list of build errors, not empty');
-      expect(problem({ errors: [{}] })).toBe('every build error must have a message');
       expect(problem({ page: 'index.html', files: [page], reads: 'x' })).toBe('"reads" must be a list of paths');
-      expect(problem({ page: 'index.html' })).toBe('"files" must be a list of files');
+      for (const checks of ['type check', [''], ['a', 'a'], [1]]) {
+        expect(problem({ page: 'index.html', files: [page], checks })).toBe('"checks" must be a list of distinct, non-empty names');
+      }
+      for (const issues of [error, [{ message: 'x' }], [{ severity: 'fatal', message: 'x' }], [{ severity: 'error' }], [{ ...error, check: 1 }]]) {
+        expect(problem({ issues })).toBe('"issues" must be a list of build issues, each with a severity ("error" or "warning") and a message');
+      }
+      // See PLAN-P15.2 D555: checks are validated strictly
+      expect(problem({ page: 'index.html', files: [page], issues: [{ ...error, check: 'type check' }] })).toBe(
+        'an issue names the check "type check", which "checks" doesn\'t list',
+      );
+      expect(problem({ page: 'index.html', files: [page], issues: [error] })).toBe(
+        'an error naming no check means there are no files: leave out "page" and "files"',
+      );
+      expect(problem({ page: 'index.html', issues: [error] })).toBe('an error naming no check means there are no files: leave out "page" and "files"');
+      expect(problem({ checks: ['type check'], issues: [{ ...error, check: 'type check' }] })).toBe(
+        '"files" must be a list of files, unless an error names no check',
+      );
+      expect(problem({ page: 'index.html' })).toBe('"files" must be a list of files, unless an error names no check');
       expect(problem({ page: 'index.html', files: [page, { path: '../x.css', content: '' }] })).toBe(
         'invalid file path "../x.css": use a relative, POSIX-style path',
       );
@@ -226,8 +248,9 @@ describe('showcases', () => {
     });
   });
 
-  describe('Build errors', () => {
-    // Tests where a build error is reported: a showcase in a documentation file at line 10, with a virtual file fenced at line 20 of another one.
+  describe('Build issues', () => {
+    // Tests where a build issue is reported, and how: a showcase in a documentation file at line 10, with a virtual file fenced at line 20 of
+    // another one.
 
     const showcase: Showcase = {
       id: 'docs/guide.md#2',
@@ -244,23 +267,26 @@ describe('showcases', () => {
     const message = 'Showcase docs/guide.md#2 (docs/guide.md:10): Broke';
 
     it('Places an error in a virtual file in its documentation file, below the fence', () => {
-      expect(getBuildErrorIssue(showcase, virtualFiles, { message: 'Broke', path: 'docs/style.css', line: 3 })).toEqual({
+      expect(getBuildIssue(showcase, virtualFiles, { severity: 'error', message: 'Broke', path: 'docs/style.css', line: 3 })).toEqual({
         severity: 'error',
         message,
         path: 'docs/other.md',
         line: 23,
       });
-      expect(getBuildErrorIssue(showcase, virtualFiles, { message: 'Broke', path: 'docs/style.css' })).toMatchObject({ path: 'docs/other.md', line: 20 });
+      expect(getBuildIssue(showcase, virtualFiles, { severity: 'error', message: 'Broke', path: 'docs/style.css' })).toMatchObject({
+        path: 'docs/other.md',
+        line: 20,
+      });
     });
 
-    it('Places a warning as an error, as a warning', () => {
-      expect(getBuildErrorIssue(showcase, virtualFiles, { message: 'Broke', path: 'docs/style.css', line: 3 }, 'warning')).toEqual({
+    it('Places a warning as an error, keeping its severity', () => {
+      expect(getBuildIssue(showcase, virtualFiles, { severity: 'warning', message: 'Broke', path: 'docs/style.css', line: 3 })).toEqual({
         severity: 'warning',
         message,
         path: 'docs/other.md',
         line: 23,
       });
-      expect(getBuildErrorIssue(showcase, virtualFiles, { message: 'Broke' }, 'warning')).toMatchObject({
+      expect(getBuildIssue(showcase, virtualFiles, { severity: 'warning', message: 'Broke' })).toMatchObject({
         severity: 'warning',
         path: 'docs/guide.md',
         line: 10,
@@ -268,23 +294,33 @@ describe('showcases', () => {
     });
 
     it('Places an error in a real file there', () => {
-      expect(getBuildErrorIssue(showcase, virtualFiles, { message: 'Broke', path: 'src/a.ts', line: 4 })).toEqual({
+      expect(getBuildIssue(showcase, virtualFiles, { severity: 'error', message: 'Broke', path: 'src/a.ts', line: 4 })).toEqual({
         severity: 'error',
         message,
         path: 'src/a.ts',
         line: 4,
       });
-      expect(getBuildErrorIssue(showcase, virtualFiles, { message: 'Broke', path: 'src/a.ts', line: 0 })).toEqual({
+      expect(getBuildIssue(showcase, virtualFiles, { severity: 'error', message: 'Broke', path: 'src/a.ts', line: 0 })).toEqual({
         severity: 'error',
         message,
         path: 'src/a.ts',
       });
     });
 
+    it("Names an issue's check in its message, and keeps it", () => {
+      expect(getBuildIssue(showcase, virtualFiles, { severity: 'error', message: 'Broke', path: 'src/a.ts', line: 4, check: 'type check' })).toEqual({
+        severity: 'error',
+        message: 'Showcase docs/guide.md#2 (docs/guide.md:10): type check: Broke',
+        path: 'src/a.ts',
+        line: 4,
+        check: 'type check',
+      });
+    });
+
     it('Places an error without a valid path at the entry point', () => {
       const atEntry = { severity: 'error', message, path: 'docs/guide.md', line: 10 };
-      expect(getBuildErrorIssue(showcase, virtualFiles, { message: 'Broke' })).toEqual(atEntry);
-      expect(getBuildErrorIssue(showcase, virtualFiles, { message: 'Broke', path: '../outside.js', line: 2 })).toEqual(atEntry);
+      expect(getBuildIssue(showcase, virtualFiles, { severity: 'error', message: 'Broke' })).toEqual(atEntry);
+      expect(getBuildIssue(showcase, virtualFiles, { severity: 'error', message: 'Broke', path: '../outside.js', line: 2 })).toEqual(atEntry);
     });
   });
 });

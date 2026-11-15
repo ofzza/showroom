@@ -2,5 +2,5 @@
 export default () => ({
   validate: (showcase) => (showcase.options === undefined ? { errors: [] } : { errors: ['needy takes no options'] }),
   check: (_root, showcases) => ({ errors: ['needs "left-pad" installed'], warnings: [`checked ${showcases.map((showcase) => showcase.id).join(', ')}`] }),
-  build: async () => ({ errors: [{ message: 'not built' }], reads: [] }),
+  build: async () => ({ issues: [{ severity: 'error', message: 'not built' }], reads: [] }),
 });

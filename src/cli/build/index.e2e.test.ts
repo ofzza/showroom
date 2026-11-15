@@ -204,7 +204,7 @@ describe('cli/build (end to end)', () => {
     const { code, stdout, stderr } = await run(root);
     expect(code).toBe(1);
     expect(stdout).toBe('');
-    expect(stderr).toContain("error: README.md:6: Showcase README.md#1 (README.md:5): TS7006: Parameter 'value' implicitly has an 'any' type.\n");
+    expect(stderr).toContain("error: README.md:6: Showcase README.md#1 (README.md:5): type check: TS7006: Parameter 'value' implicitly has an 'any' type.\n");
     expect(await readdir(root)).not.toContain('showroom');
   });
 

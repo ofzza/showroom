@@ -168,8 +168,9 @@ describe('adapters/showcase/angular', () => {
       });
       expect(result).toEqual({
         reads: ['README.md'],
-        errors: [
+        issues: [
           {
+            severity: 'error',
             message:
               'the angular showcases of "." can\'t be built: "@angular/core", "@angular/common", "@angular/compiler", "@angular/compiler-cli", "@angular/platform-browser" isn\'t installed where it can be found: install it',
           },

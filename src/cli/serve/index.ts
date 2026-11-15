@@ -102,8 +102,8 @@ export function getWatchTargets(watched: readonly string[], matcher: Ignore | un
 // #region Showcase frames
 
 /**
- * Gets the showcase frames `serve` serves after building the showcases: each showcase's showcase frame, or the showcase frame showing its build
- * errors when it didn't build, in showcase order
+ * Gets the showcase frames `serve` serves after building the showcases: the showcase frame showing a showcase's errors when it has any, whether
+ * it built or not (e.g. a type check's errors beside its files), else its showcase frame, in showcase order
  * @param host Host information of the check the showcases were built for
  * @param built The outcome of building them
  * @returns The showcase frames, by showcase id
@@ -113,8 +113,8 @@ export function getServedFrames(host: HostInformation, built: Pick<BuildShowcase
   for (const showcase of host.showcases) {
     const frame = built.frames.get(showcase.id);
     const errors = built.errors.get(showcase.id);
-    if (frame) frames.set(showcase.id, frame);
-    else if (errors) frames.set(showcase.id, getErrorFrame(showcase, errors));
+    if (errors) frames.set(showcase.id, getErrorFrame(showcase, errors));
+    else if (frame) frames.set(showcase.id, frame);
   }
   return frames;
 }

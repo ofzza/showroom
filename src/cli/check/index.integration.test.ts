@@ -55,6 +55,10 @@ describe('cli/check (integration)', () => {
       'src/widget.js:2: Showcase README.md#1 (README.md:5): Widget broke',
       'README.md:12: Showcase README.md#2 (README.md:12): Showcase adapter "throwing" failed to build the showcase: build broke',
       'README.md:18: Showcase README.md#3 (README.md:18): Showcase adapter "invalid" returned an invalid build result: the page "missing.html" is not among the files',
+      'README.md:31: Showcase README.md#5 (README.md:30): lint: Unused variable',
+      'README.md:36: Showcase README.md#6 (README.md:36): Showcase adapter "checked" returned an invalid build result: an issue names the check "lint", which "checks" doesn\'t list',
+      // The warnings come last, and fail nothing
+      'README.md:30: Showcase README.md#5 (README.md:30): lint: Long line',
     ]);
   });
 

@@ -203,7 +203,7 @@ export class ReactShowcaseAdapter implements ShowcaseAdapter {
    * Builds a showcase's showcase frame, in memory: its mount module, with the entry point and everything it imports, through the `ts` showcase
    * adapter's build (see buildTsShowcase()), with JSX's automatic runtime pinned, and `jsx: react-jsx` as the type check's default
    * @param request What to build, and where it may write scratch files
-   * @returns The showcase frame's files, or the build errors
+   * @returns The showcase frame's files, its checks and its issues (see buildTsShowcase())
    */
   public build(request: ShowcaseBuildRequest): Promise<ShowcaseBuildResult> {
     const input = getMountModulePath(request.root, request.showcase.entry);

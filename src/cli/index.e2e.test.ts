@@ -143,7 +143,7 @@ describe('cli (end to end)', () => {
       expect(stderr).toBe('');
     });
 
-    it('Reports every build error on stderr, and fails', async () => {
+    it('Reports every build issue on stderr, with its check, and fails', async () => {
       const root = await copy('showcase-build-errors');
       const { code, stdout, stderr } = await _run(['check', '--showcases', '--root', root]);
       expect(code).toBe(1);
@@ -156,6 +156,10 @@ describe('cli (end to end)', () => {
           'error: src/widget.js:2: Showcase README.md#1 (README.md:5): Widget broke',
           'error: README.md:12: Showcase README.md#2 (README.md:12): Showcase adapter "throwing" failed to build the showcase: build broke',
           'error: README.md:18: Showcase README.md#3 (README.md:18): Showcase adapter "invalid" returned an invalid build result: the page "missing.html" is not among the files',
+          // A check's error names it (D556, .workflow/PLAN-P15.2-checks-and-issues.md)
+          'error: README.md:31: Showcase README.md#5 (README.md:30): lint: Unused variable',
+          'error: README.md:36: Showcase README.md#6 (README.md:36): Showcase adapter "checked" returned an invalid build result: an issue names the check "lint", which "checks" doesn\'t list',
+          'warning: README.md:30: Showcase README.md#5 (README.md:30): lint: Long line',
           '',
         ].join('\n'),
       );

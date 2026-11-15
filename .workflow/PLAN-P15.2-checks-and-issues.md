@@ -1,6 +1,6 @@
 # _`P15.2`_ Checks and issues in the adapter result
 
-approved 2026-11-15 (option chosen: "Approve and commit (Rec.)"), without a zero-context review
+implemented 2026-11-15 (option chosen: "Approve and commit (Rec.)"); approved 2026-11-15 (option chosen: "Approve and commit (Rec.)"), without a zero-context review
 
 ## Goals
 

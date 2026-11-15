@@ -42,6 +42,10 @@ export interface CheckIssue {
    * Line of the file at `path` the issue concerns, from 1, if it concerns one
    */
   line?: number;
+  /**
+   * Name of the check a showcase's issue belongs to (e.g. `type check`), as its showcase adapter reported it, if it belongs to one
+   */
+  check?: string;
 }
 
 /**

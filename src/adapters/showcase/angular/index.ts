@@ -7,10 +7,10 @@
 
 import { basename, resolve } from 'node:path';
 import type { Showcase } from '../../../host/index.js';
-import type { ShowcaseAdapter, ShowcaseBuildError, ShowcaseBuildRequest, ShowcaseBuildResult, ShowcaseHostCheck, ShowcaseValidation } from '../index.js';
+import type { ShowcaseAdapter, ShowcaseBuildRequest, ShowcaseBuildResult, ShowcaseHostCheck, ShowcaseValidation } from '../index.js';
 import { getMountModulePath } from '../react/index.js';
 import { SHOWCASE_FRAME_ROOT_ID } from '../ts/console/index.js';
-import { buildTsShowcase, validateTsShowcaseOptions, type GeneratedModule } from '../ts/index.js';
+import { buildTsShowcase, toBuildIssues, TYPE_CHECK, validateTsShowcaseOptions, type GeneratedModule } from '../ts/index.js';
 import { getDocumentationFolder, resolvePackage, resolveTypeScript } from '../ts/typecheck/index.js';
 import {
   compileAngularShowcase,
@@ -194,10 +194,11 @@ export class AngularShowcaseAdapter implements ShowcaseAdapter {
   /**
    * Builds a showcase's showcase frame, in memory: finds the host's Angular again (failing the showcase when it is gone), compiles the showcase
    * (see compileAngularShowcase()), and when nothing in the compile always fails, bundles its mount module through the `ts` showcase adapter's build
-   * (see buildTsShowcase()) with the emitted modules, the Linker and the mode's defines, its own type check off; a failed bundle returns its errors
-   * alone, else the compile's type errors fail the showcase; the compile's warnings and reads join the bundle's
+   * (see buildTsShowcase()) with the emitted modules, the Linker and the mode's defines, its own type check off. A failed compile or bundle returns
+   * its errors alone, with no checks; otherwise, with `typeCheck` on, the compile's type errors and warnings name the `type check`, beside the files;
+   * the compile's reads join the bundle's
    * @param request What to build, and where it may write scratch files
-   * @returns The showcase frame's files, or the build errors
+   * @returns The showcase frame's files, its checks and its issues
    */
   public async build(request: ShowcaseBuildRequest): Promise<ShowcaseBuildResult> {
     const { root, showcase, mode } = request;
@@ -209,7 +210,7 @@ export class AngularShowcaseAdapter implements ShowcaseAdapter {
     const found = findAngular(resolve(root, folder), this._resolvePackage);
     const zoneFound = options.zone && this._resolvePackage(resolve(root, folder), 'zone.js') !== undefined;
     const problems = _getFolderProblems(found, folder, options.zone, zoneFound);
-    if (problems.length || !found.typeScript) return { reads: [read], errors: problems.map((message) => ({ message })) };
+    if (problems.length || !found.typeScript) return { reads: [read], issues: problems.map((message) => ({ severity: 'error', message })) };
     const compilerCli = found.packages['@angular/compiler-cli']!.folder;
     const loaded = await loadAngular(compilerCli, found.typeScript.folder);
 
@@ -217,13 +218,9 @@ export class AngularShowcaseAdapter implements ShowcaseAdapter {
     const compiled = await compileAngularShowcase({ loaded, root, showcase, virtualFiles: request.hostVirtualFiles, typeCheck: options.typeCheck });
     const entry = resolve(root, showcase.entry).split('\\').join('/');
     const reads = new Set([read, ...compiled.reads]);
-    const warnings = (more: readonly ShowcaseBuildError[] = []) => {
-      const all = [...compiled.warnings, ...more];
-      return all.length ? { warnings: all } : {};
-    };
     if (compiled.errors.length || !compiled.emitted.has(entry)) {
       const errors = compiled.errors.length ? compiled.errors : [{ message: "Angular's compiler emitted nothing for the entry point" }];
-      return { reads: [...reads], errors, ...warnings() };
+      return { reads: [...reads], issues: toBuildIssues('error', errors) };
     }
 
     // The bundle, from the mount module
@@ -240,10 +237,13 @@ export class AngularShowcaseAdapter implements ShowcaseAdapter {
       resolveTypeScript,
     });
     result.reads.forEach((path) => reads.add(path));
-    const bundled = { reads: [...reads], ...warnings(result.warnings) };
-    if (result.errors?.length) return { ...bundled, errors: result.errors };
-    if (compiled.typeErrors.length) return { ...bundled, errors: compiled.typeErrors };
-    return { ...result, ...bundled };
+    if (!result.files || !options.typeCheck) return { ...result, reads: [...reads] };
+    const issues = [
+      ...toBuildIssues('error', compiled.typeErrors, TYPE_CHECK),
+      ...toBuildIssues('warning', compiled.warnings, TYPE_CHECK),
+      ...(result.issues ?? []),
+    ];
+    return { ...result, reads: [...reads], checks: [TYPE_CHECK], ...(issues.length ? { issues } : {}) };
   }
 }
 

@@ -78,14 +78,22 @@ describe('adapters/showcase/react (integration)', () => {
   });
 
   it('Fails a showcase without a default export at its entry point, and reports type errors in TSX', async () => {
-    const { frames, errors } = await _build(join(FIXTURES, 'showcase-react-errors'));
-    expect([...frames.keys()]).toEqual([]);
+    const { frames, errors, checks } = await _build(join(FIXTURES, 'showcase-react-errors'));
+    // A type error leaves the files usable; a missing default export fails the bundle, which runs no type check
+    expect([...frames.keys()]).toEqual(['README.md#2']);
+    expect(Object.fromEntries(checks)).toEqual({ 'README.md#1': [], 'README.md#2': ['type check'], 'README.md#3': [] });
     expect(Object.fromEntries(errors)).toEqual({
       'README.md#1': [
         { severity: 'error', message: expect.stringContaining('"default" is not exported by "README.showcase-1.tsx"'), path: 'README.md', line: 6 },
       ],
       'README.md#2': [
-        { severity: 'error', message: expect.stringContaining("TS2322: Type 'string' is not assignable to type 'number'."), path: 'README.md', line: 15 },
+        {
+          severity: 'error',
+          message: expect.stringContaining("type check: TS2322: Type 'string' is not assignable to type 'number'."),
+          path: 'README.md',
+          line: 15,
+          check: 'type check',
+        },
       ],
       'README.md#3': [
         { severity: 'error', message: expect.stringContaining('"default" is not exported by "demos/NoDefault.tsx"'), path: 'demos/NoDefault.tsx', line: 1 },

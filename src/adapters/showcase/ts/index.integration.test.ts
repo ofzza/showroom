@@ -129,9 +129,12 @@ describe('adapters/showcase/ts (integration)', () => {
   });
 
   it('Reports build errors at their lines, and warnings, and builds the other showcases', async () => {
-    const { frames, errors, warnings, issues, watched } = await _build('showcase-ts-errors');
+    const { frames, errors, warnings, checks, issues, watched } = await _build('showcase-ts-errors');
     expect(issues).toEqual([]);
     expect([...frames.keys()]).toEqual(['README.md#6']);
+    // A failed bundle runs no type check, so it lists none (D537, .workflow/SPEC-S12-showcase-views.md)
+    expect([...errors.keys()].map((id) => checks.get(id))).toEqual([...errors.keys()].map(() => []));
+    expect(checks.get('README.md#6')).toEqual(['type check']);
     const error = (id: string, line: number, message: string, path: string, at: number) => [
       id,
       [{ severity: 'error', message: `Showcase ${id} (README.md:${line}): ${message}`, path, line: at }],
@@ -159,11 +162,11 @@ describe('adapters/showcase/ts (integration)', () => {
   it('Fails showcases on the type errors of the files they reach, at their lines', async () => {
     // The `showcase-ts-types` fixture: a strict root tsconfig with rootDir, composite and outDir (dropped), including `src/` (whose declarations type
     // an asset and import.meta.env); a nearer tsconfig turning noImplicitAny off in `docs/nested/`
-    const { frames, errors, warnings, issues, watched } = await _build('showcase-ts-types');
+    const { frames, errors, warnings, checks, issues, watched } = await _build('showcase-ts-types');
     expect(issues).toEqual([]);
     const error = (id: string, line: number, message: string, path: string, at: number) => [
       id,
-      [{ severity: 'error', message: `Showcase ${id} (README.md:${line}): ${message}`, path, line: at }],
+      [{ severity: 'error', message: `Showcase ${id} (README.md:${line}): type check: ${message}`, path, line: at, check: 'type check' }],
     ];
     const assign = (from: string, to: string) => `TS2322: Type '${from}' is not assignable to type '${to}'.`;
     expect([...errors]).toEqual([
@@ -184,8 +187,12 @@ describe('adapters/showcase/ts (integration)', () => {
       ),
       error('README.md#11', 68, assign('number', 'string'), 'README.md', 70),
     ]);
-    // typeCheck off, a JavaScript entry point, allowJs, the host's declarations, and the nearer tsconfig
-    expect([...frames.keys()]).toEqual(['README.md#6', 'README.md#7', 'README.md#9', 'README.md#10', 'docs/nested/guide.md#1']);
+    // Type errors leave the files usable (D508, .workflow/SPEC-S12-showcase-views.md): every showcase built
+    expect([...frames.keys()]).toEqual([...checks.keys()]);
+    expect(frames.size).toBe(12);
+    // Every showcase ran its type check, but the one with typeCheck off (D557, .workflow/PLAN-P15.2-checks-and-issues.md)
+    expect([...checks].filter(([, names]) => !names.length).map(([id]) => id)).toEqual(['README.md#6']);
+    expect([...checks].every(([, names]) => !names.length || (names.length === 1 && names[0] === 'type check'))).toBe(true);
     // A failed type check keeps the bundle's warnings
     expect(warnings.map(({ message, path, line }) => ({ message, path, line }))).toEqual([
       {
@@ -217,9 +224,10 @@ describe('adapters/showcase/ts (integration)', () => {
     expect(errors.get('README.md#1')).toEqual([
       {
         severity: 'error',
-        message: "Showcase README.md#1 (README.md:5): TS7006: Parameter 'value' implicitly has an 'any' type.",
+        message: "Showcase README.md#1 (README.md:5): type check: TS7006: Parameter 'value' implicitly has an 'any' type.",
         path: 'README.md',
         line: 6,
+        check: 'type check',
       },
     ]);
   });
@@ -289,7 +297,7 @@ describe('adapters/showcase/ts (integration)', () => {
         'README.showcase-1.ts': "import { present } from './compiled-helper.ts';\nconsole.log('entry');\n",
         'compiled-helper.ts': "export const present = 1;\nconsole.log('helper');\n",
       });
-      expect(result.errors).toBeUndefined();
+      expect(result.issues).toBeUndefined();
       expect(Object.keys(transformed).sort()).toEqual(['README.showcase-1.ts', 'compiled-helper.ts']);
       expect(result.reads).toEqual(['README.md', 'compiled-helper.ts']);
     });
@@ -300,7 +308,10 @@ describe('adapters/showcase/ts (integration)', () => {
         'README.showcase-1.ts': "import { missing } from './compiled-helper.ts';\nconsole.log(missing);\n",
         'compiled-helper.ts': 'export const present = 1;\n',
       });
-      expect(result.errors).toEqual([{ message: expect.stringContaining('"missing" is not exported') as string, path: 'README.showcase-1.ts' }]);
+      expect(result.issues).toEqual([
+        { severity: 'error', message: expect.stringContaining('"missing" is not exported') as string, path: 'README.showcase-1.ts' },
+      ]);
+      expect(result.files).toBeUndefined();
     });
   });
 });

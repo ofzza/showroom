@@ -11,8 +11,8 @@ import { SILENCED_WARNINGS } from '../../../cli/check/internal/index.js';
 import type { Showcase, VirtualFile } from '../../../host/index.js';
 import type {
   ShowcaseAdapter,
-  ShowcaseBuildError,
   ShowcaseBuildFile,
+  ShowcaseBuildIssue,
   ShowcaseBuildRequest,
   ShowcaseBuildResult,
   ShowcaseHostCheck,
@@ -26,6 +26,7 @@ import {
   loadTypeScript,
   resolveTypeScript,
   typeCheckShowcase,
+  type ShowcaseBuildMessage,
   type SourceFileCache,
   type TypeScriptResolver,
 } from './typecheck/index.js';
@@ -290,7 +291,7 @@ async function _readSource(virtualFiles: VirtualFilesByPath, path: string): Prom
  * @param errors Build errors to add the unresolved imports to
  * @returns The Vite plugin
  */
-export function createVirtualFilesPlugin(root: string, virtualFiles: VirtualFilesByPath, errors: ShowcaseBuildError[]): Plugin {
+export function createVirtualFilesPlugin(root: string, virtualFiles: VirtualFilesByPath, errors: ShowcaseBuildMessage[]): Plugin {
   return {
     name: 'showroom-virtual-files',
     enforce: 'pre',
@@ -315,7 +316,7 @@ export function createVirtualFilesPlugin(root: string, virtualFiles: VirtualFile
       const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
       if (resolved) return resolved;
       const line = getImportLine((await _readSource(virtualFiles, importerPath)) ?? '', source);
-      const error: ShowcaseBuildError = { message: `Can't resolve "${source}"`, path, ...(line ? { line } : {}) };
+      const error: ShowcaseBuildMessage = { message: `Can't resolve "${source}"`, path, ...(line ? { line } : {}) };
       errors.push(error);
       this.error(error.message);
     },
@@ -369,7 +370,11 @@ export function createGeneratedModulesPlugin(modules: ReadonlyMap<string, Genera
  * @param errors The build errors
  * @returns The build errors, placed
  */
-export function placeGeneratedModuleErrors(root: string, modules: ReadonlyMap<string, GeneratedModule>, errors: ShowcaseBuildError[]): ShowcaseBuildError[] {
+export function placeGeneratedModuleErrors(
+  root: string,
+  modules: ReadonlyMap<string, GeneratedModule>,
+  errors: ShowcaseBuildMessage[],
+): ShowcaseBuildMessage[] {
   const byPath = new Map([...modules].map(([path, module]) => [_relativeToRoot(root, path), module.errorsAt]));
   return errors.map((error) => {
     const errorsAt = error.path === undefined ? undefined : byPath.get(error.path);
@@ -390,8 +395,8 @@ export function placeCompiledModuleErrors(
   root: string,
   virtualFiles: VirtualFilesByPath,
   compiled: ReadonlySet<string>,
-  errors: ShowcaseBuildError[],
-): ShowcaseBuildError[] {
+  errors: ShowcaseBuildMessage[],
+): ShowcaseBuildMessage[] {
   const paths = new Set([...compiled].map((path) => getHostPath(root, virtualFiles, path)));
   return errors.map(({ line, ...error }) => (line === undefined || (error.path !== undefined && paths.has(error.path)) ? error : { ...error, line }));
 }
@@ -477,7 +482,7 @@ interface _BundlerError {
  * @param error The bundler's error or warning
  * @returns The build error
  */
-async function _mapError(root: string, virtualFiles: VirtualFilesByPath, error: _BundlerError): Promise<ShowcaseBuildError> {
+async function _mapError(root: string, virtualFiles: VirtualFilesByPath, error: _BundlerError): Promise<ShowcaseBuildMessage> {
   const text = _stripAnsi(typeof error.message === 'string' ? error.message : String(error));
   const shown = /╭─\[\s*(.+?):(\d+):(\d+)\s*\]/.exec(text);
   let id = typeof error.id === 'string' ? error.id : typeof error.loc?.file === 'string' ? error.loc.file : undefined;
@@ -507,7 +512,7 @@ async function _mapError(root: string, virtualFiles: VirtualFilesByPath, error: 
  * @param error The error thrown
  * @returns The build errors
  */
-export async function getBuildErrors(root: string, virtualFiles: VirtualFilesByPath, error: unknown): Promise<ShowcaseBuildError[]> {
+export async function getBuildErrors(root: string, virtualFiles: VirtualFilesByPath, error: unknown): Promise<ShowcaseBuildMessage[]> {
   const nested = (error as _BundlerError | undefined)?.errors;
   const errors = Array.isArray(nested) && nested.length ? nested : [error];
   return Promise.all(
@@ -526,7 +531,7 @@ export async function getBuildWarning(
   root: string,
   virtualFiles: VirtualFilesByPath,
   warning: _BundlerError & { code?: unknown },
-): Promise<ShowcaseBuildError | undefined> {
+): Promise<ShowcaseBuildMessage | undefined> {
   if (typeof warning.code === 'string' && SILENCED_WARNINGS.includes(warning.code)) return undefined;
   return _mapError(root, virtualFiles, warning);
 }
@@ -728,11 +733,28 @@ export interface TsShowcaseBuild {
 }
 
 /**
+ * Name of the check type checking a showcase, as build issues and results name it
+ */
+export const TYPE_CHECK = 'type check';
+
+/**
+ * Turns build or check messages into build issues of one severity, naming a check if they belong to one
+ * @param severity Severity of the issues
+ * @param messages The messages
+ * @param check Name of the check they belong to, if any
+ * @returns The build issues
+ */
+export function toBuildIssues(severity: ShowcaseBuildIssue['severity'], messages: readonly ShowcaseBuildMessage[], check?: string): ShowcaseBuildIssue[] {
+  return messages.map((message) => ({ severity, ...message, ...(check === undefined ? {} : { check }) }));
+}
+
+/**
  * Builds a showcase with `showroom`'s own Vite, in memory: its virtual files and generated modules as modules (and what the showcase adapter's own
  * plugins load, e.g. compiled modules), then (unless `typeCheck` is off) type checks it with the host's TypeScript, and puts the bundle's entry
- * chunk into the `ts` page; the `ts`, `react` and `angular` showcase adapters all build through it
+ * chunk into the `ts` page; the `ts`, `react` and `angular` showcase adapters all build through it. A failed bundle returns its errors alone, and
+ * no checks; a type check that ran is listed in `checks` (`type check`), its errors named after it, beside the files
  * @param build What to build
- * @returns The showcase frame's files, or the build errors, with the files the build read
+ * @returns The showcase frame's files, its checks and its issues, with the files the build read
  */
 export async function buildTsShowcase({
   request: { root, showcase, options, hostVirtualFiles, mode, scratchFolder },
@@ -749,9 +771,9 @@ export async function buildTsShowcase({
   const vite = await import('vite');
   const virtualFiles = getVirtualFilesByPath(root, hostVirtualFiles);
   const reads = new Set<string>([showcase.kind === 'code-block' ? showcase.documentation : showcase.entry]);
-  const unresolved: ShowcaseBuildError[] = [];
-  const pending: Promise<ShowcaseBuildError | undefined>[] = [];
-  const place = (errors: ShowcaseBuildError[]) => placeGeneratedModuleErrors(root, generated, errors);
+  const unresolved: ShowcaseBuildMessage[] = [];
+  const pending: Promise<ShowcaseBuildMessage | undefined>[] = [];
+  const place = (errors: ShowcaseBuildMessage[]) => placeGeneratedModuleErrors(root, generated, errors);
   const settle = async () =>
     place(
       placeCompiledModuleErrors(
@@ -792,12 +814,19 @@ export async function buildTsShowcase({
     const errors = place(
       unresolved.length ? unresolved : placeCompiledModuleErrors(root, virtualFiles, compiled, await getBuildErrors(root, virtualFiles, err)),
     );
-    const warnings = await settle();
-    return { reads: [...reads], errors, ...(warnings.length ? { warnings } : {}) };
+    return { reads: [...reads], issues: [...toBuildIssues('error', errors), ...toBuildIssues('warning', await settle())] };
   }
-  const warnings = await settle();
+  const warnings = toBuildIssues('warning', await settle());
 
-  // The type check, after a successful bundle
+  // The page around the bundle's entry chunk, and every chunk and asset next to it
+  const entry = output.output.find((item): item is Rolldown.OutputChunk => item.type === 'chunk' && item.isEntry);
+  if (!entry) return { reads: [...reads], issues: [{ severity: 'error', message: 'The build has no entry chunk' }, ...warnings] };
+  const files: ShowcaseBuildFile[] = [
+    { path: TS_PAGE, content: getTsPage(entry.fileName, [...(entry.viteMetadata?.importedCss ?? [])]) },
+    ...output.output.map((item) => ({ path: item.fileName, content: item.type === 'chunk' ? item.code : item.source })),
+  ];
+
+  // The type check, after a successful bundle: its errors leave the files usable
   const { typeCheck = true, allowJs = false } = (options ?? {}) as Partial<TsShowcaseOptions>;
   const found = typeCheck && checking !== false ? findTypeScript(resolve(root, getDocumentationFolder(showcase.documentation)), resolver) : undefined;
   if (found?.support === 'supported') {
@@ -812,17 +841,10 @@ export async function buildTsShowcase({
       sourceFiles,
     });
     checked.reads.forEach((path) => reads.add(path));
-    if (checked.errors.length) return { reads: [...reads], errors: checked.errors, ...(warnings.length ? { warnings } : {}) };
+    const issues = [...toBuildIssues('error', checked.errors, TYPE_CHECK), ...warnings];
+    return { page: TS_PAGE, files, reads: [...reads], checks: [TYPE_CHECK], ...(issues.length ? { issues } : {}) };
   }
-
-  // The page around the bundle's entry chunk, and every chunk and asset next to it
-  const entry = output.output.find((item): item is Rolldown.OutputChunk => item.type === 'chunk' && item.isEntry);
-  if (!entry) return { reads: [...reads], errors: [{ message: 'The build has no entry chunk' }] };
-  const files: ShowcaseBuildFile[] = [
-    { path: TS_PAGE, content: getTsPage(entry.fileName, [...(entry.viteMetadata?.importedCss ?? [])]) },
-    ...output.output.map((item) => ({ path: item.fileName, content: item.type === 'chunk' ? item.code : item.source })),
-  ];
-  return { page: TS_PAGE, files, reads: [...reads], ...(warnings.length ? { warnings } : {}) };
+  return { page: TS_PAGE, files, reads: [...reads], ...(warnings.length ? { issues: warnings } : {}) };
 }
 
 // #endregion
@@ -873,7 +895,7 @@ export class TsShowcaseAdapter implements ShowcaseAdapter {
   /**
    * Builds a showcase's showcase frame, in memory (see buildTsShowcase())
    * @param request What to build, and where it may write scratch files
-   * @returns The showcase frame's files, or the build errors
+   * @returns The showcase frame's files, its checks and its issues (see buildTsShowcase())
    */
   public build(request: ShowcaseBuildRequest): Promise<ShowcaseBuildResult> {
     return buildTsShowcase({ request, sourceFiles: this._sourceFiles, resolveTypeScript: this._resolveTypeScript });

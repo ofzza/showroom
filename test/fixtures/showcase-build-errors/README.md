@@ -24,3 +24,15 @@ A showcase that builds:
 ```html showcase
 <p>Builds fine</p>
 ```
+
+A showcase whose check fails beside its files:
+
+```js showcase=checked
+const unused = 1;
+```
+
+A showcase whose showcase adapter names a check it doesn't list:
+
+```js showcase=checked({ unlisted: true })
+const unused = 1;
+```

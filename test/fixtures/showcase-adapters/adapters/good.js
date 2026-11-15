@@ -2,5 +2,5 @@
 export default () => ({
   validate: (showcase) => ({ options: showcase.options, errors: [] }),
   check: () => ({ errors: ['good needs nothing, but says so'], warnings: [] }),
-  build: async () => ({ errors: [{ message: 'not built' }], reads: [] }),
+  build: async () => ({ issues: [{ severity: 'error', message: 'not built' }], reads: [] }),
 });

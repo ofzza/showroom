@@ -39,7 +39,7 @@ A linked showcase, shown as a block beside its code: [`planets.json`](./planets.
 
 ## Errors and warnings
 
-`build()` returns errors, failing the showcase, or warnings, failing nothing. They can't be shown live here, as this repository's own check must pass without any. This block, with an unquoted property name:
+`build()` returns issues: errors, failing the showcase, and warnings, failing nothing. An error of the build itself means there are no files; a showcase adapter running checks of its own (e.g. a type check) lists them in `checks`, and names the check of each of their issues, whose errors leave the files usable. `number-table` runs none. They can't be shown live here, as this repository's own check must pass without any. This block, with an unquoted property name:
 
 ````md
 ```json showcase=number-table
@@ -78,7 +78,7 @@ export default () => ({
       { path: 'table.css', content: 'table { … }' },
     ],
     reads: [showcase.entry],
-    warnings: [],
+    issues: [],
   }),
 });
 ```

@@ -28,7 +28,8 @@ async function _build(name: string) {
 describe('showcases (integration)', () => {
   // Builds the showcases of the `showcase-frames` fixture (html pages, a fragment including its folder's virtual file, a linked page including its
   // stylesheet, a named virtual file and a named showcase next to each, and a custom showcase adapter's page with assets) and of the `showcase-build-errors` fixture (a custom
-  // showcase adapter failing with errors, one throwing, one returning an invalid result, and a showcase that builds). The fixtures are only read;
+  // showcase adapter failing with errors, one throwing, one returning an invalid result, a showcase that builds, one whose check fails beside its
+  // files, and one naming a check it doesn't list). The fixtures are only read;
   // the build's temporary folder is in the project's own OS temp folder.
 
   it('Builds every showcase frame, with the frame script in its page', async () => {
@@ -77,10 +78,22 @@ describe('showcases (integration)', () => {
     expect(watched).toEqual(['README.md', 'adapters/assets.js', 'demos/page.css', 'demos/page.html', 'demos/widget.txt']);
   });
 
-  it('Reports every build error by showcase, where it is in the documentation, and builds the other showcases', async () => {
-    const { frames, errors, issues } = await _build('showcase-build-errors');
+  it("Reports every build issue by showcase, where it is in the documentation, with its check, and keeps the files beside a check's errors", async () => {
+    const { frames, errors, warnings, checks, issues } = await _build('showcase-build-errors');
     expect(issues).toEqual([]);
-    expect([...frames.keys()]).toEqual(['README.md#4']);
+    // A check's errors leave its files usable (D508, .workflow/SPEC-S12-showcase-views.md)
+    expect([...frames.keys()]).toEqual(['README.md#4', 'README.md#5']);
+    expect(Object.fromEntries(checks)).toEqual({
+      'README.md#1': [],
+      'README.md#2': [],
+      'README.md#3': [],
+      'README.md#4': [],
+      'README.md#5': ['lint'],
+      'README.md#6': [],
+    });
+    expect(warnings).toEqual([
+      { severity: 'warning', message: 'Showcase README.md#5 (README.md:30): lint: Long line', path: 'README.md', line: 30, check: 'lint' },
+    ]);
     expect(Object.fromEntries(errors)).toEqual({
       'README.md#1': [
         { severity: 'error', message: 'Showcase README.md#1 (README.md:5): Unexpected token', path: 'README.md', line: 7 },
@@ -103,6 +116,16 @@ describe('showcases (integration)', () => {
             'Showcase README.md#3 (README.md:18): Showcase adapter "invalid" returned an invalid build result: the page "missing.html" is not among the files',
           path: 'README.md',
           line: 18,
+        },
+      ],
+      'README.md#5': [{ severity: 'error', message: 'Showcase README.md#5 (README.md:30): lint: Unused variable', path: 'README.md', line: 31, check: 'lint' }],
+      'README.md#6': [
+        {
+          severity: 'error',
+          message:
+            'Showcase README.md#6 (README.md:36): Showcase adapter "checked" returned an invalid build result: an issue names the check "lint", which "checks" doesn\'t list',
+          path: 'README.md',
+          line: 36,
         },
       ],
     });

@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
-import type { ShowcaseAdapter, ShowcaseBuildError, ShowcaseBuildFile } from '../adapters/showcase/index.js';
+import type { ShowcaseAdapter, ShowcaseBuildFile, ShowcaseBuildIssue } from '../adapters/showcase/index.js';
 import { createShowcaseAdapter, loadCustomShowcaseAdapters } from '../adapters/showcase/registry/index.js';
 import type { CheckIssue, CheckIssueSeverity } from '../cli/check/index.js';
 import { CONFIGURATION_FILE_NAME, type Configuration } from '../configuration/index.js';
@@ -198,39 +198,54 @@ function _isLine(line: unknown): line is number {
 }
 
 /**
- * Represents a showcase adapter's build result, once checked
+ * Represents a showcase adapter's build result, once checked: its checks and issues (empty when it has none), with its page and files unless an
+ * error of the build itself (one naming no check) prevented building it
  */
 type _CheckedResult =
-  | { page: string; files: ShowcaseBuildFile[]; reads: string[]; warnings: ShowcaseBuildError[] }
-  | { errors: ShowcaseBuildError[]; reads: string[]; warnings: ShowcaseBuildError[] }
-  | { problem: string };
+  { page?: string; files?: ShowcaseBuildFile[]; reads: string[]; checks: string[]; issues: ShowcaseBuildIssue[]; problem?: undefined } | { problem: string };
 
 /**
- * Checks if a value is a list of build errors (or warnings): each an object with a message
+ * Checks if a value is a list of distinct, non-empty strings
  * @param value The value
  * @returns True if it is one
  */
-function _isBuildErrorList(value: unknown): value is ShowcaseBuildError[] {
-  return Array.isArray(value) && value.every((error) => typeof error === 'object' && error !== null && typeof error.message === 'string');
+function _isNameList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((name) => typeof name === 'string' && !!name) && new Set(value).size === value.length;
 }
 
 /**
- * Checks a showcase adapter's build result: build errors each with a message; or files with valid, unique (case-insensitively) paths, string or
- * byte content, and a page among them that is an `.html` or `.htm` file; and, either way, warnings each with a message, if any
+ * Checks if a value is a build issue: an object with a severity (`error` or `warning`), a message, and a check that is a string, if it has one
+ * @param value The value
+ * @returns True if it is one
+ */
+function _isBuildIssue(value: unknown): value is ShowcaseBuildIssue {
+  if (typeof value !== 'object' || value === null) return false;
+  const { severity, message, check } = value as Record<string, unknown>;
+  return (severity === 'error' || severity === 'warning') && typeof message === 'string' && (check === undefined || typeof check === 'string');
+}
+
+/**
+ * Checks a showcase adapter's build result: its checks, distinct non-empty names; its issues, each with a severity, a message, and a check among
+ * the checks, if it names one; and its files, left out exactly when an error names no check, otherwise with valid, unique (case-insensitively)
+ * paths, string or byte content, and a page among them that is an `.html` or `.htm` file
  * @param result The build result, as the showcase adapter returned it
  * @returns The result, its page's content decoded as UTF-8 when given as bytes; or the problem with it
  */
 export function checkBuildResult(result: unknown): _CheckedResult {
   if (typeof result !== 'object' || result === null) return { problem: 'it is not an object' };
-  const { page, files, reads = [], errors, warnings = [] } = result as Record<string, unknown>;
+  const { page, files, reads = [], checks = [], issues = [] } = result as Record<string, unknown>;
   if (!Array.isArray(reads) || !reads.every((path) => typeof path === 'string')) return { problem: '"reads" must be a list of paths' };
-  if (!_isBuildErrorList(warnings)) return { problem: '"warnings" must be a list of build errors, each with a message' };
-  if (errors !== undefined) {
-    if (!Array.isArray(errors) || !errors.length) return { problem: '"errors" must be a list of build errors, not empty' };
-    if (!_isBuildErrorList(errors)) return { problem: 'every build error must have a message' };
-    return { errors, reads, warnings };
+  if (!_isNameList(checks)) return { problem: '"checks" must be a list of distinct, non-empty names' };
+  if (!Array.isArray(issues) || !issues.every(_isBuildIssue)) {
+    return { problem: '"issues" must be a list of build issues, each with a severity ("error" or "warning") and a message' };
   }
-  if (!Array.isArray(files)) return { problem: '"files" must be a list of files' };
+  const unlisted = issues.find((issue) => issue.check !== undefined && !checks.includes(issue.check));
+  if (unlisted) return { problem: `an issue names the check "${unlisted.check}", which "checks" doesn't list` };
+  if (issues.some((issue) => issue.severity === 'error' && issue.check === undefined)) {
+    if (files !== undefined || page !== undefined) return { problem: 'an error naming no check means there are no files: leave out "page" and "files"' };
+    return { reads, checks, issues };
+  }
+  if (!Array.isArray(files)) return { problem: '"files" must be a list of files, unless an error names no check' };
   const seen = new Set<string>();
   for (const file of files as Record<string, unknown>[]) {
     if (typeof file !== 'object' || file === null || !isValidBuildPath(file.path)) {
@@ -247,7 +262,7 @@ export function checkBuildResult(result: unknown): _CheckedResult {
   const decoded = (files as ShowcaseBuildFile[]).map((file) =>
     file.path === page && typeof file.content !== 'string' ? { path: file.path, content: new TextDecoder().decode(file.content) } : file,
   );
-  return { page, files: decoded, reads, warnings };
+  return { page, files: decoded, reads, checks, issues };
 }
 
 // #endregion
@@ -255,31 +270,27 @@ export function checkBuildResult(result: unknown): _CheckedResult {
 // #region Build errors
 
 /**
- * Gets the check issue of a showcase's build error (or warning), placed where the error is: in a virtual file, at its documentation file's fence's
- * line plus the error's line; in a real file, there; otherwise (no path, or an invalid one), at the showcase's entry point. Its message names the
- * showcase and its entry point's location.
+ * Gets the check issue of a showcase's build issue, placed where it is: in a virtual file, at its documentation file's fence's line plus the
+ * issue's line; in a real file, there; otherwise (no path, or an invalid one), at the showcase's entry point. Its message names the showcase and
+ * its entry point's location, then its check, if it names one (`type check: …`), and it keeps its severity and its check.
  * @param showcase The showcase
  * @param virtualFiles Virtual files of the host repository
- * @param error The build error
- * @param severity Severity of the issue: `error` for a build error, `warning` for a build warning
+ * @param issue The build issue
  * @returns The check issue
  */
-export function getBuildErrorIssue(
-  showcase: Showcase,
-  virtualFiles: VirtualFile[],
-  error: Pick<ShowcaseBuildError, 'message'> & Partial<ShowcaseBuildError>,
-  severity: CheckIssueSeverity = 'error',
-): CheckIssue {
-  const message = `Showcase ${showcase.id} (${showcase.documentation}:${showcase.line}): ${error.message}`;
-  const line = _isLine(error.line) ? error.line : undefined;
-  if (isValidBuildPath(error.path)) {
-    const virtualFile = virtualFiles.find((file) => file.path === error.path);
+export function getBuildIssue(showcase: Showcase, virtualFiles: VirtualFile[], issue: ShowcaseBuildIssue): CheckIssue {
+  const { severity, check } = issue;
+  const message = `Showcase ${showcase.id} (${showcase.documentation}:${showcase.line}): ${check === undefined ? '' : `${check}: `}${issue.message}`;
+  const line = _isLine(issue.line) ? issue.line : undefined;
+  const checked = check === undefined ? {} : { check };
+  if (isValidBuildPath(issue.path)) {
+    const virtualFile = virtualFiles.find((file) => file.path === issue.path);
     if (virtualFile) {
-      return { severity, message, path: virtualFile.documentation, line: virtualFile.line + (line ?? 0) };
+      return { severity, message, path: virtualFile.documentation, line: virtualFile.line + (line ?? 0), ...checked };
     }
-    return { severity, message, path: error.path, ...(line ? { line } : {}) };
+    return { severity, message, path: issue.path, ...(line ? { line } : {}), ...checked };
   }
-  return { severity, message, path: showcase.documentation, line: showcase.line };
+  return { severity, message, path: showcase.documentation, line: showcase.line, ...checked };
 }
 
 // #endregion
@@ -299,7 +310,7 @@ function _escapeHtml(text: string): string {
  * Gets the showcase frame showing a showcase's build errors, which `serve` shows in place of a showcase that doesn't build: a page listing each
  * error's message, and its file and line, with the frame script, so it is sized and follows the theme like any showcase frame
  * @param showcase The showcase
- * @param issues The showcase's build errors, as check issues (see getBuildErrorIssue())
+ * @param issues The showcase's build errors, as check issues (see getBuildIssue())
  * @returns The showcase frame, in the showcase's showcase frame folder
  */
 export function getErrorFrame(showcase: Pick<Showcase, 'id' | 'documentation'>, issues: readonly CheckIssue[]): ShowcaseFrame {
@@ -355,17 +366,21 @@ export interface BuildShowcasesOptions {
  */
 export interface BuildShowcasesResult {
   /**
-   * The showcase frames of the showcases that built, by showcase id
+   * The showcase frames of the showcases that built, by showcase id: those whose result has files, whether their checks found errors or not
    */
   frames: Map<string, ShowcaseFrame>;
   /**
-   * The build errors of the showcases that didn't build, by showcase id, each placed where it is in the documentation
+   * The errors of the showcases that have any, of their build or their checks, by showcase id, each placed where it is in the documentation
    */
   errors: Map<string, CheckIssue[]>;
   /**
-   * The build warnings of the showcases, built or not, in showcase order, each placed where it is in the documentation; they fail nothing
+   * The warnings of the showcases, built or not, in showcase order, each placed where it is in the documentation; they fail nothing
    */
   warnings: CheckIssue[];
+  /**
+   * The checks each showcase's build ran to completion, by showcase id (empty for a showcase whose build ran none)
+   */
+  checks: Map<string, string[]>;
   /**
    * The issues of the run that belong to no single showcase: a custom showcase adapter that doesn't load, one failing to close
    */
@@ -405,12 +420,13 @@ function _getModulePath(root: string, path: string): string | undefined {
  * run gets fresh showcase adapter objects, each closed at its end. A showcase that doesn't build never stops the others. The files to watch are the
  * custom showcase adapter modules, every showcase's included files (an included virtual file's documentation file), and the files each build read.
  * @param options What to build
- * @returns The showcase frames of the showcases that built, the build errors of those that didn't, and the run's own issues
+ * @returns The showcase frames of the showcases that built, the errors and warnings of each, the checks each ran, and the run's own issues
  */
 export async function buildShowcases({ root, host, configuration, mode = 'production' }: BuildShowcasesOptions): Promise<BuildShowcasesResult> {
   const issues: CheckIssue[] = [];
   const errors = new Map<string, CheckIssue[]>();
   const warnings: CheckIssue[] = [];
+  const checks = new Map<string, string[]>();
   const frames = new Map<string, ShowcaseFrame>();
   const absoluteRoot = resolve(root);
   const script = getFrameScript();
@@ -425,8 +441,13 @@ export async function buildShowcases({ root, host, configuration, mode = 'produc
   const scratch = await mkdtemp(join(tmpdir(), 'showroom-showcases-'));
   try {
     for (const [index, showcase] of host.showcases.entries()) {
-      const fail = (error: Pick<ShowcaseBuildError, 'message'> & Partial<ShowcaseBuildError>) =>
-        void errors.set(showcase.id, [...(errors.get(showcase.id) ?? []), getBuildErrorIssue(showcase, host.virtualFiles, error)]);
+      const add = (issue: ShowcaseBuildIssue) => {
+        const placed = getBuildIssue(showcase, host.virtualFiles, issue);
+        if (issue.severity === 'warning') warnings.push(placed);
+        else errors.set(showcase.id, [...(errors.get(showcase.id) ?? []), placed]);
+      };
+      const fail = (message: string) => add({ severity: 'error', message });
+      checks.set(showcase.id, []);
 
       // Its included files are watched, whatever its showcase adapter and whether it builds: a virtual one by its documentation file
       for (const path of showcase.include) {
@@ -440,7 +461,7 @@ export async function buildShowcases({ root, host, configuration, mode = 'produc
       }
       const adapter = adapters.get(showcase.adapter);
       if (!adapter) {
-        fail({ message: `Showcase adapter "${showcase.adapter}" is not available` });
+        fail(`Showcase adapter "${showcase.adapter}" is not available`);
         continue;
       }
 
@@ -460,23 +481,21 @@ export async function buildShowcases({ root, host, configuration, mode = 'produc
           scratchFolder,
         });
       } catch (err) {
-        fail({ message: `Showcase adapter "${showcase.adapter}" failed to build the showcase: ${(err as Error).message}` });
+        fail(`Showcase adapter "${showcase.adapter}" failed to build the showcase: ${(err as Error).message}`);
         continue;
       }
       const checked = checkBuildResult(result);
-      if (!('problem' in checked)) {
-        checked.reads.forEach((path) => watched.add(path));
-        warnings.push(...checked.warnings.map((warning) => getBuildErrorIssue(showcase, host.virtualFiles, warning, 'warning')));
+      if (checked.problem !== undefined) {
+        fail(`Showcase adapter "${showcase.adapter}" returned an invalid build result: ${checked.problem}`);
+        continue;
       }
-      if ('problem' in checked) {
-        fail({ message: `Showcase adapter "${showcase.adapter}" returned an invalid build result: ${checked.problem}` });
-      } else if ('errors' in checked) {
-        checked.errors.forEach(fail);
-      } else {
-        const files = checked.files.map((file) =>
-          file.path === checked.page ? { path: file.path, content: insertFrameScript(file.content as string, script) } : file,
-        );
-        frames.set(showcase.id, { folder: getShowcaseFrameFolder(showcase), page: checked.page, files, reads: checked.reads });
+      checked.reads.forEach((path) => watched.add(path));
+      checks.set(showcase.id, checked.checks);
+      checked.issues.forEach(add);
+      const { page, files } = checked;
+      if (page !== undefined && files !== undefined) {
+        const scripted = files.map((file) => (file.path === page ? { path: file.path, content: insertFrameScript(file.content as string, script) } : file));
+        frames.set(showcase.id, { folder: getShowcaseFrameFolder(showcase), page, files: scripted, reads: checked.reads });
       }
     }
   } finally {
@@ -490,7 +509,7 @@ export async function buildShowcases({ root, host, configuration, mode = 'produc
     }
     await rm(scratch, { recursive: true, force: true });
   }
-  return { frames, errors, warnings, issues, watched: [...watched].sort() };
+  return { frames, errors, warnings, checks, issues, watched: [...watched].sort() };
 }
 
 // #endregion

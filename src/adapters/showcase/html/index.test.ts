@@ -111,7 +111,7 @@ describe('adapters/showcase/html', () => {
 
     it('Reads a linked page from disk, leaving its references alone', async () => {
       const result = await adapter.build(request(_showcase('link', 'demos/page.html')));
-      expect(result.errors).toBeUndefined();
+      expect(result.issues).toBeUndefined();
       expect(result.reads).toEqual(['demos/page.html']);
       expect(result.files).toHaveLength(1);
       expect(result.files![0].content).toContain('<link rel="stylesheet" href="./page.css" />');
@@ -149,7 +149,7 @@ describe('adapters/showcase/html', () => {
       const files = [virtual('README.showcase-1.html', '<p>Hi</p>'), virtual('INDEX.html', '<p>Mine</p>', true)];
       expect(await adapter.build(request(_showcase('code-block', 'README.showcase-1.html'), files))).toEqual({
         reads: ['README.md'],
-        errors: [{ message: 'The virtual file "INDEX.html" would replace the showcase frame\'s page', path: 'INDEX.html' }],
+        issues: [{ severity: 'error', message: 'The virtual file "INDEX.html" would replace the showcase frame\'s page', path: 'INDEX.html' }],
       });
     });
 
@@ -158,7 +158,7 @@ describe('adapters/showcase/html', () => {
       const page = { path: 'index.html', named: true, showcase: 'README.md#1', content: '<p>Hi</p>', documentation: 'README.md', line: 3 };
       expect(await adapter.build(request(_showcase('code-block', 'index.html'), [page]))).toEqual({
         reads: ['README.md'],
-        errors: [{ message: 'The virtual file "index.html" would replace the showcase frame\'s page', path: 'index.html' }],
+        issues: [{ severity: 'error', message: 'The virtual file "index.html" would replace the showcase frame\'s page', path: 'index.html' }],
       });
     });
 
@@ -167,7 +167,7 @@ describe('adapters/showcase/html', () => {
       const theme = { path: 'demos/theme.css', named: true, content: 'b {}', documentation: 'demos/README.md', line: 4 };
       const showcase = _showcase('link', 'demos/page.html', { include: ['demos/page.css', 'demos/theme.css', 'demos/widget.txt'] });
       const result = await adapter.build({ ...request(showcase, [virtual('demos/widget.txt', 'w', true)]), hostVirtualFiles: [theme] });
-      expect(result.errors).toBeUndefined();
+      expect(result.issues).toBeUndefined();
       expect(result.files?.map(({ path, content }) => ({ path, content: typeof content === 'string' ? content : Buffer.from(content).toString() }))).toEqual([
         { path: 'index.html', content: expect.stringContaining('<link rel="stylesheet" href="./page.css" />') },
         { path: 'widget.txt', content: 'w' },
@@ -183,9 +183,13 @@ describe('adapters/showcase/html', () => {
       const showcase = _showcase('link', 'demos/page.html', { include: ['demos/page.css', 'demos/missing.css'] });
       const result = await adapter.build(request(showcase, [virtual('page.css', 'p {}', true)]));
       expect(result.files).toBeUndefined();
-      expect(result.errors).toEqual([
-        { message: 'The included file "demos/page.css" would land where the virtual file "page.css" does ("page.css")', path: 'demos/page.css' },
-        { message: expect.stringMatching(/^The included file can't be read: ENOENT/), path: 'demos/missing.css' },
+      expect(result.issues).toEqual([
+        {
+          severity: 'error',
+          message: 'The included file "demos/page.css" would land where the virtual file "page.css" does ("page.css")',
+          path: 'demos/page.css',
+        },
+        { severity: 'error', message: expect.stringMatching(/^The included file can't be read: ENOENT/), path: 'demos/missing.css' },
       ]);
       expect(result.reads).toEqual(['demos/page.html', 'README.md', 'demos/missing.css']);
     });
@@ -193,10 +197,10 @@ describe('adapters/showcase/html', () => {
     it('Reports an entry point it cannot find', async () => {
       expect(await adapter.build(request(_showcase('code-block', 'README.showcase-1.html')))).toEqual({
         reads: ['README.md'],
-        errors: [{ message: `The entry point's virtual file "README.showcase-1.html" is missing` }],
+        issues: [{ severity: 'error', message: `The entry point's virtual file "README.showcase-1.html" is missing` }],
       });
       const linked = await adapter.build(request(_showcase('link', 'demos/missing.html')));
-      expect(linked.errors).toEqual([{ message: expect.stringContaining("The entry point can't be read: "), path: 'demos/missing.html' }]);
+      expect(linked.issues).toEqual([{ severity: 'error', message: expect.stringContaining("The entry point can't be read: "), path: 'demos/missing.html' }]);
     });
 
     it('Tells pages from fragments', () => {

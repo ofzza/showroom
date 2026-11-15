@@ -3,7 +3,7 @@
  * formatted for a language: from a `json` code block, or a linked `.json` file.
  */
 
-/** @import { Showcase, ShowcaseAdapter, ShowcaseBuildError, ShowcaseBuildRequest, ShowcaseBuildResult } from '@ofzza/showroom' */
+/** @import { Showcase, ShowcaseAdapter, ShowcaseBuildIssue, ShowcaseBuildRequest, ShowcaseBuildResult } from '@ofzza/showroom' */
 
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -57,7 +57,7 @@ const _checkOptions = (options) => {
  * Parses the rows, reporting invalid JSON at its line
  * @param {string} text The JSON
  * @param {string} path Path of the file holding it, relative to the root
- * @returns {{ rows: Record<string, unknown>[] } | { error: ShowcaseBuildError }} The rows, or the error
+ * @returns {{ rows: Record<string, unknown>[] } | { error: ShowcaseBuildIssue }} The rows, or the error
  */
 const _parse = (text, path) => {
   let value;
@@ -68,10 +68,10 @@ const _parse = (text, path) => {
     // Node's messages name the line, or at least the position, of most errors
     const [, line, position] = /\(line (\d+)|position (\d+)/.exec(message) ?? [];
     const at = line ? Number(line) : position ? text.slice(0, Number(position)).split('\n').length : undefined;
-    return { error: { message: `Invalid JSON: ${message}`, path, line: at } };
+    return { error: { severity: 'error', message: `Invalid JSON: ${message}`, path, line: at } };
   }
   if (!Array.isArray(value) || !value.length || !value.every((row) => typeof row === 'object' && row !== null && !Array.isArray(row))) {
-    return { error: { message: 'number-table needs a non-empty array of objects, one per row', path } };
+    return { error: { severity: 'error', message: 'number-table needs a non-empty array of objects, one per row', path } };
   }
   return { rows: value };
 };
@@ -96,7 +96,7 @@ export default () => ({
   /**
    * Builds the table into a page and its stylesheet
    * @param {ShowcaseBuildRequest} request What to build
-   * @returns {Promise<ShowcaseBuildResult>} The showcase frame's files, or the errors
+   * @returns {Promise<ShowcaseBuildResult>} The showcase frame's files and its warnings, or its errors; it runs no checks
    */
   build: async ({ root, showcase, options, virtualFiles }) => {
     const { columns, caption, locale = 'en' } = /** @type {{ columns?: string[], caption?: string, locale?: string }} */ (options);
@@ -106,7 +106,7 @@ export default () => ({
     const reads = virtual ? [] : [showcase.entry];
     const parsed = _parse(virtual ? virtual.content : await readFile(join(root, showcase.entry), 'utf8'), showcase.entry);
     if ('error' in parsed) {
-      return { errors: [parsed.error], reads };
+      return { issues: [parsed.error], reads };
     }
 
     // Lays out the columns: the ones asked for, or every key in the order first seen; a column holding a number is a numeric one
@@ -114,12 +114,12 @@ export default () => ({
     const names = columns ?? [...new Set(rows.flatMap((row) => Object.keys(row)))];
     const numeric = new Set(names.filter((name) => rows.some((row) => typeof row[name] === 'number')));
     const format = new Intl.NumberFormat(locale);
-    /** @type {ShowcaseBuildError[]} */
+    /** @type {ShowcaseBuildIssue[]} */
     const warnings = [];
     const cell = (/** @type {Record<string, unknown>} */ row, /** @type {string} */ name, /** @type {number} */ index) => {
       const value = row[name];
       if (numeric.has(name) && value !== undefined && typeof value !== 'number') {
-        warnings.push({ message: `Row ${index + 1}'s "${name}" is not a number: ${JSON.stringify(value)}`, path: showcase.entry });
+        warnings.push({ severity: 'warning', message: `Row ${index + 1}'s "${name}" is not a number: ${JSON.stringify(value)}`, path: showcase.entry });
       }
       const text = value === undefined ? '–' : typeof value === 'number' ? format.format(value) : String(value);
       return `<td${numeric.has(name) ? ' class="number"' : ''}>${_escape(text)}</td>`;
@@ -144,7 +144,7 @@ export default () => ({
         { path: 'table.css', content: STYLES },
       ],
       reads,
-      warnings,
+      issues: warnings,
     };
   },
 });

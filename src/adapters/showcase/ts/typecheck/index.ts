@@ -10,7 +10,12 @@ import { createRequire } from 'node:module';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type * as TypeScript from 'typescript';
 import type { Showcase, VirtualFile } from '../../../../host/index.js';
-import type { ShowcaseBuildError, ShowcaseHostCheck } from '../../index.js';
+import type { ShowcaseBuildIssue, ShowcaseHostCheck } from '../../index.js';
+
+/**
+ * Represents a message of a build or a check, before it becomes a build issue with its severity and check: its description, and where it is
+ */
+export type ShowcaseBuildMessage = Pick<ShowcaseBuildIssue, 'message' | 'path' | 'line'>;
 
 // #region Finding TypeScript
 
@@ -548,7 +553,7 @@ export interface TypeCheckResult {
   /**
    * Type errors, as build errors
    */
-  errors: ShowcaseBuildError[];
+  errors: ShowcaseBuildMessage[];
   /**
    * POSIX-style paths, relative to the host repository's root, of the files read: the program's source files (virtual files as their documentation
    * files) and the tsconfig files, outside every `node_modules` folder
@@ -619,7 +624,7 @@ export function typeCheckShowcase({
     ...program.getGlobalDiagnostics(),
     ...files.flatMap((file) => [...program.getSyntacticDiagnostics(file), ...program.getSemanticDiagnostics(file)]),
   ].filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error && !_NO_INPUTS.includes(diagnostic.code));
-  const errors = new Map<string, ShowcaseBuildError>();
+  const errors = new Map<string, ShowcaseBuildMessage>();
   for (const diagnostic of diagnostics) {
     const error = mapDiagnostic(ts, root, virtualFiles, getVirtualFile, diagnostic);
     errors.set(`${error.path}\0${error.line}\0${error.message}`, error);
@@ -652,7 +657,7 @@ export function mapDiagnostic(
   virtualFiles: readonly VirtualFile[],
   getVirtualFile: (fileName: string) => VirtualFile | undefined,
   diagnostic: TypeScript.Diagnostic,
-): ShowcaseBuildError {
+): ShowcaseBuildMessage {
   // The message, on one line, with absolute paths (TypeScript writes them with `/`) made relative: the virtual files' first, the longest first
   const text = ts
     .flattenDiagnosticMessageText(diagnostic.messageText, '\n')

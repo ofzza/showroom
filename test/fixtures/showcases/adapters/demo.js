@@ -5,5 +5,5 @@ export default () => ({
       ? { options: { size: showcase.options?.size ?? 1 }, errors: [] }
       : { errors: ['demo takes { size: <number> }'] },
   check: () => ({ errors: [], warnings: [] }),
-  build: async () => ({ errors: [{ message: 'not built' }], reads: [] }),
+  build: async () => ({ issues: [{ severity: 'error', message: 'not built' }], reads: [] }),
 });

@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** _`P1`_–_`P14`_ and _`P15.1`_ implemented (_`P15.1`_, named virtual files, the last).
+- **Stage:** _`P1`_–_`P14`_, _`P15.1`_ and _`P15.2`_ implemented (_`P15.2`_, checks and issues in the adapter result, the last).
 - **Next free:** _`D559`_, _`S13`_, _`P17`_, _`O89`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
 - **Working on:** _`P15`_ Showcase views (approved for its split and order, `./.workflow/PLAN-P15-showcase-views.md`), planning _`S12`_ without _`S12.1`_ (_`P16`_, later), in six children _`P15.1`_–_`P15.6`_ (_`D541`_, _`D545`_–_`D548`_).
-- **Next step:** implement _`P15.2`_ Checks and issues in the adapter result (`./.workflow/PLAN-P15.2-checks-and-issues.md`, approved), from step 1. The _`O81`_ spike's evidence goes into _`P15.4`_ (keep `./.workflow/.temp/spike-hidden-frame/` until then).
+- **Next step:** plan _`P15.3`_ The console out of the showcase frame (`./.workflow/PLAN-P15-showcase-views.md`), starting with its open points _`O82`_, _`O88`_ and pitfall _`K22`_. The _`O81`_ spike's evidence goes into _`P15.4`_ (keep `./.workflow/.temp/spike-hidden-frame/` until then).
 
 ## Open questions
 
@@ -13,7 +13,8 @@
 
 ## Waiting on me
 
-- `./.workflow/.temp/ci-p15.1.log` (the last `npm run ci` log); ask before deleting it.
+
+- `./.workflow/.temp/ci-p15.1.log` and `ci-p15.2.log` (the `npm run ci` logs); ask before deleting them.
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
@@ -338,3 +339,6 @@
 - 2026-11-15: _`P15.1`_ approved as implemented, after the browser checks (option chosen: "Approve and commit (Rec.)").
 - 2026-11-15: _`P15.2`_'s choices settled (options chosen: "One issues list (Rec.)", "Strict (Rec.)", "Add check, show it (Rec.)", "As described (Rec.)"); _`P15.2`_ drafted (`PLAN-P15.2-checks-and-issues.md`, _`D554`_–_`D558`_).
 - 2026-11-15: _`P15.2`_ approved, without a zero-context review (option chosen: "Approve and commit (Rec.)").
+- 2026-11-15: _`P15.2`_ steps 1–6: `ShowcaseBuildIssue`, the build result's `checks` and `issues`, validated strictly; `CheckIssue`'s `check`, named in the message; `buildShowcases()`'s `checks`, and frames beside a check's errors; `serve`'s error frame on any error; the built-in adapters' `type check`; the `number-table` example and the fixtures' adapters; tests and documentation; the changed decisions' statuses.
+- 2026-11-15: _`P15.2`_ step 7: `npm run ci` green (unit 1138, integration 24, e2e 18, serve 7); the dogfood `serve` restarted, and checked by the agent in a browser (the `ts` example unchanged, no console errors).
+- 2026-11-15: _`P15.2`_ approved as implemented (option chosen: "Approve and commit (Rec.)").

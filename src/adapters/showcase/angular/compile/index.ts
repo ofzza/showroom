@@ -11,7 +11,6 @@ import { pathToFileURL } from 'node:url';
 import type * as AngularCompiler from '@angular/compiler-cli';
 import type * as TypeScript from 'typescript';
 import type { Showcase, VirtualFile } from '../../../../host/index.js';
-import type { ShowcaseBuildError } from '../../index.js';
 import {
   createTypeCheckHost,
   DROPPED_COMPILER_OPTIONS,
@@ -24,6 +23,7 @@ import {
   readPackageJson,
   resolvePackage,
   type FoundTypeScript,
+  type ShowcaseBuildMessage,
   type TypeScriptModule,
 } from '../../ts/typecheck/index.js';
 
@@ -286,15 +286,15 @@ export interface AngularCompileResult {
    * Errors that always fail the showcase: the tsconfig's, the options', syntax and structural errors, the default export check's, and a compiler
    * that throws; when there are any, nothing is emitted
    */
-  errors: ShowcaseBuildError[];
+  errors: ShowcaseBuildMessage[];
   /**
    * Type errors (TypeScript's semantic and global ones, and Angular's template ones), empty when `typeCheck` is off
    */
-  typeErrors: ShowcaseBuildError[];
+  typeErrors: ShowcaseBuildMessage[];
   /**
    * Warnings (e.g. Angular's extended diagnostics), empty when `typeCheck` is off
    */
-  warnings: ShowcaseBuildError[];
+  warnings: ShowcaseBuildMessage[];
   /**
    * The emitted modules, by the absolute path of their source (`/` separators)
    */
@@ -335,7 +335,7 @@ export function mapAngularDiagnostic(
   virtualFiles: readonly VirtualFile[],
   getVirtualFile: (fileName: string) => VirtualFile | undefined,
   diagnostic: TypeScript.Diagnostic,
-): ShowcaseBuildError {
+): ShowcaseBuildMessage {
   const error = mapDiagnostic(ts, root, virtualFiles, getVirtualFile, diagnostic);
   const angular = /^-99(\d+)$/.exec(String(diagnostic.code));
   // Angular's extended diagnostics hold their code in their message already
@@ -494,7 +494,7 @@ export async function compileAngularShowcase({ loaded, root, showcase, virtualFi
     ...files.flatMap((file) => [...program.getTsSemanticDiagnostics(file), ...program.getNgSemanticDiagnostics(file.fileName)]),
   ];
   const collect = (diagnostics: readonly TypeScript.Diagnostic[], category: TypeScript.DiagnosticCategory) => {
-    const errors = new Map<string, ShowcaseBuildError>();
+    const errors = new Map<string, ShowcaseBuildMessage>();
     for (const diagnostic of diagnostics.filter((item) => item.category === category && !(item.code === 18002 || item.code === 18003))) {
       const error = map(diagnostic);
       errors.set(`${error.path}\0${error.line}\0${error.message}`, error);
