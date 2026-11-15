@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** _`P1`_–_`P14`_, _`P15`_ (_`P15.1`_–_`P15.6`_) implemented (_`P15.6`_, the included keywords, the last).
-- **Next free:** _`D615`_, _`S13`_, _`P17`_, _`O90`_, _`L15`_, _`R49`_, _`H1`_, _`K24`_
-- **Working on:** _`S12.1`_, to be planned as _`P16`_ (_`D542`_ (PLAN-P15-showcase-views.md)).
-- **Next step:** plan _`P16`_ (_`S12.1`_: a linked showcase shown inline as a link opening the sidebar, _`O87`_), on the user's go-ahead.
+- **Next free:** _`D627`_, _`S13`_, _`P17`_, _`O90`_, _`L15`_, _`R49`_, _`H1`_, _`K24`_
+- **Working on:** _`P16`_ (PLAN-P16-inline-sidebar.md), approved: _`S12.1`_, a linked showcase shown inline as a link opening the sidebar.
+- **Next step:** implement _`P16`_'s step 1 (the rename to Showcase sidebar, _`D623`_).
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/questions-p16/` (its choices, recorded as _`D615`_–_`D626`_); ask before deleting it.
 - `./.workflow/.temp/p15.6-check/`, `ci-p15.6.log`, `ci-p15.6-rerun.log`, `serve-dogfood-p15.6.log`, `serve-p15.6-check.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p15.6/` (its choices, recorded as _`D602`_–_`D610`_); ask before deleting it.
 - `./.workflow/.temp/p15.6-format/` (formatting backups); ask before deleting it.
@@ -373,3 +374,6 @@
 - 2026-11-15: _`P15.6`_ steps 1–6 implemented: `include=source`/`include=markdown` (`Showcase.tabs`, `ShowcaseTab`), the shown tabs in their order with the flagged Markdown tab, `exposeShowcaseMarkdownSyntax` removed, `include=markdown` on this repository's 36 live blocks, `README.md`, `CONTRIBUTE.md`, `AGENTS.md`; _`D421`_, _`D422`_ marked, _`O84`_ resolved; `npm run ci` green (unit 1258, integration 24, e2e 18, serve 7, after the e2e line count's fix); serves started for the user's check.
 - 2026-11-15: _`P15.6`_ checkpoint: the user's browser check found `include=markdown` showing the source tab first; fixed as _`D611`_ (option chosen: "Before the first file (Rec.)"), with _`R48`_ on _`S12`_ (_`D511`_ changed, pending re-approval); _`D610`_'s Glossary changes accepted ("Accept (Rec.)") and checkpoint choices a–c recorded as _`D612`_–_`D614`_ ("Accept all (Rec.)").
 - 2026-11-15: _`S12`_ re-approved with _`R48`_ (option chosen: "Re-approve (Rec.)"); _`P15.6`_ approved as implemented, after the user's recheck in a browser (options chosen: "Looks right", "Approve and commit (Rec.)"); `npm run ci` green (unit 1258, integration 24, e2e 18, serve 7). _`P15`_ is done.
+- 2026-11-15: stop and report: `./.workflow/.temp/questions-p16/QUESTIONS.md` formatted without the agent-facing backup-and-compare (layout only); the user resumed (option chosen: "Resume (Rec.)").
+- 2026-11-15: _`P16`_ Showcases shown inline, in the sidebar drafted (_`D615`_–_`D626`_, its choices; options chosen: the recommendations, except Q3, "Start below the views").
+- 2026-11-15: _`P16`_ approved (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
