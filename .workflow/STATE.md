@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** _`P1`_–_`P14`_ implemented (_`P14`_, the .NET stack adapter, the last).
-- **Next free:** _`D541`_, _`S13`_, _`P15`_, _`O89`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
-- **Working on:** _`S12`_ Showcase views approved (with _`S12.1`_, inline showcases in the sidebar, planned after the rest); _`S6.1`_, _`S6.5`_, _`S6.6`_, _`S6.7`_ and _`S10`_ re-approved with it.
-- **Next step:** plan _`S12`_: start with its open points (_`O81`_–_`O88`_, the _`O81`_ spike first; _`K21`_–_`K23`_), then segment it (_`O85`_).
+- **Next free:** _`D549`_, _`S13`_, _`P17`_, _`O89`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
+- **Working on:** _`P15`_ Showcase views (approved for its split and order, `./.workflow/PLAN-P15-showcase-views.md`), planning _`S12`_ without _`S12.1`_ (_`P16`_, later), in six children _`P15.1`_–_`P15.6`_ (_`D541`_, _`D545`_–_`D548`_).
+- **Next step:** plan _`P15.1`_ Named virtual files, starting with its open point _`O86`_ (`VirtualFileKind`'s replacement). The _`O81`_ spike's evidence goes into _`P15.4`_ (keep `./.workflow/.temp/spike-hidden-frame/` until then).
 
 ## Open questions
 
@@ -322,3 +322,10 @@
 - 2026-11-15: _`D525`_: `html` showcases show the `runtime` mark (option chosen: "runtime only (Rec.)"). Go-ahead for a zero-context review of _`S12`_ (1 agent; option chosen: "Review first (Rec.)").
 - 2026-11-15: _`S12`_'s zero-context review run (1 agent; stray-write check clean): 18 findings, triaged into 11 questions (option chosen: "Accept all (Rec.)"), 5 fixes (option chosen: "Apply all (Rec.)"), 2 open points; applied as _`D526`_–_`D540`_, _`O87`_, _`O88`_, _`K23`_; _`S6.5`_, _`S6.6`_ and _`S10`_ revised (_`R45`_–_`R47`_).
 - 2026-11-15: _`S12`_ Showcase views and _`S12.1`_ approved, and _`S6.1`_, _`S6.5`_, _`S6.6`_, _`S6.7`_ and _`S10`_ re-approved with them (option chosen: "Approve and commit (Rec.)").
+- 2026-11-15: Planning of _`S12`_ to start in a fresh session (option chosen: "Clear first (Rec.)"); go-ahead for the _`O81`_ spike before segmenting (option chosen: "Spike first").
+- 2026-11-15: _`O81`_ spike run (Chromium, through Playwright): `opacity: 0` at the real size, clipped, runs as a shown frame out of view; `display: none` and 1 px change sizes, media queries and CSS animations; no timer or animation frame throttling (`./.workflow/.temp/spike-hidden-frame/FINDINGS.md`).
+- 2026-11-15: The _`O81`_ spike's recommendation accepted as its evidence (option chosen: "Accept, go on (Rec.)"); _`S12`_'s segments and open points proposed (`./.workflow/.temp/questions-p15/QUESTIONS.md`).
+- 2026-11-15: _`P15`_ drafted: six children (_`D541`_, _`D542`_; option chosen: "Six children (Rec.)"), _`S12`_'s open points and pitfalls taken as proposed (_`D543`_, _`D544`_; option chosen: "Accept all (Rec.)").
+- 2026-11-15: Go-ahead for a zero-context review of _`P15`_ (1 agent; option chosen: "Review first"); `./.workflow/.temp/questions-p15/` deleted (option chosen: "Delete it (Rec.)").
+- 2026-11-15: _`P15`_'s zero-context review run (1 agent; stray-write check clean): 15 findings, triaged into 3 questions (options chosen: "Drop it early (Rec.)", "Header bar in P15.4 (Rec.)", "Accept both (Rec.)"), 8 fixes and 1 skip (option chosen: "Apply all, skip #13 (Rec.)"); applied as _`D545`_–_`D548`_.
+- 2026-11-15: _`P15`_ approved for its split and order (option chosen: "Approve and commit (Rec.)"); `./.workflow/.temp/review-p15/` deleted (option chosen: "Delete it (Rec.)").

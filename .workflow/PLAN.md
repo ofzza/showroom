@@ -290,6 +290,10 @@ None (_`D61`_).
 
 - _`P14`_ The .NET stack adapter (implemented 2026-11-15; approved 2026-11-15): the `dotnet` stack adapter and `showroom.json`'s `project` key (_`S11`_, SPEC.md). [See The .NET stack adapter](./PLAN-P14-dotnet.md)
 
+## Showcase views
+
+- _`P15`_ Showcase views (approved 2026-11-15, for its split and order): _`S12`_ without _`S12.1`_ (SPEC-S12-showcase-views.md), in six child segments _`P15.1`_–_`P15.6`_: named virtual files, the adapters' checks and issues, the console out of the showcase frame, the showcase views, the header bar with its status marks and issue list, and the `include=` keywords; _`S12.1`_ is _`P16`_, planned later (_`D542`_ (PLAN-P15-showcase-views.md)). [See Showcase views](./PLAN-P15-showcase-views.md)
+
 ## Known open issues
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: _`P9`_. Status: picked up by _`P9`_; resolved by _`D323`_ (SPEC.md), implemented by _`P9`_ 2026-11-13.
