@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** _`P1`_–_`P14`_, _`P15.1`_–_`P15.5`_ implemented (_`P15.5`_, the status marks and issue list, the last).
-- **Next free:** _`D602`_, _`S13`_, _`P17`_, _`O90`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
+- **Next free:** _`D611`_, _`S13`_, _`P17`_, _`O90`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
 - **Working on:** _`P15`_ Showcase views (approved for its split and order, `./.workflow/PLAN-P15-showcase-views.md`), planning _`S12`_ without _`S12.1`_ (_`P16`_, later), in six children _`P15.1`_–_`P15.6`_ (_`D541`_, _`D545`_–_`D548`_).
-- **Next step:** plan _`P15.6`_ (`include=source` and `include=markdown`, the Markdown tab), the last child of _`P15`_.
+- **Next step:** implement _`P15.6`_ Included keywords (`./.workflow/PLAN-P15.6-included-keywords.md`, approved), step 1, on the user's go-ahead.
 
 ## Open questions
 
@@ -13,6 +13,8 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/questions-p15.6/` (its choices, recorded as _`D602`_–_`D610`_); ask before deleting it.
+- `./.workflow/.temp/p15.6-format/` (formatting backups); ask before deleting it.
 - `./.workflow/.temp/p15.5-check/` (the scratch host), `p15.5-check-shot-*.png`, `p15.5-format/` and `ci-p15.5.log`, `serve-*.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p15.5/` (its choices, recorded as _`D583`_–_`D595`_); ask before deleting it.
 - `./.workflow/.temp/p15.4-check/`, `p15.4-check-shot-*.png`, `p15.4-format/`, `p15.4-readme-ts/` and `ci-p15.4.log`; ask before deleting them.
@@ -29,7 +31,7 @@
 
 ## Running
 
-- `showroom serve` of this repository on port 5173, and of `./.workflow/.temp/p15.5-check/` on port 5174 (background tasks of this session).
+- Nothing.
 
 ## History
 
@@ -365,3 +367,5 @@
 - 2026-11-15: The user cleared the stop and said to resume (option chosen: "Resume P15.5 (Rec.)").
 - 2026-11-15: _`P15.5`_ steps 5–6: `README.md` (Status marks and issues), `CONTRIBUTE.md` (architecture, Glossary), `AGENTS.md`; _`D186`_, _`D200`_, _`D547`_, _`D558`_, _`D580`_ marked; _`O89`_ resolved; `npm run ci` green (unit 1254, integration 24, e2e 18, serve 7); the scratch host checked by the agent in Chromium (the bands' colour made translucent); serves started for the user's check.
 - 2026-11-15: _`P15.5`_ approved as implemented, with its Glossary changes and implementation choices (_`D596`_–_`D601`_) (options chosen: "Looks right", "Accept (Rec.)", "Accept all (Rec.)", "Approve and commit (Rec.)"); _`O83`_ resolved.
+- 2026-11-15: _`P15.6`_ Included keywords drafted (_`D602`_–_`D610`_, its choices, option chosen: "Accept all (Rec.)").
+- 2026-11-15: _`P15.6`_ Included keywords approved (option chosen: "Approve and commit (Rec.)"), without a zero-context review.

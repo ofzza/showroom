@@ -1,0 +1,43 @@
+# _`P15.6`_ Included keywords
+
+approved 2026-11-15 (option chosen: "Approve and commit (Rec.)"), without a zero-context review
+
+## Goals
+
+_`S12`_'s `include=` keywords (SPEC-S12-showcase-views.md): _`D510`_, _`D511`_ and _`D535`_; the Markdown tab keeping _`D539`_'s markers (_`D548`_ (PLAN-P15-showcase-views.md)). A child of _`P15`_ (PLAN-P15-showcase-views.md), the last of six (_`D541`_). Takes _`O84`_ (SPEC-S12-showcase-views.md) for the plan decisions it changes.
+
+Not in _`P15.6`_: a linked showcase shown inline as a link opening the sidebar (_`P16`_).
+
+Facts found while planning (2026-11-15):
+
+- `Showcase.include` (`src/host/`, exported) holds root-relative paths only; it is read by `check` (the linked files, `view=none`'s error), the `html` showcase adapter (copying), `buildShowcases()` (reads), `getShownTabs()` and `getTabFileHashes()` (`src/vite/`).
+- The Markdown tab is added in `getShownHostInformation()` only for a block, with `exposeShowcaseMarkdownSyntax`, always first; `ShownShowcase.entryTab` is 1 then, and `getTabMarks()`, `getMarkdownMarkers()` (`src/app/code-sidebar/`) and `getIssueLocation()` (`src/app/code-pane/`) take every tab before `entryTab` to be the Markdown tab.
+- `serve` re-reads the option on each run (`readShownOptions`, injected into the host watcher); `build` passes it from the configuration.
+- This repository sets the option: 11 live showcases shown as a block in `README.md`, and 22 in `examples/*/README.md`, all shown with a Markdown tab today.
+
+## Decisions
+
+The draft's choices 1–9 (`./.workflow/.temp/questions-p15.6/QUESTIONS.md`), option chosen: "Accept all (Rec.)".
+
+- _`D602`_ (`live`; refines _`D541`_ (PLAN-P15-showcase-views.md); Q1): **_`P15.6`_ is not split further**: one segment, in the steps below. Rejected: two children (the keywords; the option's removal and this repository's markers).
+- _`D603`_ (`live`; refines _`D510`_, _`D511`_ (SPEC-S12-showcase-views.md); Q2): **`Showcase` gains its tabs**: `include` stays the included files' paths alone, so no reader of it changes; `tabs: ShowcaseTab[]` lists its code pane's (or code sidebar's) tabs in order, always complete: `{ kind: 'source' }` (first when `include=` doesn't list it), `{ kind: 'markdown' }` where listed, `{ kind: 'file', path }` for each included file. `ShowcaseTab` is exported. Rejected: the keywords inside `include` as strings (ambiguous with a root file named `source`, and every reader filtering them); positions as numbers beside `include`.
+- _`D604`_ (`live`; refines _`D511`_, _`D535`_, _`D539`_ (SPEC-S12-showcase-views.md); changes _`D421`_ (PLAN-P10.4-code-pane.md); Q3): **The shown tabs follow `Showcase.tabs`**, for blocks and linked showcases shown inline alike (`getShownTabs()`); `ShownTab` gains `markdown?: true` on the Markdown tab; `ShownShowcase.entryTab` stays the source tab's index (the `source` view's); the markers (`getTabMarks()`, `getMarkdownMarkers()`) and the issue location (`getIssueLocation()`) find the Markdown tab by its flag, never by its position. Rejected: a `markdownTab` index beside `entryTab`.
+- _`D605`_ (`live`; refines _`D511`_, _`D535`_ (SPEC-S12-showcase-views.md); Q4): **The keywords' rules**: the bare words `source` and `markdown`, exactly, judged on the raw text (`./source`, `Source` or `sourc%65` are paths); each at most once (`… is listed twice`, as a path is); `include=source` alone allowed, with no warning; both allowed on a linked showcase shown inline (its code sidebar's tabs; `source` places the entry point's tab there); `include=` with `view=none` the same error, keywords or paths. Rejected: a warning on `include=source` alone.
+- _`D606`_ (`live`; refines _`D511`_ (SPEC-S12-showcase-views.md); Q5): **Every showcase shown as a block in this repository lists `include=markdown` first**: the 11 in `README.md` and the 22 in `examples/*/README.md`, so the dogfood `serve` and the published showroom show what they showed with the option. Rejected: `README.md`'s alone (the examples' blocks would lose their Markdown tab).
+- _`D607`_ (`live`; refines _`D422`_ (PLAN-P10.4-code-pane.md); Q6): **The prose names a live showcase's marker as written**, `include=markdown` included (e.g. `ts showcase=ts include=markdown`), as its Markdown tab shows it; `README.md`'s Included files paragraph says why this repository's live showcases list it. Rejected: the marker named without it, with one sentence saying every live showcase adds it.
+- _`D608`_ (`live`; refines _`D511`_, _`D512`_ (SPEC-S12-showcase-views.md); Q7): **`exposeShowcaseMarkdownSyntax` is removed whole**: `Configuration`'s key and its validation (a `showroom.json` with it fails as any unknown key does), `ShownHostOptions`, `getShownHostInformation()`'s `options` parameter, `serve`'s `readShownOptions` and `build`'s passing of it; their tests removed with them, listed at the checkpoint. Rejected: a dedicated error naming `include=markdown`.
+- _`D609`_ (`live`; refines _`D544`_ (PLAN-P15-showcase-views.md), _`D512`_ (SPEC-S12-showcase-views.md); Q8): **Tests and documentation**: unit tests in `src/markdown/` (the keywords, their order, duplicates, `./source` as a path, inline), `src/vite/` (the tabs' order, the Markdown tab's flag, inline), `src/app/code-sidebar/` and `src/app/code-pane/` (markers and issue location with the Markdown tab after the source tab), `src/configuration/` (the key unknown); `check()` on `showcase-keys` (the keywords in use, an included real file named `source`) and `showcase-errors`' `errors/keys.md` (a keyword listed twice); no new fixture, `e2e` or `serve` test. `README.md`: the grammar's `include=`, the Included files paragraph, the cheat-sheet (two rows), the code pane, Usage (`Showcase.tabs`, `ShowcaseTab`); `CONTRIBUTE.md`'s architecture; `AGENTS.md` (Testing, Exports, the live markers gotcha). Rejected: an `e2e` test of `build()` shipping the tabs in order.
+- _`D610`_ (`live`; refines _`D524`_, _`D536`_ (SPEC-S12-showcase-views.md); Q9): **_`P15.6`_'s Glossary changes**, **PROPOSED** at the checkpoint: **Code pane** changed (its tabs: the source tab, the included files and the Markdown tab, in `include=`'s order; no `exposeShowcaseMarkdownSyntax`), and **Included file** noting that `include=` also takes `source` and `markdown`, which place tabs, not files; no new term. Rejected: new terms **Source tab** and **Markdown tab**.
+
+## Steps
+
+1. **The keywords** (`src/markdown/`, `src/host/`, `src/cli/check/`): `_parseInclude()` tells keywords from paths (_`D605`_); `_resolveIncludes()` resolves only the paths; `Showcase.tabs` and `ShowcaseTab` (_`D603`_); `view=none`'s error unchanged for keywords. Tests: `src/markdown/` and `src/cli/check/` (the `showcase-keys` fixture gains keywords and an included real file named `source`; `showcase-errors`' `errors/keys.md` a keyword twice).
+2. **The shown tabs** (`src/vite/`, `src/app/code-sidebar/`, `src/app/code-pane/`): `getShownTabs()` from `Showcase.tabs`, the Markdown tab with its flag (_`D604`_), `entryTab` from the source tab's place; the markers and the issue location by the flag. Tests: `src/vite/` (the order, inline), `src/app/code-sidebar/` (`getTabMarks()`, `getMarkdownMarkers()`), `src/app/code-pane/` (`getIssueLocation()`, `ShowcaseBlock` with the Markdown tab after the source tab).
+3. **The option removed** (`src/configuration/`, `src/vite/`, `src/cli/serve/`, `src/cli/build/`, `showroom.json`) (_`D608`_). Tests: `src/configuration/` (the key unknown); `src/vite/`'s and `src/cli/serve/`'s tests of the option removed.
+4. **This repository's showcases** (`README.md`, `examples/*/README.md`): `include=markdown` first on each showcase shown as a block (_`D606`_), merged with an existing `include=`; the prose naming each marker as written (_`D607`_).
+5. **Documentation**: `README.md` (_`D609`_), `CONTRIBUTE.md` (the architecture; the Glossary as _`D610`_ says), `AGENTS.md`; the plan decisions this changes marked (_`O84`_): _`D421`_, _`D422`_ (PLAN-P10.4-code-pane.md); `README.md`'s `ts` samples type checked if any changes.
+6. **Green**: `npm run ci`; the dogfood `serve` started, and a scratch host in `./.workflow/.temp/p15.6-check/` (a copy, never a fixture) with `include=` keyword orders on blocks and on a linked showcase shown inline, an issue on a showcase whose Markdown tab is after its source tab, for the user's check in a browser.
+
+## Open points
+
+- None of its own; _`O84`_ (SPEC-S12-showcase-views.md) for _`D421`_ and _`D422`_ (PLAN-P10.4-code-pane.md), marked in step 5.
