@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** _`P1`_–_`P14`_ implemented (_`P14`_, the .NET stack adapter, the last).
-- **Next free:** _`D495`_, _`S12`_, _`P15`_, _`O81`_, _`L15`_, _`R40`_, _`H1`_, _`K21`_
-- **Working on:** nothing in progress.
-- **Next step:** the user's choice of what comes next (the known open issues in `./.workflow/PLAN.md`; pitfall _`K20`_ stays open).
+- **Next free:** _`D541`_, _`S13`_, _`P15`_, _`O89`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
+- **Working on:** _`S12`_ Showcase views approved (with _`S12.1`_, inline showcases in the sidebar, planned after the rest); _`S6.1`_, _`S6.5`_, _`S6.6`_, _`S6.7`_ and _`S10`_ re-approved with it.
+- **Next step:** plan _`S12`_: start with its open points (_`O81`_–_`O88`_, the _`O81`_ spike first; _`K21`_–_`K23`_), then segment it (_`O85`_).
 
 ## Open questions
 
@@ -15,6 +15,9 @@
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
+
+- `./.workflow/.temp/review-s12/` (the review's record) and `./.workflow/.temp/questions-s12/` (the draft's choices) are applied to _`S12`_; ask before deleting them.
+- `./.workflow/.temp/showcase-views/NOTES.md` holds the settled showcase views discussion, the input for its specification segment; ask before deleting it.
 
 ## Running
 
@@ -312,3 +315,10 @@
 - 2026-11-15: _`P14`_ steps 1–5: `sax` and `@types/sax`; the `project` key; `DotNetStackAdapter`; the `dotnet` fixture and tests; `README.md`, `AGENTS.md`, `CONTRIBUTE.md`.
 - 2026-11-15: _`P14`_ step 6: `npm run ci` green; `check` on the `dotnet` fixture and on the copy of `../dotnetschema` pass; both served for the user's check.
 - 2026-11-15: _`P14`_ approved as implemented, after the browser check (option chosen: "Approve and commit (Rec.)"); `./.workflow/.temp/format-backup/` and `dotnet-check/` deleted with the user's yes (option chosen: "Delete both (Rec.)").
+- 2026-11-15: Showcase views discussed and settled (user: "I am very happy with the concept as we have described it"); recorded in `./.workflow/.temp/showcase-views/NOTES.md`, not yet specified.
+- 2026-11-15: The user chose a new specification segment _`S12`_ for showcase views (option chosen: "New segment S12 (Recommended)"), and to clear the context before writing it.
+- 2026-11-15: _`S12`_ Showcase views drafted (_`D495`_–_`D516`_, with _`S12.1`_), revising _`S6.1`_ (_`R40`_), _`S6.7`_ (_`R41`_) and _`S10`_ (_`R42`_); pitfalls _`K21`_–_`K23`_ added. The user chose to keep the context ("go on without clearing").
+- 2026-11-15: _`S12`_'s choices settled: named virtual files (_`D517`_–_`D522`_; "Showcase resource" retired, option chosen: "Retire it (Rec.)"), choices 2–7 kept as recommended (_`D523`_), Glossary changes accepted (_`D524`_, option chosen: "Accept as worded (Rec.)"); _`S6.5`_ revised (_`R43`_), _`S10`_ again (_`R44`_).
+- 2026-11-15: _`D525`_: `html` showcases show the `runtime` mark (option chosen: "runtime only (Rec.)"). Go-ahead for a zero-context review of _`S12`_ (1 agent; option chosen: "Review first (Rec.)").
+- 2026-11-15: _`S12`_'s zero-context review run (1 agent; stray-write check clean): 18 findings, triaged into 11 questions (option chosen: "Accept all (Rec.)"), 5 fixes (option chosen: "Apply all (Rec.)"), 2 open points; applied as _`D526`_–_`D540`_, _`O87`_, _`O88`_, _`K23`_; _`S6.5`_, _`S6.6`_ and _`S10`_ revised (_`R45`_–_`R47`_).
+- 2026-11-15: _`S12`_ Showcase views and _`S12.1`_ approved, and _`S6.1`_, _`S6.5`_, _`S6.6`_, _`S6.7`_ and _`S10`_ re-approved with them (option chosen: "Approve and commit (Rec.)").

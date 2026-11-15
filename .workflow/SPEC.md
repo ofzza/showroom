@@ -191,6 +191,12 @@ A stack adapter for .NET host repositories (e.g. `../dotnetschema`), which _`K3`
 
 - A showcase adapter running .NET code (e.g. C# through Blazor WebAssembly). Until then, a .NET host's documentation can use `html` showcases, which need nothing from the host.
 
+## _`S12`_ Showcase views
+
+approved 2026-11-15 (option chosen: "Approve and commit (Rec.)")
+
+[See Showcase views](./SPEC-S12-showcase-views.md)
+
 ## Pitfalls
 
 [See Pitfalls](./SPEC-pitfalls.md)
