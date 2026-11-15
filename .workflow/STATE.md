@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** _`P1`_–_`P14`_ implemented (_`P14`_, the .NET stack adapter, the last).
-- **Next free:** _`D549`_, _`S13`_, _`P17`_, _`O89`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
+- **Next free:** _`D554`_, _`S13`_, _`P17`_, _`O89`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
 - **Working on:** _`P15`_ Showcase views (approved for its split and order, `./.workflow/PLAN-P15-showcase-views.md`), planning _`S12`_ without _`S12.1`_ (_`P16`_, later), in six children _`P15.1`_–_`P15.6`_ (_`D541`_, _`D545`_–_`D548`_).
-- **Next step:** plan _`P15.1`_ Named virtual files, starting with its open point _`O86`_ (`VirtualFileKind`'s replacement). The _`O81`_ spike's evidence goes into _`P15.4`_ (keep `./.workflow/.temp/spike-hidden-frame/` until then).
+- **Next step:** implement _`P15.1`_ Named virtual files (`./.workflow/PLAN-P15.1-named-files.md`, approved), from step 1. The _`O81`_ spike's evidence goes into _`P15.4`_ (keep `./.workflow/.temp/spike-hidden-frame/` until then).
 
 ## Open questions
 
@@ -329,3 +329,5 @@
 - 2026-11-15: Go-ahead for a zero-context review of _`P15`_ (1 agent; option chosen: "Review first"); `./.workflow/.temp/questions-p15/` deleted (option chosen: "Delete it (Rec.)").
 - 2026-11-15: _`P15`_'s zero-context review run (1 agent; stray-write check clean): 15 findings, triaged into 3 questions (options chosen: "Drop it early (Rec.)", "Header bar in P15.4 (Rec.)", "Accept both (Rec.)"), 8 fixes and 1 skip (option chosen: "Apply all, skip #13 (Rec.)"); applied as _`D545`_–_`D548`_.
 - 2026-11-15: _`P15`_ approved for its split and order (option chosen: "Approve and commit (Rec.)"); `./.workflow/.temp/review-p15/` deleted (option chosen: "Delete it (Rec.)").
+- 2026-11-15: _`P15.1`_'s choices settled (options chosen: "named + showcase (Rec.)", "Convert ts example", "Error, as today (Rec.)"); _`P15.1`_ drafted (`PLAN-P15.1-named-files.md`, _`D549`_–_`D553`_).
+- 2026-11-15: _`P15.1`_ approved, without a zero-context review (option chosen: "Approve and commit (Rec.)").
