@@ -324,15 +324,15 @@ export function getMarkdownMarkers(showcase: Pick<ShownShowcase, 'tabs' | 'entry
 }
 
 /**
- * Gets the marks of a showcase's tabs from its issues: each file's issues; the Markdown tab (before the entry point's tab) a code block showcase's
- * entry point's issues, one line below, after the fence's opening line
+ * Gets the marks of a showcase's tabs from its issues: each file's issues; the Markdown tab (wherever `include=` places it) a code block
+ * showcase's entry point's issues, one line below, after the fence's opening line
  * @param showcase The shown showcase
  * @returns The marks, one per tab
  */
 export function getTabMarks(showcase: Pick<ShownShowcase, 'tabs' | 'entryTab' | 'issues'>): TabMarks[] {
   const entry = showcase.tabs[showcase.entryTab];
-  return showcase.tabs.map((tab, index) => {
-    const markdown = index < showcase.entryTab;
+  return showcase.tabs.map((tab) => {
+    const markdown = tab.markdown === true;
     if (markdown && entry?.source.kind !== 'virtual') return { markers: NO_MARKERS };
     const path = markdown ? entry!.path : tab.path;
     const issues = showcase.issues.filter((issue) => issue.path === path);

@@ -8,13 +8,13 @@
 
 A linked showcase, shown as a block beside its code: [`demo/Stopwatch.tsx`](./demo/Stopwatch.tsx) imports the library like any module would, and its default export is the component the showcase frame renders.
 
-[A stopwatch](./demo/Stopwatch.tsx 'showcase=react block')
+[A stopwatch](./demo/Stopwatch.tsx 'showcase=react block include=markdown')
 
 ## Counters
 
 A code block showcase, importing the library by relative paths from this documentation file's folder. Its props set each counter's start, step and bounds; what it logs fades in at the bottom of its showcase frame, and the counter in its corner opens the console panel.
 
-```tsx showcase=react
+```tsx showcase=react include=markdown
 import { Counter } from './src/Counter.js';
 
 export default function Counters() {
@@ -31,7 +31,7 @@ export default function Counters() {
 
 A `react` showcase reads the showroom's theme as any page in a showcase frame does, from the `data-showroom-theme` attribute of its `<html>`: the library's [`useShowroomTheme()`](./src/useShowroomTheme.ts) hook follows it, and falls back to the system's theme outside the showroom. Switch the showroom's theme to see it change; the stopwatch's styles follow it with CSS's `light-dark()`.
 
-```tsx showcase=react
+```tsx showcase=react include=markdown
 import { useShowroomTheme } from './src/useShowroomTheme.js';
 
 export default function Theme() {
@@ -67,7 +67,7 @@ export function Laps({ times }: { times: readonly number[] }) {
 
 A showcase holding state of its own, around the library's components and the virtual one: each click records a lap.
 
-```tsx showcase=react
+```tsx showcase=react include=markdown
 import { useState } from 'react';
 import { Laps } from './Laps.js';
 
@@ -87,7 +87,7 @@ export default function LapTimer() {
 
 The default export can be any component React renders, e.g. one wrapped in `memo()`, which is an object rather than a function.
 
-```tsx showcase=react
+```tsx showcase=react include=markdown
 import { memo } from 'react';
 import { formatElapsed } from './src/format.js';
 
@@ -100,7 +100,7 @@ export default memo(function Marathon() {
 
 A `jsx` code block works too: JavaScript importing the TypeScript library, which is still type checked.
 
-```jsx showcase=react
+```jsx showcase=react include=markdown
 import { Stopwatch } from './src/Stopwatch.js';
 
 export default function SlowStopwatch() {

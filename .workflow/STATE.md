@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** _`P1`_–_`P14`_, _`P15.1`_–_`P15.5`_ implemented (_`P15.5`_, the status marks and issue list, the last).
-- **Next free:** _`D611`_, _`S13`_, _`P17`_, _`O90`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
-- **Working on:** _`P15`_ Showcase views (approved for its split and order, `./.workflow/PLAN-P15-showcase-views.md`), planning _`S12`_ without _`S12.1`_ (_`P16`_, later), in six children _`P15.1`_–_`P15.6`_ (_`D541`_, _`D545`_–_`D548`_).
-- **Next step:** implement _`P15.6`_ Included keywords (`./.workflow/PLAN-P15.6-included-keywords.md`, approved), step 1, on the user's go-ahead.
+- **Stage:** _`P1`_–_`P14`_, _`P15`_ (_`P15.1`_–_`P15.6`_) implemented (_`P15.6`_, the included keywords, the last).
+- **Next free:** _`D615`_, _`S13`_, _`P17`_, _`O90`_, _`L15`_, _`R49`_, _`H1`_, _`K24`_
+- **Working on:** _`S12.1`_, to be planned as _`P16`_ (_`D542`_ (PLAN-P15-showcase-views.md)).
+- **Next step:** plan _`P16`_ (_`S12.1`_: a linked showcase shown inline as a link opening the sidebar, _`O87`_), on the user's go-ahead.
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/p15.6-check/`, `ci-p15.6.log`, `ci-p15.6-rerun.log`, `serve-dogfood-p15.6.log`, `serve-p15.6-check.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p15.6/` (its choices, recorded as _`D602`_–_`D610`_); ask before deleting it.
 - `./.workflow/.temp/p15.6-format/` (formatting backups); ask before deleting it.
 - `./.workflow/.temp/p15.5-check/` (the scratch host), `p15.5-check-shot-*.png`, `p15.5-format/` and `ci-p15.5.log`, `serve-*.log`; ask before deleting them.
@@ -369,3 +370,6 @@
 - 2026-11-15: _`P15.5`_ approved as implemented, with its Glossary changes and implementation choices (_`D596`_–_`D601`_) (options chosen: "Looks right", "Accept (Rec.)", "Accept all (Rec.)", "Approve and commit (Rec.)"); _`O83`_ resolved.
 - 2026-11-15: _`P15.6`_ Included keywords drafted (_`D602`_–_`D610`_, its choices, option chosen: "Accept all (Rec.)").
 - 2026-11-15: _`P15.6`_ Included keywords approved (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
+- 2026-11-15: _`P15.6`_ steps 1–6 implemented: `include=source`/`include=markdown` (`Showcase.tabs`, `ShowcaseTab`), the shown tabs in their order with the flagged Markdown tab, `exposeShowcaseMarkdownSyntax` removed, `include=markdown` on this repository's 36 live blocks, `README.md`, `CONTRIBUTE.md`, `AGENTS.md`; _`D421`_, _`D422`_ marked, _`O84`_ resolved; `npm run ci` green (unit 1258, integration 24, e2e 18, serve 7, after the e2e line count's fix); serves started for the user's check.
+- 2026-11-15: _`P15.6`_ checkpoint: the user's browser check found `include=markdown` showing the source tab first; fixed as _`D611`_ (option chosen: "Before the first file (Rec.)"), with _`R48`_ on _`S12`_ (_`D511`_ changed, pending re-approval); _`D610`_'s Glossary changes accepted ("Accept (Rec.)") and checkpoint choices a–c recorded as _`D612`_–_`D614`_ ("Accept all (Rec.)").
+- 2026-11-15: _`S12`_ re-approved with _`R48`_ (option chosen: "Re-approve (Rec.)"); _`P15.6`_ approved as implemented, after the user's recheck in a browser (options chosen: "Looks right", "Approve and commit (Rec.)"); `npm run ci` green (unit 1258, integration 24, e2e 18, serve 7). _`P15`_ is done.

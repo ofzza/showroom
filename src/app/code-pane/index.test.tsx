@@ -179,10 +179,12 @@ describe('app/code-pane', () => {
     expect(html).toMatch(
       /data-showcase-view="markdown">.*class="hljs language-md".*class="hljs language-html".*data-showcase-view="source">.*class="hljs language-html"/s,
     );
-    // The entry point's tab follows the Markdown tab, where it comes first
-    const markdownTab = { label: 'Markdown', path: 'README.md', language: 'md', source: { kind: 'virtual' as const, content: 'x' } };
+    // The entry point's tab wherever include= places it: after the Markdown tab, or before it
+    const markdownTab = { label: 'Markdown', path: 'README.md', language: 'md', source: { kind: 'virtual' as const, content: 'x' }, markdown: true as const };
     const shifted = _render({ ..._SHOWCASE, views: ['source'], tabs: [markdownTab, ..._SHOWCASE.tabs], entryTab: 1 });
     expect(shifted).toMatch(/data-showcase-view="source">.*class="hljs language-html"/s);
+    const last = _render({ ..._SHOWCASE, views: ['source'], tabs: [..._SHOWCASE.tabs, markdownTab], entryTab: 0 });
+    expect(last).toMatch(/data-showcase-view="source">.*class="hljs language-html"/s);
   });
 
   it('Loads no showcase frame where no view needs its page running', () => {
@@ -280,6 +282,16 @@ describe('app/code-pane', () => {
       expect(getIssueLocation(showcase, { severity: 'error', message: '', path: 'README.showcase-1.html', line: 2 })).toBe('HTML:2');
       expect(getIssueLocation(showcase, { severity: 'error', message: '', path: 'src/a.ts', line: 4 })).toBe('../src/a.ts:4');
       expect(getIssueLocation(showcase, { severity: 'error', message: '', path: 'docs/b.ts' })).toBe('b.ts');
+      // The Markdown tab, under the documentation file's path, never names an issue in that file
+      const markdownTab = {
+        label: 'Markdown',
+        path: 'docs/guide.md',
+        language: 'md',
+        source: { kind: 'virtual' as const, content: '' },
+        markdown: true as const,
+      };
+      const withMarkdown = { ...showcase, tabs: [...showcase.tabs, markdownTab] };
+      expect(getIssueLocation(withMarkdown, { severity: 'warning', message: '', path: 'docs/guide.md', line: 3 })).toBe('guide.md:3');
     });
   });
 

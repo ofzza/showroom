@@ -288,15 +288,16 @@ describe('cli/check', () => {
 
     it('Collects how showcases are shown and their included files, and the included real files as linked files', async () => {
       // The showcase-keys fixture: inline and block linked showcases, in a list item and a blockquote; included virtual files, real files (a binary one
-      // among them), a documentation file, a code block showcase's entry point and another folder's virtual file (on a custom showcase adapter,
-      // as an html showcase can't include outside its entry point's folder); named showcases (greeting.html, docs/helper.js), included by name
+      // among them, and one named like the include key's keyword "source"), a documentation file, a code block showcase's entry point and another
+      // folder's virtual file (on a custom showcase adapter, as an html showcase can't include outside its entry point's folder); named showcases
+      // (greeting.html, docs/helper.js), included by name
       const { passed, issues, host } = await check(_fixture('showcase-keys'));
       expect(issues).toEqual([]);
       expect(passed).toBe(true);
       expect(host?.showcases.map(({ id, kind, display, include }) => ({ id, kind, display, include }))).toEqual([
         { id: 'README.md#1', kind: 'code-block', display: 'block', include: ['theme.css', 'greeting.html'] },
         { id: 'README.md#2', kind: 'link', display: 'inline', include: ['demos/demo.css', 'demos/logo.png'] },
-        { id: 'README.md#3', kind: 'link', display: 'block', include: ['demos/demo.css'] },
+        { id: 'README.md#3', kind: 'link', display: 'block', include: ['demos/demo.css', 'demos/source'] },
         {
           id: 'README.md#4',
           kind: 'link',
@@ -306,6 +307,12 @@ describe('cli/check', () => {
         { id: 'README.md#5', kind: 'code-block', display: 'block', include: [] },
         { id: 'docs/guide.md#1', kind: 'code-block', display: 'block', include: [] },
         { id: 'docs/guide.md#2', kind: 'code-block', display: 'block', include: [] },
+      ]);
+      // The include key's keywords place the tabs, among the included files (demos/source is a real file, named like the keyword)
+      expect(host?.showcases.slice(0, 3).map(({ tabs }) => tabs)).toEqual([
+        [{ kind: 'source' }, { kind: 'file', path: 'theme.css' }, { kind: 'file', path: 'greeting.html' }],
+        [{ kind: 'file', path: 'demos/demo.css' }, { kind: 'source' }, { kind: 'file', path: 'demos/logo.png' }],
+        [{ kind: 'markdown' }, { kind: 'source' }, { kind: 'file', path: 'demos/demo.css' }, { kind: 'file', path: 'demos/source' }],
       ]);
       expect(host?.virtualFiles.map(({ path, named, showcase }) => ({ path, named, showcase }))).toEqual([
         { path: 'README.showcase-1.html', named: false, showcase: 'README.md#1' },
@@ -319,6 +326,7 @@ describe('cli/check', () => {
         { path: 'demos/demo.css', size: 23, text: true },
         { path: 'demos/demo.html', size: 121, text: true },
         { path: 'demos/logo.png', size: 70, text: false },
+        { path: 'demos/source', size: 35, text: true },
         { path: 'demos/widget.js', size: 25, text: true },
       ]);
     });
@@ -358,6 +366,7 @@ describe('cli/check', () => {
         'errors/keys.md:16: A linked showcase shown as a block must be alone in its paragraph',
         'errors/keys.md:18: A linked showcase shown as a block must be alone in a paragraph, not in a "emphasis" node',
         "errors/keys.md:22: A linked showcase shown as a block can't be in a footnote",
+        'errors/keys.md:24: The keyword "source" is listed twice in "include=source,./linked.css,source" in showcase marker "showcase include=source,./linked.css,source"',
         'errors/markers.md:3: The showcase marker must follow the code block\'s language ("```<language> showcase=html")',
         'errors/markers.md:6: Invalid showcase adapter name "Html" in showcase marker "showcase=Html": use lower-case letters, digits and "-", starting with a letter',
         `errors/markers.md:9: The code block showcase's name "a.htm" must end in ".html", the extension its language "html" gives`,
@@ -453,8 +462,8 @@ describe('cli/check', () => {
         'README.md:21: A linked showcase shown inline is shown as a demo for now, so it can\'t have a "view" key; add "block" to choose its views',
         'README.md:23: A virtual file with no showcase adapter is never built, so it can\'t have the view "demo"; its views are source, markdown and none',
         'showroom.json: "showcaseViews" names "nowhere", which is neither a built-in showcase adapter nor one of "customShowcaseAdapters"',
-        'README.md:13: A showcase shown with the view "none" can\'t include files, as nothing would show them',
-        'README.md:17: A showcase shown with the view "none" can\'t include files, as nothing would show them',
+        'README.md:13: A showcase shown with the view "none" can\'t have "include=", as nothing would show its tabs',
+        'README.md:17: A showcase shown with the view "none" can\'t have "include=", as nothing would show its tabs',
       ]);
     });
   });

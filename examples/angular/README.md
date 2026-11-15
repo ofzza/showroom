@@ -8,13 +8,13 @@
 
 A linked showcase, shown as a block beside its code: [`demo/stopwatch.ts`](./demo/stopwatch.ts) imports the library like any module would, and its default export is the standalone component the showcase frame creates. The stopwatch keeps its template and styles in files of their own, [`stopwatch.component.html`](./src/stopwatch.component.html) and [`stopwatch.component.css`](./src/stopwatch.component.css), which Angular's compiler reads.
 
-[A stopwatch](./demo/stopwatch.ts 'showcase=angular block')
+[A stopwatch](./demo/stopwatch.ts 'showcase=angular block include=markdown')
 
 ## Counters
 
 A code block showcase, importing the library by relative paths from this documentation file's folder. Its signal inputs set each counter's start, step and bounds, and its `changed` output logs to the console: what it logs fades in at the bottom of its showcase frame, and the counter in its corner opens the console panel.
 
-```ts showcase=angular
+```ts showcase=angular include=markdown
 import { Component } from '@angular/core';
 import { CounterComponent } from './src/counter.component.js';
 
@@ -36,7 +36,7 @@ export default class Counters {
 
 An `angular` showcase reads the showroom's theme as any page in a showcase frame does, from the `data-showroom-theme` attribute of its `<html>`: the library's [`ThemeService`](./src/theme.service.ts), provided in the root injector, follows it with a signal, and falls back to the system's theme outside the showroom. Switch the showroom's theme to see it change; the stopwatch's styles follow it with CSS's `light-dark()`.
 
-```ts showcase=angular
+```ts showcase=angular include=markdown
 import { Component, inject } from '@angular/core';
 import { ThemeService } from './src/theme.service.js';
 
@@ -65,7 +65,7 @@ A virtual file with no showcase adapter: an HTML file in this folder, which the 
 
 A showcase holding state of its own, its template the virtual `laps.html`: each click records a lap, formatted by the library and by `@angular/common`'s standalone `DecimalPipe`.
 
-```ts showcase=angular
+```ts showcase=angular include=markdown
 import { Component, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { formatElapsed } from './src/format.js';
@@ -89,7 +89,7 @@ export default class LapTimer {
 
 The `zone` option (`showcase=angular({ zone: true })`) loads `zone.js` and uses zone-based change detection, for code that relies on it: here, a plain field a timer changes, which no signal announces. Zone.js notices the timer, and refreshes the component, which sets `ChangeDetectionStrategy.Eager`, as components are `OnPush` from Angular 22.
 
-```ts showcase=angular({ zone: true })
+```ts showcase=angular({ zone: true }) include=markdown
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
 @Component({

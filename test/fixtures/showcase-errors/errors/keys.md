@@ -20,3 +20,5 @@ See [not alone](./linked.html "showcase block").
 Text with a footnote[^1].
 
 [^1]: [in a footnote](./linked.html "showcase block")
+
+[twice](./linked.html "showcase include=source,./linked.css,source")

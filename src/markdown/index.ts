@@ -7,7 +7,7 @@ import JSON5 from 'json5';
 import remarkGfm from 'remark-gfm';
 import remarkParse from 'remark-parse';
 import { unified } from 'unified';
-import type { Showcase, ShowcaseView, VirtualFile } from '../host/index.js';
+import type { Showcase, ShowcaseTab, ShowcaseView, VirtualFile } from '../host/index.js';
 
 // #region Paths
 
@@ -191,9 +191,14 @@ export interface ShowcaseMarker {
    */
   display?: 'inline' | 'block';
   /**
-   * Paths the `include` key lists, URL-decoded, as written (relative to the documentation file's folder), if the marker has one
+   * Paths the `include` key lists, URL-decoded, as written (relative to the documentation file's folder), without its keywords, if the marker has
+   * one (empty if it lists keywords alone)
    */
   include?: string[];
+  /**
+   * What the `include` key lists, in its order: its keywords (`source`, `markdown`) and its paths, as `include` holds them, if the marker has one
+   */
+  tabs?: ShowcaseTab[];
   /**
    * Showcase views the `view` key lists, in its order, if the marker has one
    */
@@ -288,7 +293,8 @@ export function parseShowcaseMarker(text: string): { marker: ShowcaseMarker; err
       if ('error' in include) {
         return { error: `${include.error} in showcase marker ${quoted}` };
       }
-      marker.include = include.paths;
+      marker.include = include.tabs.flatMap((tab) => (tab.kind === 'file' ? [tab.path] : []));
+      marker.tabs = include.tabs;
       continue;
     }
     if (key === 'view') {
@@ -312,30 +318,37 @@ export function parseShowcaseMarker(text: string): { marker: ShowcaseMarker; err
 }
 
 /**
- * Parses the value of a showcase marker's `include` key: comma-separated paths, each judged on its raw text (no `?`, `#` or leading `/`, as a
- * link's path would lose them), then URL-decoded as link targets are
+ * Parses the value of a showcase marker's `include` key: comma-separated keywords (`source`, `markdown`, matched on their raw text) and paths, each
+ * path judged on its raw text (no `?`, `#` or leading `/`, as a link's path would lose them), then URL-decoded as link targets are
  * @param value The key's value, after `include=`
- * @returns The paths, URL-decoded, or the error that prevents parsing them
+ * @returns What it lists, in its order (each path URL-decoded, as written), or the error that prevents parsing it
  */
-function _parseInclude(value: string): { paths: string[] } | { error: string } {
+function _parseInclude(value: string): { tabs: ShowcaseTab[] } | { error: string } {
   if (!value) {
     return { error: 'The key "include" needs paths ("include=<path>,<path>")' };
   }
-  const paths: string[] = [];
+  const tabs: ShowcaseTab[] = [];
   for (const raw of value.split(',')) {
     if (!raw) {
       return { error: `Empty path in "include=${value}"` };
+    }
+    if (raw === 'source' || raw === 'markdown') {
+      if (tabs.some((tab) => tab.kind === raw)) {
+        return { error: `The keyword "${raw}" is listed twice in "include=${value}"` };
+      }
+      tabs.push({ kind: raw });
+      continue;
     }
     if (/[?#]/.test(raw) || raw.startsWith('/')) {
       return { error: `Invalid included path "${raw}": use a path relative to the documentation file's folder, with no "?" or "#"` };
     }
     try {
-      paths.push(decodeURIComponent(raw));
+      tabs.push({ kind: 'file', path: decodeURIComponent(raw) });
     } catch (_err) {
       return { error: `Included path "${raw}" can't be URL-decoded` };
     }
   }
-  return { paths };
+  return { tabs };
 }
 
 /**
@@ -531,6 +544,7 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
       ...(marker.hasOptions ? { options: marker.options } : {}),
       entry: entryPath,
       include: include.paths,
+      tabs: _getTabs(marker.tabs, include.paths),
       ...(kind === 'link' && marker.display !== 'block' ? { views: ['demo' as const] } : marker.views ? { views: marker.views } : {}),
     });
   };
@@ -695,6 +709,24 @@ function _resolveIncludes(from: string, entry: string, include: string[]): { pat
     paths.push(resolved.path);
   }
   return { paths };
+}
+
+/**
+ * Gets a showcase's tabs: what its marker's `include` key lists, in its order, each path resolved; where it doesn't list `source`, the source tab
+ * goes before the first included file, or last when there is none (so `include=markdown` puts the Markdown tab first)
+ * @param listed What the marker's `include` key lists (its paths as written), if it has one
+ * @param paths The included files' paths, resolved, in the marker's order
+ * @returns The tabs
+ */
+function _getTabs(listed: ShowcaseTab[] | undefined, paths: string[]): ShowcaseTab[] {
+  let file = 0;
+  const tabs = (listed ?? paths.map((path) => ({ kind: 'file' as const, path }))).map((tab) =>
+    tab.kind === 'file' ? { kind: 'file' as const, path: paths[file++] } : tab,
+  );
+  if (tabs.some((tab) => tab.kind === 'source')) return tabs;
+  const first = tabs.findIndex((tab) => tab.kind === 'file');
+  tabs.splice(first === -1 ? tabs.length : first, 0, { kind: 'source' });
+  return tabs;
 }
 
 /**

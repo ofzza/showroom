@@ -57,6 +57,7 @@ function _showcase(documentation: string, entry: string, options: unknown = { ty
     adapter: 'ts',
     entry,
     include: [],
+    tabs: [{ kind: 'source' }],
     views: ['source', 'console'],
     options,
   };

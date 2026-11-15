@@ -186,7 +186,7 @@ describe('app/code-sidebar', () => {
     const tab = (label: string, path: string, source: ShownTab['source']): ShownTab => ({ label, path, language: 'ts', source });
     const showcase: Pick<ShownShowcase, 'tabs' | 'entryTab' | 'issues'> = {
       tabs: [
-        tab('Markdown', 'README.md', { kind: 'virtual', content: '```ts showcase\nx\n```' }),
+        { ...tab('Markdown', 'README.md', { kind: 'virtual', content: '```ts showcase\nx\n```' }), markdown: true },
         tab('TS', 'README.showcase-1.ts', { kind: 'virtual', content: 'x' }),
         tab('a.ts', 'a.ts', { kind: 'file', url: 'files/a.ts', text: true }),
         tab('b.ts', 'b.ts', { kind: 'file', url: 'files/b.ts', text: true }),
@@ -207,6 +207,14 @@ describe('app/code-sidebar', () => {
       // The Markdown tab shows the entry point's fence: its issues, one line below
       expect(markdown).toEqual({ markers: new Map([[2, { severity: 'error', messages: ['Broke'] }]]), severity: 'error' });
       expect(getMarkdownMarkers(showcase)).toEqual(markdown.markers);
+    });
+
+    it('Finds the Markdown tab by its flag, wherever include= places it', () => {
+      const [markdown, ...files] = showcase.tabs;
+      const marks = getTabMarks({ ...showcase, tabs: [...files, markdown], entryTab: 0 });
+      expect(marks[3]).toEqual({ markers: new Map([[2, { severity: 'error', messages: ['Broke'] }]]), severity: 'error' });
+      expect(marks[0]).toEqual({ markers: new Map([[1, { severity: 'error', messages: ['Broke'] }]]), severity: 'error' });
+      expect(getMarkdownMarkers({ ...showcase, tabs: [...files, markdown], entryTab: 0 })).toEqual(marks[3].markers);
     });
 
     it("Marks nothing in a linked showcase's Markdown source, its link", () => {

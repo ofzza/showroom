@@ -8,13 +8,13 @@
 
 A linked showcase, shown as a block: [`demo/countdown.ts`](./demo/countdown.ts) imports the library like any module would, and writes into the showcase frame root, `#root`. A `ts` showcase shows its code and its console by default; this one asks for its `demo` view instead (`view=demo`), its showcase frame, with its code a click away. What it logs fades in at the bottom of its showcase frame, and the counter in its corner opens the console panel.
 
-[A countdown to the new year](./demo/countdown.ts 'showcase=ts block view=demo')
+[A countdown to the new year](./demo/countdown.ts 'showcase=ts block view=demo include=markdown')
 
 ## Durations
 
 A code block showcase, importing the library by relative paths from this documentation file's folder, shown by the `ts` showcase adapter's default views: its code, then its console, where everything it logs shows.
 
-```ts showcase=ts
+```ts showcase=ts include=markdown
 import { Duration } from './src/duration.js';
 import { Unit } from './src/units.js';
 
@@ -31,7 +31,7 @@ console.log('Both, broken down', sprint.plus(meeting).parts());
 
 A named showcase: its virtual TypeScript file is `list.ts`, in this folder, which the next two showcases import as if it were on disk. It is built and type checked as a showcase of its own, shown by its code alone (`view=source`): it only declares a function, so its page would show and log nothing.
 
-```ts showcase=ts file=list.ts view=source
+```ts showcase=ts file=list.ts view=source include=markdown
 /**
  * Renders a titled list of label and value rows into the showcase frame root
  * @param title Title of the list
@@ -54,7 +54,7 @@ export function renderList(title: string, rows: ReadonlyArray<readonly [string, 
 
 `relative()` picks the largest unit that fits, and lets `Intl.RelativeTimeFormat` say it in any language. This showcase renders its list into the page, so it is shown as a demo (`view=demo`).
 
-```ts showcase=ts view=demo
+```ts showcase=ts view=demo include=markdown
 import { renderList } from './list.js';
 import { relative } from './src/relative.js';
 
@@ -73,7 +73,7 @@ renderList('In Croatian', [['3 weeks on', relative(minutes(3 * 7 * 24 * 60), now
 
 Floating point numbers can't hold most decimals exactly, which surprises everyone once. `round()` takes a `Rounding` mode, and gets the halves right. Its code, then its rendered list (`view=source,demo`).
 
-```ts showcase=ts view=source,demo
+```ts showcase=ts view=source,demo include=markdown
 import { renderList } from './list.js';
 import { Rounding, almostEqual, round } from './src/rounding.js';
 
@@ -101,7 +101,7 @@ for (const mode of Object.values(Rounding)) {
 
 A `js` code block works too: JavaScript importing the TypeScript library, which is still type checked.
 
-```js showcase=ts
+```js showcase=ts include=markdown
 import { Duration } from './src/duration.js';
 import { Unit } from './src/units.js';
 

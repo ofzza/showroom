@@ -146,13 +146,13 @@ The **showcase marker** is `showcase`, `showcase=<adapter>`, or `showcase=<adapt
 - The keys:
   - `file=<name>` names a code block's virtual file (below): a code block showcase's, with the extension its language gives (e.g. `ts showcase=ts file=units.ts`), or, on a naked marker (`showcase file=<name>`), a virtual file with no showcase adapter, which is never built and takes no other key but `view=` (`source`, `markdown` or `none`, below). A linked showcase can't have it: its entry point is a real file already.
   - `inline` or `block` says how a linked showcase is shown: inline, the default, or as a block, in place of the paragraph holding its link, which must be its paragraph's only content (in a list item or a blockquote too, never in a footnote). A code block showcase is always a block, so neither key goes on a code block.
-  - `include=<path>,<path>` lists a showcase's **included files**, which are shown with it: real files, documentation files, or virtual files (by the name `file=` gives, or a code block showcase's generated name, which changes when a showcase is added above it), in any folder. Paths are relative to the documentation file's folder, comma-separated, with no spaces, commas, `?` or `#` in them, URL-decoded as link targets are, and matched exactly, case included, on every OS. `check` reports an included file that doesn't exist, is a folder, is the showcase's own entry point, is listed twice, is in the output folder, or leads outside the host repository. Including a file only adds it: it is always available to the showcase's build (see each showcase adapter below), and a showcase still uses whatever else it uses, included or not.
+  - `include=<path>,<path>` lists a showcase's **included files**, which are shown with it: real files, documentation files, or virtual files (by the name `file=` gives, or a code block showcase's generated name, which changes when a showcase is added above it), in any folder. Paths are relative to the documentation file's folder, comma-separated, with no spaces, commas, `?` or `#` in them, URL-decoded as link targets are, and matched exactly, case included, on every OS. `check` reports an included file that doesn't exist, is a folder, is the showcase's own entry point, is listed twice, is in the output folder, or leads outside the host repository. Including a file only adds it: it is always available to the showcase's build (see each showcase adapter below), and a showcase still uses whatever else it uses, included or not. Two bare words are tabs rather than files, placed where they are listed: `source`, the entry point's own tab (where `include=` doesn't list it, before the first included file, or last, so `include=markdown` puts the Markdown tab first), and `markdown`, a tab showing the showcase as written in its documentation file (as the `markdown` view does), e.g. `include=markdown,./theme.css`; a file of either name is written as a path (`./source`), and each may be listed once.
   - `view=<view>,<view>` lists a showcase's [showcase views](#showcase-views), how the showroom shows it: one or more of `markdown`, `source`, `demo` and `console`, in the order shown, or `none`. A repeated view, an empty one, an unknown one, and `none` with any other are errors; a linked showcase shown inline can't have it, for now (it is shown as a `demo`).
   - `anchor=<name>` is reserved for later, and any other key is an error. Keys are case-sensitive, and a repeated key is an error.
 
-A **code block showcase** is a fenced code block with the marker right after its language, which stays first so that the block is still highlighted everywhere. Its code is the showcase's entry point. Here is one, live: in this repository's showroom, the button in its header bar shows its code, and the code pane's first tab, **Markdown**, shows the code block as written, marker included (the showcases below show theirs the same way):
+A **code block showcase** is a fenced code block with the marker right after its language, which stays first so that the block is still highlighted everywhere. Its code is the showcase's entry point. Here is one, live: in this repository's showroom, the button in its header bar shows its code, and the code pane's first tab, **Markdown**, shows the code block as written, marker included, as its marker lists it (`html showcase include=markdown`; the showcases below show theirs the same way, see [included files](#showcases)):
 
-```html showcase
+```html showcase include=markdown
 <style>
   .n {
     font: 1.5em monospace;
@@ -189,7 +189,7 @@ A code block marked `showcase file=<name>`, with no showcase adapter, is a **vir
 }
 ```
 
-```html showcase
+```html showcase include=markdown
 <link rel="stylesheet" href="./figures.css" /> <span class="figure">3<b>.</b><i>14159</i></span>
 ```
 
@@ -207,11 +207,11 @@ The link must be an inline link (not a reference, nor an image) with a relative 
 
 A linked showcase is shown **inline** by default (or with the `inline` key): its showcase frame before the paragraph holding its link, and the link opening its file in the [code sidebar](#linked-files). With the `block` key, it is shown **as a block**, as a code block showcase is: its showcase frame and its [code pane](#the-code-pane) take the place of the paragraph holding the link, whose text isn't shown in the showroom (it is only there for the Markdown read anywhere else, where the link stays a link). The link must be alone in its paragraph. Here is the same page, as a block:
 
-[Formatted figures](./examples/figures.html 'showcase block')
+[Formatted figures](./examples/figures.html 'showcase block include=markdown')
 
-**Included files** (`include=`) are shown with their showcase, as more tabs of its code pane, or of its code sidebar for a linked showcase shown inline. Here, the code block showcase using the stylesheet above lists it, so the stylesheet is shown beside it:
+**Included files** (`include=`) are shown with their showcase, as more tabs of its code pane, or of its code sidebar for a linked showcase shown inline. Here, the code block showcase using the stylesheet above lists it, so the stylesheet is shown beside it. Like every live showcase shown as a block in this repository, it also lists `markdown`, first, so that its first tab shows it as written:
 
-```html showcase include=figures.css
+```html showcase include=markdown,figures.css
 <link rel="stylesheet" href="./figures.css" /> <span class="figure">2<b>.</b><i>71828</i></span>
 ```
 
@@ -227,6 +227,8 @@ Tabs show only the entry point and the included files, never what a showcase als
 | ` ```ts showcase=angular({ zone: true }) ` + code                             | An `angular` showcase, with zone.js: its code pane beside the created component                                            |
 | ` ```html showcase include=./figures.css,theme.css ` + code                   | The same `html` showcase, with two more tabs; a real `figures.css` is copied next to its page too                          |
 | ` ```ts showcase=ts include=./src/units.ts ` + code                           | A `ts` showcase with `units.ts` as another tab; it imports whatever it imports, listed or not                              |
+| ` ```ts showcase=ts include=markdown ` + code                                 | A `ts` showcase whose first tab shows it as written, marker included, then its code's tab                                  |
+| ` ```ts showcase=ts include=./src/units.ts,source ` + code                    | The same `units.ts` tab, first, before the showcase's own code's                                                           |
 | ` ```css showcase file=theme.css ` + code                                     | A virtual file `theme.css`: a code block, usable by showcases as if on disk, never built                                   |
 | ` ```ts showcase=ts file=units.ts ` + code                                    | A `ts` showcase whose virtual file is `units.ts`, which other showcases can import or include by that name                 |
 | ` ```ts showcase=ts view=demo ` + code                                        | A `ts` showcase shown by its showcase frame, instead of its default code and console                                       |
@@ -264,17 +266,17 @@ A showcase shown as a block is shown by its **showcase views**, stacked one belo
 
 A `markdown` or `source` view is at most 20 lines high, or the viewport's height where that's less, and scrolls beyond. A showcase whose views are only `markdown` and `source` (or `none`) is built and checked like any other, so its code is verified, but its page is never loaded: `showroom build` leaves its showcase frame out. A showcase's views come from its marker's `view=`, or else from `showroom.json`'s `showcaseViews` for its showcase adapter, or else from its showcase adapter's own default: `demo` for `html`, `react`, `angular` and a custom showcase adapter that declares none; `source,console` for `ts`, as plain TypeScript is more often logic than UI. A linked showcase shown inline is always shown as a `demo`, before its paragraph.
 
-Here is a `ts` showcase with its default views, its code then its console; its marker is `ts showcase=ts`:
+Here is a `ts` showcase with its default views, its code then its console; its marker is `ts showcase=ts include=markdown`:
 
-```ts showcase=ts
+```ts showcase=ts include=markdown
 const total = [3, 1, 4, 1, 5].reduce((sum, value) => sum + value, 0);
 console.log('total', total);
 console.warn('a warning stands out');
 ```
 
-And one shown by its Markdown, then its showcase frame, with its console as a view of its own below; its marker is `html showcase view=markdown,demo,console`:
+And one shown by its Markdown, then its showcase frame, with its console as a view of its own below; its marker is `html showcase view=markdown,demo,console include=markdown`:
 
-```html showcase view=markdown,demo,console
+```html showcase view=markdown,demo,console include=markdown
 <button onclick="console.log('clicked at', new Date().toLocaleTimeString())">Click to log</button>
 ```
 
@@ -296,7 +298,7 @@ An `html` showcase's showcase frame is its entry point, as the page, **every vir
 
 The [`html` example](./examples/html/README.md) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md)) documents `numerals`, a made-up CSS library, on its own showcases. Its first showcase is a page of its own, [`clock.html`](./examples/html/clock.html), linked as a showcase shown as a block, beside its code:
 
-[A 7-segment clock](./examples/html/clock.html 'showcase block')
+[A 7-segment clock](./examples/html/clock.html 'showcase block include=markdown')
 
 See the rest in the example: its stylesheet as a [virtual file](./examples/html/README.md#the-stylesheet) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#the-stylesheet)), [tabular figures](./examples/html/README.md#tabular-figures) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#tabular-figures)), [grouped digits](./examples/html/README.md#grouped-digits) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#grouped-digits)), [comic digits](./examples/html/README.md#comic-digits) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#comic-digits)) and [large figures](./examples/html/README.md#large-figures-and-displays) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#large-figures-and-displays)), following the showroom's theme.
 
@@ -306,7 +308,7 @@ A `ts` showcase's entry point is a TypeScript or JavaScript module, which `showr
 
 The [`ts` example](./examples/ts/README.md) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md)) documents `tempo`, a made-up TypeScript library of durations, relative times and rounding, typed throughout. Its first showcase is [`countdown.ts`](./examples/ts/demo/countdown.ts), a module importing the library, linked as a showcase shown as a block, as a demo (`view=demo`), its code a click away (what it logs fades in at the bottom of its showcase frame, and the counter opens the console panel):
 
-[A countdown to the new year](./examples/ts/demo/countdown.ts 'showcase=ts block view=demo')
+[A countdown to the new year](./examples/ts/demo/countdown.ts 'showcase=ts block view=demo include=markdown')
 
 See the rest in the example: [code block showcases importing the library](./examples/ts/README.md#durations) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#durations)), [a virtual TypeScript file](./examples/ts/README.md#a-shared-helper) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#a-shared-helper)) two showcases import, [relative times](./examples/ts/README.md#relative-times) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#relative-times)), [rounding with an `enum`](./examples/ts/README.md#rounding) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#rounding)), and [a `js` showcase](./examples/ts/README.md#from-javascript) ([live](https://ofzza.github.io/showroom/#/examples/ts/README.md#from-javascript)) importing TypeScript, each type checked with the example's own `tsconfig.json`.
 
@@ -354,7 +356,7 @@ It builds on the [`ts` showcase adapter](#ts-showcases): it is bundled the same 
 
 The [`react` example](./examples/react/README.md) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md)) documents `ticker`, a made-up React component library of a stopwatch, counters and a theme hook. Its first showcase is [`Stopwatch.tsx`](./examples/react/demo/Stopwatch.tsx), a module whose default export renders the library's stopwatch, linked as a showcase shown as a block, beside its code:
 
-[A stopwatch](./examples/react/demo/Stopwatch.tsx 'showcase=react block')
+[A stopwatch](./examples/react/demo/Stopwatch.tsx 'showcase=react block include=markdown')
 
 See the rest in the example: [counters with props](./examples/react/README.md#counters) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#counters)) logging to the console panel, [following the theme](./examples/react/README.md#following-the-theme) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#following-the-theme)), [a virtual TSX file](./examples/react/README.md#a-shared-component) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#a-shared-component)) the [next showcase](./examples/react/README.md#composing) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#composing)) imports, [a memoized component](./examples/react/README.md#memoized-components) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#memoized-components)), and [a `jsx` showcase](./examples/react/README.md#from-jsx) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#from-jsx)), each type checked with the example's own `tsconfig.json`.
 
@@ -386,7 +388,7 @@ It builds on the [`ts` showcase adapter](#ts-showcases): once compiled, it is bu
 
 The [`angular` example](./examples/angular/README.md) ([live](https://ofzza.github.io/showroom/#/examples/angular/README.md)) documents `tock`, a made-up Angular component library of a stopwatch, counters and a theme service, the `react` example's `ticker` the Angular way. Its first showcase is [`stopwatch.ts`](./examples/angular/demo/stopwatch.ts), a module whose default export is a standalone component showing the library's stopwatch (its template and styles in files of their own), linked as a showcase shown as a block, beside its code:
 
-[A stopwatch](./examples/angular/demo/stopwatch.ts 'showcase=angular block')
+[A stopwatch](./examples/angular/demo/stopwatch.ts 'showcase=angular block include=markdown')
 
 See the rest in the example: [counters with signal inputs and an output](./examples/angular/README.md#counters) ([live](https://ofzza.github.io/showroom/#/examples/angular/README.md#counters)) logging to the console panel, [following the theme](./examples/angular/README.md#following-the-theme) ([live](https://ofzza.github.io/showroom/#/examples/angular/README.md#following-the-theme)) through a root service, [a virtual template](./examples/angular/README.md#a-shared-template) ([live](https://ofzza.github.io/showroom/#/examples/angular/README.md#a-shared-template)) the [next showcase](./examples/angular/README.md#composing) ([live](https://ofzza.github.io/showroom/#/examples/angular/README.md#composing)) names as its `templateUrl`, and [the `zone` option](./examples/angular/README.md#with-zonejs) ([live](https://ofzza.github.io/showroom/#/examples/angular/README.md#with-zonejs)), each type checked with the example's own `tsconfig.json`, its templates strictly.
 
@@ -398,7 +400,7 @@ The showroom loads a showcase frame's page by a URL whose query carries a hash o
 
 The showcase frame follows the showroom's light or dark theme: the script sets it as the `data-showroom-theme` attribute (`light` or `dark`) and the `color-scheme` of the page's `<html>`, from the first paint on, and whenever the theme changes. A showcase can follow it with `[data-showroom-theme='dark']` selectors, or with CSS's `light-dark()`; switch the showroom's theme to see this one change:
 
-```html showcase
+```html showcase include=markdown
 <style>
   .themed {
     font: 1.5em monospace;
@@ -427,7 +429,7 @@ Only the showcase frame's own page is captured: an iframe inside it, or a window
 
 ### The code pane
 
-A code block showcase, and a linked showcase shown as a block, are shown with their **code pane**: their files' code, a tab per file (the entry point first, labelled by its language for a code block showcase, e.g. `HTML`; then the [included files](#showcases), each labelled by its path relative to the documentation file), highlighted with line numbers, with a copy button beside the tabs copying the selected tab's code. A file that isn't text (or is over 1 MB) says so in its tab, with a link opening it; a linked showcase's entry point that isn't copied into the showroom (see [Linked files](#linked-files)) says so too.
+A code block showcase, and a linked showcase shown as a block, are shown with their **code pane**: their files' code, a tab per file (the entry point's, labelled by its language for a code block showcase, e.g. `HTML`; the [included files](#showcases)', each labelled by its path relative to the documentation file), in the order `include=` lists them, with its `source` and `markdown` tabs where it lists those (an unlisted `source` before the first included file), highlighted with line numbers, with a copy button beside the tabs copying the selected tab's code. A file that isn't text (or is over 1 MB) says so in its tab, with a link opening it; a linked showcase's entry point that isn't copied into the showroom (see [Linked files](#linked-files)) says so too.
 
 The code pane has three states, switched in turn by its button, at the right end of the block's header bar: **hidden**, the [showcase views](#showcase-views) alone, where every code pane starts, each time a page is shown; **half**, the code pane beside the views (on their right), or below them when the block is narrower than 720 px (a block in a list item or a blockquote is narrower than the text); and **sidebar**, the views alone again, with the code pane's tabs in the [code sidebar](#linked-files), from the tab that was selected. The button is hidden while the code sidebar is open, and closing it leaves the code pane hidden. The views keep their own height (a `demo` view at least 32 px, a console panel's counter's row), and a showcase frame never reloads when the state changes. The code pane always has its entry point's tab, even when a `source` view shows the same code. The code pane shows at least 6 lines of code (or all of them, when there are fewer), so a short showcase with longer code sits in a block at least that tall; below the showcase frame, it is as tall as its code, up to 20 lines; beyond that, it scrolls.
 
@@ -491,7 +493,7 @@ export default (): ShowcaseAdapter => ({
 
 The [`number-table` example](./examples/number-table/README.md) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md)) is a custom showcase adapter of this repository's own, listed in its `showroom.json`: a JSON array of rows, shown as a table with its numbers formatted. Its first showcase is [`planets.json`](./examples/number-table/planets.json), linked as a showcase shown as a block, beside its code:
 
-[The planets](./examples/number-table/planets.json 'showcase=number-table({ caption: "The planets" }) block')
+[The planets](./examples/number-table/planets.json 'showcase=number-table({ caption: "The planets" }) block include=markdown')
 
 See the rest in the example: [its options](./examples/number-table/README.md#options) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md#options)), checked by `validate()`, its [errors and warnings](./examples/number-table/README.md#errors-and-warnings) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md#errors-and-warnings)), and [the module](./examples/number-table/README.md#the-module) ([live](https://ofzza.github.io/showroom/#/examples/number-table/README.md#the-module)).
 
@@ -545,7 +547,8 @@ The host information has this shape (types `HostInformation`, `ProjectInformatio
       "display": "block",
       "adapter": "html",
       "entry": "README.showcase-1.html",
-      "include": []
+      "include": [],
+      "tabs": [{ "kind": "source" }]
     }
   ],
   "virtualFiles": [
@@ -555,7 +558,7 @@ The host information has this shape (types `HostInformation`, `ProjectInformatio
 }
 ````
 
-Documentation files have a `kind` of `readme`, `contribute`, `license`, or `other` for the files the `documentation` patterns add. A showcase has an `id` (its documentation file and its position there), the `line` and character `offset` of its entry point (the code block, or the link), its `kind` (`code-block` or `link`), how it is shown (`display`: `block`, or `inline` for a linked showcase without the `block` key), its showcase `adapter`, its `options` as the showcase adapter validated them (left out when there are none), the path of its `entry` point (a virtual file, or the linked file), and the paths of its included files (`include`, in the marker's order; empty when it has none). A virtual file has its `path`, whether `file=` `named` it (or its name was generated), the `showcase` whose entry point it is (its `id`; left out for a virtual file with no showcase adapter), its `content`, and the `documentation` file and `line` of its code block. A linked file has its `path`, its `size` in bytes, and whether it is `text` (UTF-8 with no NUL byte, and no larger than 1 MB, so the showroom shows it in the code sidebar). Paths are POSIX-style and relative to the host repository's root. Documentation files and linked files are sorted by path, showcases and virtual files by documentation file and line.
+Documentation files have a `kind` of `readme`, `contribute`, `license`, or `other` for the files the `documentation` patterns add. A showcase has an `id` (its documentation file and its position there), the `line` and character `offset` of its entry point (the code block, or the link), its `kind` (`code-block` or `link`), how it is shown (`display`: `block`, or `inline` for a linked showcase without the `block` key), its showcase `adapter`, its `options` as the showcase adapter validated them (left out when there are none), the path of its `entry` point (a virtual file, or the linked file), the paths of its included files (`include`, in the marker's order, without its keywords; empty when it has none), and its `tabs` in their order (`{ "kind": "source" }`, `{ "kind": "markdown" }`, or `{ "kind": "file", "path": … }` for an included file). A virtual file has its `path`, whether `file=` `named` it (or its name was generated), the `showcase` whose entry point it is (its `id`; left out for a virtual file with no showcase adapter), its `content`, and the `documentation` file and `line` of its code block. A linked file has its `path`, its `size` in bytes, and whether it is `text` (UTF-8 with no NUL byte, and no larger than 1 MB, so the showroom shows it in the code sidebar). Paths are POSIX-style and relative to the host repository's root. Documentation files and linked files are sorted by path, showcases and virtual files by documentation file and line.
 
 ## `showroom serve`
 
@@ -677,7 +680,7 @@ console.log(getStackAdapterNames(), project, errors);
 - `getStackAdapter(name)` / `getStackAdapterNames()`: look up the built-in stack adapters, which implement the `StackAdapter` interface; `TypeScriptStackAdapter` is the `typescript` one, and `DotNetStackAdapter` the `dotnet` one. `readProject(root, project?)` reads the project information, from the file `project` names (relative to `root`) or the stack adapter's default.
 - `main(args, output?)`: runs the command line with the given arguments, resolving to its exit code; `USAGE` is its help text.
 - Constants: `CONFIGURATION_FILE_NAME` (`showroom.json`), `DEFAULT_OUT_DIR` (`./showroom`), and `BUILT_IN_DOCUMENTATION` (the built-in documentation patterns).
-- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase` (with its `views`), `ShowcaseKind`, `ShowcaseDisplay`, `ShowcaseView` (`markdown`, `source`, `demo`, `console` or `none`), `VirtualFile` (with its fence's `offset`, and its `views` when it has no showcase adapter), `LinkedFile`, `Configuration`, `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.
+- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase` (with its `views` and `tabs`), `ShowcaseTab` (`source`, `markdown`, or an included `file`), `ShowcaseKind`, `ShowcaseDisplay`, `ShowcaseView` (`markdown`, `source`, `demo`, `console` or `none`), `VirtualFile` (with its fence's `offset`, and its `views` when it has no showcase adapter), `LinkedFile`, `Configuration`, `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.
 - Experimental types, for [custom showcase adapters](#custom-showcase-adapters-experimental): `ShowcaseAdapter`, `ShowcaseValidation`, `ShowcaseHostCheck`, `ShowcaseBuildRequest`, `ShowcaseBuildResult`, `ShowcaseBuildFile` and `ShowcaseBuildIssue`.
 
 # Development

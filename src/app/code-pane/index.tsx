@@ -415,8 +415,8 @@ export const BUILD_CHECK_LABEL = 'build';
  * @param issue The issue
  * @returns The location (e.g. `TS:3`, `src/a.ts:2`)
  */
-export function getIssueLocation(showcase: Pick<ShownShowcase, 'documentation' | 'tabs' | 'entryTab'>, issue: ShownIssue): string {
-  const tab = showcase.tabs.find((candidate, index) => index >= showcase.entryTab && candidate.path === issue.path);
+export function getIssueLocation(showcase: Pick<ShownShowcase, 'documentation' | 'tabs'>, issue: ShownIssue): string {
+  const tab = showcase.tabs.find((candidate) => !candidate.markdown && candidate.path === issue.path);
   const label = tab?.label ?? getRelativePath(showcase.documentation, issue.path);
   return issue.line === undefined ? label : `${label}:${issue.line}`;
 }

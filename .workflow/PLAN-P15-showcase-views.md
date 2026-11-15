@@ -1,6 +1,6 @@
 # _`P15`_ Showcase views
 
-approved 2026-11-15, for its split and order (_`D541`_), after its zero-context review (option chosen: "Approve and commit (Rec.)")
+implemented 2026-11-15, its six children implemented; approved 2026-11-15, for its split and order (_`D541`_), after its zero-context review (option chosen: "Approve and commit (Rec.)")
 
 ## Goals
 

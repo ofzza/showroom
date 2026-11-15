@@ -74,6 +74,10 @@ export interface ShownTab {
    * Where the tab gets its content
    */
   source: ShownTabSource;
+  /**
+   * True on the Markdown tab (`include=markdown`): the showcase as written in its documentation file, under the documentation file's path
+   */
+  markdown?: true;
 }
 
 /**
@@ -132,11 +136,11 @@ export interface ShownShowcase {
    */
   markdown: string;
   /**
-   * Its files, as tabs: the entry point, then the included files, in the marker's order (after its Markdown tab, where it has one)
+   * Its tabs, in their order (`Showcase.tabs`): its entry point's, its included files', and its Markdown tab, where `include=` lists it
    */
   tabs: ShownTab[];
   /**
-   * Index of its entry point's tab among its tabs, which its `source` view shows
+   * Index of its entry point's tab (the source tab) among its tabs, which its `source` view shows
    */
   entryTab: number;
   /**

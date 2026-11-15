@@ -361,8 +361,8 @@ async function _checkShowcases(
 
       // Its views: the marker's, or the configuration's default for its showcase adapter, or the showcase adapter's own
       const resolved: Showcase = Object.assign(showcase, { views: showcase.views ?? configured.get(showcase.adapter) ?? getDefaultViews(adapter) });
-      if (resolved.views.includes('none') && resolved.include.length) {
-        error(`A showcase shown with the view "none" can't include files, as nothing would show them`);
+      if (resolved.views.includes('none') && resolved.tabs.length > 1) {
+        error(`A showcase shown with the view "none" can't have "include=", as nothing would show its tabs`);
         continue;
       }
       const valid = used.get(showcase.adapter) ?? [];

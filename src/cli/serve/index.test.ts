@@ -55,6 +55,7 @@ function _host(content: string, code: string[] = [], showcases = 0): HostInforma
       adapter: 'html',
       entry: 'a.html',
       include: [],
+      tabs: [{ kind: 'source' }],
       views: ['demo'],
     })),
     virtualFiles: [],
@@ -361,22 +362,6 @@ describe('cli/serve', () => {
       expect(record.reloads).toBe(0);
       expect(watcher.getHost().showcases[0].tabs[0].source).toEqual({ kind: 'file', url: 'files/a.html?hash=bbbbbbbb', text: true });
       expect(record.events).toEqual([[SHOWCASES_EVENT, watcher.getHost().showcases]]);
-    });
-
-    it("Takes the configuration's Markdown tab setting again on each run", async () => {
-      // A change to showroom.json applies without a restart (D485)
-      const content = '[demo](a.html "showcase block")\n';
-      const base = _host(content, [], 1);
-      const host: HostInformation = { ...base, showcases: [{ ...base.showcases[0], display: 'block', offset: 0 }] };
-      let exposeShowcaseMarkdownSyntax = false;
-      const { watcher } = _watcher(await _initial(host), [{ passed: true, host, issues: [] }], {
-        readShownOptions: async () => ({ exposeShowcaseMarkdownSyntax }),
-      });
-      await watcher.update();
-      expect(watcher.getHost().showcases[0].tabs.map(({ label }) => label)).toEqual(['a.html']);
-      exposeShowcaseMarkdownSyntax = true;
-      await watcher.update();
-      expect(watcher.getHost().showcases[0].tabs.map(({ label }) => label)).toEqual(['Markdown', 'a.html']);
     });
 
     it('Sends a showcase that stops building without its URL, with its issues, and the build errors as issues, without a reload', async () => {

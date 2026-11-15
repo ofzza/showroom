@@ -16,7 +16,7 @@ Every `showroom check` of this repository loads it, and its showcases name it in
 
 A linked showcase, shown as a block beside its code: [`planets.json`](./planets.json), a real file, with a caption.
 
-[The planets](./planets.json 'showcase=number-table({ caption: "The planets" }) block')
+[The planets](./planets.json 'showcase=number-table({ caption: "The planets" }) block include=markdown')
 
 ## Options
 
@@ -28,7 +28,7 @@ A linked showcase, shown as a block beside its code: [`planets.json`](./planets.
 
 `validate()` rejects any other option, or one of the wrong type, and an entry point that isn't JSON, so `showroom check` reports them without building anything. A code block showcase, choosing its columns and formatting in German:
 
-```json showcase=number-table({ columns: ["city", "population", "area (km²)"], locale: "de" })
+```json showcase=number-table({ columns: ["city", "population", "area (km²)"], locale: "de" }) include=markdown
 [
   { "city": "Tokyo", "country": "Japan", "population": 37115000, "area (km²)": 2194.07 },
   { "city": "Delhi", "country": "India", "population": 33807000, "area (km²)": 1484 },

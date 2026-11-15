@@ -33,7 +33,6 @@ describe('configuration', () => {
         documentation: ['docs/*.md'],
         customShowcaseAdapters: { mine: './adapters/mine.js' },
         showcaseViews: { ts: 'source', mine: ['markdown', 'demo'], html: 'none' },
-        exposeShowcaseMarkdownSyntax: true,
       };
       expect(validateConfiguration(value)).toEqual({ configuration: value, errors: [] });
     });
@@ -55,6 +54,10 @@ describe('configuration', () => {
     it('Rejects unknown keys', () => {
       // Catches typos, such as `ignores` for `ignore`
       expect(validateConfiguration({ stack: 'typescript', ignores: [] }).errors).toEqual(['showroom.json: unknown key "ignores"']);
+      // Removed keys are unknown too: include=markdown replaced exposeShowcaseMarkdownSyntax (D511, D608)
+      expect(validateConfiguration({ stack: 'typescript', exposeShowcaseMarkdownSyntax: true }).errors).toEqual([
+        'showroom.json: unknown key "exposeShowcaseMarkdownSyntax"',
+      ]);
     });
 
     it('Rejects values of the wrong type', () => {
@@ -67,7 +70,6 @@ describe('configuration', () => {
           ignore: 'x',
           code: [1],
           documentation: {},
-          exposeShowcaseMarkdownSyntax: 'yes',
         }).errors,
       ).toEqual([
         'showroom.json: "stack" must be a non-empty string',
@@ -77,7 +79,6 @@ describe('configuration', () => {
         'showroom.json: "ignore" must be an array of strings',
         'showroom.json: "code" must be an array of strings',
         'showroom.json: "documentation" must be an array of strings',
-        'showroom.json: "exposeShowcaseMarkdownSyntax" must be a boolean',
       ]);
     });
 

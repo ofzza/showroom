@@ -115,10 +115,25 @@ describe('markdown', () => {
     it('Parses the inline, block and include keys', () => {
       expect(parseShowcaseMarker('showcase inline')).toEqual({ marker: { hasOptions: false, display: 'inline' } });
       expect(parseShowcaseMarker('showcase=x({ a: 1 }) block include=./a.css')).toEqual({
-        marker: { adapter: 'x', hasOptions: true, options: { a: 1 }, display: 'block', include: ['./a.css'] },
+        marker: { adapter: 'x', hasOptions: true, options: { a: 1 }, display: 'block', include: ['./a.css'], tabs: [{ kind: 'file', path: './a.css' }] },
       });
       // Paths are URL-decoded as link targets are, after their raw text is judged
       expect(parseShowcaseMarker('showcase include=a.css,../b%20c.ts,d%3F.js').marker?.include).toEqual(['a.css', '../b c.ts', 'd?.js']);
+    });
+
+    it("Parses the include key's keywords, in their order among its paths", () => {
+      expect(parseShowcaseMarker('showcase include=markdown,a.css,source').marker).toEqual({
+        hasOptions: false,
+        include: ['a.css'],
+        tabs: [{ kind: 'markdown' }, { kind: 'file', path: 'a.css' }, { kind: 'source' }],
+      });
+      expect(parseShowcaseMarker('showcase include=source').marker).toEqual({ hasOptions: false, include: [], tabs: [{ kind: 'source' }] });
+      // A keyword is its exact raw text: anything else is a path
+      expect(parseShowcaseMarker('showcase include=./source,Markdown,sourc%65').marker?.tabs).toEqual([
+        { kind: 'file', path: './source' },
+        { kind: 'file', path: 'Markdown' },
+        { kind: 'file', path: 'source' },
+      ]);
     });
 
     it('Rejects misused inline, block and include keys', () => {
@@ -137,6 +152,9 @@ describe('markdown', () => {
         expect(parseShowcaseMarker(`showcase include=${path}`).error).toMatch(/^Invalid included path/);
       }
       expect(parseShowcaseMarker('showcase include=%E0%A4%A').error).toMatch(/^Included path "%E0%A4%A" can't be URL-decoded/);
+      expect(parseShowcaseMarker('showcase include=markdown,a.css,markdown').error).toBe(
+        'The keyword "markdown" is listed twice in "include=markdown,a.css,markdown" in showcase marker "showcase include=markdown,a.css,markdown"',
+      );
     });
 
     it('Parses the view key, in its order', () => {
@@ -241,6 +259,7 @@ describe('markdown', () => {
           adapter: 'html',
           entry: 'docs/guide.showcase-1.html',
           include: [],
+          tabs: [{ kind: 'source' }],
         },
         {
           id: 'docs/guide.md#2',
@@ -253,6 +272,7 @@ describe('markdown', () => {
           options: { strict: false },
           entry: 'docs/guide.showcase-2.ts',
           include: [],
+          tabs: [{ kind: 'source' }],
         },
       ]);
       expect(scan.virtualFiles).toEqual([
@@ -412,6 +432,36 @@ describe('markdown', () => {
       ]);
     });
 
+    it("Finds showcases' tabs: the include key's order, an unlisted source tab before the first included file", () => {
+      const scan = scanMarkdown(
+        'docs/guide.md',
+        [
+          '[a](./a.html "showcase")',
+          '',
+          '[b](./b.html "showcase block include=./b.css,markdown")',
+          '',
+          '[m](./m.html "showcase block include=markdown")',
+          '',
+          '[n](./n.html "showcase block include=markdown,./n.css")',
+          '',
+          '[c](./c.html "showcase inline include=markdown,source,../c.css")',
+          '',
+          '```html showcase include=./source,source',
+          '```',
+        ].join('\n'),
+      );
+      expect(scan.errors).toEqual([]);
+      expect(scan.showcases.map(({ include, tabs }) => ({ include, tabs }))).toEqual([
+        { include: [], tabs: [{ kind: 'source' }] },
+        { include: ['docs/b.css'], tabs: [{ kind: 'source' }, { kind: 'file', path: 'docs/b.css' }, { kind: 'markdown' }] },
+        // An unlisted source tab goes before the first included file, or last: a keyword listed before it stays before it
+        { include: [], tabs: [{ kind: 'markdown' }, { kind: 'source' }] },
+        { include: ['docs/n.css'], tabs: [{ kind: 'markdown' }, { kind: 'source' }, { kind: 'file', path: 'docs/n.css' }] },
+        { include: ['c.css'], tabs: [{ kind: 'markdown' }, { kind: 'source' }, { kind: 'file', path: 'c.css' }] },
+        { include: ['docs/source'], tabs: [{ kind: 'file', path: 'docs/source' }, { kind: 'source' }] },
+      ]);
+    });
+
     it("Finds showcases' and virtual files' views, leaving a showcase's defaults to check", () => {
       const scan = scanMarkdown(
         'docs/guide.md',
@@ -464,6 +514,9 @@ describe('markdown', () => {
       expect(errors('```html showcase inline\n```')).toEqual([expect.stringMatching(/^A code block showcase is always shown as a block/)]);
       expect(errors('```css showcase file=a.css block\n```')).toEqual([expect.stringMatching(/^A code block showcase is always shown as a block/)]);
       expect(errors('```css showcase file=a.css include=b.css\n```')).toEqual([
+        expect.stringMatching(/^A virtual file with no showcase adapter can't include files/),
+      ]);
+      expect(errors('```css showcase file=a.css include=markdown\n```')).toEqual([
         expect.stringMatching(/^A virtual file with no showcase adapter can't include files/),
       ]);
       // A block must be a paragraph's only content, apart from whitespace

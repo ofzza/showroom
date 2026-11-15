@@ -8,7 +8,7 @@
 
 A page of its own, linked as a showcase shown as a block, beside its code. It needs nothing else: its styles and script are inline, as an `html` showcase follows no files.
 
-[A 7-segment clock](./clock.html 'showcase block')
+[A 7-segment clock](./clock.html 'showcase block include=markdown')
 
 ## The stylesheet
 
@@ -70,7 +70,7 @@ A page of its own, linked as a showcase shown as a block, beside its code. It ne
 
 Proportional figures (the default in most fonts) give each digit its own width, so columns of prices don't line up. `.tabular` gives every digit the same width.
 
-```html showcase
+```html showcase include=markdown
 <link rel="stylesheet" href="./numerals.css" />
 <table>
   <tr>
@@ -96,7 +96,7 @@ Proportional figures (the default in most fonts) give each digit its own width, 
 
 `.grouped` spaces groups of digits apart, without a separator character that differs between languages (`,` or `.`), and that copying the number would carry along.
 
-```html showcase
+```html showcase include=markdown
 <link rel="stylesheet" href="./numerals.css" />
 <p>Plain: 299792458 m/s</p>
 <p>
@@ -108,7 +108,7 @@ Proportional figures (the default in most fonts) give each digit its own width, 
 
 `.comic` makes every digit its own colour, bouncing a little. Each digit is a `span`; the colours follow the showroom's light and dark theme, through `light-dark()`.
 
-```html showcase
+```html showcase include=markdown
 <link rel="stylesheet" href="./numerals.css" />
 <p class="comic"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></p>
 ```
@@ -117,7 +117,7 @@ Proportional figures (the default in most fonts) give each digit its own width, 
 
 `.big` for the one number a page is about, and `.lcd` for a calculator's display. Switch the showroom's theme to see `.big` follow it.
 
-```html showcase
+```html showcase include=markdown
 <link rel="stylesheet" href="./numerals.css" />
 <p><span class="big tabular">42</span> answers</p>
 <p><span class="lcd tabular">3.1415926</span></p>

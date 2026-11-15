@@ -56,11 +56,6 @@ export interface Configuration {
    * for the showcase adapter's showcases shown as blocks whose marker has no `view=`, in place of the showcase adapter's own default
    */
   showcaseViews?: Record<string, ShowcaseView | ShowcaseView[]>;
-  /**
-   * True to give every showcase shown as a block its Markdown tab (the showcase as written in its documentation file), as its first tab, selected
-   * by default; false by default, with no Markdown tab. Meant for `showroom`'s own repository, which documents its markers with live showcases
-   */
-  exposeShowcaseMarkdownSyntax?: boolean;
 }
 
 /**
@@ -94,7 +89,6 @@ const _KEYS: Record<keyof Configuration, (value: unknown) => boolean> = {
     value !== null &&
     !Array.isArray(value) &&
     Object.values(value).every((item) => typeof item === 'string' || _isStringArray(item)),
-  exposeShowcaseMarkdownSyntax: (value) => typeof value === 'boolean',
 };
 
 /**
@@ -110,7 +104,6 @@ const _EXPECTED: Record<keyof Configuration, string> = {
   documentation: 'an array of strings',
   customShowcaseAdapters: 'an object mapping showcase adapter names to paths (non-empty strings)',
   showcaseViews: 'an object mapping showcase adapter names to a view or an array of views',
-  exposeShowcaseMarkdownSyntax: 'a boolean',
 };
 
 /**

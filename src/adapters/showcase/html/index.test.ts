@@ -31,6 +31,7 @@ function _showcase(kind: Showcase['kind'], entry: string, extra: Partial<Showcas
     adapter: 'html',
     entry,
     include: [],
+    tabs: [{ kind: 'source' }],
     views: ['demo'],
     ...extra,
   };

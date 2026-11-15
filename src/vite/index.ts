@@ -31,16 +31,6 @@ export const HOST_MODULE_ID = 'virtual:showroom-host';
 export const RESOLVED_HOST_MODULE_ID = `\0${HOST_MODULE_ID}`;
 
 /**
- * Represents the options of the shown host information, from the configuration
- */
-export interface ShownHostOptions {
-  /**
-   * True to give every showcase shown as a block its Markdown tab, first (see Configuration's `exposeShowcaseMarkdownSyntax`)
-   */
-  exposeShowcaseMarkdownSyntax?: boolean;
-}
-
-/**
  * Checks if a showcase's views load its showcase frame: `demo`, or `console` (whose page runs hidden without `demo`)
  * @param views The showcase's views
  * @returns True if a view needs its page running
@@ -96,7 +86,6 @@ export function getShownHostInformation(
   host: HostInformation,
   built: ShownBuild = { frames: new Map() },
   hashes: ReadonlyMap<string, string> = new Map(),
-  options: ShownHostOptions = {},
 ): ShownHostInformation {
   // Each documentation file holding a shown showcase or virtual file is parsed once, for their Markdown sources
   const sources = new Map<string, Map<number, string>>();
@@ -107,10 +96,8 @@ export function getShownHostInformation(
   const showcases = host.showcases.map((showcase) => {
     const frame = built.frames.get(showcase.id);
     const { id, documentation, offset, display, views } = showcase;
-    const tabs = getShownTabs(host, showcase, hashes);
     const markdown = getSources(documentation).get(offset) ?? '';
-    const markdownTab = options.exposeShowcaseMarkdownSyntax && display === 'block';
-    if (markdownTab) tabs.unshift(getMarkdownTab(showcase, markdown));
+    const tabs = getShownTabs(host, showcase, hashes, markdown);
     const checks = built.checks?.get(id) ?? [];
     const issues = built.shownIssues?.get(id) ?? [];
     const url = frame && loadsShowcaseFrame(views) ? { url: getShowcaseFrameUrl(frame) } : {};
@@ -122,7 +109,7 @@ export function getShownHostInformation(
       views,
       markdown,
       tabs,
-      entryTab: markdownTab ? 1 : 0,
+      entryTab: showcase.tabs.findIndex((tab) => tab.kind === 'source'),
       ...url,
       checks,
       issues,
@@ -138,20 +125,26 @@ export function getShownHostInformation(
 }
 
 /**
- * Gets a showcase's tabs: its entry point, then its included files, each looked up in the virtual files, the documentation files, then the linked
- * files; a file in none of them (a linked showcase's entry point `check` didn't collect) is a missing tab
+ * Gets a showcase's tabs, in their order (`Showcase.tabs`): its entry point's, its included files', and its Markdown tab where `include=` lists it;
+ * each file looked up in the virtual files, the documentation files, then the linked files, and a file in none of them (a linked showcase's entry
+ * point `check` didn't collect) a missing tab
  * @param host Host information
  * @param showcase The showcase
  * @param hashes The hashes of the text linked files shown as tabs, by path
+ * @param markdown Its Markdown source (see getShowcaseSources()), for its Markdown tab
  * @returns The tabs
  */
-export function getShownTabs(host: HostInformation, showcase: Showcase, hashes: ReadonlyMap<string, string> = new Map()): ShownTab[] {
-  return [showcase.entry, ...showcase.include].map((path, index) => ({
-    label: index === 0 && showcase.kind === 'code-block' ? getLanguage(path).toUpperCase() : getRelativePath(showcase.documentation, path),
-    path,
-    language: getLanguage(path),
-    source: _getTabSource(host, path, hashes),
-  }));
+export function getShownTabs(host: HostInformation, showcase: Showcase, hashes: ReadonlyMap<string, string> = new Map(), markdown = ''): ShownTab[] {
+  return showcase.tabs.map((tab) => {
+    if (tab.kind === 'markdown') return getMarkdownTab(showcase, markdown);
+    const path = tab.kind === 'source' ? showcase.entry : tab.path;
+    return {
+      label: tab.kind === 'source' && showcase.kind === 'code-block' ? getLanguage(path).toUpperCase() : getRelativePath(showcase.documentation, path),
+      path,
+      language: getLanguage(path),
+      source: _getTabSource(host, path, hashes),
+    };
+  });
 }
 
 /**
@@ -160,14 +153,14 @@ export function getShownTabs(host: HostInformation, showcase: Showcase, hashes: 
 export const MARKDOWN_TAB_LABEL = 'Markdown';
 
 /**
- * Gets a showcase's Markdown tab, the first of its code pane's tabs where the configuration asks for it (`exposeShowcaseMarkdownSyntax`): the
- * showcase as written in its documentation file (its fence, or its link)
- * @param showcase The showcase, shown as a block
+ * Gets a showcase's Markdown tab, where its marker's `include=` lists `markdown`: the showcase as written in its documentation file (its fence, or
+ * its link)
+ * @param showcase The showcase
  * @param source Its Markdown source (see getShowcaseSources())
  * @returns The tab, under the documentation file's path
  */
 export function getMarkdownTab(showcase: Showcase, source: string): ShownTab {
-  return { label: MARKDOWN_TAB_LABEL, path: showcase.documentation, language: 'md', source: { kind: 'virtual', content: source } };
+  return { label: MARKDOWN_TAB_LABEL, path: showcase.documentation, language: 'md', source: { kind: 'virtual', content: source }, markdown: true };
 }
 
 /**

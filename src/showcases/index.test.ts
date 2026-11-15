@@ -232,6 +232,7 @@ describe('showcases', () => {
       adapter: 'x',
       entry: 'docs/guide.showcase-2.js',
       include: [],
+      tabs: [{ kind: 'source' }],
       views: ['demo'],
     };
     const virtualFiles: VirtualFile[] = [{ path: 'docs/style.css', named: true, content: '', documentation: 'docs/other.md', line: 20, offset: 0 }];

@@ -92,6 +92,12 @@ export type ShowcaseDisplay = 'inline' | 'block';
 export type ShowcaseView = 'markdown' | 'source' | 'demo' | 'console' | 'none';
 
 /**
+ * Represents one of a showcase's tabs, in its code pane (or its code sidebar, for a linked showcase shown inline): `source`, its entry point's code;
+ * `markdown`, the showcase as written in its documentation file; `file`, an included file
+ */
+export type ShowcaseTab = { kind: 'source' } | { kind: 'markdown' } | { kind: 'file'; path: string };
+
+/**
  * Represents a showcase embedded in a documentation file
  */
 export interface Showcase {
@@ -133,9 +139,15 @@ export interface Showcase {
    */
   entry: string;
   /**
-   * POSIX-style paths of its included files (`include=`), relative to the host repository's root, in the marker's order; empty if it has none
+   * POSIX-style paths of its included files (`include=`, without its keywords), relative to the host repository's root, in the marker's order; empty if it
+   * has none
    */
   include: string[];
+  /**
+   * Its tabs, in their order: `include=`'s, its `source` and `markdown` keywords among its included files; where `include=` doesn't list `source`,
+   * the source tab goes before the first included file, or last when there is none
+   */
+  tabs: ShowcaseTab[];
   /**
    * Its showcase views, in the order they are shown: the marker's `view=`, or else the defaults `showroom.json`'s `showcaseViews` sets for its
    * showcase adapter, or else its showcase adapter's own (`demo` for a linked showcase shown inline, which takes no `view=`)

@@ -52,6 +52,7 @@ const _HOST: HostInformation = {
       adapter: 'html',
       entry: 'README.showcase-1.html',
       include: [],
+      tabs: [{ kind: 'source' }],
       views: ['demo'],
     },
     {
@@ -64,6 +65,7 @@ const _HOST: HostInformation = {
       adapter: 'x',
       entry: 'demo.html',
       include: [],
+      tabs: [{ kind: 'source' }],
       views: ['demo'],
     },
   ],
@@ -299,35 +301,40 @@ describe('vite', () => {
     ]);
   });
 
-  it('Adds a Markdown tab, first, to a showcase shown as a block only, with its source as written, only where the configuration asks for it', () => {
-    const content = '# Hi\n\n```html showcase include=a.css\n<p>1</p>\n```\n\nSee [demo](demo.html "showcase").\n';
+  it("Places a showcase's tabs in include='s order, its Markdown tab with its source as written, on a block or inline", () => {
+    const content = '# Hi\n\n```html showcase include=a.css,markdown\n<p>1</p>\n```\n\nSee [demo](demo.html "showcase include=markdown,source").\n';
     const host: HostInformation = {
       ..._HOST,
       documentation: [{ path: 'README.md', kind: 'readme', extension: '.md', content }],
       showcases: [
-        { ..._HOST.showcases[0], offset: content.indexOf('```'), include: ['a.css'] },
-        { ..._HOST.showcases[1], documentation: 'README.md', offset: content.indexOf('[demo]') },
+        {
+          ..._HOST.showcases[0],
+          offset: content.indexOf('```'),
+          include: ['a.css'],
+          tabs: [{ kind: 'source' }, { kind: 'file', path: 'a.css' }, { kind: 'markdown' }],
+        },
+        { ..._HOST.showcases[1], documentation: 'README.md', offset: content.indexOf('[demo]'), tabs: [{ kind: 'markdown' }, { kind: 'source' }] },
       ],
     };
     const frames = new Map([
       ['README.md#1', _FRAMES.get('README.md#1')!],
       ['my docs/a #1.md#2', _FRAMES.get('my docs/a #1.md#2')!],
     ]);
-    // None by default (D484)
-    expect(getShownHostInformation(host, { frames }).showcases[0].tabs.map(({ label }) => label)).toEqual(['HTML', 'a.css']);
-    expect(getShownHostInformation(host, { frames }, new Map(), { exposeShowcaseMarkdownSyntax: false }).showcases[0].tabs).toHaveLength(2);
-    const [block, inline] = getShownHostInformation(host, { frames }, new Map(), { exposeShowcaseMarkdownSyntax: true }).showcases;
-    expect(block.tabs.map(({ label }) => label)).toEqual([MARKDOWN_TAB_LABEL, 'HTML', 'a.css']);
-    expect(block.tabs[0]).toEqual({
+    const [block, inline] = getShownHostInformation(host, { frames }).showcases;
+    expect(block.tabs.map(({ label }) => label)).toEqual(['HTML', 'a.css', MARKDOWN_TAB_LABEL]);
+    expect(block.tabs[2]).toEqual({
       label: 'Markdown',
       path: 'README.md',
       language: 'md',
-      source: { kind: 'virtual', content: '```html showcase include=a.css\n<p>1</p>\n```' },
+      source: { kind: 'virtual', content: '```html showcase include=a.css,markdown\n<p>1</p>\n```' },
+      markdown: true,
     });
-    // The code sidebar of a linked showcase shown inline has no Markdown tab (D421, D484)
-    expect(inline.tabs.map(({ label }) => label)).toEqual(['demo.html']);
-    // The source view shows the entry point's tab, after the Markdown tab
-    expect([block.entryTab, inline.entryTab]).toEqual([1, 0]);
+    expect(block.tabs.filter((tab) => tab.markdown)).toHaveLength(1);
+    // A linked showcase shown inline gets its Markdown tab too, for its code sidebar (D535)
+    expect(inline.tabs.map(({ label }) => label)).toEqual([MARKDOWN_TAB_LABEL, 'demo.html']);
+    expect(inline.tabs[0].source).toEqual({ kind: 'virtual', content: '[demo](demo.html "showcase include=markdown,source")' });
+    // The source view shows the source tab, wherever it is
+    expect([block.entryTab, inline.entryTab]).toEqual([0, 1]);
   });
 
   it("Gets a showcase's tabs from every kind of source, labelled, with hashes for text linked files only", () => {
@@ -345,6 +352,10 @@ describe('vite', () => {
       documentation: 'docs/guide.md',
       entry: 'docs/demos/clock.html',
       include: ['docs/theme.css', 'README.md', 'docs/my logo.png', 'out/gone.css'],
+      tabs: [
+        { kind: 'source' as const },
+        ...['docs/theme.css', 'README.md', 'docs/my logo.png', 'out/gone.css'].map((path) => ({ kind: 'file' as const, path })),
+      ],
     };
     const hashes = new Map([
       ['docs/demos/clock.html', '0123abcd'],

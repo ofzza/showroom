@@ -3,7 +3,17 @@
  */
 
 import { describe, it, expect, expectTypeOf } from 'vitest';
-import type { DocumentationKind, HostInformation, ProjectInformation, Showcase, ShowcaseDisplay, ShowcaseKind, ShowcaseView, VirtualFile } from './index.js';
+import type {
+  DocumentationKind,
+  HostInformation,
+  ProjectInformation,
+  Showcase,
+  ShowcaseDisplay,
+  ShowcaseKind,
+  ShowcaseTab,
+  ShowcaseView,
+  VirtualFile,
+} from './index.js';
 
 describe('host', () => {
   // The module only declares types: checks at compile time that they accept what the showroom relies on and reject what they
@@ -33,6 +43,8 @@ describe('host', () => {
   it('Limits showcase views to the five views, required on a showcase and optional on a virtual file', () => {
     expectTypeOf<ShowcaseView>().toEqualTypeOf<'markdown' | 'source' | 'demo' | 'console' | 'none'>();
     expectTypeOf<Showcase['views']>().toEqualTypeOf<ShowcaseView[]>();
+    expectTypeOf<ShowcaseTab>().toEqualTypeOf<{ kind: 'source' } | { kind: 'markdown' } | { kind: 'file'; path: string }>();
+    expectTypeOf<Showcase['tabs']>().toEqualTypeOf<ShowcaseTab[]>();
     expectTypeOf<VirtualFile['views']>().toEqualTypeOf<ShowcaseView[] | undefined>();
     const _showcase: Showcase = {
       id: 'a#1',
@@ -44,6 +56,7 @@ describe('host', () => {
       adapter: 'html',
       entry: 'a.html',
       include: [],
+      tabs: [{ kind: 'source' }],
       // @ts-expect-error Views are named, and case-sensitive
       views: ['Demo'],
     };
@@ -65,6 +78,7 @@ describe('host', () => {
           adapter: 'html',
           entry: 'README.showcase-1.html',
           include: [],
+          tabs: [{ kind: 'source' }],
           views: ['demo'],
         },
         {
@@ -78,6 +92,7 @@ describe('host', () => {
           options: { a: [1] },
           entry: 'demo.js',
           include: [],
+          tabs: [{ kind: 'source' }],
           views: ['demo'],
         },
       ],
