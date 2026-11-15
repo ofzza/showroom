@@ -100,6 +100,9 @@ describe('app', () => {
           views: ['demo'],
           markdown: '',
           entryTab: 0,
+          checks: [],
+          issues: [],
+          buildMark: true,
           tabs: [{ label: 'HTML', path: 'docs/guide.showcase-1.html', language: 'html', source: { kind: 'virtual', content: '<p>x</p>' } }],
           url: 'showcases/docs/guide.md/1/index.html?hash=0123abcd',
         },
@@ -138,13 +141,17 @@ describe('app', () => {
       views: ['demo'],
       markdown: '',
       entryTab: 0,
+      checks: [],
+      issues: [],
+      buildMark: true,
       tabs: [tab],
       url: 'showcases/README.md/1/index.html?hash=00000001',
     };
     const state = { data: { ..._DATA, showcases: [showcase] }, issues: [] };
+    const update = { checks: [], issues: [], buildMark: true };
 
     it("Applies showcase frames' new URLs, keeping the rest", () => {
-      const next = applyUpdate(state, { showcases: [{ id: 'README.md#1', url: 'showcases/README.md/1/index.html?hash=00000002', tabs: [tab] }] });
+      const next = applyUpdate(state, { showcases: [{ ...update, id: 'README.md#1', url: 'showcases/README.md/1/index.html?hash=00000002', tabs: [tab] }] });
       expect(next.data.showcases).toEqual([{ ...showcase, url: 'showcases/README.md/1/index.html?hash=00000002' }]);
       expect(next.data.documentation).toBe(state.data.documentation);
       expect(next.issues).toBe(state.issues);
@@ -152,9 +159,15 @@ describe('app', () => {
 
     it("Applies a tab's new URL alone", () => {
       const tabs = [{ ...tab, source: { kind: 'file' as const, url: 'files/a.css?hash=00000002', text: true } }];
-      const next = applyUpdate(state, { showcases: [{ id: 'README.md#1', url: showcase.url, tabs }] });
+      const next = applyUpdate(state, { showcases: [{ ...update, id: 'README.md#1', url: showcase.url, tabs }] });
       expect(next.data.showcases).toEqual([{ ...showcase, tabs }]);
       expect(next).not.toBe(state);
+    });
+
+    it("Applies a showcase's checks and issues", () => {
+      const issues = [{ severity: 'warning' as const, message: 'Slow', path: 'a.html' }];
+      const next = applyUpdate(state, { showcases: [{ ...update, id: 'README.md#1', url: showcase.url, tabs: [tab], checks: ['lint'], issues }] });
+      expect(next.data.showcases).toEqual([{ ...showcase, checks: ['lint'], issues }]);
     });
 
     it('Applies the new issues', () => {
@@ -163,7 +176,7 @@ describe('app', () => {
     });
 
     it('Keeps the state when nothing changed', () => {
-      expect(applyUpdate(state, { showcases: [{ id: 'README.md#1', url: showcase.url, tabs: [tab] }] })).toBe(state);
+      expect(applyUpdate(state, { showcases: [{ ...update, id: 'README.md#1', url: showcase.url, tabs: [tab] }] })).toBe(state);
       expect(applyUpdate(state, {})).toBe(state);
     });
 

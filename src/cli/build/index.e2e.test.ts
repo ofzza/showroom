@@ -161,6 +161,12 @@ describe('cli/build (end to end)', () => {
     expect(await readFile(join(root, 'showroom', 'showcases', 'README.md', '3', 'index.html'), 'utf8')).toContain('src="./assets/linked-');
     // Built and checked, but no view loads its page, so it isn't emitted (D574)
     expect(existsSync(join(root, 'showroom', 'showcases', 'README.md', '5'))).toBe(false);
+
+    // The bundle's shown host information ships each showcase's checks, and the warning, as the published showroom shows it (D587)
+    const out = join(root, 'showroom', 'assets');
+    const bundle = (await Promise.all((await readdir(out)).map((name) => readFile(join(out, name), 'utf8')))).join('\n');
+    expect(bundle).toMatch(/checks:\[[`"']type check[`"']\]/);
+    expect(bundle).toMatch(/severity:[`"']warning[`"'],message:[`"']Use of direct `?\\?`?eval/);
   });
 
   it("Builds react showcases with the host's own React, on an installed fixture's copy", async () => {

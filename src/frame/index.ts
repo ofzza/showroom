@@ -86,13 +86,26 @@ export interface ConsoleLine {
 /**
  * Represents a message a showcase frame posts to the showroom: `start` as the frame script starts, before any of the page's own scripts; `ready` once
  * loaded; `resize` whenever its content's height changes; and `console`, a batch of the lines it wrote to its console, with the number of lines left
- * out before them
+ * out before them, and how many of those were warnings and errors
  */
 export type FrameMessage =
   | { source: typeof FRAME_MESSAGE_SOURCE; type: 'start' }
   | { source: typeof FRAME_MESSAGE_SOURCE; type: 'ready' }
   | { source: typeof FRAME_MESSAGE_SOURCE; type: 'resize'; height: number }
-  | { source: typeof FRAME_MESSAGE_SOURCE; type: 'console'; lines: ConsoleLine[]; dropped: number };
+  | {
+      source: typeof FRAME_MESSAGE_SOURCE;
+      type: 'console';
+      lines: ConsoleLine[];
+      dropped: number;
+      /**
+       * Number of the dropped lines that were warnings (`warn`), when any were
+       */
+      droppedWarnings?: number;
+      /**
+       * Number of the dropped lines that were errors (`error`, uncaught errors, rejected promises), when any were
+       */
+      droppedErrors?: number;
+    };
 
 /**
  * Represents a message the showroom posts to a showcase frame: the current theme
@@ -128,6 +141,15 @@ function _isConsoleLine(value: unknown): value is ConsoleLine {
 }
 
 /**
+ * Checks if a value is a count: a whole number from 0
+ * @param value The value
+ * @returns True if it is one
+ */
+function _isCount(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+/**
  * Checks if a message's data is a message from a showcase frame
  * @param data Data of the message
  * @returns True if it is a well-formed `start`, `ready`, `resize` or `console` message
@@ -146,9 +168,9 @@ export function isFrameMessage(data: unknown): data is FrameMessage {
       return (
         Array.isArray(message.lines) &&
         message.lines.every(_isConsoleLine) &&
-        typeof message.dropped === 'number' &&
-        Number.isInteger(message.dropped) &&
-        message.dropped >= 0
+        _isCount(message.dropped) &&
+        (message.droppedWarnings === undefined || _isCount(message.droppedWarnings)) &&
+        (message.droppedErrors === undefined || _isCount(message.droppedErrors))
       );
     default:
       return false;
@@ -318,17 +340,21 @@ export function frameScript(constants: FrameScriptConstants): void {
     }
   };
 
-  // The lines waiting to be posted, the lines dropped before them, and the timer posting them
+  // The lines waiting to be posted, the lines dropped before them (and how many were warnings and errors), and the timer posting them
   let queue: { level: string; text: string; uncaught?: boolean }[] = [];
   let dropped = 0;
+  let droppedWarnings = 0;
+  let droppedErrors = 0;
   let flushTimer: number | undefined;
   const flush = () => {
     window.clearTimeout(flushTimer);
     flushTimer = undefined;
     if (!queue.length) return;
-    post({ type: 'console', lines: queue, dropped });
+    post({ type: 'console', lines: queue, dropped, ...(droppedWarnings ? { droppedWarnings } : {}), ...(droppedErrors ? { droppedErrors } : {}) });
     queue = [];
     dropped = 0;
+    droppedWarnings = 0;
+    droppedErrors = 0;
   };
 
   // Formats a line, cuts it if too long, and queues it: beyond the most lines kept, the oldest waiting is dropped, and counted
@@ -339,8 +365,10 @@ export function frameScript(constants: FrameScriptConstants): void {
     }
     queue.push(uncaught ? { level, text, uncaught } : { level, text });
     if (queue.length > constants.consoleMaxLines) {
-      queue.shift();
+      const shifted = queue.shift()!;
       dropped++;
+      if (shifted.level === 'warn') droppedWarnings++;
+      else if (shifted.level === 'error') droppedErrors++;
     }
     if (flushTimer === undefined) flushTimer = window.setTimeout(flush, constants.consoleFlushMs);
   };

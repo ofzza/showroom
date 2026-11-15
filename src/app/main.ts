@@ -1,6 +1,6 @@
 /**
  * Entry point of the showroom, loaded by `index.html`: mounts the application with the shown host information and the current issues from the
- * virtual module; in `serve`, it follows the dev server's custom events, updating the URLs of the showcase frames and their tabs, and the issues,
+ * virtual module; in `serve`, it follows the dev server's custom events, updating the URLs of the showcase frames and their tabs, the showcases' checks and issues, and the issues,
  * without a reload. It has side effects, so nothing imports it, and it has no test.
  */
 

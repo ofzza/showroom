@@ -7,8 +7,8 @@ import { StrictMode, useEffect, useMemo, useState, useSyncExternalStore, type Re
 import { createRoot } from 'react-dom/client';
 import { FluentProvider } from '@fluentui/react-components';
 import type { CheckIssue } from '../cli/check/index.js';
-import type { ShownHostInformation, ShownShowcase } from './host/index.js';
-import { applyShowcaseUrls, getRootReadme } from './host/index.js';
+import type { ShownHostInformation, ShownShowcaseUpdate } from './host/index.js';
+import { applyShowcaseUpdates, getRootReadme } from './host/index.js';
 import { IssuesBar } from './issues/index.js';
 import { Layout } from './layout/index.js';
 import { getNavigationItems } from './navigation/index.js';
@@ -139,9 +139,9 @@ export function App({ data, issues = _NO_ISSUES, route, theme: initialTheme }: A
  */
 export interface ShowroomUpdate {
   /**
-   * The shown showcases with the new URLs of their showcase frames and tabs, every one of them
+   * The shown showcases with their updates (the URLs of their showcase frames and tabs, their checks and issues), every one of them
    */
-  showcases?: Pick<ShownShowcase, 'id' | 'url' | 'tabs'>[];
+  showcases?: ShownShowcaseUpdate[];
   /**
    * The current issues
    */
@@ -212,13 +212,14 @@ export function MountedShowroom({ store }: { store: ShowroomStore }): ReactNode 
 }
 
 /**
- * Gets the state after an update: the new URLs of showcase frames and of their tabs applied to the shown showcases, and the new issues
+ * Gets the state after an update: the new URLs of showcase frames and of their tabs, and their checks and issues, applied to the shown showcases,
+ * and the new issues
  * @param state The state before
  * @param update The update
  * @returns The state after; the same object if nothing changed
  */
 export function applyUpdate<TState extends MountedState>(state: TState, update: ShowroomUpdate): TState {
-  const showcases = update.showcases ? applyShowcaseUrls(state.data.showcases, update.showcases) : state.data.showcases;
+  const showcases = update.showcases ? applyShowcaseUpdates(state.data.showcases, update.showcases) : state.data.showcases;
   const issues = update.issues ?? state.issues;
   if (showcases === state.data.showcases && issues === state.issues) return state;
   return { ...state, data: showcases === state.data.showcases ? state.data : { ...state.data, showcases }, issues };
@@ -230,7 +231,7 @@ export function applyUpdate<TState extends MountedState>(state: TState, update: 
  * @param data The shown host information
  * @param issues The current issues, shown in the issues bar; none if not given
  * @returns A function updating the mounted showroom: the URLs of the showcase frames (only those that changed reload) and of their tabs (fetched
- * again), and the issues
+ * again), the showcases' checks and issues, and the issues
  */
 export function mount(element: Element, data: ShownHostInformation, issues: CheckIssue[] = []): (update: ShowroomUpdate) => void {
   const store = createShowroomStore({ data, issues });

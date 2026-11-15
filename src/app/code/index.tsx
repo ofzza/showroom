@@ -1,6 +1,6 @@
 /**
  * Highlighted code, shared by rendered Markdown and the code sidebar: highlight.js's token colours, as FluentUI tokens; the code block every
- * piece of code is shown in (line numbers in a gutter, a copy button); and a highlighted code block of a text, rendered through the same
+ * piece of code is shown in (line numbers in a gutter, issue markers on lines, a copy button); and a highlighted code block of a text, rendered through the same
  * `react-markdown` and `rehype-highlight` as Markdown's code blocks
  */
 
@@ -100,25 +100,34 @@ const _useStyles = makeStyles({
     ...TOKEN_STYLES,
   },
   scroll: { display: 'flex', overflowX: 'auto' },
+  // Below the bands, so the copy button and the gutter stay above them
   // Filling its parent, a flex column (the code pane's code), and scrolling both ways inside it, its copy button staying in place
   fillBlock: { margin: '0', flex: '1 1 auto', minHeight: '0', display: 'flex', flexDirection: 'column' },
   fillScroll: { flex: '1 1 auto', minHeight: '0', overflow: 'auto', alignItems: 'flex-start' },
-  // Sticky, so line numbers stay in place while long lines scroll sideways
+  // Sticky, so line numbers stay in place while long lines scroll sideways; one element per line, so a marked line's number takes its colour
   gutter: {
     position: 'sticky',
     left: '0',
     zIndex: 1,
     flexShrink: 0,
+    padding: tokens.spacingHorizontalM,
     textAlign: 'right',
+    whiteSpace: 'pre',
     color: tokens.colorNeutralForeground4,
     backgroundColor: tokens.colorNeutralBackground3,
     userSelect: 'none',
     borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
   },
+  errorNumber: { color: tokens.colorPaletteRedForeground1, fontWeight: tokens.fontWeightSemibold },
+  warningNumber: { color: tokens.colorPaletteMarigoldForeground1, fontWeight: tokens.fontWeightSemibold },
+  // A faint band across a marked line, its messages as its tooltip; over the code, so its colour is translucent and the code shows through
+  band: { position: 'absolute', left: '0', right: '0', height: tokens.lineHeightBase300 },
+  errorBand: { backgroundColor: `color-mix(in srgb, ${tokens.colorPaletteRedBackground3} 15%, transparent)` },
+  warningBand: { backgroundColor: `color-mix(in srgb, ${tokens.colorPaletteYellowBackground3} 20%, transparent)` },
   // A showcase view: the block's border and corners, at most MAX_CODE_LINES lines or the viewport's height, scrolling both ways inside
   viewBlock: { margin: '0', borderRadius: '0' },
   viewScroll: { maxHeight: `min(${getCodeHeight(MAX_CODE_LINES)}, 100vh)`, overflow: 'auto', alignItems: 'flex-start' },
-  code: { flexGrow: 1, minWidth: 0 },
+  code: { position: 'relative', flexGrow: 1, minWidth: 0 },
   copy: { position: 'absolute', top: tokens.spacingVerticalXS, right: tokens.spacingHorizontalXS, zIndex: 2 },
 });
 
@@ -129,6 +138,73 @@ const _useStyles = makeStyles({
  */
 export function countLines(text: string): number {
   return text.replace(/(\r\n|\r|\n)$/, '').split(/\r\n|\r|\n/).length;
+}
+
+/**
+ * Represents a marker on a code block's line: the most serious of the issues at it, and their messages
+ */
+export interface LineMarker {
+  /**
+   * The most serious issue's severity: an error's marker over a warning's
+   */
+  severity: 'error' | 'warning';
+  /**
+   * The issues' messages, in order
+   */
+  messages: string[];
+}
+
+/**
+ * Represents the markers of a code block's lines, by line, from 1
+ */
+export type LineMarkers = ReadonlyMap<number, LineMarker>;
+
+/**
+ * No markers
+ */
+export const NO_MARKERS: LineMarkers = new Map();
+
+/**
+ * Represents an issue a line marker is made of (see ShownIssue)
+ */
+export interface MarkedIssue {
+  /**
+   * Its severity
+   */
+  severity: 'error' | 'warning';
+  /**
+   * Its message
+   */
+  message: string;
+  /**
+   * POSIX-style path of its file
+   */
+  path: string;
+  /**
+   * Its line in the file, from 1, if it names one
+   */
+  line?: number;
+}
+
+/**
+ * Gets the markers of the lines of a file's code block: one per line holding issues, an error's over a warning's, with every message at it
+ * @param issues The issues
+ * @param path POSIX-style path of the file shown
+ * @param offset Number of lines shown before the file's first line (e.g. 1 for a fence's opening line); none by default
+ * @returns The markers, by line of the code block
+ */
+export function getLineMarkers(issues: readonly MarkedIssue[], path: string, offset = 0): LineMarkers {
+  const markers = new Map<number, LineMarker>();
+  for (const issue of issues) {
+    if (issue.path !== path || issue.line === undefined) continue;
+    const line = issue.line + offset;
+    const marker = markers.get(line);
+    markers.set(line, {
+      severity: marker?.severity === 'error' || issue.severity === 'error' ? 'error' : 'warning',
+      messages: [...(marker?.messages ?? []), issue.message],
+    });
+  }
+  return markers;
 }
 
 /**
@@ -157,22 +233,48 @@ export interface CodeBlockProps {
    * inside; otherwise as high as its code
    */
   view?: boolean;
+  /**
+   * The markers of its lines (see getLineMarkers()); none by default
+   */
+  markers?: LineMarkers;
 }
 
 /**
- * Renders a code block: line numbers in a gutter that can't be selected beside the highlighted code, and a copy button
+ * Renders a code block: line numbers in a gutter that can't be selected beside the highlighted code, a marked line's number in its issue's colour
+ * and a faint band across it (its messages as its tooltip), and a copy button
  * @param props Properties of the component
  * @returns The code block
  */
-export function CodeBlock({ text, children, fill = false, copy = true, view = false }: CodeBlockProps): ReactNode {
+export function CodeBlock({ text, children, fill = false, copy = true, view = false, markers = NO_MARKERS }: CodeBlockProps): ReactNode {
   const styles = _useStyles();
+  const lines = countLines(text);
   return (
     <div className={mergeClasses(styles.block, fill && styles.fillBlock, view && styles.viewBlock)}>
       <div className={mergeClasses(styles.scroll, fill && styles.fillScroll, view && styles.viewScroll)}>
-        <pre className={styles.gutter} aria-hidden="true">
-          {Array.from({ length: countLines(text) }, (_, index) => index + 1).join('\n')}
-        </pre>
-        <div className={styles.code}>{children}</div>
+        <div className={styles.gutter} aria-hidden="true">
+          {Array.from({ length: lines }, (_, index) => {
+            const marker = markers.get(index + 1);
+            return (
+              <div key={index} className={marker && styles[`${marker.severity}Number`]} data-line-marker={marker?.severity}>
+                {index + 1}
+              </div>
+            );
+          })}
+        </div>
+        <div className={styles.code}>
+          {[...markers].map(([line, marker]) =>
+            line <= lines ? (
+              <div
+                key={line}
+                className={mergeClasses(styles.band, styles[`${marker.severity}Band`])}
+                style={{ top: `calc(${tokens.spacingHorizontalM} + ${line - 1} * ${tokens.lineHeightBase300})` }}
+                title={marker.messages.join('\n')}
+                data-line-band={line}
+              />
+            ) : null,
+          )}
+          {children}
+        </div>
       </div>
       {copy && <CopyButton text={text} className={styles.copy} />}
     </div>
@@ -323,6 +425,10 @@ export interface HighlightedCodeProps {
    * True for a showcase view (see CodeBlockProps' `view`)
    */
   view?: boolean;
+  /**
+   * The markers of its lines (see CodeBlockProps' `markers`)
+   */
+  markers?: LineMarkers;
 }
 
 /**
@@ -330,9 +436,9 @@ export interface HighlightedCodeProps {
  * @param props Properties of the component
  * @returns The code block
  */
-export function HighlightedCode({ content, language, fill, copy, view }: HighlightedCodeProps): ReactNode {
+export function HighlightedCode({ content, language, fill, copy, view, markers }: HighlightedCodeProps): ReactNode {
   return (
-    <CodeBlock text={content} fill={fill} copy={copy} view={view}>
+    <CodeBlock text={content} fill={fill} copy={copy} view={view} markers={markers}>
       <ReactMarkdown rehypePlugins={[rehypeHighlight]} skipHtml>
         {getFence(content, language).markdown}
       </ReactMarkdown>
@@ -357,15 +463,15 @@ export interface CodeSegment {
 /**
  * Renders highlighted segments, one after the other, as one code block: one line numbering, one copy button copying them all (e.g. a fence's lines
  * highlighted as Markdown around its inside highlighted as its language)
- * @param props Properties of the component: the segments, and whether it is a showcase view (see CodeBlockProps' `view`)
+ * @param props Properties of the component: the segments, whether it is a showcase view (see CodeBlockProps' `view`), and its lines' markers
  * @returns The code block
  */
-export function SegmentedCode({ segments, view }: { segments: CodeSegment[]; view?: boolean }): ReactNode {
+export function SegmentedCode({ segments, view, markers }: { segments: CodeSegment[]; view?: boolean; markers?: LineMarkers }): ReactNode {
   // Each segment is highlighted as a fence of its own, its `pre` dropped, so all their `code` elements share one `pre`; each code element's text
   // ends with a line break already, which separates it from the next
   const components = { pre: ({ children }: { children?: ReactNode }) => <>{children}</> };
   return (
-    <CodeBlock text={segments.map(({ text }) => text).join('\n')} view={view}>
+    <CodeBlock text={segments.map(({ text }) => text).join('\n')} view={view} markers={markers}>
       <pre>
         {segments.map(({ text, language }, index) => (
           <Fragment key={index}>

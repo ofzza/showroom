@@ -1,7 +1,8 @@
 /**
  * The code sidebar: a panel opening from the right over the showroom, showing a text linked file's content, fetched when it opens, highlighted with
  * line numbers, under its name, with a link opening the file in a new tab, and a close button; for a linked showcase shown inline with included
- * files, or a code pane, a tab per file. Also what the code pane shares with it: fetching a linked file by its URL, the tab list, and a tab's content.
+ * files, or a code pane, a tab per file, each marked with its issues. Also what the code pane shares with it: fetching a linked file by its URL, the
+ * tab list, a tab's content, and the tabs' marks.
  */
 
 import { useEffect, useId, useState, type ReactNode } from 'react';
@@ -19,11 +20,11 @@ import {
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
-import { Dismiss24Regular, Open16Regular } from '@fluentui/react-icons';
+import { Dismiss24Regular, DismissCircle12Filled, Open16Regular, Warning12Filled } from '@fluentui/react-icons';
 import type { DocumentationFile, LinkedFile } from '../../host/index.js';
 import { getLanguage, getLinkedFileUrl } from '../../linked-files/index.js';
-import { HighlightedCode } from '../code/index.js';
-import type { ShownTab } from '../host/index.js';
+import { getLineMarkers, HighlightedCode, NO_MARKERS, type LineMarkers } from '../code/index.js';
+import type { ShownShowcase, ShownTab } from '../host/index.js';
 
 // #region Content
 
@@ -164,6 +165,10 @@ export interface LinkedFileViewProps {
    * True for a showcase view (see CodeBlockProps' `view`)
    */
   view?: boolean;
+  /**
+   * The markers of its lines (see CodeBlockProps' `markers`)
+   */
+  markers?: LineMarkers;
 }
 
 /**
@@ -171,7 +176,7 @@ export interface LinkedFileViewProps {
  * @param props Properties of the component
  * @returns The rendered content
  */
-export function LinkedFileView({ path, content, fill, copy, view }: LinkedFileViewProps): ReactNode {
+export function LinkedFileView({ path, content, fill, copy, view, markers }: LinkedFileViewProps): ReactNode {
   switch (content.status) {
     case 'loading':
       return <Spinner label="Loading…" />;
@@ -182,7 +187,7 @@ export function LinkedFileView({ path, content, fill, copy, view }: LinkedFileVi
         </MessageBar>
       );
     case 'loaded':
-      return <HighlightedCode content={content.text} language={getLanguage(path)} fill={fill} copy={copy} view={view} />;
+      return <HighlightedCode content={content.text} language={getLanguage(path)} fill={fill} copy={copy} view={view} markers={markers} />;
   }
 }
 
@@ -214,6 +219,10 @@ export interface ShownTabViewProps {
    * True for a showcase view (see CodeBlockProps' `view`)
    */
   view?: boolean;
+  /**
+   * The markers of its lines (see CodeBlockProps' `markers`)
+   */
+  markers?: LineMarkers;
 }
 
 /**
@@ -222,22 +231,22 @@ export interface ShownTabViewProps {
  * @param props Properties of the component
  * @returns The rendered content
  */
-export function ShownTabView({ tab, documentation, content, fill, copy, view }: ShownTabViewProps): ReactNode {
+export function ShownTabView({ tab, documentation, content, fill, copy, view, markers }: ShownTabViewProps): ReactNode {
   const { source } = tab;
   switch (source.kind) {
     case 'virtual':
-      return <HighlightedCode content={source.content} language={tab.language} fill={fill} copy={copy} view={view} />;
+      return <HighlightedCode content={source.content} language={tab.language} fill={fill} copy={copy} view={view} markers={markers} />;
     case 'documentation': {
       const file = documentation.find((candidate) => candidate.path === tab.path);
       return file ? (
-        <HighlightedCode content={file.content} language={tab.language} fill={fill} copy={copy} view={view} />
+        <HighlightedCode content={file.content} language={tab.language} fill={fill} copy={copy} view={view} markers={markers} />
       ) : (
         _message(MISSING_DOCUMENTATION_MESSAGE)
       );
     }
     case 'file':
       return source.text ? (
-        <LinkedFileView path={tab.path} content={content} fill={fill} copy={copy} view={view} />
+        <LinkedFileView path={tab.path} content={content} fill={fill} copy={copy} view={view} markers={markers} />
       ) : (
         _message(NOT_TEXT_MESSAGE, <NewTabLink href={source.url} />)
       );
@@ -290,6 +299,57 @@ function _message(text: string, action?: ReactNode): ReactNode {
 // #region Tabs
 
 /**
+ * Represents a tab's marks: the markers of its lines, and the most serious severity among its file's issues, if it has any
+ */
+export interface TabMarks {
+  /**
+   * The markers of its lines
+   */
+  markers: LineMarkers;
+  /**
+   * The most serious severity among its file's issues (with a line or not), if it has any
+   */
+  severity?: 'error' | 'warning';
+}
+
+/**
+ * Gets the markers of a showcase's Markdown source (its `markdown` view, and its Markdown tab): a code block showcase's entry point's issues, one
+ * line below, after the fence's opening line; none for a linked showcase, whose Markdown source is its link
+ * @param showcase The shown showcase
+ * @returns The markers
+ */
+export function getMarkdownMarkers(showcase: Pick<ShownShowcase, 'tabs' | 'entryTab' | 'issues'>): LineMarkers {
+  const entry = showcase.tabs[showcase.entryTab];
+  return entry?.source.kind === 'virtual' ? getLineMarkers(showcase.issues, entry.path, 1) : NO_MARKERS;
+}
+
+/**
+ * Gets the marks of a showcase's tabs from its issues: each file's issues; the Markdown tab (before the entry point's tab) a code block showcase's
+ * entry point's issues, one line below, after the fence's opening line
+ * @param showcase The shown showcase
+ * @returns The marks, one per tab
+ */
+export function getTabMarks(showcase: Pick<ShownShowcase, 'tabs' | 'entryTab' | 'issues'>): TabMarks[] {
+  const entry = showcase.tabs[showcase.entryTab];
+  return showcase.tabs.map((tab, index) => {
+    const markdown = index < showcase.entryTab;
+    if (markdown && entry?.source.kind !== 'virtual') return { markers: NO_MARKERS };
+    const path = markdown ? entry!.path : tab.path;
+    const issues = showcase.issues.filter((issue) => issue.path === path);
+    const severity = issues.some((issue) => issue.severity === 'error') ? 'error' : issues.length ? 'warning' : undefined;
+    return { markers: markdown ? getMarkdownMarkers(showcase) : getLineMarkers(issues, path), ...(severity ? { severity } : {}) };
+  });
+}
+
+/**
+ * Styles of the tab list
+ */
+const _useTabStyles = makeStyles({
+  error: { color: tokens.colorPaletteRedForeground1 },
+  warning: { color: tokens.colorPaletteMarigoldForeground1 },
+});
+
+/**
  * Gets the id of a tab's element, by which its tab panel is labelled
  * @param prefix The tab list's own prefix (from `useId()`)
  * @param index The tab's index
@@ -323,21 +383,36 @@ export interface ShownTabListProps {
    * Its class name
    */
   className?: string;
+  /**
+   * The tabs' marks (see getTabMarks()); none by default
+   */
+  marks?: readonly TabMarks[];
 }
 
 /**
- * Renders a tab list of a showcase's files (FluentUI's `TabList`), each tab labelled with its label, its full path as its tooltip
+ * Renders a tab list of a showcase's files (FluentUI's `TabList`), each tab labelled with its label, its full path as its tooltip, and a small ✗
+ * or ⚠ icon before a tab whose file has issues
  * @param props Properties of the component
  * @returns The tab list
  */
-export function ShownTabList({ tabs, selected, onSelect, idPrefix, className }: ShownTabListProps): ReactNode {
+export function ShownTabList({ tabs, selected, onSelect, idPrefix, className, marks = [] }: ShownTabListProps): ReactNode {
+  const styles = _useTabStyles();
   return (
     <TabList className={className} size="small" selectedValue={selected} onTabSelect={(_event, data) => onSelect(data.value as number)}>
-      {tabs.map((tab, index) => (
-        <Tab key={tab.path} id={getTabId(idPrefix, index)} value={index} title={tab.path}>
-          {tab.label}
-        </Tab>
-      ))}
+      {tabs.map((tab, index) => {
+        const severity = marks[index]?.severity;
+        const icon =
+          severity === 'error' ? (
+            <DismissCircle12Filled className={styles.error} aria-label="Has errors" />
+          ) : severity === 'warning' ? (
+            <Warning12Filled className={styles.warning} aria-label="Has warnings" />
+          ) : undefined;
+        return (
+          <Tab key={tab.path} id={getTabId(idPrefix, index)} value={index} title={tab.path} icon={icon} data-tab-severity={severity}>
+            {tab.label}
+          </Tab>
+        );
+      })}
     </TabList>
   );
 }
@@ -457,6 +532,10 @@ export interface CodeSidebarProps {
    */
   initialTab?: number;
   /**
+   * The tabs' marks (see getTabMarks()); none by default
+   */
+  tabMarks?: readonly TabMarks[];
+  /**
    * Closes it
    */
   onClose: () => void;
@@ -469,13 +548,13 @@ export interface CodeSidebarProps {
  * @param props Properties of the component
  * @returns The code sidebar
  */
-export function CodeSidebar({ file, tabs, documentation = [], open, initialTab = 0, onClose }: CodeSidebarProps): ReactNode {
+export function CodeSidebar({ file, tabs, documentation = [], open, initialTab = 0, tabMarks, onClose }: CodeSidebarProps): ReactNode {
   const styles = _useStyles();
   const isOpen = open ?? (file !== undefined || tabs !== undefined);
   return (
     <OverlayDrawer className={styles.drawer} position="end" open={isOpen} onOpenChange={(_event, data) => !data.open && onClose()}>
       {/* Rendered only while open, so each opening fetches anew, and starts at its initial tab */}
-      {isOpen && <CodeSidebarView file={file} tabs={tabs} documentation={documentation} initialTab={initialTab} onClose={onClose} />}
+      {isOpen && <CodeSidebarView file={file} tabs={tabs} documentation={documentation} initialTab={initialTab} tabMarks={tabMarks} onClose={onClose} />}
     </OverlayDrawer>
   );
 }
@@ -491,6 +570,7 @@ export function CodeSidebarView({
   tabs,
   documentation,
   initialTab = 0,
+  tabMarks = [],
   onClose,
 }: Omit<CodeSidebarProps, 'open' | 'documentation'> & { documentation: DocumentationFile[] }): ReactNode {
   const styles = _useStyles();
@@ -504,7 +584,7 @@ export function CodeSidebarView({
       <DrawerHeader>
         <div className={styles.header}>
           {tab ? (
-            <ShownTabList className={styles.tabs} tabs={tabs!} selected={view.index} onSelect={setSelected} idPrefix={idPrefix} />
+            <ShownTabList className={styles.tabs} tabs={tabs!} selected={view.index} onSelect={setSelected} idPrefix={idPrefix} marks={tabMarks} />
           ) : (
             <h2 className={styles.title} title={file?.path}>
               {view.title}
@@ -519,7 +599,7 @@ export function CodeSidebarView({
       <DrawerBody>
         {tab ? (
           <div role="tabpanel" aria-labelledby={getTabId(idPrefix, view.index)}>
-            <ShownTabView tab={tab} documentation={documentation} content={content} />
+            <ShownTabView tab={tab} documentation={documentation} content={content} markers={tabMarks[view.index]?.markers} />
           </div>
         ) : (
           file && <LinkedFileView path={file.path} content={content} />

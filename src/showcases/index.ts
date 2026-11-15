@@ -10,7 +10,8 @@ import { tmpdir } from 'node:os';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { ShowcaseAdapter, ShowcaseBuildFile, ShowcaseBuildIssue } from '../adapters/showcase/index.js';
 import { createShowcaseAdapter, loadCustomShowcaseAdapters } from '../adapters/showcase/registry/index.js';
-import type { CheckIssue, CheckIssueSeverity } from '../cli/check/index.js';
+import type { ShownIssue } from '../app/host/index.js';
+import type { CheckIssue } from '../cli/check/index.js';
 import { CONFIGURATION_FILE_NAME, type Configuration } from '../configuration/index.js';
 import { getFrameScript } from '../frame/index.js';
 import type { HostInformation, Showcase, VirtualFile } from '../host/index.js';
@@ -293,46 +294,18 @@ export function getBuildIssue(showcase: Showcase, virtualFiles: VirtualFile[], i
   return { severity, message, path: showcase.documentation, line: showcase.line, ...checked };
 }
 
-// #endregion
-
-// #region Error frames
-
 /**
- * Escapes text for HTML
- * @param text Text to escape
- * @returns The text with `&`, `<`, `>`, `"` and `'` escaped
- */
-function _escapeHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-/**
- * Gets the showcase frame showing a showcase's build errors, which `serve` shows in place of a showcase that doesn't build: a page listing each
- * error's message, and its file and line, with the frame script, so it is sized and follows the theme like any showcase frame
+ * Gets the shown issue of a showcase's build issue, as the showcase adapter reported it, for the showroom: its own message, without the command line's
+ * prefix; its path and line where its path is valid (a virtual file's own), otherwise at the showcase's entry point, with no line
  * @param showcase The showcase
- * @param issues The showcase's build errors, as check issues (see getBuildIssue())
- * @returns The showcase frame, in the showcase's showcase frame folder
+ * @param issue The build issue
+ * @returns The shown issue
  */
-export function getErrorFrame(showcase: Pick<Showcase, 'id' | 'documentation'>, issues: readonly CheckIssue[]): ShowcaseFrame {
-  const items = issues
-    .map(({ message, path, line }) => {
-      const location = path ? `<div class="location">${_escapeHtml(line ? `${path}:${line}` : path)}</div>` : '';
-      return `<li><div class="message">${_escapeHtml(message)}</div>${location}</li>`;
-    })
-    .join('');
-  const html =
-    '<!doctype html>\n<html><head><meta charset="utf-8"><title>Build errors</title><style>' +
-    // The frame script sets the root's color-scheme to the theme, which light-dark() follows
-    'body{margin:0;padding:12px 16px;font:14px/1.4 system-ui,sans-serif;color:light-dark(#a4262c,#f1707b);background:transparent}' +
-    'h1{font-size:14px;margin:0 0 8px}ul{margin:0;padding-left:20px}li{margin:4px 0}' +
-    '.message{white-space:pre-wrap}.location{font-family:ui-monospace,monospace;font-size:12px;opacity:.8}' +
-    `</style></head><body><h1>Showcase ${_escapeHtml(showcase.id)} doesn't build</h1><ul>${items}</ul></body></html>`;
-  return {
-    folder: getShowcaseFrameFolder(showcase),
-    page: 'index.html',
-    files: [{ path: 'index.html', content: insertFrameScript(html, getFrameScript()) }],
-    reads: [],
-  };
+export function getShownIssue(showcase: Pick<Showcase, 'entry'>, issue: ShowcaseBuildIssue): ShownIssue {
+  const { severity, message, check } = issue;
+  const checked = check === undefined ? {} : { check };
+  if (!isValidBuildPath(issue.path)) return { severity, message, ...checked, path: showcase.entry };
+  return { severity, message, ...checked, path: issue.path, ...(_isLine(issue.line) ? { line: issue.line } : {}) };
 }
 
 // #endregion
@@ -378,6 +351,11 @@ export interface BuildShowcasesResult {
    */
   warnings: CheckIssue[];
   /**
+   * The issues of each showcase, built or not, errors and warnings, by showcase id, as the showroom shows them (see getShownIssue()); empty for a
+   * showcase without issues
+   */
+  shownIssues: Map<string, ShownIssue[]>;
+  /**
    * The checks each showcase's build ran to completion, by showcase id (empty for a showcase whose build ran none)
    */
   checks: Map<string, string[]>;
@@ -420,13 +398,15 @@ function _getModulePath(root: string, path: string): string | undefined {
  * run gets fresh showcase adapter objects, each closed at its end. A showcase that doesn't build never stops the others. The files to watch are the
  * custom showcase adapter modules, every showcase's included files (an included virtual file's documentation file), and the files each build read.
  * @param options What to build
- * @returns The showcase frames of the showcases that built, the errors and warnings of each, the checks each ran, and the run's own issues
+ * @returns The showcase frames of the showcases that built, the errors and warnings of each (placed, and as shown), the checks each ran, and the
+ * run's own issues
  */
 export async function buildShowcases({ root, host, configuration, mode = 'production' }: BuildShowcasesOptions): Promise<BuildShowcasesResult> {
   const issues: CheckIssue[] = [];
   const errors = new Map<string, CheckIssue[]>();
   const warnings: CheckIssue[] = [];
   const checks = new Map<string, string[]>();
+  const shownIssues = new Map<string, ShownIssue[]>();
   const frames = new Map<string, ShowcaseFrame>();
   const absoluteRoot = resolve(root);
   const script = getFrameScript();
@@ -443,11 +423,13 @@ export async function buildShowcases({ root, host, configuration, mode = 'produc
     for (const [index, showcase] of host.showcases.entries()) {
       const add = (issue: ShowcaseBuildIssue) => {
         const placed = getBuildIssue(showcase, host.virtualFiles, issue);
+        shownIssues.get(showcase.id)!.push(getShownIssue(showcase, issue));
         if (issue.severity === 'warning') warnings.push(placed);
         else errors.set(showcase.id, [...(errors.get(showcase.id) ?? []), placed]);
       };
       const fail = (message: string) => add({ severity: 'error', message });
       checks.set(showcase.id, []);
+      shownIssues.set(showcase.id, []);
 
       // Its included files are watched, whatever its showcase adapter and whether it builds: a virtual one by its documentation file
       for (const path of showcase.include) {
@@ -509,7 +491,7 @@ export async function buildShowcases({ root, host, configuration, mode = 'produc
     }
     await rm(scratch, { recursive: true, force: true });
   }
-  return { frames, errors, warnings, checks, issues, watched: [...watched].sort() };
+  return { frames, errors, warnings, shownIssues, checks, issues, watched: [...watched].sort() };
 }
 
 // #endregion

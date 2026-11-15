@@ -158,20 +158,31 @@ describe('cli/serve (serve)', () => {
     );
   });
 
-  it('Serves error frames for the showcases that do not build, and shows their build errors as issues', async () => {
+  it("Serves the showcase frames that build, a check's errors or not, ships every showcase with its checks and issues, and shows the issues", async () => {
     const served = await start('showcase-build-errors');
     const source = await fetchHostModule(served.url);
-    const urls = getShowcaseUrls(source);
-    expect(Object.keys(urls)).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'README.md#4', 'README.md#5', 'README.md#6']);
+    const host = JSON.parse(/export default ([\s\S]*?);\s*export const issues/.exec(source)![1]) as { showcases: ShownShowcase[] };
+    expect(host.showcases.map(({ id }) => id)).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'README.md#4', 'README.md#5', 'README.md#6']);
 
-    // Each showcase with errors shows them in its showcase frame, even one whose files a check's errors left usable (D558,
-    // .workflow/PLAN-P15.2-checks-and-issues.md)
-    const errorFrame = await (await fetch(new URL(urls['README.md#1'], served.url))).text();
-    expect(errorFrame).toContain("Showcase README.md#1 doesn't build");
-    expect(errorFrame).toContain('<div class="location">src/widget.js:2</div>');
-    expect(await (await fetch(new URL(urls['README.md#2'], served.url))).text()).toContain('build broke');
+    // A showcase that doesn't build has no URL; one whose check fails beside its files is served with them (D584, .workflow/PLAN-P15.5-status-marks.md)
+    const urls = getShowcaseUrls(source);
+    expect(Object.keys(urls).filter((id) => urls[id] !== undefined)).toEqual(['README.md#4', 'README.md#5']);
     expect(await (await fetch(new URL(urls['README.md#4'], served.url))).text()).toContain('Builds fine');
-    expect(await (await fetch(new URL(urls['README.md#5'], served.url))).text()).toContain('lint: Unused variable');
+    expect((await fetch(new URL(urls['README.md#5'], served.url))).status).toBe(200);
+
+    // Their checks and issues, as the showcase adapter reported them
+    const checked = host.showcases.find(({ id }) => id === 'README.md#5')!;
+    expect(checked).toMatchObject({ checks: ['lint'], buildMark: true });
+    expect(checked.issues.map(({ severity, message }) => [severity, message])).toEqual([
+      ['error', 'Unused variable'],
+      ['warning', 'Long line'],
+    ]);
+    expect(host.showcases.find(({ id }) => id === 'README.md#1')!.issues).toContainEqual({
+      severity: 'error',
+      message: 'Widget broke',
+      path: 'src/widget.js',
+      line: 2,
+    });
 
     // The issues, in the virtual module and on stderr
     expect(source).toContain('"message":"Showcase README.md#2 (README.md:12): Showcase adapter \\"throwing\\" failed to build the showcase: build broke"');

@@ -15,9 +15,9 @@ import { Code16Regular } from '@fluentui/react-icons';
 import type { DocumentationFile, LinkedFile } from '../../host/index.js';
 import { getOpeningTitleOffset } from '../../markdown/index.js';
 import { CodeBlock } from '../code/index.js';
-import { ShowcaseBlock } from '../code-pane/index.js';
-import { CodeSidebar } from '../code-sidebar/index.js';
-import { isLoadedShowcase, type ShownShowcase, type ShownVirtualFile } from '../host/index.js';
+import { InlineShowcase, ShowcaseBlock } from '../code-pane/index.js';
+import { CodeSidebar, getTabMarks } from '../code-sidebar/index.js';
+import type { ShownShowcase, ShownVirtualFile } from '../host/index.js';
 import { resolveImage, resolveLink } from '../links/index.js';
 import { scrollToAnchor } from '../routing/index.js';
 import {
@@ -25,7 +25,6 @@ import {
   SHOWCASE_FRAME_ELEMENT,
   SHOWCASE_ID_PROPERTY,
   SHOWCASE_VIRTUAL_FILE_ELEMENT,
-  ShowcaseFrame,
   VirtualFileViews,
   remarkShowcaseFrames,
 } from '../showcases/index.js';
@@ -194,6 +193,7 @@ export function Markdown({
     }),
     [file, documentation, linkedFiles, styles.fileIcon, styles.unresolved, titleOffset, afterTitle],
   );
+  const shownShowcase = shown?.showcase === undefined ? undefined : fileShowcases.find((showcase) => showcase.id === shown.showcase);
   return (
     <div className={styles.markdown}>
       <_ShowcasesContext.Provider value={fileShowcases}>
@@ -205,7 +205,8 @@ export function Markdown({
       </_ShowcasesContext.Provider>
       <CodeSidebar
         file={shown?.file}
-        tabs={shown?.showcase === undefined ? undefined : fileShowcases.find((showcase) => showcase.id === shown.showcase)?.tabs}
+        tabs={shownShowcase?.tabs}
+        tabMarks={shownShowcase && getTabMarks(shownShowcase)}
         documentation={documentation}
         onClose={() => setShown(undefined)}
       />
@@ -242,13 +243,14 @@ const _ShowcasesContext = createContext<ShownShowcase[]>(_NO_SHOWCASES);
 const _VirtualFilesContext = createContext<ShownVirtualFile[]>(_NO_VIRTUAL_FILES);
 
 /**
- * Renders a showcase frame the remark plugin placed, looking its showcase up by id in the documentation file's showcases
+ * Renders a linked showcase shown inline that the remark plugin placed (its header bar, its issue list and its showcase frame), looking its showcase
+ * up by id in the documentation file's showcases
  * @param props Properties of the component: the showcase's id
- * @returns The showcase frame, or nothing if no showcase has that id
+ * @returns The showcase, or nothing if no showcase has that id
  */
 export function PlacedShowcaseFrame({ id }: { id: unknown }): ReactNode {
   const showcase = useContext(_ShowcasesContext).find((candidate) => candidate.id === id);
-  return showcase && isLoadedShowcase(showcase) ? <ShowcaseFrame showcase={showcase} /> : null;
+  return showcase ? <InlineShowcase showcase={showcase} /> : null;
 }
 
 /**

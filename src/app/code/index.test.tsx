@@ -18,6 +18,7 @@ import {
   copyText,
   countLines,
   getFence,
+  getLineMarkers,
 } from './index.js';
 
 /**
@@ -125,8 +126,32 @@ describe('app/code', () => {
           </pre>
         </CodeBlock>,
       );
-      expect(html).toMatch(/<pre [^>]*aria-hidden="true"[^>]*>1\n2\n3<\/pre>/);
+      expect(html).toMatch(/<div [^>]*aria-hidden="true"[^>]*><div>1<\/div><div>2<\/div><div>3<\/div><\/div>/);
       expect(html).toContain('<code>a\nb\nc</code>');
+    });
+
+    it("Marks issue lines: the line's number in the issue's colour, and a band across it with its messages, an error's over a warning's", () => {
+      const markers = getLineMarkers(
+        [
+          { severity: 'warning', message: 'Slow', path: 'a.ts', line: 2 },
+          { severity: 'error', message: 'Broke', path: 'a.ts', line: 2 },
+          { severity: 'warning', message: 'Odd', path: 'a.ts', line: 3 },
+          // Beyond the code's lines: no band
+          { severity: 'error', message: 'Far', path: 'a.ts', line: 9 },
+        ],
+        'a.ts',
+      );
+      const html = _renderElement(
+        <CodeBlock text={'a\nb\nc'} markers={markers}>
+          <pre>
+            <code>{'a\nb\nc'}</code>
+          </pre>
+        </CodeBlock>,
+      );
+      expect(html).toMatch(/<div>1<\/div><div class="[^"]+" data-line-marker="error">2<\/div><div class="[^"]+" data-line-marker="warning">3<\/div>/);
+      expect(html).toMatch(/<div class="[^"]+" style="top:[^"]+" title="Slow\nBroke" data-line-band="2"><\/div>/);
+      expect(html).toContain('title="Odd" data-line-band="3"');
+      expect(html).not.toContain('data-line-band="9"');
     });
 
     it('Has a copy button', () => {
@@ -169,6 +194,32 @@ describe('app/code', () => {
     });
   });
 
+  describe('getLineMarkers', () => {
+    // The markers of a file's lines, from hand-written issues.
+
+    it("Marks the lines of the file's issues with a line, offset by the lines shown before the file", () => {
+      const issues = [
+        { severity: 'error' as const, message: 'Broke', path: 'a.ts', line: 1 },
+        { severity: 'warning' as const, message: 'Elsewhere', path: 'b.ts', line: 1 },
+        { severity: 'warning' as const, message: 'No line', path: 'a.ts' },
+      ];
+      expect([...getLineMarkers(issues, 'a.ts')]).toEqual([[1, { severity: 'error', messages: ['Broke'] }]]);
+      expect([...getLineMarkers(issues, 'a.ts', 1)]).toEqual([[2, { severity: 'error', messages: ['Broke'] }]]);
+      expect(getLineMarkers(issues, 'c.ts').size).toBe(0);
+    });
+
+    it("Keeps an error's severity over a warning's on one line, with every message in order", () => {
+      const markers = getLineMarkers(
+        [
+          { severity: 'error', message: 'First', path: 'a.ts', line: 4 },
+          { severity: 'warning', message: 'Second', path: 'a.ts', line: 4 },
+        ],
+        'a.ts',
+      );
+      expect(markers.get(4)).toEqual({ severity: 'error', messages: ['First', 'Second'] });
+    });
+  });
+
   describe('SegmentedCode', () => {
     // Segments highlighted in languages of their own, as one code block.
 
@@ -182,8 +233,9 @@ describe('app/code', () => {
           ]}
         />,
       );
-      expect(html.match(/<pre/g)).toHaveLength(2);
-      expect(html).toMatch(/<pre [^>]*aria-hidden="true"[^>]*>1\n2\n3\n4<\/pre>/);
+      // One pre holds every segment (the gutter is one element per line)
+      expect(html.match(/<pre/g)).toHaveLength(1);
+      expect(html).toMatch(/<div [^>]*aria-hidden="true"[^>]*><div>1<\/div><div>2<\/div><div>3<\/div><div>4<\/div><\/div>/);
       expect(html).toMatch(
         /<code class="hljs language-md">.*\n(<\/span>)?<\/code><code class="hljs language-ts">.*\n(<\/span>)?<\/code><code class="hljs language-md">/s,
       );
@@ -194,8 +246,8 @@ describe('app/code', () => {
       // Griffel's classes are atomic, one per property: the view's margin and corners replace the plain ones, and its height cap adds its own
       const classes = (view: boolean) =>
         [..._renderElement(<SegmentedCode segments={[{ text: 'a', language: 'md' }]} view={view} />).matchAll(/<div class="([^"]+)"/g)]
-          // The block and its scroll, before the code's own
-          .slice(-3, -1)
+          // The block and its scroll, before the gutter's and the code's own
+          .slice(-4, -2)
           .map((match) => match[1].split(' '));
       const [block, scroll] = classes(true);
       const [plainBlock, plainScroll] = classes(false);
@@ -212,7 +264,7 @@ describe('app/code', () => {
       const html = _render('const answer = 42;\n// Done\n', 'ts');
       expect(html).toContain('class="hljs language-ts"');
       expect(html).toContain('<span class="hljs-keyword">const</span>');
-      expect(html).toMatch(/<pre [^>]*aria-hidden="true"[^>]*>1\n2<\/pre>/);
+      expect(html).toMatch(/<div [^>]*aria-hidden="true"[^>]*><div>1<\/div><div>2<\/div><\/div>/);
       expect(html).toMatch(/<button [^>]*aria-label="Copy code"/);
     });
 
@@ -221,7 +273,7 @@ describe('app/code', () => {
       expect(html).not.toContain('<script>');
       expect(html).toContain('&lt;script&gt;');
       expect(html.match(/<code/g)).toHaveLength(1);
-      expect(html).toMatch(/>1\n2\n3\n4\n5<\/pre>/);
+      expect(html).toMatch(/><div>1<\/div><div>2<\/div><div>3<\/div><div>4<\/div><div>5<\/div><\/div>/);
     });
 
     it("Shows a language highlight.js doesn't know as plain text", () => {

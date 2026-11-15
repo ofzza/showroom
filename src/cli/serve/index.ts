@@ -1,6 +1,6 @@
 /**
  * Serve: `showroom serve`, previewing the showroom with Vite's dev server, with every showcase built into its showcase frame, served from memory;
- * after a change, it checks and builds again, and reloads the page, or only the showcase frames that changed. Internal: loaded by main() with a
+ * after a change, it checks and builds again, and reloads the page, or sends it the showcases' updates. Internal: loaded by main() with a
  * dynamic `import()`, so library users and `showroom check` never load Vite, and not re-exported.
  */
 
@@ -15,13 +15,14 @@ import type { CliOutput } from '../index.js';
 import type { ShownHostInformation, ShownShowcase } from '../../app/host/index.js';
 import { readConfiguration } from '../../configuration/index.js';
 import type { HostInformation } from '../../host/index.js';
-import { buildShowcases, getBuildShowcasesIssues, getErrorFrame, type BuildShowcasesResult, type ShowcaseFrame } from '../../showcases/index.js';
+import { buildShowcases, getBuildShowcasesIssues, type BuildShowcasesResult, type ShowcaseFrame } from '../../showcases/index.js';
 import {
   RESOLVED_HOST_MODULE_ID,
   getAppDir,
   getShownHostInformation,
   getTabFileHashes,
   getViteConfiguration,
+  type ShownBuild,
   type ShownHostOptions,
 } from '../../vite/index.js';
 
@@ -99,25 +100,7 @@ export function getWatchTargets(watched: readonly string[], matcher: Ignore | un
 
 // #endregion
 
-// #region Showcase frames
-
-/**
- * Gets the showcase frames `serve` serves after building the showcases: the showcase frame showing a showcase's errors when it has any, whether
- * it built or not (e.g. a type check's errors beside its files), else its showcase frame, in showcase order
- * @param host Host information of the check the showcases were built for
- * @param built The outcome of building them
- * @returns The showcase frames, by showcase id
- */
-export function getServedFrames(host: HostInformation, built: Pick<BuildShowcasesResult, 'frames' | 'errors'>): Map<string, ShowcaseFrame> {
-  const frames = new Map<string, ShowcaseFrame>();
-  for (const showcase of host.showcases) {
-    const frame = built.frames.get(showcase.id);
-    const errors = built.errors.get(showcase.id);
-    if (errors) frames.set(showcase.id, getErrorFrame(showcase, errors));
-    else if (frame) frames.set(showcase.id, frame);
-  }
-  return frames;
-}
+// #region Shown changes
 
 /**
  * Represents what changed in the shown host information after a run, and so what the page needs
@@ -125,23 +108,23 @@ export function getServedFrames(host: HostInformation, built: Pick<BuildShowcase
 export type ShownChange = 'none' | 'showcases' | 'reload';
 
 /**
- * Gets what changed between two shown host informations: anything but the URLs of the showcase frames and of their tabs needs a full reload (a
- * documentation file, the project information, a showcase added, removed or moved); changed URLs alone only need the changed showcase frames
- * reloaded, and the changed tabs fetched again
+ * Gets what changed between two shown host informations: anything but the showcases' updates (the URLs of the showcase frames and of their tabs,
+ * the checks, the issues and the `build` status mark) needs a full reload (a documentation file, the project information, a showcase added, removed
+ * or moved); changed updates alone are sent to the page, which reloads only the changed showcase frames, and fetches the changed tabs again
  * @param previous The shown host information shown so far
  * @param next The new one
  * @returns What changed
  */
 export function getShownChange(previous: ShownHostInformation, next: ShownHostInformation): ShownChange {
-  const withoutUrls = (shown: ShownHostInformation) =>
+  const withoutUpdates = (shown: ShownHostInformation) =>
     JSON.stringify({
       ...shown,
-      showcases: shown.showcases.map(({ url: _url, tabs, ...rest }) => ({
+      showcases: shown.showcases.map(({ url: _url, checks: _checks, issues: _issues, buildMark: _buildMark, tabs, ...rest }) => ({
         ...rest,
         tabs: tabs.map((tab) => (tab.source.kind === 'file' ? { ...tab, source: { ...tab.source, url: tab.source.url.split('?')[0] } } : tab)),
       })),
     });
-  if (withoutUrls(previous) !== withoutUrls(next)) return 'reload';
+  if (withoutUpdates(previous) !== withoutUpdates(next)) return 'reload';
   return JSON.stringify(previous.showcases) === JSON.stringify(next.showcases) ? 'none' : 'showcases';
 }
 
@@ -150,7 +133,8 @@ export function getShownChange(previous: ShownHostInformation, next: ShownHostIn
 // #region Host watcher
 
 /**
- * Name of the custom HMR event telling the showroom the new URLs of the showcase frames and of their tabs, with every shown showcase as its data
+ * Name of the custom HMR event telling the showroom the showcases' updates (the URLs of their showcase frames and tabs, their checks and issues),
+ * with every shown showcase as its data
  */
 export const SHOWCASES_EVENT = 'showroom:showcases';
 
@@ -184,9 +168,13 @@ export interface ServedState {
    */
   host: ShownHostInformation;
   /**
-   * The showcase frames of the latest successful build, by showcase id, including those showing build errors
+   * The showcase frames of the latest successful build, by showcase id: those of the showcases that built, their checks' errors or not
    */
   frames: ReadonlyMap<string, ShowcaseFrame>;
+  /**
+   * The checks each showcase's build ran, and its issues as shown, from the latest successful build; none if not given
+   */
+  shown?: Omit<ShownBuild, 'frames'>;
   /**
    * The current issues: the latest check's, and the showcases' build errors and warnings
    */
@@ -304,23 +292,26 @@ export const DEFAULT_WATCH_DELAY = 100;
  * @param build Builds the showcases
  * @param previous The showcase frames to keep if the build throws
  * @param previousWatched The files to watch to keep if the build throws, or a showcase doesn't build
- * @returns The showcase frames to serve, the build's issues (or the error it threw), and the files to watch
+ * @param previousShown The showcases' checks and issues to keep if the build throws
+ * @returns The showcase frames to serve, the showcases' checks and issues, the build's issues (or the error it threw), and the files to watch
  */
 export async function runBuild(
   host: HostInformation,
   build: (host: HostInformation) => Promise<BuildShowcasesResult>,
   previous: ReadonlyMap<string, ShowcaseFrame>,
   previousWatched: readonly string[] = [],
-): Promise<{ frames: ReadonlyMap<string, ShowcaseFrame>; issues: CheckIssue[]; watched: readonly string[] }> {
+  previousShown: Omit<ShownBuild, 'frames'> = {},
+): Promise<{ frames: ReadonlyMap<string, ShowcaseFrame>; shown: Omit<ShownBuild, 'frames'>; issues: CheckIssue[]; watched: readonly string[] }> {
   const linked = host.linkedFiles.map(({ path }) => path);
   const merge = (...lists: (readonly string[])[]): string[] => [...new Set(lists.flat())].sort();
   try {
     const built = await build(host);
     const watched = merge(built.errors.size ? previousWatched : [], built.watched, linked);
-    return { frames: getServedFrames(host, built), issues: getBuildShowcasesIssues(built), watched };
+    return { frames: built.frames, shown: { checks: built.checks, shownIssues: built.shownIssues }, issues: getBuildShowcasesIssues(built), watched };
   } catch (err) {
     return {
       frames: previous,
+      shown: previousShown,
       issues: [{ severity: 'error', message: `The showcases failed to build: ${(err as Error).message}` }],
       watched: merge(previousWatched, linked),
     };
@@ -352,15 +343,16 @@ export function createHostWatcher(options: HostWatcherOptions): HostWatcher {
     let next: ServedState;
     if (result.passed && result.host) {
       // A passed check: build its showcases
-      const built = await runBuild(result.host, options.build, state.frames, state.watched);
+      const built = await runBuild(result.host, options.build, state.frames, state.watched, state.shown);
       if (closed) return;
       matcher = (await options.readMatcher()) ?? matcher;
       const hashes = (await options.hashFiles?.(result.host)) ?? new Map<string, string>();
       const shownOptions = (await options.readShownOptions?.()) ?? {};
       if (closed) return;
       next = {
-        host: getShownHostInformation(result.host, built.frames, hashes, shownOptions),
+        host: getShownHostInformation(result.host, { frames: built.frames, ...built.shown }, hashes, shownOptions),
         frames: built.frames,
+        shown: built.shown,
         issues: [...result.issues, ...built.issues],
         watched: built.watched,
       };
@@ -517,7 +509,7 @@ async function _readShownOptions(root: string): Promise<ShownHostOptions> {
 
 /**
  * Serves the showroom of a host repository with Vite's dev server, until the process is asked to stop: checks it, builds every showcase, then
- * listens. A showcase that doesn't build shows its build errors in its showcase frame, and never stops `serve`.
+ * listens. A showcase that doesn't build is shown with its issues, and never stops `serve`.
  * @param options Options of the command
  * @returns Exit code: 0 once stopped, 1 if the first check fails or the server can't start
  */
@@ -531,8 +523,14 @@ export async function serve({ root, port = DEFAULT_PORT, outDir, output, appDir 
   const build = (host: HostInformation) => _buildShowcases(root, host);
   const built = await runBuild(first.host, build, new Map());
   const initial: ServedState = {
-    host: getShownHostInformation(first.host, built.frames, await getTabFileHashes(root, first.host), await _readShownOptions(root)),
+    host: getShownHostInformation(
+      first.host,
+      { frames: built.frames, ...built.shown },
+      await getTabFileHashes(root, first.host),
+      await _readShownOptions(root),
+    ),
     frames: built.frames,
+    shown: built.shown,
     issues: [...first.issues, ...built.issues],
     watched: built.watched,
   };

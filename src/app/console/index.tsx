@@ -48,6 +48,16 @@ const _LINE_HEIGHT = 18;
 export const CONSOLE_PANEL_HEIGHT = 1 + 25 + CONSOLE_PANEL_LINES * _LINE_HEIGHT + 8;
 
 /**
+ * Height of a `console` view, in pixels: its CONSOLE_PANEL_LINES lines, and their padding
+ */
+export const CONSOLE_VIEW_HEIGHT = CONSOLE_PANEL_LINES * _LINE_HEIGHT + 8;
+
+/**
+ * Name of the attribute of a console view's line holding its id, by which the `runtime` status mark finds it
+ */
+export const CONSOLE_LINE_ATTRIBUTE = 'data-console-line';
+
+/**
  * Represents a line kept by the console panel
  */
 export interface ConsoleEntry extends ConsoleLine {
@@ -86,6 +96,18 @@ export interface ConsoleState {
    */
   errors: number;
   /**
+   * Number of warning lines (`warn`) written since the showcase frame's load, dropped ones included
+   */
+  warningCount: number;
+  /**
+   * Number of error lines (`error`, uncaught errors, rejected promises) written since the showcase frame's load, dropped ones included
+   */
+  errorCount: number;
+  /**
+   * True once the showcase frame's page has loaded (`ready`) since its load started
+   */
+  ready: boolean;
+  /**
    * True while the console panel is open
    */
   open: boolean;
@@ -108,12 +130,14 @@ export interface ConsoleState {
 }
 
 /**
- * Represents an update of a console panel's state: the showcase frame's `start` (a new load) and a batch of its lines, given the time they came;
- * the user opening or closing the console panel; and the time passing, for the fading lines
+ * Represents an update of a console panel's state: the showcase frame's `start` (a new load), its `ready`, and a batch of its lines (with how many
+ * of the lines dropped before them were warnings and errors), given the time they came; the user opening or closing the console panel; and the time
+ * passing, for the fading lines
  */
 export type ConsoleAction =
   | { type: 'start' }
-  | { type: 'lines'; lines: ConsoleLine[]; dropped: number; now: number }
+  | { type: 'ready' }
+  | { type: 'lines'; lines: ConsoleLine[]; dropped: number; droppedWarnings?: number; droppedErrors?: number; now: number }
   | { type: 'open' }
   | { type: 'close' }
   | { type: 'tick'; now: number };
@@ -121,7 +145,20 @@ export type ConsoleAction =
 /**
  * The state of a console panel before anything is logged, and after every load
  */
-export const INITIAL_CONSOLE_STATE: ConsoleState = { lines: [], dropped: 0, count: 0, errors: 0, open: false, autoOpened: false, fadeFrom: 0, next: 0, now: 0 };
+export const INITIAL_CONSOLE_STATE: ConsoleState = {
+  lines: [],
+  dropped: 0,
+  count: 0,
+  errors: 0,
+  warningCount: 0,
+  errorCount: 0,
+  ready: false,
+  open: false,
+  autoOpened: false,
+  fadeFrom: 0,
+  next: 0,
+  now: 0,
+};
 
 /**
  * Opens a console panel: its unseen errors are seen, and the lines so far never fade in later
@@ -134,8 +171,9 @@ function _open(state: ConsoleState): ConsoleState {
 
 /**
  * Updates a console panel's state. A batch of lines is added to the lines kept, the oldest beyond CONSOLE_MAX_LINES dropped and counted, its error
- * lines counted as unseen while the console panel is closed; its first uncaught error or rejected promise of the load opens the console panel, once.
- * `start` clears everything, so every load starts afresh.
+ * lines counted as unseen while the console panel is closed, and its warnings and errors counted for the load, dropped ones too; its first uncaught
+ * error or rejected promise of the load opens the console panel, once. `ready` marks the page loaded. `start` clears everything, so every load starts
+ * afresh, pending.
  * @param state The state
  * @param action The update
  * @returns The new state
@@ -144,6 +182,8 @@ export function updateConsole(state: ConsoleState, action: ConsoleAction): Conso
   switch (action.type) {
     case 'start':
       return INITIAL_CONSOLE_STATE;
+    case 'ready':
+      return state.ready ? state : { ...state, ready: true };
     case 'open':
       return state.open ? state : _open(state);
     case 'close':
@@ -155,13 +195,17 @@ export function updateConsole(state: ConsoleState, action: ConsoleAction): Conso
       const added = action.lines.map((line, index) => ({ ...line, id: state.next + index, time: action.now, quiet: state.open }));
       const lines = [...state.lines, ...added];
       const overflow = Math.max(0, lines.length - CONSOLE_MAX_LINES);
-      const errors = state.open ? 0 : state.errors + action.lines.filter((line) => line.level === 'error').length;
+      const errorLines = action.lines.filter((line) => line.level === 'error').length;
+      const warningLines = action.lines.filter((line) => line.level === 'warn').length;
+      const errors = state.open ? 0 : state.errors + errorLines;
       const updated: ConsoleState = {
         ...state,
         lines: lines.slice(overflow),
         dropped: state.dropped + action.dropped + overflow,
         count: state.count + action.dropped + action.lines.length,
         errors,
+        warningCount: state.warningCount + warningLines + (action.droppedWarnings ?? 0),
+        errorCount: state.errorCount + errorLines + (action.droppedErrors ?? 0),
         next: state.next + action.lines.length,
         now: action.now,
       };
@@ -219,6 +263,15 @@ export function getNextFadeTime(state: ConsoleState): number | undefined {
 export function getConsoleMinHeight(state: ConsoleState): number {
   if (state.open) return CONSOLE_PANEL_HEIGHT;
   return state.count ? CONSOLE_ROW_HEIGHT : 0;
+}
+
+/**
+ * Gets the line the `runtime` status mark scrolls a `console` view to: its first kept error line, else its first kept warning line
+ * @param state The state
+ * @returns The line's id, or undefined if no kept line is an error or a warning
+ */
+export function getFirstIssueLine(state: ConsoleState): number | undefined {
+  return (state.lines.find((entry) => entry.level === 'error') ?? state.lines.find((entry) => entry.level === 'warn'))?.id;
 }
 
 /**
@@ -360,7 +413,7 @@ const _useStyles = makeStyles({
     flex: '0 1 auto',
     minHeight: '0',
     boxSizing: 'border-box',
-    height: `${CONSOLE_PANEL_LINES * _LINE_HEIGHT + 8}px`,
+    height: `${CONSOLE_VIEW_HEIGHT}px`,
     padding: '4px 0',
     overflow: 'auto',
   },
@@ -511,7 +564,11 @@ function _ConsoleLines({ state }: { state: ConsoleState }): ReactNode {
     <>
       {state.dropped > 0 && <div className={mergeClasses(styles.line, styles.debug)}>{getDroppedText(state.dropped)}</div>}
       {state.lines.map((entry) => (
-        <div key={entry.id} className={mergeClasses(styles.line, entry.level === 'log' ? undefined : styles[entry.level])}>
+        <div
+          key={entry.id}
+          className={mergeClasses(styles.line, entry.level === 'log' ? undefined : styles[entry.level])}
+          {...{ [CONSOLE_LINE_ATTRIBUTE]: entry.id }}
+        >
           {entry.text}
         </div>
       ))}

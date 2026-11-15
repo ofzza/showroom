@@ -162,7 +162,7 @@ export async function build({ root, outDir, output, appDir = getAppDir() }: Buil
   if (issues.some((issue) => issue.severity === 'error')) {
     return 1;
   }
-  const host = getShownHostInformation(result.host, showcases.frames, await getTabFileHashes(root, result.host), {
+  const host = getShownHostInformation(result.host, showcases, await getTabFileHashes(root, result.host), {
     exposeShowcaseMarkdownSyntax: configuration.exposeShowcaseMarkdownSyntax,
   });
   // Only the showcase frames a view loads are emitted: a showcase shown by its markdown or source alone was built and checked, and that's all

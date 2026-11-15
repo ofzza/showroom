@@ -160,7 +160,7 @@ describe('adapters/showcase/ts (integration)', () => {
   it('Fails showcases on the type errors of the files they reach, at their lines', async () => {
     // The `showcase-ts-types` fixture: a strict root tsconfig with rootDir, composite and outDir (dropped), including `src/` (whose declarations type
     // an asset and import.meta.env); a nearer tsconfig turning noImplicitAny off in `docs/nested/`
-    const { frames, errors, warnings, checks, issues, watched } = await _build('showcase-ts-types');
+    const { frames, errors, warnings, shownIssues, checks, issues, watched } = await _build('showcase-ts-types');
     expect(issues).toEqual([]);
     const error = (id: string, line: number, message: string, path: string, at: number) => [
       id,
@@ -200,6 +200,18 @@ describe('adapters/showcase/ts (integration)', () => {
         line: 69,
       },
     ]);
+    // The showroom shows each in its own file, a virtual file's at its own line (D584, .workflow/PLAN-P15.5-status-marks.md)
+    expect(shownIssues.get('README.md#1')).toEqual([
+      { severity: 'error', message: assign('string', 'number'), check: 'type check', path: 'README.showcase-1.ts', line: 1 },
+    ]);
+    expect(shownIssues.get('README.md#4')).toEqual([
+      { severity: 'error', message: assign('string', 'number'), check: 'type check', path: 'src/broken.ts', line: 2 },
+    ]);
+    expect(shownIssues.get('README.md#11')!.map(({ severity, check }) => [severity, check])).toEqual([
+      ['error', 'type check'],
+      ['warning', undefined],
+    ]);
+    expect(shownIssues.get('README.md#6')).toEqual([]);
     // The bundles' reads, and the type checks': the tsconfig files, and the files the programs hold, outside node_modules
     expect(watched).toEqual([
       'README.md',

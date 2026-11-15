@@ -15,7 +15,7 @@ import type { CheckIssue } from '../cli/check/index.js';
 import type { HostInformation, LinkedFile, Showcase, ShowcaseView } from '../host/index.js';
 import { LINKED_FILES_FOLDER, getLanguage, getLinkedFileUrl } from '../linked-files/index.js';
 import { getRelativePath, getShowcaseSources } from '../markdown/index.js';
-import type { ShownHostInformation, ShownTab, ShownTabSource } from '../app/host/index.js';
+import type { ShownHostInformation, ShownIssue, ShownTab, ShownTabSource } from '../app/host/index.js';
 import { HASH_PARAMETER, getShowcaseFrameHash, getShowcaseFrameUrl, type ShowcaseFrame } from '../showcases/index.js';
 
 // #region Shown host information
@@ -50,18 +50,51 @@ export function loadsShowcaseFrame(views: readonly ShowcaseView[]): boolean {
 }
 
 /**
+ * Represents what building the showcases gave, as far as the shown host information needs it (see BuildShowcasesResult)
+ */
+export interface ShownBuild {
+  /**
+   * The showcase frames of the showcases that built, by showcase id
+   */
+  frames: ReadonlyMap<string, Pick<ShowcaseFrame, 'folder' | 'page' | 'files'>>;
+  /**
+   * The checks each showcase's build ran to completion, by showcase id; none if not given
+   */
+  checks?: ReadonlyMap<string, string[]>;
+  /**
+   * The issues of each showcase, as shown, by showcase id; none if not given
+   */
+  shownIssues?: ReadonlyMap<string, ShownIssue[]>;
+}
+
+/**
+ * Name of the showcase adapter whose showcases show no `build` status mark unless their build has issues, as nothing builds them
+ */
+const _UNBUILT_ADAPTER = 'html';
+
+/**
+ * Checks if a showcase shows a `build` status mark: every showcase does, but an `html` one without issues of its build (those naming no check)
+ * @param showcase The showcase
+ * @param issues Its issues
+ * @returns True if it shows one
+ */
+export function hasBuildMark(showcase: Pick<Showcase, 'adapter'>, issues: readonly ShownIssue[]): boolean {
+  return showcase.adapter !== _UNBUILT_ADAPTER || issues.some((issue) => issue.check === undefined);
+}
+
+/**
  * Gets the shown host information: the part of the host information the showroom presents
  * @param host Host information
- * @param frames The showcase frames built, by showcase id; none when they aren't built
+ * @param built What building the showcases gave; nothing built when not given
  * @param hashes The hashes of the text linked files shown as tabs, by path (see getTabFileHashes()); a tab without one has no hash in its URL
  * @param options Options from the configuration: whether showcases shown as blocks get their Markdown tab
- * @returns The project information, documentation files and linked files, without the code file index; the showcases with a showcase frame, each
- * with its views, its Markdown source, its tabs, and its showcase frame's URL where a view loads it; and the virtual files with no showcase adapter
- * whose views aren't `source` alone
+ * @returns The project information, documentation files and linked files, without the code file index; every showcase, built or not, each with its
+ * views, its Markdown source, its tabs, its checks and issues, its `build` status mark, and its showcase frame's URL where it built and a view loads
+ * it; and the virtual files with no showcase adapter whose views aren't `source` alone
  */
 export function getShownHostInformation(
   host: HostInformation,
-  frames?: ReadonlyMap<string, Pick<ShowcaseFrame, 'folder' | 'page' | 'files'>>,
+  built: ShownBuild = { frames: new Map() },
   hashes: ReadonlyMap<string, string> = new Map(),
   options: ShownHostOptions = {},
 ): ShownHostInformation {
@@ -71,16 +104,30 @@ export function getShownHostInformation(
     if (!sources.has(path)) sources.set(path, getShowcaseSources(host.documentation.find((file) => file.path === path)?.content ?? ''));
     return sources.get(path)!;
   };
-  const showcases = host.showcases.flatMap((showcase) => {
-    const frame = frames?.get(showcase.id);
-    if (!frame) return [];
+  const showcases = host.showcases.map((showcase) => {
+    const frame = built.frames.get(showcase.id);
     const { id, documentation, offset, display, views } = showcase;
     const tabs = getShownTabs(host, showcase, hashes);
     const markdown = getSources(documentation).get(offset) ?? '';
     const markdownTab = options.exposeShowcaseMarkdownSyntax && display === 'block';
     if (markdownTab) tabs.unshift(getMarkdownTab(showcase, markdown));
-    const url = loadsShowcaseFrame(views) ? { url: getShowcaseFrameUrl(frame) } : {};
-    return [{ id, documentation, offset, display, views, markdown, tabs, entryTab: markdownTab ? 1 : 0, ...url }];
+    const checks = built.checks?.get(id) ?? [];
+    const issues = built.shownIssues?.get(id) ?? [];
+    const url = frame && loadsShowcaseFrame(views) ? { url: getShowcaseFrameUrl(frame) } : {};
+    return {
+      id,
+      documentation,
+      offset,
+      display,
+      views,
+      markdown,
+      tabs,
+      entryTab: markdownTab ? 1 : 0,
+      ...url,
+      checks,
+      issues,
+      buildMark: hasBuildMark(showcase, issues),
+    };
   });
   const virtualFiles = host.virtualFiles.flatMap(({ path, documentation, offset, views }) =>
     views && !(views.length === 1 && views[0] === 'source')

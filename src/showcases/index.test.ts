@@ -1,18 +1,18 @@
 /**
- * Tests of the showcase builds' pure parts: showcase frame paths and URLs, the frame script's insertion, build result checks and build error positions
+ * Tests of the showcase builds' pure parts: showcase frame paths and URLs, the frame script's insertion, build result checks, build error positions and
+ * the shown issues
  */
 
 import { describe, expect, it } from 'vitest';
-import { getFrameScript } from '../frame/index.js';
 import type { Showcase, VirtualFile } from '../host/index.js';
 import {
   checkBuildResult,
   getBuildIssue,
   getBuildShowcasesIssues,
-  getErrorFrame,
   getShowcaseFrameFolder,
   getShowcaseFrameHash,
   getShowcaseFrameUrl,
+  getShownIssue,
   insertFrameScript,
   isValidBuildPath,
 } from './index.js';
@@ -78,38 +78,8 @@ describe('showcases', () => {
     });
   });
 
-  describe('Error frames', () => {
-    // Tests the page `serve` shows in place of a showcase that doesn't build, on hand-written build errors.
-
-    const showcase = { id: 'docs/a.md#2', documentation: 'docs/a.md' };
-
-    it("Puts the error frame in the showcase's showcase frame folder, with the frame script", () => {
-      const frame = getErrorFrame(showcase, [{ severity: 'error', message: 'Broke', path: 'docs/a.md', line: 3 }]);
-      expect(frame).toMatchObject({ folder: 'showcases/docs/a.md/2', page: 'index.html', reads: [] });
-      expect(frame.files.map((file) => file.path)).toEqual(['index.html']);
-      expect(frame.files[0].content).toContain(`<head><meta charset="utf-8"><script>${getFrameScript()}</script>`);
-    });
-
-    it('Lists every build error, with its file and line', () => {
-      const content = getErrorFrame(showcase, [
-        { severity: 'error', message: 'First', path: 'docs/a.md', line: 3 },
-        { severity: 'error', message: 'Second', path: 'src/b.js' },
-        { severity: 'error', message: 'Third' },
-      ]).files[0].content as string;
-      expect(content).toContain('<li><div class="message">First</div><div class="location">docs/a.md:3</div></li>');
-      expect(content).toContain('<li><div class="message">Second</div><div class="location">src/b.js</div></li>');
-      expect(content).toContain('<li><div class="message">Third</div></li>');
-    });
-
-    it('Escapes the messages, paths and showcase id', () => {
-      const content = getErrorFrame({ id: '<b>.md#1', documentation: '<b>.md' }, [
-        { severity: 'error', message: `Expected "<" & '>'`, path: '<b>.md', line: 1 },
-      ]).files[0].content as string;
-      expect(content).toContain('Showcase &lt;b&gt;.md#1');
-      expect(content).toContain('Expected &quot;&lt;&quot; &amp; &#39;&gt;&#39;');
-      expect(content).toContain('&lt;b&gt;.md:1');
-      expect(content).not.toContain('<b>');
-    });
+  describe('Run issues', () => {
+    // Tests the one list of a run's issues the command line writes, on hand-written issues.
 
     it("Gets every issue of a run, the run's own first, the warnings last", () => {
       const issue = (message: string) => ({ severity: 'error' as const, message });
@@ -322,6 +292,34 @@ describe('showcases', () => {
       const atEntry = { severity: 'error', message, path: 'docs/guide.md', line: 10 };
       expect(getBuildIssue(showcase, virtualFiles, { severity: 'error', message: 'Broke' })).toEqual(atEntry);
       expect(getBuildIssue(showcase, virtualFiles, { severity: 'error', message: 'Broke', path: '../outside.js', line: 2 })).toEqual(atEntry);
+    });
+  });
+
+  describe('Shown issues', () => {
+    // Tests the issues the showroom shows, as the showcase adapter reported them, on the showcase of the build issues' tests.
+
+    const showcase = { entry: 'docs/guide.showcase-2.js' };
+
+    it("Keeps the showcase adapter's own message, check, path and line", () => {
+      expect(getShownIssue(showcase, { severity: 'error', message: 'Broke', path: 'docs/style.css', line: 3, check: 'type check' })).toEqual({
+        severity: 'error',
+        message: 'Broke',
+        check: 'type check',
+        path: 'docs/style.css',
+        line: 3,
+      });
+      expect(getShownIssue(showcase, { severity: 'warning', message: 'Slow', path: 'src/a.ts' })).toEqual({
+        severity: 'warning',
+        message: 'Slow',
+        path: 'src/a.ts',
+      });
+    });
+
+    it('Drops an invalid line, and places an issue without a valid path at the entry point, with no line', () => {
+      const atEntry = { severity: 'error', message: 'Broke', path: 'docs/guide.showcase-2.js' };
+      expect(getShownIssue(showcase, { severity: 'error', message: 'Broke', path: 'src/a.ts', line: 0 })).toEqual({ ...atEntry, path: 'src/a.ts' });
+      expect(getShownIssue(showcase, { severity: 'error', message: 'Broke' })).toEqual(atEntry);
+      expect(getShownIssue(showcase, { severity: 'error', message: 'Broke', path: '../outside.js', line: 2 })).toEqual(atEntry);
     });
   });
 });

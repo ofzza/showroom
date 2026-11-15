@@ -6,7 +6,7 @@ import { afterEach, describe, it, expect, vi } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-components';
 import type { DocumentationFile, LinkedFile } from '../../host/index.js';
-import type { ShownTab } from '../host/index.js';
+import type { ShownShowcase, ShownTab } from '../host/index.js';
 import {
   CODE_SIDEBAR_MAX_WIDTH,
   CODE_SIDEBAR_MIN_WIDTH,
@@ -22,6 +22,8 @@ import {
   fetchLinkedFile,
   getSidebarView,
   getFetchedTabUrl,
+  getMarkdownMarkers,
+  getTabMarks,
   getShownTabText,
   type LinkedFileContent,
 } from './index.js';
@@ -68,7 +70,7 @@ const _DOCUMENTATION: DocumentationFile[] = [{ path: 'docs/guide.md', kind: 'oth
 describe('app/code-sidebar', () => {
   // Tests the code sidebar's header and body (CodeSidebarView) and the tabs' content by rendering them on the server with given content (effects
   // don't run, and FluentUI's drawer renders through a portal, so CodeSidebar itself renders nothing on the server), what the code sidebar shows with
-  // and without tabs (getSidebarView()), and fetching a linked file with a stubbed `fetch`.
+  // and without tabs (getSidebarView()), the tabs' marks from hand-written issues, and fetching a linked file with a stubbed `fetch`.
 
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -176,6 +178,43 @@ describe('app/code-sidebar', () => {
       undefined,
       undefined,
     ]);
+  });
+
+  describe('Tab marks', () => {
+    // Each tab's line markers and icon, from a showcase's issues; the Markdown tab's, and the markdown view's, after the fence's opening line.
+
+    const tab = (label: string, path: string, source: ShownTab['source']): ShownTab => ({ label, path, language: 'ts', source });
+    const showcase: Pick<ShownShowcase, 'tabs' | 'entryTab' | 'issues'> = {
+      tabs: [
+        tab('Markdown', 'README.md', { kind: 'virtual', content: '```ts showcase\nx\n```' }),
+        tab('TS', 'README.showcase-1.ts', { kind: 'virtual', content: 'x' }),
+        tab('a.ts', 'a.ts', { kind: 'file', url: 'files/a.ts', text: true }),
+        tab('b.ts', 'b.ts', { kind: 'file', url: 'files/b.ts', text: true }),
+      ],
+      entryTab: 1,
+      issues: [
+        { severity: 'error', message: 'Broke', path: 'README.showcase-1.ts', line: 1 },
+        { severity: 'warning', message: 'Slow', path: 'a.ts' },
+      ],
+    };
+
+    it("Marks each tab with its file's issues, and its most serious severity", () => {
+      const [markdown, entry, a, b] = getTabMarks(showcase);
+      expect(entry).toEqual({ markers: new Map([[1, { severity: 'error', messages: ['Broke'] }]]), severity: 'error' });
+      // A warning with no line: an icon, no marked line
+      expect(a).toEqual({ markers: new Map(), severity: 'warning' });
+      expect(b).toEqual({ markers: new Map() });
+      // The Markdown tab shows the entry point's fence: its issues, one line below
+      expect(markdown).toEqual({ markers: new Map([[2, { severity: 'error', messages: ['Broke'] }]]), severity: 'error' });
+      expect(getMarkdownMarkers(showcase)).toEqual(markdown.markers);
+    });
+
+    it("Marks nothing in a linked showcase's Markdown source, its link", () => {
+      const linked = { ...showcase, tabs: [showcase.tabs[0], tab('demo.ts', 'demo.ts', { kind: 'file', url: 'files/demo.ts', text: true })] };
+      const issues = [{ severity: 'error' as const, message: 'Broke', path: 'demo.ts', line: 1 }];
+      expect(getMarkdownMarkers({ ...linked, issues }).size).toBe(0);
+      expect(getTabMarks({ ...linked, issues })[0]).toEqual({ markers: new Map() });
+    });
   });
 
   describe('getSidebarView', () => {

@@ -79,7 +79,7 @@ describe('showcases (integration)', () => {
   });
 
   it("Reports every build issue by showcase, where it is in the documentation, with its check, and keeps the files beside a check's errors", async () => {
-    const { frames, errors, warnings, checks, issues } = await _build('showcase-build-errors');
+    const { frames, errors, warnings, shownIssues, checks, issues } = await _build('showcase-build-errors');
     expect(issues).toEqual([]);
     // A check's errors leave its files usable (D508, .workflow/SPEC-S12-showcase-views.md)
     expect([...frames.keys()]).toEqual(['README.md#4', 'README.md#5']);
@@ -126,6 +126,36 @@ describe('showcases (integration)', () => {
             'Showcase README.md#6 (README.md:36): Showcase adapter "checked" returned an invalid build result: an issue names the check "lint", which "checks" doesn\'t list',
           path: 'README.md',
           line: 36,
+        },
+      ],
+    });
+    // The issues the showroom shows: the showcase adapter's own messages, each in its own file, and an issue placed in no valid file at the entry
+    // point, with no line (D584, .workflow/PLAN-P15.5-status-marks.md)
+    expect(Object.fromEntries(shownIssues)).toEqual({
+      'README.md#1': [
+        { severity: 'error', message: 'Unexpected token', path: 'README.showcase-1.js', line: 2 },
+        { severity: 'error', message: 'Something went wrong', path: 'README.showcase-1.js' },
+        { severity: 'error', message: 'Not here', path: 'README.showcase-1.js' },
+        { severity: 'error', message: 'Widget broke', path: 'src/widget.js', line: 2 },
+      ],
+      'README.md#2': [{ severity: 'error', message: 'Showcase adapter "throwing" failed to build the showcase: build broke', path: 'README.showcase-2.js' }],
+      'README.md#3': [
+        {
+          severity: 'error',
+          message: 'Showcase adapter "invalid" returned an invalid build result: the page "missing.html" is not among the files',
+          path: 'README.showcase-3.js',
+        },
+      ],
+      'README.md#4': [],
+      'README.md#5': [
+        { severity: 'error', message: 'Unused variable', path: 'README.showcase-5.js', line: 1, check: 'lint' },
+        { severity: 'warning', message: 'Long line', path: 'README.showcase-5.js', check: 'lint' },
+      ],
+      'README.md#6': [
+        {
+          severity: 'error',
+          message: 'Showcase adapter "checked" returned an invalid build result: an issue names the check "lint", which "checks" doesn\'t list',
+          path: 'README.showcase-6.js',
         },
       ],
     });

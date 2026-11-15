@@ -263,6 +263,11 @@ describe('frame', () => {
       expect(console([null])).toBe(false);
       expect(console('x')).toBe(false);
       expect(console([], -1)).toBe(false);
+      // The dropped warnings and errors, when given, are counts too
+      const base = { source: FRAME_MESSAGE_SOURCE, type: 'console', lines: [], dropped: 3 };
+      expect(isFrameMessage({ ...base, droppedWarnings: 1, droppedErrors: 2 })).toBe(true);
+      expect(isFrameMessage({ ...base, droppedWarnings: -1 })).toBe(false);
+      expect(isFrameMessage({ ...base, droppedErrors: 0.5 })).toBe(false);
       expect(console([], 1.5)).toBe(false);
       expect(isFrameMessage({ source: FRAME_MESSAGE_SOURCE, type: 'console', lines: [] })).toBe(false);
     });
@@ -452,6 +457,19 @@ describe('frame', () => {
       frame.console.log('next');
       vi.advanceTimersByTime(CONSOLE_FLUSH_MS);
       expect(_batches(frame)[1]).toEqual({ lines: [{ level: 'log', text: 'next' }], dropped: 0 });
+    });
+
+    it('Counts the warnings and errors among the lines dropped', () => {
+      // The runtime status mark counts them (D592, .workflow/PLAN-P15.5-status-marks.md)
+      const frame = _createFrame();
+      _run(frame);
+      frame.console.warn('w');
+      frame.console.error('e1');
+      frame.console.error('e2');
+      for (let line = 1; line <= CONSOLE_MAX_LINES; line++) frame.console.log(line);
+      vi.advanceTimersByTime(CONSOLE_FLUSH_MS);
+      const [message] = _messages(frame).filter((candidate) => candidate.type === 'console');
+      expect(message).toMatchObject({ dropped: 3, droppedWarnings: 1, droppedErrors: 2 });
     });
 
     it('Cuts a line too long, saying how many characters were left out', () => {

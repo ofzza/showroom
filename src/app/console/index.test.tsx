@@ -24,6 +24,7 @@ import {
   getCounterText,
   getDroppedText,
   getFadingLines,
+  getFirstIssueLine,
   getNextFadeTime,
   isScrolledToBottom,
   NO_OUTPUT_TEXT,
@@ -82,6 +83,9 @@ const _SHOWCASE: LoadedShowcase = {
   views: ['demo'],
   markdown: '',
   entryTab: 0,
+  checks: [],
+  issues: [],
+  buildMark: true,
   tabs: [{ label: 'HTML', path: 'README.showcase-1.html', language: 'html', source: { kind: 'virtual', content: '<p>Hi</p>' } }],
   url: 'showcases/README.md/1/index.html?hash=00000001',
 };
@@ -140,6 +144,37 @@ describe('app/console', () => {
     it('Starts afresh on every load', () => {
       const state = _apply([_lines(['a', { level: 'error', text: 'b' }]), { type: 'open' }, { type: 'start' }]);
       expect(state).toEqual(INITIAL_CONSOLE_STATE);
+    });
+
+    it("Counts a load's warnings and errors, dropped ones included, apart from the unseen errors", () => {
+      // The runtime status mark's numbers (D592, .workflow/PLAN-P15.5-status-marks.md): opening the console panel clears only the unseen errors
+      const lines: ConsoleLine[] = [
+        { level: 'warn', text: 'w' },
+        { level: 'error', text: 'e' },
+        { level: 'error', text: 'Uncaught', uncaught: true },
+      ];
+      let state = _apply([{ type: 'lines', lines, dropped: 5, droppedWarnings: 2, droppedErrors: 1, now: _T0 }]);
+      expect(state).toMatchObject({ warningCount: 3, errorCount: 3, errors: 0, open: true });
+      // Lines the console panel drops past CONSOLE_MAX_LINES stay counted
+      state = _apply([_lines(Array.from({ length: CONSOLE_MAX_LINES }, (_, index) => String(index)))], state);
+      expect(state.lines.some((entry) => entry.level !== 'log')).toBe(false);
+      expect(state).toMatchObject({ warningCount: 3, errorCount: 3 });
+    });
+
+    it('Is pending until the page is ready, and again after every load', () => {
+      let state = _apply([_lines(['a'])]);
+      expect(state.ready).toBe(false);
+      state = updateConsole(state, { type: 'ready' });
+      expect(state.ready).toBe(true);
+      expect(updateConsole(state, { type: 'ready' })).toBe(state);
+      state = _apply([_lines([{ level: 'warn', text: 'w' }]), { type: 'start' }], state);
+      expect(state).toMatchObject({ ready: false, warningCount: 0, errorCount: 0 });
+    });
+
+    it('Finds the first kept error line, else the first kept warning line', () => {
+      expect(getFirstIssueLine(_apply([_lines(['a', { level: 'warn', text: 'w' }, { level: 'error', text: 'e' }])]))).toBe(2);
+      expect(getFirstIssueLine(_apply([_lines(['a', { level: 'warn', text: 'w' }])]))).toBe(1);
+      expect(getFirstIssueLine(_apply([_lines(['a'])]))).toBeUndefined();
     });
 
     it('Changes nothing when opened while open, or closed while closed', () => {

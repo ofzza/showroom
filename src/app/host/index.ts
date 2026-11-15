@@ -77,6 +77,33 @@ export interface ShownTab {
 }
 
 /**
+ * Represents an issue of a shown showcase, of its build or of one of its checks, as its showcase adapter reported it
+ */
+export interface ShownIssue {
+  /**
+   * How serious the issue is: an error, or a warning, which fails nothing
+   */
+  severity: 'error' | 'warning';
+  /**
+   * The showcase adapter's own message
+   */
+  message: string;
+  /**
+   * Name of the check it belongs to (e.g. `type check`); none for an issue of the build itself
+   */
+  check?: string;
+  /**
+   * POSIX-style path of the file it is in, relative to the host repository's root (a virtual file's as if on disk); the showcase's entry point for an
+   * issue the showcase adapter placed in no file
+   */
+  path: string;
+  /**
+   * Line it is at in the file, from 1; none when it names no line
+   */
+  line?: number;
+}
+
+/**
  * Represents a shown showcase: where the showroom places a showcase's showcase frame, and the URL it loads it by
  */
 export interface ShownShowcase {
@@ -114,18 +141,30 @@ export interface ShownShowcase {
   entryTab: number;
   /**
    * URL of the showcase frame's page, relative to the showroom's page, with its content's hash as its query (`?hash=<hash>`), so a changed showcase
-   * frame gets a new URL; undefined when none of its views loads it (neither `demo` nor `console`)
+   * frame gets a new URL; undefined when none of its views loads it (neither `demo` nor `console`), or when it doesn't build
    */
   url?: string;
+  /**
+   * The checks its build ran to completion (e.g. `type check`), in the order its showcase adapter listed them
+   */
+  checks: string[];
+  /**
+   * Its issues, of its build and its checks, errors and warnings, in the order its showcase adapter reported them
+   */
+  issues: ShownIssue[];
+  /**
+   * True if it shows a `build` status mark: every showcase does, but an `html` one without issues of its build, as nothing builds it
+   */
+  buildMark: boolean;
 }
 
 /**
- * Represents a shown showcase whose views load its showcase frame, so it has its URL
+ * Represents a shown showcase whose views load its showcase frame, and that builds, so it has its URL
  */
 export type LoadedShowcase = ShownShowcase & { url: string };
 
 /**
- * Checks if a shown showcase's views load its showcase frame (it then has its URL)
+ * Checks if a shown showcase's views load its showcase frame, and it builds (it then has its URL)
  * @param showcase The shown showcase
  * @returns True if it has its showcase frame's URL
  */
@@ -162,12 +201,11 @@ export interface ShownVirtualFile {
 
 /**
  * Represents the shown host information: the host information's project information, documentation files and linked files, without the code file
- * index, which the showroom doesn't show; and the showcases with a showcase frame
+ * index, which the showroom doesn't show; and every showcase, with its checks and issues
  */
 export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentation' | 'linkedFiles'> & {
   /**
-   * The showcases with a showcase frame, sorted by documentation file and offset; in `serve`, a showcase that doesn't build has the showcase frame
-   * showing its build errors
+   * Every showcase, built or not, sorted by documentation file and offset
    */
   showcases: ShownShowcase[];
   /**
@@ -177,17 +215,27 @@ export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentat
 };
 
 /**
- * Applies the new URLs of showcase frames and of their tabs to the shown showcases, by id: what `serve` sends when only URLs changed
- * @param showcases The shown showcases
- * @param next The shown showcases with their new URLs, every one of them
- * @returns The shown showcases with the new URLs (a showcase whose URLs all stayed the same is kept as it was); the same list if no URL changed
+ * Represents what `serve` updates on a shown showcase without reloading the page: its showcase frame's URL, its tabs' URLs, its checks and issues,
+ * and its `build` status mark
  */
-export function applyShowcaseUrls(showcases: ShownShowcase[], next: readonly Pick<ShownShowcase, 'id' | 'url' | 'tabs'>[]): ShownShowcase[] {
+export type ShownShowcaseUpdate = Pick<ShownShowcase, 'id' | 'url' | 'tabs' | 'checks' | 'issues' | 'buildMark'>;
+
+/**
+ * Applies the updates `serve` sends to the shown showcases, by id: the new URLs of showcase frames and of their tabs, the checks and issues, and the
+ * `build` status mark
+ * @param showcases The shown showcases
+ * @param next The shown showcases with their updates, every one of them
+ * @returns The shown showcases updated (a showcase whose update changes nothing is kept as it was); the same list if nothing changed
+ */
+export function applyShowcaseUpdates(showcases: ShownShowcase[], next: readonly ShownShowcaseUpdate[]): ShownShowcase[] {
   const updates = new Map(next.map((update) => [update.id, update]));
   const applied = showcases.map((showcase) => {
     const update = updates.get(showcase.id);
-    if (!update || (update.url === showcase.url && JSON.stringify(update.tabs) === JSON.stringify(showcase.tabs))) return showcase;
-    return { ...showcase, url: update.url, tabs: update.tabs };
+    if (!update) return showcase;
+    const { url, tabs, checks, issues, buildMark } = update;
+    const changed = { url, tabs, checks, issues, buildMark };
+    const current = { url: showcase.url, tabs: showcase.tabs, checks: showcase.checks, issues: showcase.issues, buildMark: showcase.buildMark };
+    return JSON.stringify(changed) === JSON.stringify(current) ? showcase : { ...showcase, ...changed };
   });
   return applied.some((showcase, index) => showcase !== showcases[index]) ? applied : showcases;
 }

@@ -32,6 +32,9 @@ function _showcases(content: string): ShownShowcase[] {
     views: ['demo'],
     markdown: '',
     entryTab: 0,
+    checks: [],
+    issues: [],
+    buildMark: true,
     tabs: [{ label: 'HTML', path: entry, language: 'html', source: { kind: 'virtual', content: `code of ${id.slice(id.lastIndexOf('#') + 1)}` } }],
     url: `showcases/${id.replace('#', '/')}/index.html?hash=0123abcd`,
   }));
@@ -44,7 +47,8 @@ function _showcases(content: string): ShownShowcase[] {
  * @param theme Name of the theme
  * @param virtualFiles Shown virtual files; none by default
  * @returns The rendered HTML, without the empty comments React puts between adjacent text nodes, and with every showcase frame (its box, with its
- * iframe and nothing logged) replaced by `[<n>]`, `<n>` being its showcase's position
+ * iframe and nothing logged; a linked showcase shown inline's with its header bar, in their box) replaced by `[<n>]`, `<n>` being its showcase's
+ * position
  */
 function _render(content: string, showcases = _showcases(content), theme: ThemeName = 'light', virtualFiles: ShownVirtualFile[] = []): string {
   const file: DocumentationFile = { path: _PATH, kind: 'other', extension: '.md', content };
@@ -58,7 +62,8 @@ function _render(content: string, showcases = _showcases(content), theme: ThemeN
     </SSRProvider>,
   )
     .replaceAll('<!-- -->', '')
-    .replace(/<div class="[^"]*"><iframe [^>]*src="showcases\/docs\/guide\.md\/(\d+)\/index\.html[^>]*><\/iframe><\/div>/g, '[$1]');
+    .replace(/<div class="[^"]*"><iframe [^>]*src="showcases\/docs\/guide\.md\/(\d+)\/index\.html[^>]*><\/iframe><\/div>/g, '[$1]')
+    .replace(/<div [^>]*data-inline-showcase=""><div class="[^"]*">.*?<\/div>\[(\d+)\]<\/div>/gs, '[$1]');
 }
 
 describe('app/showcases', () => {
@@ -203,6 +208,9 @@ describe('app/showcases', () => {
       views: ['demo'],
       markdown: '',
       entryTab: 0,
+      checks: [],
+      issues: [],
+      buildMark: true,
       tabs: [],
       url: 'showcases/docs/my%20notes.md/2/index.html?hash=0123abcd',
     };

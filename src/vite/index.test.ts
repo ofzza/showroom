@@ -26,6 +26,7 @@ import {
   getLinkedFileContentType,
   getReactAliases,
   getShownHostInformation,
+  hasBuildMark,
   loadsShowcaseFrame,
   MARKDOWN_TAB_LABEL,
   getShownTabs,
@@ -153,18 +154,24 @@ function _alias(aliases: Alias[], id: string): string | undefined {
 describe('vite', () => {
   // Tests the Vite configuration and its plugin by calling them directly, without starting Vite.
 
-  it('Gets the shown host information, without the code file index, nor showcases without showcase frames', () => {
-    expect(getShownHostInformation(_HOST)).toEqual({
+  it('Gets the shown host information, without the code file index, with every showcase, built or not', () => {
+    const shown = getShownHostInformation(_HOST);
+    expect({ ...shown, showcases: [] }).toEqual({
       project: _HOST.project,
       documentation: _HOST.documentation,
       showcases: [],
       virtualFiles: [],
       linkedFiles: _HOST.linkedFiles,
     });
+    // Nothing built: no URLs, checks or issues (D584)
+    expect(shown.showcases.map(({ id, url, checks, issues }) => ({ id, url, checks, issues }))).toEqual([
+      { id: 'README.md#1', url: undefined, checks: [], issues: [] },
+      { id: 'my docs/a #1.md#2', url: undefined, checks: [], issues: [] },
+    ]);
   });
 
   it('Gets the shown showcases with their showcase frames, by URL-encoded relative URLs', () => {
-    expect(getShownHostInformation(_HOST, _FRAMES).showcases).toEqual([
+    expect(getShownHostInformation(_HOST, { frames: _FRAMES }).showcases).toEqual([
       {
         id: 'README.md#1',
         documentation: 'README.md',
@@ -176,6 +183,10 @@ describe('vite', () => {
         entryTab: 0,
         tabs: [{ label: 'HTML', path: 'README.showcase-1.html', language: 'html', source: { kind: 'virtual', content: '<p>1</p>' } }],
         url: `showcases/README.md/1/index.html?hash=${_hash('README.md#1')}`,
+        checks: [],
+        issues: [],
+        // An html showcase without build issues: nothing builds it (D585)
+        buildMark: false,
       },
       {
         id: 'my docs/a #1.md#2',
@@ -188,9 +199,40 @@ describe('vite', () => {
         // Not among the linked files (check left it out, with a warning)
         tabs: [{ label: '../demo.html', path: 'demo.html', language: 'html', source: { kind: 'missing' } }],
         url: `showcases/my%20docs/a%20%231.md/2/pages/index.html?hash=${_hash('my docs/a #1.md#2')}`,
+        checks: [],
+        issues: [],
+        buildMark: true,
       },
     ]);
-    expect(getShownHostInformation(_HOST, new Map([['README.md#1', _FRAMES.get('README.md#1')!]])).showcases.map(({ id }) => id)).toEqual(['README.md#1']);
+    // A showcase that doesn't build is shipped without a URL (D584)
+    const partial = getShownHostInformation(_HOST, { frames: new Map([['README.md#1', _FRAMES.get('README.md#1')!]]) }).showcases;
+    expect(partial.map(({ id, url }) => [id, url !== undefined])).toEqual([
+      ['README.md#1', true],
+      ['my docs/a #1.md#2', false],
+    ]);
+  });
+
+  it('Gives each shown showcase its checks and issues, by id', () => {
+    const error = { severity: 'error' as const, message: 'Broke', check: 'type check', path: 'src/a.ts', line: 2 };
+    const warning = { severity: 'warning' as const, message: 'Slow', path: 'demo.html' };
+    const [first, second] = getShownHostInformation(_HOST, {
+      frames: _FRAMES,
+      checks: new Map([['my docs/a #1.md#2', ['type check']]]),
+      shownIssues: new Map([
+        ['README.md#1', [warning]],
+        ['my docs/a #1.md#2', [error]],
+      ]),
+    }).showcases;
+    expect(first).toMatchObject({ checks: [], issues: [warning] });
+    expect(second).toMatchObject({ checks: ['type check'], issues: [error] });
+  });
+
+  it('Shows a build status mark on every showcase but an html one without issues of its build', () => {
+    const issue = (check?: string) => ({ severity: 'error' as const, message: 'Broke', path: 'a.html', ...(check ? { check } : {}) });
+    expect(hasBuildMark({ adapter: 'ts' }, [])).toBe(true);
+    expect(hasBuildMark({ adapter: 'html' }, [])).toBe(false);
+    expect(hasBuildMark({ adapter: 'html' }, [issue('lint')])).toBe(false);
+    expect(hasBuildMark({ adapter: 'html' }, [issue()])).toBe(true);
   });
 
   it("Gives each shown showcase its views and Markdown source, and its showcase frame's URL only where a view loads it", () => {
@@ -203,7 +245,7 @@ describe('vite', () => {
         { ..._HOST.showcases[1], documentation: 'README.md', display: 'block', offset: content.indexOf('[demo]'), views: ['console'] },
       ],
     };
-    const [source, console] = getShownHostInformation(host, _FRAMES).showcases;
+    const [source, console] = getShownHostInformation(host, { frames: _FRAMES }).showcases;
     expect(source).toMatchObject({ views: ['source'], markdown: '```html showcase view=source\n<p>1</p>\n```' });
     // Its page is never loaded, so it has no URL (D574)
     expect(source).not.toHaveProperty('url');
@@ -272,9 +314,9 @@ describe('vite', () => {
       ['my docs/a #1.md#2', _FRAMES.get('my docs/a #1.md#2')!],
     ]);
     // None by default (D484)
-    expect(getShownHostInformation(host, frames).showcases[0].tabs.map(({ label }) => label)).toEqual(['HTML', 'a.css']);
-    expect(getShownHostInformation(host, frames, new Map(), { exposeShowcaseMarkdownSyntax: false }).showcases[0].tabs).toHaveLength(2);
-    const [block, inline] = getShownHostInformation(host, frames, new Map(), { exposeShowcaseMarkdownSyntax: true }).showcases;
+    expect(getShownHostInformation(host, { frames }).showcases[0].tabs.map(({ label }) => label)).toEqual(['HTML', 'a.css']);
+    expect(getShownHostInformation(host, { frames }, new Map(), { exposeShowcaseMarkdownSyntax: false }).showcases[0].tabs).toHaveLength(2);
+    const [block, inline] = getShownHostInformation(host, { frames }, new Map(), { exposeShowcaseMarkdownSyntax: true }).showcases;
     expect(block.tabs.map(({ label }) => label)).toEqual([MARKDOWN_TAB_LABEL, 'HTML', 'a.css']);
     expect(block.tabs[0]).toEqual({
       label: 'Markdown',

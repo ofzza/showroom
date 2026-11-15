@@ -8,7 +8,7 @@
 import { useCallback, useContext, useEffect, useRef, useState, type Dispatch, type ReactNode } from 'react';
 import { makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
 import { createThemeMessage, getThemedFrameUrl, isFrameMessage } from '../../frame/index.js';
-import { HighlightedCode, SegmentedCode, type CodeSegment } from '../code/index.js';
+import { HighlightedCode, SegmentedCode, type CodeSegment, type LineMarkers } from '../code/index.js';
 import { getFetchedTabUrl, ShownTabView, useLinkedFileContent } from '../code-sidebar/index.js';
 import { ConsolePanel, getConsoleMinHeight, useConsole, type ConsoleAction, type ConsoleState } from '../console/index.js';
 import type { DocumentationFile } from '../../host/index.js';
@@ -242,18 +242,31 @@ export interface ShowcaseFrameProps {
    * height, out of reach of the pointer, the keyboard and screen readers
    */
   hidden?: boolean;
+  /**
+   * Called with each height the showcase frame reports (its block keeps the latest, for its "Not built" placeholder)
+   */
+  onResize?: (height: number) => void;
 }
 
 /**
  * Renders a showcase frame: its iframe, the width of the text, as high as the showcase frame reports, in the theme of the ThemeContext, with its
  * console panel over it (unless left out), in a box at least as high as the console panel needs; or hidden. Its URL is set with the theme of the
  * moment: at mount, and again when the showcase's URL changes (a rebuilt showcase frame in `serve`), keeping its height until the showcase frame
- * reports its new one; later themes are only posted to it, so a theme change never reloads it. Its console is cleared on every load (`start`), and
- * fed its `console` messages.
+ * reports its new one; later themes are only posted to it, so a theme change never reloads it. Its console is cleared on every load (`start`), fed
+ * its `console` messages, and told when it is `ready`.
  * @param props Properties of the component
  * @returns The showcase frame
  */
-export function ShowcaseFrame({ showcase, block = false, minHeight, initialConsole, console, overlay = true, hidden = false }: ShowcaseFrameProps): ReactNode {
+export function ShowcaseFrame({
+  showcase,
+  block = false,
+  minHeight,
+  initialConsole,
+  console,
+  overlay = true,
+  hidden = false,
+  onResize,
+}: ShowcaseFrameProps): ReactNode {
   const styles = _useStyles();
   const theme = useContext(ThemeContext);
   const frame = useRef<HTMLIFrameElement>(null);
@@ -266,6 +279,10 @@ export function ShowcaseFrame({ showcase, block = false, minHeight, initialConso
   const [height, setHeight] = useState<number>();
   const own = useConsole(initialConsole);
   const [consoleState, dispatchConsole] = console ?? own;
+  const latestOnResize = useRef(onResize);
+  useEffect(() => {
+    latestOnResize.current = onResize;
+  }, [onResize]);
 
   // Tell the showcase frame the theme on every change, and whenever it is (re)loaded or ready
   const latestTheme = useRef(theme);
@@ -281,9 +298,16 @@ export function ShowcaseFrame({ showcase, block = false, minHeight, initialConso
       if (!frame.current || event.source !== frame.current.contentWindow || !isFrameMessage(event.data)) return;
       const message = event.data;
       if (message.type === 'start') dispatchConsole({ type: 'start' });
-      else if (message.type === 'console') dispatchConsole({ type: 'lines', lines: message.lines, dropped: message.dropped, now: Date.now() });
-      else if (message.type === 'ready') sendTheme();
-      else setHeight(message.height);
+      else if (message.type === 'console') {
+        const { lines, dropped, droppedWarnings, droppedErrors } = message;
+        dispatchConsole({ type: 'lines', lines, dropped, droppedWarnings, droppedErrors, now: Date.now() });
+      } else if (message.type === 'ready') {
+        dispatchConsole({ type: 'ready' });
+        sendTheme();
+      } else {
+        setHeight(message.height);
+        latestOnResize.current?.(message.height);
+      }
     };
     window.addEventListener('message', listener);
     return () => window.removeEventListener('message', listener);
@@ -376,23 +400,23 @@ export function getFenceInside(markdown: string): CodeSegment {
 
 /**
  * Renders a `markdown` view: a showcase's Markdown source as one code block, a fence's lines highlighted as Markdown and its inside as its language
- * @param props Properties of the component: the Markdown source, and whether it is in a block (see CodeBlockProps' `view`); a virtual file with no
- * showcase adapter shows its views outside a block
+ * @param props Properties of the component: the Markdown source, whether it is in a block (see CodeBlockProps' `view`; a virtual file with no
+ * showcase adapter shows its views outside a block), and its lines' markers
  * @returns The code block
  */
-export function MarkdownView({ markdown, block = true }: { markdown: string; block?: boolean }): ReactNode {
-  return <SegmentedCode segments={splitShowcaseMarkdown(markdown)} view={block} />;
+export function MarkdownView({ markdown, block = true, markers }: { markdown: string; block?: boolean; markers?: LineMarkers }): ReactNode {
+  return <SegmentedCode segments={splitShowcaseMarkdown(markdown)} view={block} markers={markers} />;
 }
 
 /**
  * Renders a showcase's `source` view: its entry point's tab, highlighted as a code block (a linked entry point fetched once shown), or why it can't
  * be shown
- * @param props Properties of the component: the entry point's tab, and the shown documentation files
+ * @param props Properties of the component: the entry point's tab, the shown documentation files, and its lines' markers
  * @returns The code block, or the message
  */
-export function SourceView({ tab, documentation }: { tab: ShownTab; documentation: DocumentationFile[] }): ReactNode {
+export function SourceView({ tab, documentation, markers }: { tab: ShownTab; documentation: DocumentationFile[]; markers?: LineMarkers }): ReactNode {
   const content = useLinkedFileContent(getFetchedTabUrl(tab));
-  return <ShownTabView tab={tab} documentation={documentation} content={content} view />;
+  return <ShownTabView tab={tab} documentation={documentation} content={content} view markers={markers} />;
 }
 
 /**

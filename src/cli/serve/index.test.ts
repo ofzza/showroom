@@ -8,15 +8,14 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CheckIssue, CheckResult } from '../check/index.js';
 import type { HostInformation, LinkedFile } from '../../host/index.js';
-import { getErrorFrame, getShowcaseFrameFolder, type ShowcaseFrame } from '../../showcases/index.js';
+import { getShowcaseFrameFolder, type ShowcaseFrame } from '../../showcases/index.js';
 import { getShownHostInformation } from '../../vite/index.js';
-import type { ShownHostInformation } from '../../app/host/index.js';
+import type { ShownHostInformation, ShownIssue } from '../../app/host/index.js';
 import {
   ISSUES_EVENT,
   SHOWCASES_EVENT,
   createHostWatcher,
   createIgnored,
-  getServedFrames,
   getWatchTargets,
   getShownChange,
   runBuild,
@@ -68,20 +67,29 @@ function _host(content: string, code: string[] = [], showcases = 0): HostInforma
  * @param page Text of every showcase frame's page
  * @param failing Ids of the showcases that don't build
  * @param watched The files to watch it gives
+ * @param typeErrors Ids of the showcases that build, but whose type check fails
  * @returns The fake build
  */
-function _build(page: string, failing: string[] = [], watched: string[] = []): HostWatcherOptions['build'] {
+function _build(page: string, failing: string[] = [], watched: string[] = [], typeErrors: string[] = []): HostWatcherOptions['build'] {
   return async (host) => {
     const frames = new Map<string, ShowcaseFrame>();
     const errors = new Map<string, CheckIssue[]>();
+    const checks = new Map<string, string[]>();
+    const shownIssues = new Map<string, ShownIssue[]>();
     for (const showcase of host.showcases) {
-      if (failing.includes(showcase.id)) {
-        errors.set(showcase.id, [{ severity: 'error', message: `${showcase.id} broke`, path: 'README.md', line: showcase.line }]);
-      } else {
+      const typeError = typeErrors.includes(showcase.id);
+      checks.set(showcase.id, typeError ? ['type check'] : []);
+      shownIssues.set(showcase.id, []);
+      if (failing.includes(showcase.id) || typeError) {
+        const check = typeError ? { check: 'type check' } : {};
+        errors.set(showcase.id, [{ severity: 'error', message: `${showcase.id} broke`, path: 'README.md', line: showcase.line, ...check }]);
+        shownIssues.set(showcase.id, [{ severity: 'error', message: 'broke', path: showcase.entry, ...check }]);
+      }
+      if (!failing.includes(showcase.id)) {
         frames.set(showcase.id, { folder: getShowcaseFrameFolder(showcase), page: 'index.html', files: [{ path: 'index.html', content: page }], reads: [] });
       }
     }
-    return { frames, errors, warnings: [], checks: new Map(), issues: [], watched };
+    return { frames, errors, warnings: [], shownIssues, checks, issues: [], watched };
   };
 }
 
@@ -93,7 +101,13 @@ function _build(page: string, failing: string[] = [], watched: string[] = []): H
  */
 async function _initial(host: HostInformation, build: HostWatcherOptions['build'] = _build('first')): Promise<ServedState> {
   const built = await runBuild(host, build, new Map());
-  return { host: getShownHostInformation(host, built.frames), frames: built.frames, issues: built.issues, watched: built.watched };
+  return {
+    host: getShownHostInformation(host, { frames: built.frames, ...built.shown }),
+    frames: built.frames,
+    shown: built.shown,
+    issues: built.issues,
+    watched: built.watched,
+  };
 }
 
 /**
@@ -118,7 +132,7 @@ function _watcher(initial: ServedState, results: CheckResult[], options: Partial
 }
 
 describe('cli/serve', () => {
-  // Tests serve's parts without starting a server (see AGENTS.md › Testing): the watcher's `ignored` function, the showcase frames it serves, and
+  // Tests serve's parts without starting a server (see AGENTS.md › Testing): the watcher's `ignored` function, what a build serves, and
   // the decisions of the host watcher (a full reload, or custom events), with a fake check, a fake build and a fake reload target. serve() itself is
   // only run here where its first check fails, before it starts anything; the `serve` tier runs it.
 
@@ -197,33 +211,26 @@ describe('cli/serve', () => {
     });
   });
 
-  describe('getServedFrames', () => {
-    // The showcase frames serve hands out after a build: each showcase's own, or the one showing its build errors.
+  describe('runBuild', () => {
+    // The showcase frames serve hands out after a build, each showcase's checks and issues, and the files to watch.
 
-    it("Serves each showcase's showcase frame, or its error frame, in showcase order", async () => {
+    it("Serves the showcase frames that built, a type check's errors or not, with each showcase's checks and issues", async () => {
+      // A showcase whose check fails is served with its files; one that doesn't build has no showcase frame (D584)
       const host = _host('x', [], 3);
-      const frames = getServedFrames(host, await _build('ok', ['README.md#2'])(host));
-      expect([...frames.keys()]).toEqual(['README.md#1', 'README.md#2', 'README.md#3']);
-      expect(frames.get('README.md#1')!.files[0].content).toBe('ok');
-      expect(frames.get('README.md#2')).toEqual(
-        getErrorFrame(host.showcases[1], [{ severity: 'error', message: 'README.md#2 broke', path: 'README.md', line: 2 }]),
-      );
+      const built = await runBuild(host, _build('ok', ['README.md#2'], [], ['README.md#3']), new Map());
+      expect([...built.frames.keys()]).toEqual(['README.md#1', 'README.md#3']);
+      expect(built.frames.get('README.md#3')!.files[0].content).toBe('ok');
+      expect(Object.fromEntries(built.shown.checks!)).toEqual({ 'README.md#1': [], 'README.md#2': [], 'README.md#3': ['type check'] });
+      expect(built.shown.shownIssues!.get('README.md#3')).toEqual([{ severity: 'error', message: 'broke', path: 'a.html', check: 'type check' }]);
+      expect(built.issues.map(({ message }) => message)).toEqual(['README.md#2 broke', 'README.md#3 broke']);
     });
 
-    it("Serves the error frame of a showcase with errors, even when it has files too (a type check's errors)", async () => {
-      // See PLAN-P15.2 D558: until P15.5, serve shows its error frame on any error
-      const host = _host('x', [], 1);
-      const built = await _build('ok')(host);
-      const errors = [{ severity: 'error' as const, message: 'type check: broke', check: 'type check' }];
-      const frames = getServedFrames(host, { ...built, errors: new Map([['README.md#1', errors]]) });
-      expect(built.frames.has('README.md#1')).toBe(true);
-      expect(frames.get('README.md#1')).toEqual(getErrorFrame(host.showcases[0], errors));
-    });
-
-    it('Keeps the last showcase frames and files to watch, with an issue, when the build throws', async () => {
+    it('Keeps the last showcase frames, checks, issues and files to watch, with an issue, when the build throws', async () => {
       const previous = new Map([['README.md#1', { folder: 'showcases/README.md/1', page: 'index.html', files: [], reads: [] }]]);
-      const built = await runBuild(_host('x', [], 1), () => Promise.reject(new Error('no configuration')), previous, ['dist/index.js']);
+      const shown = { checks: new Map([['README.md#1', ['type check']]]) };
+      const built = await runBuild(_host('x', [], 1), () => Promise.reject(new Error('no configuration')), previous, ['dist/index.js'], shown);
       expect(built.frames).toBe(previous);
+      expect(built.shown).toBe(shown);
       expect(built.watched).toEqual(['dist/index.js']);
       expect(built.issues).toEqual([{ severity: 'error', message: 'The showcases failed to build: no configuration' }]);
     });
@@ -237,7 +244,8 @@ describe('cli/serve', () => {
   });
 
   describe('getShownChange', () => {
-    // What a change of the shown host information needs: nothing, the changed showcase frames and tabs, or a full reload.
+    // What a change of the shown host information needs: nothing, the showcases' updates (their showcase frames, tabs, checks and issues), or a full
+    // reload.
 
     const shown = (content: string, urls: string[], linkedFiles: LinkedFile[] = [], tabUrl = 'files/a.css?hash=00000001'): ShownHostInformation => ({
       project: { name: 'p' },
@@ -250,6 +258,9 @@ describe('cli/serve', () => {
         views: ['demo' as const],
         markdown: '',
         entryTab: 0,
+        checks: [],
+        issues: [],
+        buildMark: true,
         tabs: [{ label: 'a.css', path: 'a.css', language: 'css', source: { kind: 'file' as const, url: tabUrl, text: true } }],
         url,
       })),
@@ -269,6 +280,16 @@ describe('cli/serve', () => {
       // A changed included file that no showcase frame uses changes no showcase frame's hash (D406)
       expect(getShownChange(shown('a', ['u1']), shown('a', ['u1'], [], 'files/a.css?hash=00000002'))).toBe('showcases');
       expect(getShownChange(shown('a', ['u1']), shown('a', ['u1'], [], 'files/b.css?hash=00000001'))).toBe('reload');
+    });
+
+    it('Needs only the showcases when only their checks, issues or build status mark changed', () => {
+      // A showcase that stops building, or builds again, changes only its URL, its build status mark and its issues (D586)
+      const next = shown('a', ['u1']);
+      const issue = { severity: 'error' as const, message: 'broke', path: 'a.html' };
+      const update = (change: object) => ({ ...next, showcases: [{ ...next.showcases[0], ...change }] });
+      expect(getShownChange(shown('a', ['u1']), update({ checks: ['type check'] }))).toBe('showcases');
+      expect(getShownChange(shown('a', ['u1']), update({ issues: [issue] }))).toBe('showcases');
+      expect(getShownChange(shown('a', ['u1']), update({ url: undefined, issues: [issue], buildMark: false }))).toBe('showcases');
     });
 
     it('Needs a full reload when anything else changed', () => {
@@ -328,7 +349,12 @@ describe('cli/serve', () => {
       let hash = 'aaaaaaaa';
       const hashFiles = async () => new Map([['a.html', hash]]);
       const built = await runBuild(host, _build('first'), new Map());
-      const initial = { host: getShownHostInformation(host, built.frames, await hashFiles()), frames: built.frames, issues: [], watched: built.watched };
+      const initial = {
+        host: getShownHostInformation(host, { frames: built.frames }, await hashFiles()),
+        frames: built.frames,
+        issues: [],
+        watched: built.watched,
+      };
       const { watcher, record } = _watcher(initial, [{ passed: true, host, issues: [] }], { hashFiles });
       hash = 'bbbbbbbb';
       await watcher.update();
@@ -353,12 +379,15 @@ describe('cli/serve', () => {
       expect(watcher.getHost().showcases[0].tabs.map(({ label }) => label)).toEqual(['Markdown', 'a.html']);
     });
 
-    it('Serves an error frame, and sends the build errors as issues, when a showcase stops building', async () => {
+    it('Sends a showcase that stops building without its URL, with its issues, and the build errors as issues, without a reload', async () => {
       const host = _host('first', [], 2);
       const { watcher, record } = _watcher(await _initial(host), [{ passed: true, host, issues: [] }], { build: _build('first', ['README.md#2']) });
       await watcher.update();
       const issues = [{ severity: 'error', message: 'README.md#2 broke', path: 'README.md', line: 2 }];
-      expect(watcher.getFrames().get('README.md#2')!.files[0].content).toContain('README.md#2 broke');
+      expect(record.reloads).toBe(0);
+      expect(watcher.getFrames().has('README.md#2')).toBe(false);
+      expect(watcher.getHost().showcases[1]).toMatchObject({ issues: [{ severity: 'error', message: 'broke', path: 'a.html' }], buildMark: true });
+      expect(watcher.getHost().showcases[1].url).toBeUndefined();
       expect(watcher.getIssues()).toEqual(issues);
       expect(record.events).toEqual([
         [SHOWCASES_EVENT, watcher.getHost().showcases],
