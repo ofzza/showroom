@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** _`P1`_–_`P14`_, _`P15.1`_–_`P15.4`_ implemented (_`P15.4`_, the showcase views, the last).
-- **Next free:** _`D583`_, _`S13`_, _`P17`_, _`O90`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
+- **Next free:** _`D596`_, _`S13`_, _`P17`_, _`O90`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
 - **Working on:** _`P15`_ Showcase views (approved for its split and order, `./.workflow/PLAN-P15-showcase-views.md`), planning _`S12`_ without _`S12.1`_ (_`P16`_, later), in six children _`P15.1`_–_`P15.6`_ (_`D541`_, _`D545`_–_`D548`_).
-- **Next step:** plan _`P15.5`_ Status marks and issue list (`./.workflow/PLAN-P15-showcase-views.md`), starting with its open points (_`O83`_, and _`D529`_'s "not built" placeholder, _`D580`_).
+- **Next step:** implement _`P15.5`_ (`./.workflow/PLAN-P15.5-status-marks.md`, approved), from its step 1.
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/questions-p15.5/` (its choices, recorded as _`D583`_–_`D595`_); ask before deleting it.
 - `./.workflow/.temp/p15.4-check/`, `p15.4-check-shot-*.png`, `p15.4-format/`, `p15.4-readme-ts/` and `ci-p15.4.log`; ask before deleting them.
 - `./.workflow/.temp/p15.3-check/` (the scratch host and `p15.3-check-shot.png`), `p15.3-format/` (formatting backups) and `ci-p15.3.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p15.3/` (its choices, recorded as _`D559`_–_`D568`_); ask before deleting it.
@@ -27,7 +28,7 @@
 
 ## Running
 
-- `serve` of the scratch host `./.workflow/.temp/p15.4-check/` on http://localhost:5184/, and the dogfood `serve` of this repository on http://localhost:5185/ (background; a new session finds them gone).
+- Nothing.
 
 ## History
 
@@ -358,3 +359,4 @@
 - 2026-11-15: _`P15.4`_ steps 5–6: `view=` on the `ts` example's and `README.md`'s rendering showcases, `README.md`'s Showcase views section (live), cheat-sheet, configuration, code pane, console panel and API; `CONTRIBUTE.md` (architecture, Glossary: Showcase view, Header bar, and the changed terms); `AGENTS.md`; the decisions' back-references; _`O89`_ recorded.
 - 2026-11-15: _`P15.4`_ step 7: `npm run ci` green (unit 1200, integration 24, e2e 18, serve 7); serves started for the user's check.
 - 2026-11-15: _`P15.4`_ approved as implemented, with its Glossary changes (option chosen: "Approve and commit (Rec.)").
+- 2026-11-15: _`P15.5`_ Status marks and issue list planned (_`D583`_–_`D595`_, its choices, option chosen: "Accept all (Rec.)") and approved (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
