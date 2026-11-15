@@ -1,12 +1,13 @@
 /**
  * Showcases in the showroom: the remark plugin placing each showcase frame right before the block holding its entry point, or a showcase block (the
  * showcase frame with its code pane) in place of its entry point, and the showcase frame's iframe, sized by the showcase frame's `resize` messages
- * and told the theme
+ * and told the theme, with its console panel over it
  */
 
 import { useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
 import { createThemeMessage, getThemedFrameUrl, isFrameMessage } from '../../frame/index.js';
+import { ConsolePanel, getConsoleMinHeight, useConsole, type ConsoleState } from '../console/index.js';
 import type { ShownShowcase } from '../host/index.js';
 import { ThemeContext } from '../theme/index.js';
 
@@ -132,18 +133,20 @@ function _createBlockNode(showcase: ShownShowcase): _Node {
 export const DEFAULT_FRAME_HEIGHT = 150;
 
 /**
- * Styles of a showcase frame's iframe
+ * Styles of a showcase frame: its box, holding the iframe and the console panel over it, and the iframe
  */
 const _useStyles = makeStyles({
-  frame: {
-    display: 'block',
+  // The box holds the border, so the console panel's counter and the open console panel sit inside it, whatever the iframe's height
+  box: {
+    position: 'relative',
     boxSizing: 'border-box',
-    width: '100%',
+    margin: `${tokens.spacingVerticalM} 0`,
     border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
     borderRadius: tokens.borderRadiusMedium,
-    backgroundColor: 'transparent',
-    margin: `${tokens.spacingVerticalM} 0`,
+    overflow: 'hidden',
   },
+  boxBlock: { margin: '0', border: 'none', borderRadius: '0' },
+  frame: { display: 'block', width: '100%', border: 'none', backgroundColor: 'transparent' },
 });
 
 /**
@@ -164,24 +167,30 @@ export interface ShowcaseFrameProps {
    */
   showcase: ShownShowcase;
   /**
-   * Class name added to the iframe's own (e.g. the code pane's block resetting its margin)
+   * True for a showcase frame in a code pane's block: no margin, no border of its own (the block's), and the open console panel leaving the room at
+   * its top for the cycling button
    */
-  className?: string;
+  block?: boolean;
   /**
    * Minimum height of the iframe, in pixels, however short the showcase frame reports itself (e.g. the code pane's block, whose cycling button
    * floats over its top-right corner); none by default
    */
   minHeight?: number;
+  /**
+   * The console panel's state to start with (the tests' server-side rendering sets it, as no message comes there); empty by default
+   */
+  initialConsole?: ConsoleState;
 }
 
 /**
- * Renders a showcase frame's iframe: the width of the text, as high as the showcase frame reports, in the theme of the ThemeContext. Its URL is set
- * with the theme of the moment: at mount, and again when the showcase's URL changes (a rebuilt showcase frame in `serve`), keeping its height until
- * the showcase frame reports its new one; later themes are only posted to it, so a theme change never reloads it.
+ * Renders a showcase frame: its iframe, the width of the text, as high as the showcase frame reports, in the theme of the ThemeContext, with its
+ * console panel over it, in a box at least as high as the console panel needs. Its URL is set with the theme of the moment: at mount, and again when
+ * the showcase's URL changes (a rebuilt showcase frame in `serve`), keeping its height until the showcase frame reports its new one; later themes are
+ * only posted to it, so a theme change never reloads it. Its console panel is cleared on every load (`start`), and fed its `console` messages.
  * @param props Properties of the component
- * @returns The iframe
+ * @returns The showcase frame
  */
-export function ShowcaseFrame({ showcase, className, minHeight }: ShowcaseFrameProps): ReactNode {
+export function ShowcaseFrame({ showcase, block = false, minHeight, initialConsole }: ShowcaseFrameProps): ReactNode {
   const styles = _useStyles();
   const theme = useContext(ThemeContext);
   const frame = useRef<HTMLIFrameElement>(null);
@@ -192,6 +201,7 @@ export function ShowcaseFrame({ showcase, className, minHeight }: ShowcaseFrameP
   }
   const src = loaded.src;
   const [height, setHeight] = useState<number>();
+  const [consoleState, dispatchConsole] = useConsole(initialConsole);
 
   // Tell the showcase frame the theme on every change, and whenever it is (re)loaded or ready
   const latestTheme = useRef(theme);
@@ -205,28 +215,34 @@ export function ShowcaseFrame({ showcase, className, minHeight }: ShowcaseFrameP
   useEffect(() => {
     const listener = (event: MessageEvent) => {
       if (!frame.current || event.source !== frame.current.contentWindow || !isFrameMessage(event.data)) return;
-      if (event.data.type === 'ready') sendTheme();
-      else setHeight(event.data.height);
+      const message = event.data;
+      if (message.type === 'start') dispatchConsole({ type: 'start' });
+      else if (message.type === 'console') dispatchConsole({ type: 'lines', lines: message.lines, dropped: message.dropped, now: Date.now() });
+      else if (message.type === 'ready') sendTheme();
+      else setHeight(message.height);
     };
     window.addEventListener('message', listener);
     return () => window.removeEventListener('message', listener);
-  }, [sendTheme]);
+  }, [sendTheme, dispatchConsole]);
 
+  const consoleMinHeight = getConsoleMinHeight(consoleState, block);
   return (
-    <iframe
-      ref={frame}
-      className={mergeClasses(styles.frame, className)}
-      src={src}
-      title={getShowcaseFrameTitle(showcase)}
-      loading="lazy"
-      // The iframe's own border is inside its height (border-box), on top of its content's
-      style={{
-        height: `calc(${height ?? DEFAULT_FRAME_HEIGHT}px + 2 * ${tokens.strokeWidthThin})`,
-        ...(minHeight === undefined ? {} : { minHeight: `${minHeight}px` }),
-        colorScheme: theme,
-      }}
-      onLoad={sendTheme}
-    />
+    <div className={mergeClasses(styles.box, block && styles.boxBlock)} style={consoleMinHeight ? { minHeight: `${consoleMinHeight}px` } : undefined}>
+      <iframe
+        ref={frame}
+        className={styles.frame}
+        src={src}
+        title={getShowcaseFrameTitle(showcase)}
+        loading="lazy"
+        style={{
+          height: `${height ?? DEFAULT_FRAME_HEIGHT}px`,
+          ...(minHeight === undefined ? {} : { minHeight: `${minHeight}px` }),
+          colorScheme: theme,
+        }}
+        onLoad={sendTheme}
+      />
+      <ConsolePanel state={consoleState} dispatch={dispatchConsole} topRoom={block} />
+    </div>
   );
 }
 

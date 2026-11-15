@@ -2,9 +2,12 @@
  * Tests of the frame script and its message contract
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  CONSOLE_GROWTH_EVENT,
+  CONSOLE_FLUSH_MS,
+  CONSOLE_LEVELS,
+  CONSOLE_MAX_LINE_LENGTH,
+  CONSOLE_MAX_LINES,
   FRAME_MESSAGE_SOURCE,
   MAX_REPEATED_GROWTHS,
   SHOWROOM_MESSAGE_SOURCE,
@@ -14,6 +17,20 @@ import {
   getThemedFrameUrl,
   isFrameMessage,
 } from './index.js';
+import type { ConsoleLine, FrameMessage } from './index.js';
+
+/**
+ * Represents a DOM node a showcase logs, as the stubbed `window.Node` constructs it
+ */
+class _LoggedNode {
+  public constructor(
+    public nodeType: number,
+    public nodeName: string,
+    public tagName = nodeName,
+    public id = '',
+    public className = '',
+  ) {}
+}
 
 /**
  * Represents a stubbed showcase frame `window`, and the handles a test drives it through
@@ -69,6 +86,14 @@ interface _FakeFrame {
    */
   dispatch: (type: string, event?: unknown) => void;
   /**
+   * The stubbed console, whose methods the frame script wraps
+   */
+  console: Record<string, (...values: unknown[]) => void>;
+  /**
+   * Calls of the stubbed console's original methods, as their levels and values
+   */
+  original: [string, unknown[]][];
+  /**
    * Dispatches an event to the document's listeners
    * @param type Type of the event
    */
@@ -96,6 +121,8 @@ function _createFrame(options: { search?: string; parent?: boolean; readyState?:
   // `<body>` holds its child, plus its own 2 px bottom padding, unless a test moves its bottom (e.g. text directly in it)
   const body = { children: [child], getBoundingClientRect: () => ({ top: 8, bottom: bodyBottom ?? bottom + 2 }) };
   const parent: Record<string, unknown> = { postMessage: (message: unknown, origin: string) => posted.push({ message, origin }) };
+  const original: [string, unknown[]][] = [];
+  const console = Object.fromEntries(CONSOLE_LEVELS.map((level) => [level, (...values: unknown[]) => void original.push([level, values])]));
   const window: Record<string, unknown> = {
     document: {
       documentElement: { setAttribute: (name: string, value: string) => attributes.set(name, value), style: rootStyle },
@@ -105,6 +132,13 @@ function _createFrame(options: { search?: string; parent?: boolean; readyState?:
     },
     location: { search: options.search ?? '' },
     URLSearchParams,
+    console,
+    Error,
+    Map,
+    Set,
+    Node: _LoggedNode,
+    setTimeout: (callback: () => void, delay: number) => setTimeout(callback, delay),
+    clearTimeout: (timer: ReturnType<typeof setTimeout> | undefined) => clearTimeout(timer),
     scrollY: 0,
     getComputedStyle: (element: unknown) =>
       element === body ? { paddingBottom: '2px', borderBottomWidth: '0px', marginBottom: '8px' } : { marginBottom: `${childMargin}px` },
@@ -130,6 +164,8 @@ function _createFrame(options: { search?: string; parent?: boolean; readyState?:
     setBodyBottom: (value) => void (bodyBottom = value),
     setChildMargin: (value) => void (childMargin = value),
     resize: () => callback?.(),
+    console,
+    original,
     dispatch: (type, event) => listeners.get(type)?.forEach((listener) => listener(event)),
     dispatchDocument: (type) => documentListeners.get(type)?.forEach((listener) => listener()),
   };
@@ -144,6 +180,34 @@ function _run(frame: _FakeFrame): void {
 }
 
 /**
+ * Gets the messages posted, of every type
+ * @param frame The stubbed frame
+ * @returns The messages, in order
+ */
+function _messages(frame: _FakeFrame): FrameMessage[] {
+  return frame.posted.flatMap(({ message }) => (isFrameMessage(message) ? [message] : []));
+}
+
+/**
+ * Gets the `console` messages posted, as their lines and dropped counts
+ * @param frame The stubbed frame
+ * @returns The batches, in order
+ */
+function _batches(frame: _FakeFrame): { lines: ConsoleLine[]; dropped: number }[] {
+  return _messages(frame).flatMap((message) => (message.type === 'console' ? [{ lines: message.lines, dropped: message.dropped }] : []));
+}
+
+/**
+ * Gets the texts of the console lines posted, in order, flushing the lines waiting first
+ * @param frame The stubbed frame
+ * @returns The texts
+ */
+function _texts(frame: _FakeFrame): string[] {
+  vi.advanceTimersByTime(CONSOLE_FLUSH_MS);
+  return _batches(frame).flatMap((batch) => batch.lines.map((line) => line.text));
+}
+
+/**
  * Gets the heights of the `resize` messages posted
  * @param frame The stubbed frame
  * @returns The heights, in order
@@ -154,12 +218,22 @@ function _heights(frame: _FakeFrame): number[] {
 
 describe('frame', () => {
   // Tests the message helpers on hand-written messages, and the frame script by running its inserted source text (getFrameScript()) with a
-  // stubbed `window`: its document, parent, ResizeObserver and listeners, driven by hand.
+  // stubbed `window`: its document, parent, console, ResizeObserver and listeners, driven by hand, and Vitest's fake timers for the console's
+  // batches.
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   describe('Messages', () => {
     // Tests telling showcase frames' messages apart, and the showroom's message and URLs.
 
     it('Recognises the messages of showcase frames', () => {
+      expect(isFrameMessage({ source: FRAME_MESSAGE_SOURCE, type: 'start' })).toBe(true);
       expect(isFrameMessage({ source: FRAME_MESSAGE_SOURCE, type: 'ready' })).toBe(true);
       expect(isFrameMessage({ source: FRAME_MESSAGE_SOURCE, type: 'resize', height: 120 })).toBe(true);
       expect(isFrameMessage({ source: FRAME_MESSAGE_SOURCE, type: 'resize' })).toBe(false);
@@ -169,6 +243,28 @@ describe('frame', () => {
       expect(isFrameMessage({ source: FRAME_MESSAGE_SOURCE, type: 'other' })).toBe(false);
       expect(isFrameMessage(null)).toBe(false);
       expect(isFrameMessage('ready')).toBe(false);
+    });
+
+    it('Recognises console messages, only with well-formed lines', () => {
+      const console = (lines: unknown, dropped: unknown = 0) => isFrameMessage({ source: FRAME_MESSAGE_SOURCE, type: 'console', lines, dropped });
+      expect(console([])).toBe(true);
+      expect(
+        console(
+          [
+            { level: 'log', text: 'x' },
+            { level: 'error', text: 'y', uncaught: true },
+          ],
+          3,
+        ),
+      ).toBe(true);
+      expect(console([{ level: 'trace', text: 'x' }])).toBe(false);
+      expect(console([{ level: 'log', text: 1 }])).toBe(false);
+      expect(console([{ level: 'log', text: 'x', uncaught: 'yes' }])).toBe(false);
+      expect(console([null])).toBe(false);
+      expect(console('x')).toBe(false);
+      expect(console([], -1)).toBe(false);
+      expect(console([], 1.5)).toBe(false);
+      expect(isFrameMessage({ source: FRAME_MESSAGE_SOURCE, type: 'console', lines: [] })).toBe(false);
     });
 
     it('Creates the theme message and the themed URL', () => {
@@ -212,10 +308,11 @@ describe('frame', () => {
       expect(frame.attributes.has(THEME_ATTRIBUTE)).toBe(false);
     });
 
-    it('Posts ready, then the height, to any origin', () => {
+    it('Posts start, ready, then the height, to any origin', () => {
       const frame = _createFrame();
       _run(frame);
       expect(frame.posted).toEqual([
+        { message: { source: FRAME_MESSAGE_SOURCE, type: 'start' }, origin: '*' },
         { message: { source: FRAME_MESSAGE_SOURCE, type: 'ready' }, origin: '*' },
         { message: { source: FRAME_MESSAGE_SOURCE, type: 'resize', height: 111 }, origin: '*' },
       ]);
@@ -225,14 +322,19 @@ describe('frame', () => {
     it('Waits for the document to load before starting', () => {
       const frame = _createFrame({ readyState: 'loading' });
       _run(frame);
-      expect(frame.posted).toEqual([]);
+      // Only `start`, at once: the showroom clears its console panel before the page's own scripts log anything
+      expect(_messages(frame).map((message) => message.type)).toEqual(['start']);
       frame.dispatchDocument('DOMContentLoaded');
       expect(_heights(frame)).toEqual([111]);
     });
 
-    it('Posts nothing outside an iframe, but still applies the theme', () => {
+    it('Posts nothing outside an iframe, and leaves the console alone, but still applies the theme', () => {
       const frame = _createFrame({ search: '?theme=dark', parent: false });
+      const log = frame.console.log;
       _run(frame);
+      expect(frame.console.log).toBe(log);
+      frame.dispatch('error', { error: new Error('x'), message: 'x' });
+      vi.advanceTimersByTime(CONSOLE_FLUSH_MS);
       expect(frame.posted).toEqual([]);
       expect(frame.attributes.get(THEME_ATTRIBUTE)).toBe('dark');
     });
@@ -286,25 +388,197 @@ describe('frame', () => {
       }
       expect(_heights(frame)).toEqual([111, 130, 160, 180, 220, 240]);
     });
+  });
 
-    it("Never counts the console panel's own growth as a repeated growth", () => {
-      // A showcase logging one line at a time grows its console panel by the same amount again and again (see AGENTS.md › The frame script
-      // stops reporting growth)
+  describe('Console', () => {
+    // Tests capturing the console inside the showroom: each line formatted at once, posted in batches by a timer, capped, and cut.
+
+    it('Captures the console from the start, before the document loads, still calling the originals', () => {
+      const frame = _createFrame({ readyState: 'loading' });
+      _run(frame);
+      frame.console.log('early', 1);
+      frame.console.warn('careful');
+      expect(frame.original).toEqual([
+        ['log', ['early', 1]],
+        ['warn', ['careful']],
+      ]);
+      expect(_batches(frame)).toEqual([]);
+      vi.advanceTimersByTime(CONSOLE_FLUSH_MS);
+      expect(_batches(frame)).toEqual([
+        {
+          lines: [
+            { level: 'log', text: 'early 1' },
+            { level: 'warn', text: 'careful' },
+          ],
+          dropped: 0,
+        },
+      ]);
+      expect(_messages(frame).map((message) => message.type)).toEqual(['start', 'console']);
+    });
+
+    it('Captures every level', () => {
       const frame = _createFrame();
       _run(frame);
-      for (let step = 1; step <= MAX_REPEATED_GROWTHS + 2; step++) {
-        frame.dispatch(CONSOLE_GROWTH_EVENT, { detail: 18 });
-        frame.setBottom(100.2 + step * 18);
-        frame.resize();
-      }
-      expect(_heights(frame)).toEqual([111, 129, 147, 165, 183, 201]);
-      // Growth beyond the console panel's is counted again, and an invalid detail is ignored
-      frame.dispatch(CONSOLE_GROWTH_EVENT, { detail: 'x' });
-      for (let step = 1; step <= MAX_REPEATED_GROWTHS + 1; step++) {
-        frame.setBottom(190.2 + step * 20);
-        frame.resize();
-      }
-      expect(_heights(frame).slice(6)).toEqual([221, 241]);
+      for (const level of CONSOLE_LEVELS) frame.console[level](level);
+      vi.advanceTimersByTime(CONSOLE_FLUSH_MS);
+      expect(_batches(frame)[0].lines.map((line) => line.level)).toEqual([...CONSOLE_LEVELS]);
+    });
+
+    it('Posts a batch at most every flush interval, timed from its first line', () => {
+      const frame = _createFrame();
+      _run(frame);
+      frame.console.log('a');
+      vi.advanceTimersByTime(CONSOLE_FLUSH_MS - 1);
+      frame.console.log('b');
+      expect(_batches(frame)).toHaveLength(0);
+      vi.advanceTimersByTime(1);
+      expect(_batches(frame).map((batch) => batch.lines.length)).toEqual([2]);
+      frame.console.log('c');
+      vi.advanceTimersByTime(CONSOLE_FLUSH_MS);
+      vi.advanceTimersByTime(CONSOLE_FLUSH_MS * 4);
+      expect(_batches(frame).map((batch) => batch.lines.map((line) => line.text))).toEqual([['a', 'b'], ['c']]);
+    });
+
+    it('Posts the newest lines only, with the number dropped before them', () => {
+      const frame = _createFrame();
+      _run(frame);
+      for (let line = 1; line <= CONSOLE_MAX_LINES + 5; line++) frame.console.log(line);
+      vi.advanceTimersByTime(CONSOLE_FLUSH_MS);
+      const [batch] = _batches(frame);
+      expect(batch.dropped).toBe(5);
+      expect(batch.lines).toHaveLength(CONSOLE_MAX_LINES);
+      expect(batch.lines[0].text).toBe('6');
+      // The next batch counts afresh
+      frame.console.log('next');
+      vi.advanceTimersByTime(CONSOLE_FLUSH_MS);
+      expect(_batches(frame)[1]).toEqual({ lines: [{ level: 'log', text: 'next' }], dropped: 0 });
+    });
+
+    it('Cuts a line too long, saying how many characters were left out', () => {
+      // A large value formatted as indented JSON can be megabytes, cloned through postMessage and kept in the showroom
+      const frame = _createFrame();
+      _run(frame);
+      frame.console.log('x'.repeat(CONSOLE_MAX_LINE_LENGTH));
+      frame.console.log('y'.repeat(CONSOLE_MAX_LINE_LENGTH + 25));
+      const [whole, cut] = _texts(frame);
+      expect(whole).toBe('x'.repeat(CONSOLE_MAX_LINE_LENGTH));
+      expect(cut).toBe(`${'y'.repeat(CONSOLE_MAX_LINE_LENGTH)}… (25 more characters)`);
+    });
+
+    it('Posts the lines waiting at once when the page goes', () => {
+      const frame = _createFrame();
+      _run(frame);
+      frame.console.log('last words');
+      frame.dispatch('pagehide');
+      expect(_batches(frame)).toEqual([{ lines: [{ level: 'log', text: 'last words' }], dropped: 0 }]);
+      // Nothing waiting, nothing posted
+      frame.dispatch('pagehide');
+      vi.advanceTimersByTime(CONSOLE_FLUSH_MS);
+      expect(_batches(frame)).toHaveLength(1);
+    });
+
+    it('Lists uncaught errors and rejected promises, marked as uncaught', () => {
+      const frame = _createFrame();
+      _run(frame);
+      const error = new Error('thrown');
+      error.stack = 'Error: thrown\n    at showcase.ts:3';
+      frame.dispatch('error', { error, message: 'Uncaught Error: thrown' });
+      frame.dispatch('error', { error: 'a string', message: 'Uncaught a string' });
+      frame.dispatch('error', { error: undefined, message: '' });
+      frame.dispatch('unhandledrejection', { reason: error });
+      frame.dispatch('unhandledrejection', { reason: { code: 7 } });
+      frame.console.error('logged');
+      vi.advanceTimersByTime(CONSOLE_FLUSH_MS);
+      expect(_batches(frame)[0].lines).toEqual([
+        { level: 'error', text: 'Uncaught Error: thrown\n    at showcase.ts:3', uncaught: true },
+        { level: 'error', text: 'Uncaught a string', uncaught: true },
+        { level: 'error', text: 'Uncaught undefined', uncaught: true },
+        { level: 'error', text: 'Uncaught (in promise) Error: thrown\n    at showcase.ts:3', uncaught: true },
+        { level: 'error', text: 'Uncaught (in promise) {\n  "code": 7\n}', uncaught: true },
+        { level: 'error', text: 'logged' },
+      ]);
+    });
+
+    it('Formats values readably', () => {
+      const frame = _createFrame();
+      _run(frame);
+      const cycle: Record<string, unknown> = { name: 'cycle' };
+      cycle.self = cycle;
+      const shared = { shared: true };
+      const map = new Map<unknown, unknown>([
+        ['a', 1],
+        [2, { b: 2n }],
+      ]);
+      map.set('map', map);
+      const error = new Error('boom');
+      error.stack = 'Error: boom\n    at showcase.ts:1';
+      const values: unknown[] = [
+        'text',
+        42,
+        true,
+        null,
+        undefined,
+        10n,
+        Symbol('s'),
+        function named() {},
+        { a: [1, 'x'], nested: { n: null, u: undefined, inf: Infinity } },
+        cycle,
+        [shared, shared],
+        map,
+        new Set([1, 'two']),
+        error,
+        { error: new TypeError('inner') },
+        new _LoggedNode(1, 'BUTTON', 'BUTTON', 'go', 'primary'),
+        new _LoggedNode(3, '#text'),
+        { node: new _LoggedNode(1, 'P', 'P') },
+      ];
+      for (const value of values) frame.console.log(value);
+      expect(_texts(frame)).toEqual([
+        'text',
+        '42',
+        'true',
+        'null',
+        'undefined',
+        '10n',
+        'Symbol(s)',
+        '[Function named]',
+        '{\n  "a": [\n    1,\n    "x"\n  ],\n  "nested": {\n    "n": null,\n    "u": "[undefined]",\n    "inf": "Infinity"\n  }\n}',
+        '{\n  "name": "cycle",\n  "self": "[Circular]"\n}',
+        // The same object twice is no cycle
+        '[\n  {\n    "shared": true\n  },\n  {\n    "shared": true\n  }\n]',
+        'Map(3) {\n  "2": {\n    "b": "2n"\n  },\n  "a": 1,\n  "map": "[Circular]"\n}',
+        'Set(2) [\n  1,\n  "two"\n]',
+        'Error: boom\n    at showcase.ts:1',
+        '{\n  "error": "TypeError: inner"\n}',
+        '<button id="go" class="primary">',
+        '[#text]',
+        '{\n  "node": "<p>"\n}',
+      ]);
+    });
+
+    it('Formats a value at the time it is logged', () => {
+      // The showroom gets the line later, in a batch: a value changed after logging must still show as it was
+      const frame = _createFrame();
+      _run(frame);
+      const value = { count: 1 };
+      frame.console.log(value);
+      value.count = 2;
+      expect(_texts(frame)).toEqual(['{\n  "count": 1\n}']);
+    });
+
+    it("Never breaks the showcase's own logging", () => {
+      const frame = _createFrame();
+      _run(frame);
+      const unprintable = {
+        toString: () => {
+          throw new Error('no');
+        },
+        toJSON: () => {
+          throw new Error('no');
+        },
+      };
+      expect(() => frame.console.log(unprintable)).not.toThrow();
+      expect(frame.original).toEqual([['log', [unprintable]]]);
     });
   });
 });

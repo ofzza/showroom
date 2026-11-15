@@ -185,7 +185,7 @@ describe('cli/serve (serve)', () => {
     const urls = getShowcaseUrls(await fetchHostModule(url));
     expect(Object.keys(urls)).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'docs/guide.md#1']);
     const page = await (await fetch(new URL(urls['README.md#1'], url))).text();
-    expect(page).toContain('<div id="root"></div><div id="showroom-console" hidden></div>');
+    expect(page).toContain('<div id="root"></div><script type="module" crossorigin src=');
 
     // The module and its CSS, relative to the page; the module's asset and dynamic import, relative to the module
     const module = /<script type="module" crossorigin src="\.\/(assets\/[^"]+)"/.exec(page)![1];
@@ -209,7 +209,7 @@ describe('cli/serve (serve)', () => {
     const urls = getShowcaseUrls(await fetchHostModule(url));
     expect(Object.keys(urls)).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'classic/README.md#1']);
     const page = await (await fetch(new URL(urls['README.md#1'], url))).text();
-    expect(page).toContain('<div id="root"></div><div id="showroom-console" hidden></div>');
+    expect(page).toContain('<div id="root"></div><script type="module" crossorigin src=');
     const module = /<script type="module" crossorigin src="\.\/(assets\/[^"]+)"/.exec(page)![1];
     const code = await (await fetch(new URL(`showcases/README.md/1/${module}`, url))).text();
     expect(code).toContain('react-dom-client.development.js');
@@ -222,7 +222,7 @@ describe('cli/serve (serve)', () => {
     const urls = getShowcaseUrls(await fetchHostModule(url));
     expect(Object.keys(urls)).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'README.md#4', 'solution/README.md#1']);
     const page = await (await fetch(new URL(urls['README.md#1'], url))).text();
-    expect(page).toContain('<div id="root"></div><div id="showroom-console" hidden></div>');
+    expect(page).toContain('<div id="root"></div><script type="module" crossorigin src=');
     const module = /<script type="module" crossorigin src="\.\/(assets\/[^"]+)"/.exec(page)![1];
     const code = await (await fetch(new URL(`showcases/README.md/1/${module}`, url))).text();
     expect(code).toContain('host-counter');

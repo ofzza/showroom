@@ -9,7 +9,6 @@ import { check } from '../../../cli/check/index.js';
 import { readConfiguration } from '../../../configuration/index.js';
 import { buildShowcases, type ShowcaseFrame } from '../../../showcases/index.js';
 import { FIXTURES } from '../../../testing/index.js';
-import { CONSOLE_PANEL_ID } from '../ts/console/index.js';
 
 /**
  * Checks a host repository, then builds its showcases
@@ -47,14 +46,13 @@ describe('adapters/showcase/react (integration)', () => {
     expect({ errors: Object.fromEntries(errors), warnings, issues }).toEqual({ errors: {}, warnings: [], issues: [] });
     expect([...frames.keys()]).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'classic/README.md#1']);
 
-    // The page: the showcase frame root, the console panel, the CSS, and the mount module's chunk as the module
+    // The page: the showcase frame root, the CSS, and the mount module's chunk as the module
     const frame = frames.get('README.md#1')!;
     const page = _file(frame, /^index\.html$/).content;
     const entry = _file(frame, /^assets\/README\.showcase-1\.tsx\.showroom-mount-[\w-]+\.js$/);
     const css = _file(frame, /^assets\/[\w.-]+\.css$/);
-    expect(page).toContain(`<div id="root"></div><div id="${CONSOLE_PANEL_ID}" hidden></div>`);
     expect(page).toContain(`<link rel="stylesheet" crossorigin href="./${css.path}">`);
-    expect(page).toContain(`<script type="module" crossorigin src="./${entry.path}"></script>`);
+    expect(page).toContain(`<div id="root"></div><script type="module" crossorigin src="./${entry.path}"></script>`);
     expect(css.content).toContain('.label{color:teal}');
 
     // The bundle: this repository's React 19, the host's component, the virtual one, and the render into the showcase frame root

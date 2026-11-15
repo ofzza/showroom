@@ -10,7 +10,6 @@ import { readConfiguration } from '../../../configuration/index.js';
 import { getFrameScript } from '../../../frame/index.js';
 import { buildShowcases, type ShowcaseFrame } from '../../../showcases/index.js';
 import { createScratchFolder, FIXTURES } from '../../../testing/index.js';
-import { CONSOLE_PANEL_ID, getConsoleScript } from './console/index.js';
 import { buildTsShowcase } from './index.js';
 import { resolveTypeScript } from './typecheck/index.js';
 
@@ -54,15 +53,14 @@ describe('adapters/showcase/ts (integration)', () => {
     expect({ errors: Object.fromEntries(errors), warnings, issues }).toEqual({ errors: {}, warnings: [], issues: [] });
     expect([...frames.keys()]).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'docs/guide.md#1']);
 
-    // The page: the frame script, the CSS, the showcase frame root, the console panel and its script, then the module
+    // The page: the frame script, the CSS, the showcase frame root, then the module
     const frame = frames.get('README.md#1')!;
     const page = _file(frame, /^index\.html$/).content;
     const entry = _file(frame, /^assets\/README\.showcase-1-[\w-]+\.js$/);
     const css = _file(frame, /^assets\/README-[\w-]+\.css$/);
     expect(page).toContain(`<script>${getFrameScript()}</script>`);
     expect(page).toContain(`<link rel="stylesheet" crossorigin href="./${css.path}">`);
-    expect(page).toContain(`<div id="root"></div><div id="${CONSOLE_PANEL_ID}" hidden></div><script>${getConsoleScript()}</script>`);
-    expect(page).toContain(`<script type="module" crossorigin src="./${entry.path}"></script>`);
+    expect(page).toContain(`<div id="root"></div><script type="module" crossorigin src="./${entry.path}"></script>`);
     expect(css.content).toContain('#root{color:teal}');
 
     // The bundle: the host's own package, the virtual files, JSON, the tsconfig's class fields, the production mode, minified, relative URLs

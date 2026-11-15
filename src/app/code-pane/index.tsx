@@ -11,6 +11,7 @@ import type { DocumentationFile } from '../../host/index.js';
 import { CopyButton, countLines } from '../code/index.js';
 import { CodeSidebar, ShownTabList, ShownTabView, getFetchedTabUrl, getShownTabText, getTabId, useLinkedFileContent } from '../code-sidebar/index.js';
 import type { ShownShowcase } from '../host/index.js';
+import type { ConsoleState } from '../console/index.js';
 import { ShowcaseFrame } from '../showcases/index.js';
 
 // #region States
@@ -60,7 +61,7 @@ export const CODE_PANE_MAX_LINES = 20;
 
 /**
  * Minimum height of the showcase frame in a block, in pixels: the cycling button's row, floating over its top-right corner while the code pane is
- * hidden, and a console panel's counter's row at its bottom (`src/adapters/showcase/ts/console/`), so the two never overlap
+ * hidden, and a console panel's counter's row at its bottom (`src/app/console/`), so the two never overlap
  */
 export const SHOWCASE_BLOCK_FRAME_MIN_HEIGHT = 64;
 
@@ -150,7 +151,6 @@ const _useStyles = makeStyles({
   },
   // The showcase frame keeps its own height, never stretched to the row
   frame: { gridColumn: '1', gridRow: '1', alignSelf: 'start', minWidth: '0' },
-  frameIframe: { margin: '0', border: 'none', borderRadius: '0' },
   pane: {
     display: 'flex',
     flexDirection: 'column',
@@ -200,6 +200,10 @@ export interface ShowcaseBlockProps {
    * The state the code pane starts in (INITIAL_CODE_PANE_STATE by default); the tests' server-side rendering sets it, as no click happens there
    */
   initialState?: CodePaneState;
+  /**
+   * The console panel's state to start with (the tests' server-side rendering sets it); empty by default
+   */
+  initialConsole?: ConsoleState;
 }
 
 /**
@@ -208,7 +212,7 @@ export interface ShowcaseBlockProps {
  * @param props Properties of the component
  * @returns The block
  */
-export function ShowcaseBlock({ showcase, documentation, initialState = INITIAL_CODE_PANE_STATE }: ShowcaseBlockProps): ReactNode {
+export function ShowcaseBlock({ showcase, documentation, initialState = INITIAL_CODE_PANE_STATE, initialConsole }: ShowcaseBlockProps): ReactNode {
   const styles = _useStyles();
   const idPrefix = useId();
   const [state, setState] = useState<CodePaneState>(initialState);
@@ -223,7 +227,7 @@ export function ShowcaseBlock({ showcase, documentation, initialState = INITIAL_
     <div className={styles.container} data-code-pane-state={state} style={{ [_MIN_LINES_PROPERTY]: getCodePaneMinLines(text) } as CSSProperties}>
       <div className={mergeClasses(styles.grid, state === 'half' && styles.gridHalf)}>
         <div className={styles.frame}>
-          <ShowcaseFrame showcase={showcase} className={styles.frameIframe} minHeight={SHOWCASE_BLOCK_FRAME_MIN_HEIGHT} />
+          <ShowcaseFrame showcase={showcase} block minHeight={SHOWCASE_BLOCK_FRAME_MIN_HEIGHT} initialConsole={initialConsole} />
         </div>
         <div className={mergeClasses(styles.pane, state === 'half' ? styles.paneHalf : styles.paneHidden)}>
           <div className={styles.header}>

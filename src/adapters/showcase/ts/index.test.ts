@@ -8,7 +8,6 @@ import type { Plugin } from 'vite';
 import { describe, expect, it } from 'vitest';
 import type { Showcase, VirtualFile } from '../../../host/index.js';
 import type { ShowcaseBuildMessage } from './typecheck/index.js';
-import { CONSOLE_PANEL_ID, getConsoleScript, SHOWCASE_FRAME_ROOT_ID } from './console/index.js';
 import {
   createGeneratedModulesPlugin,
   createReadsPlugin,
@@ -26,6 +25,7 @@ import {
   placeCompiledModuleErrors,
   placeGeneratedModuleErrors,
   RESOLVE_EXTENSIONS,
+  SHOWCASE_FRAME_ROOT_ID,
   TsShowcaseAdapter,
   validateTsShowcaseOptions,
 } from './index.js';
@@ -562,12 +562,12 @@ describe('adapters/showcase/ts', () => {
   describe('Page', () => {
     // Tests the page written around the bundle.
 
-    it('Holds the CSS, the showcase frame root, the hidden console panel, its script, then the module', () => {
+    it('Holds the CSS, the showcase frame root, then the module', () => {
       const page = getTsPage('assets/README.showcase-1-abc.js', ['assets/a.css', 'assets/b&c.css']);
       expect(page).toMatch(/^<!doctype html>\n<html><head><meta charset="utf-8">/);
       expect(page).toContain('<link rel="stylesheet" crossorigin href="./assets/a.css"><link rel="stylesheet" crossorigin href="./assets/b&amp;c.css"></head>');
       expect(page).toContain(
-        `<body><div id="${SHOWCASE_FRAME_ROOT_ID}"></div><div id="${CONSOLE_PANEL_ID}" hidden></div><script>${getConsoleScript()}</script>` +
+        `<body><div id="${SHOWCASE_FRAME_ROOT_ID}"></div>` +
           '<script type="module" crossorigin src="./assets/README.showcase-1-abc.js"></script></body></html>',
       );
     });

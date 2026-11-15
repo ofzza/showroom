@@ -2,15 +2,14 @@
  * The `angular` showcase adapter: its entry point is a TypeScript module whose default export is a standalone component, compiled ahead of time by
  * the host's own Angular compiler, in memory (`compile/`), then built through the `ts` showcase adapter's build with plugins of its own
  * (`plugins/`: the emitted modules, the Angular Linker, the production defines), from a generated mount module creating the component in the
- * showcase frame root, on the `ts` page (the showcase frame root above the console panel). Internal, never re-exported.
+ * showcase frame root, on the `ts` page. Internal, never re-exported.
  */
 
 import { basename, resolve } from 'node:path';
 import type { Showcase } from '../../../host/index.js';
 import type { ShowcaseAdapter, ShowcaseBuildRequest, ShowcaseBuildResult, ShowcaseHostCheck, ShowcaseValidation } from '../index.js';
 import { getMountModulePath } from '../react/index.js';
-import { SHOWCASE_FRAME_ROOT_ID } from '../ts/console/index.js';
-import { buildTsShowcase, toBuildIssues, TYPE_CHECK, validateTsShowcaseOptions, type GeneratedModule } from '../ts/index.js';
+import { buildTsShowcase, SHOWCASE_FRAME_ROOT_ID, toBuildIssues, TYPE_CHECK, validateTsShowcaseOptions, type GeneratedModule } from '../ts/index.js';
 import { getDocumentationFolder, resolvePackage, resolveTypeScript } from '../ts/typecheck/index.js';
 import {
   compileAngularShowcase,

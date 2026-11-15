@@ -149,7 +149,7 @@ describe('cli/build (end to end)', () => {
     // The page, and the bundle's chunks and assets next to it, with relative URLs
     const frame = join(root, 'showroom', 'showcases', 'README.md', '1');
     const page = await readFile(join(frame, 'index.html'), 'utf8');
-    expect(page).toContain('<div id="root"></div><div id="showroom-console" hidden></div>');
+    expect(page).toContain('<div id="root"></div><script type="module" crossorigin src=');
     const assets = await readdir(join(frame, 'assets'));
     expect(assets.map((name) => name.replace(/-[\w-]{8}\./, '.')).sort()).toEqual(['README.css', 'README.showcase-1.js', 'lazy.css', 'lazy.js', 'logo.svg']);
     const entry = assets.find((name) => name.startsWith('README.showcase-1'))!;
@@ -166,7 +166,7 @@ describe('cli/build (end to end)', () => {
     const { code, stderr } = await run(scratch.path);
     expect({ code, stderr }).toEqual({ code: 0, stderr: '' });
     const frame = join(scratch.path, 'showroom', 'showcases', 'README.md', '1');
-    expect(await readFile(join(frame, 'index.html'), 'utf8')).toContain('<div id="root"></div><div id="showroom-console" hidden></div>');
+    expect(await readFile(join(frame, 'index.html'), 'utf8')).toContain('<div id="root"></div><script type="module" crossorigin src=');
     const [entry] = await readdir(join(frame, 'assets'));
     expect(entry).toMatch(/^README\.showcase-1\.tsx\.showroom-mount-[\w-]+\.js$/);
     expect(await readFile(join(frame, 'assets', entry), 'utf8')).toMatch(/[`"]18\.3\.1[`"]/);
@@ -177,7 +177,7 @@ describe('cli/build (end to end)', () => {
     const { code, stderr } = await run(root);
     expect({ code, stderr }).toEqual({ code: 0, stderr: '' });
     const frame = join(root, 'showroom', 'showcases', 'README.md', '1');
-    expect(await readFile(join(frame, 'index.html'), 'utf8')).toContain('<div id="root"></div><div id="showroom-console" hidden></div>');
+    expect(await readFile(join(frame, 'index.html'), 'utf8')).toContain('<div id="root"></div><script type="module" crossorigin src=');
     const [entry] = await readdir(join(frame, 'assets'));
     expect(entry).toMatch(/^README\.showcase-1\.ts\.showroom-mount-[\w-]+\.js$/);
     const bundle = await readFile(join(frame, 'assets', entry), 'utf8');

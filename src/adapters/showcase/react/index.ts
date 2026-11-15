@@ -1,14 +1,13 @@
 /**
  * The `react` showcase adapter: its entry point is a TSX or JSX module whose default export is a component, rendered with the host's own React by a
- * generated mount module, and built through the `ts` showcase adapter's build, on its page (the showcase frame root above the console panel).
+ * generated mount module, and built through the `ts` showcase adapter's build, on its page, in its showcase frame root.
  * Internal, never re-exported.
  */
 
 import { basename, resolve } from 'node:path';
 import type { Showcase } from '../../../host/index.js';
 import type { ShowcaseAdapter, ShowcaseBuildRequest, ShowcaseBuildResult, ShowcaseHostCheck, ShowcaseValidation } from '../index.js';
-import { SHOWCASE_FRAME_ROOT_ID } from '../ts/console/index.js';
-import { buildTsShowcase, REACT_ENTRY, TS_ENTRY, validateTsShowcaseOptions, type GeneratedModule } from '../ts/index.js';
+import { buildTsShowcase, REACT_ENTRY, SHOWCASE_FRAME_ROOT_ID, TS_ENTRY, validateTsShowcaseOptions, type GeneratedModule } from '../ts/index.js';
 import {
   checkTypeScript,
   getDocumentationFolder,

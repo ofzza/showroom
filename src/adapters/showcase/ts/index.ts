@@ -1,6 +1,6 @@
 /**
  * The `ts` showcase adapter: its entry point is a TypeScript or JavaScript module, bundled with `showroom`'s own Vite, from memory, with the virtual
- * files as modules where they are, and run in its showcase frame's page, above the console panel. Vite is loaded with `import()` only when a
+ * files as modules where they are, and run in its showcase frame's page, in its showcase frame root. Vite is loaded with `import()` only when a
  * showcase is built, as `check` (and so the library) reaches the registry. Internal, never re-exported.
  */
 
@@ -18,7 +18,6 @@ import type {
   ShowcaseHostCheck,
   ShowcaseValidation,
 } from '../index.js';
-import { CONSOLE_PANEL_ID, getConsoleScript, SHOWCASE_FRAME_ROOT_ID } from './console/index.js';
 import {
   checkTypeScript,
   findTypeScript,
@@ -656,6 +655,11 @@ export function getTsBuildConfiguration({
 export const TS_PAGE = 'index.html';
 
 /**
+ * Id of the showcase frame root: the empty element of a `ts`, `react` or `angular` showcase frame's page the showcase may write to
+ */
+export const SHOWCASE_FRAME_ROOT_ID = 'root';
+
+/**
  * Escapes text for an HTML attribute
  * @param text Text to escape
  * @returns The text with `&`, `<`, `>` and `"` escaped
@@ -665,8 +669,8 @@ function _escapeAttribute(text: string): string {
 }
 
 /**
- * Gets a `ts` showcase frame's page: its CSS in the head; the showcase frame root, the console panel's element (hidden), the console script, and the
- * showcase's module in the body, in this order
+ * Gets a `ts` showcase frame's page: its CSS in the head; the showcase frame root and the showcase's module in the body, in this order (the console
+ * panel is the showroom's, over the showcase frame)
  * @param module POSIX-style path of the showcase's module, relative to the page
  * @param styles POSIX-style paths of its CSS files, relative to the page
  * @returns The page
@@ -675,8 +679,8 @@ export function getTsPage(module: string, styles: readonly string[]): string {
   const links = styles.map((path) => `<link rel="stylesheet" crossorigin href="./${_escapeAttribute(path)}">`).join('');
   return (
     '<!doctype html>\n<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
-    `${links}</head><body><div id="${SHOWCASE_FRAME_ROOT_ID}"></div><div id="${CONSOLE_PANEL_ID}" hidden></div>` +
-    `<script>${getConsoleScript()}</script><script type="module" crossorigin src="./${_escapeAttribute(module)}"></script></body></html>`
+    `${links}</head><body><div id="${SHOWCASE_FRAME_ROOT_ID}"></div>` +
+    `<script type="module" crossorigin src="./${_escapeAttribute(module)}"></script></body></html>`
   );
 }
 

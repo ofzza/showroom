@@ -9,7 +9,6 @@ import { check } from '../../../cli/check/index.js';
 import { readConfiguration } from '../../../configuration/index.js';
 import { buildShowcases, type ShowcaseFrame } from '../../../showcases/index.js';
 import { FIXTURES } from '../../../testing/index.js';
-import { CONSOLE_PANEL_ID } from '../ts/console/index.js';
 import { findAngular } from './compile/index.js';
 
 /**
@@ -62,12 +61,11 @@ describe('adapters/showcase/angular (integration)', () => {
     expect({ errors: Object.fromEntries(errors), warnings, issues }).toEqual({ errors: {}, warnings: [], issues: [] });
     expect([...frames.keys()]).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'README.md#4', 'solution/README.md#1']);
 
-    // The page: the showcase frame root, the console panel, and the mount module's chunk as the module
+    // The page: the showcase frame root, and the mount module's chunk as the module
     const frame = frames.get('README.md#1')!;
     const page = _file(frame, /^index\.html$/).content;
     const entry = _file(frame, /^assets\/README\.showcase-1\.ts\.showroom-mount-[\w-]+\.js$/);
-    expect(page).toContain(`<div id="root"></div><div id="${CONSOLE_PANEL_ID}" hidden></div>`);
-    expect(page).toContain(`<script type="module" crossorigin src="./${entry.path}"></script>`);
+    expect(page).toContain(`<div id="root"></div><script type="module" crossorigin src="./${entry.path}"></script>`);
 
     // The bundle: compiled ahead of time, Angular's packages linked, the production defines, zoneless, the template and the styles
     const code = _javaScript(frame);

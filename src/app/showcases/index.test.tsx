@@ -39,8 +39,8 @@ function _showcases(content: string): ShownShowcase[] {
  * @param content Markdown content of the documentation file
  * @param showcases Shown showcases; those of the content by default
  * @param theme Name of the theme
- * @returns The rendered HTML, without the empty comments React puts between adjacent text nodes, and with every showcase frame's iframe
- * replaced by `[<n>]`, `<n>` being its showcase's position
+ * @returns The rendered HTML, without the empty comments React puts between adjacent text nodes, and with every showcase frame (its box, with its
+ * iframe and nothing logged) replaced by `[<n>]`, `<n>` being its showcase's position
  */
 function _render(content: string, showcases = _showcases(content), theme: ThemeName = 'light'): string {
   const file: DocumentationFile = { path: _PATH, kind: 'other', extension: '.md', content };
@@ -54,7 +54,7 @@ function _render(content: string, showcases = _showcases(content), theme: ThemeN
     </SSRProvider>,
   )
     .replaceAll('<!-- -->', '')
-    .replace(/<iframe [^>]*src="showcases\/docs\/guide\.md\/(\d+)\/index\.html[^>]*><\/iframe>/g, '[$1]');
+    .replace(/<div class="[^"]*"><iframe [^>]*src="showcases\/docs\/guide\.md\/(\d+)\/index\.html[^>]*><\/iframe><\/div>/g, '[$1]');
 }
 
 describe('app/showcases', () => {
@@ -156,7 +156,7 @@ describe('app/showcases', () => {
       expect(html).toContain('src="showcases/docs/my%20notes.md/2/index.html?hash=0123abcd&amp;theme=dark"');
       expect(html).toContain('title="Showcase 2 of docs/my notes.md"');
       expect(html).toContain('loading="lazy"');
-      expect(html).toContain(`height:calc(${DEFAULT_FRAME_HEIGHT}px + 2 * var(--strokeWidthThin))`);
+      expect(html).toContain(`height:${DEFAULT_FRAME_HEIGHT}px`);
       expect(html).toContain('color-scheme:dark');
       expect(html).not.toContain('min-height');
       // The showcase is the host repository's own code, so it isn't sandboxed, and keeps its storage and cookies
