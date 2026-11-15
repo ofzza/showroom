@@ -5,15 +5,15 @@
     "number-table": "./examples/number-table/number-table.js"
   },
   "navigation": [
-    { "path": "/" },
+    { "title": "Usage", "path": "/" },
     {
       "title": "Examples",
       "items": [
-        { "title": "html", "path": "examples/html/README.md" },
-        { "title": "ts", "path": "examples/ts/README.md" },
-        { "title": "react", "path": "examples/react/README.md" },
-        { "title": "angular", "path": "examples/angular/README.md" },
-        { "title": "number-table", "path": "examples/number-table/README.md" }
+        { "title": "HTML", "path": "examples/html/README.md" },
+        { "title": "TS", "path": "examples/ts/README.md" },
+        { "title": "React", "path": "examples/react/README.md" },
+        { "title": "Angular", "path": "examples/angular/README.md" },
+        { "title": "Custom", "path": "examples/number-table/README.md" }
       ]
     },
     { "title": "Contributing", "path": "CONTRIBUTE.md" },

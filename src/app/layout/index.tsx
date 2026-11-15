@@ -48,6 +48,16 @@ export const NAVIGATION_WIDTH = 320;
 export const LAYOUT_MAX_WIDTH = NAVIGATION_WIDTH + CONTENT_MAX_WIDTH;
 
 /**
+ * Width of a navigation group's chevron, in pixels
+ */
+export const NAVIGATION_CHEVRON_WIDTH = 20;
+
+/**
+ * Gap between a navigation group's chevron and its caption's text, in pixels
+ */
+export const NAVIGATION_CHEVRON_GAP = 6;
+
+/**
  * Styles of the layout
  */
 const _useStyles = makeStyles({
@@ -92,10 +102,21 @@ const _useStyles = makeStyles({
   // Stretched to the page's height, but at most the viewport's (FluentUI's own cap is `100vh`), and kept in view while the page scrolls
   drawer: { position: 'sticky', top: '0', maxHeight: '100dvh', [NARROW_VIEWPORT]: { display: 'none' } },
   navigation: { listStyleType: 'none', margin: '0', padding: '0', display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS },
-  // A group's items, indented under its caption
-  group: { paddingLeft: tokens.spacingHorizontalL, paddingTop: tokens.spacingVerticalS },
-  // A group's caption: a button collapsing and expanding it, as wide as the navigation, its chevron before its text
-  caption: { justifyContent: 'flex-start', minWidth: '0', padding: '0', fontWeight: tokens.fontWeightSemibold, textAlign: 'left' },
+  // A group's items, indented under its caption, with 8 px more space after them than between items, setting the group apart from what follows
+  group: { paddingLeft: tokens.spacingHorizontalL, paddingTop: tokens.spacingVerticalS, paddingBottom: tokens.spacingVerticalS },
+  // A group's caption: a button collapsing and expanding it, its chevron before its text, with no border or padding offsetting them
+  caption: {
+    justifyContent: 'flex-start',
+    minWidth: '0',
+    padding: '0',
+    borderLeftWidth: '0',
+    borderRightWidth: '0',
+    fontWeight: tokens.fontWeightSemibold,
+    textAlign: 'left',
+  },
+  captionIcon: { width: `${NAVIGATION_CHEVRON_WIDTH}px`, marginRight: `${NAVIGATION_CHEVRON_GAP}px` },
+  // A page's or URL's link, its text indented past where a caption's chevron sits, so it lines up with the captions' text
+  item: { paddingLeft: `${NAVIGATION_CHEVRON_WIDTH + NAVIGATION_CHEVRON_GAP}px` },
   current: { fontWeight: tokens.fontWeightSemibold },
   main: {
     flexGrow: 1,
@@ -155,14 +176,14 @@ function _NavigationList({ navigation, current, onNavigate, className }: _Naviga
           {item.kind === 'group' ? (
             <NavigationGroup group={item} current={current} onNavigate={onNavigate} />
           ) : item.kind === 'url' ? (
-            <Link href={item.href} target="_blank" rel="noopener noreferrer" title={item.href} onClick={onNavigate}>
+            <Link href={item.href} target="_blank" rel="noopener noreferrer" title={item.href} className={styles.item} onClick={onNavigate}>
               {item.label}
             </Link>
           ) : (
             <Link
               href={item.href}
               title={item.path}
-              className={mergeClasses(item.route === current && styles.current)}
+              className={mergeClasses(styles.item, item.route === current && styles.current)}
               aria-current={item.route === current ? 'page' : undefined}
               onClick={onNavigate}
             >
@@ -209,7 +230,7 @@ export function NavigationGroup({ group, current, onNavigate }: NavigationGroupP
       <Button
         appearance="transparent"
         className={styles.caption}
-        icon={expanded ? <ChevronDown16Regular /> : <ChevronRight16Regular />}
+        icon={{ className: styles.captionIcon, children: expanded ? <ChevronDown16Regular /> : <ChevronRight16Regular /> }}
         aria-expanded={expanded}
         onClick={() => setCollapsedOn(expanded ? { page: current } : null)}
       >
