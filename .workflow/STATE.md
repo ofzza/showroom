@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** _`P1`_–_`P14`_, _`P15.1`_–_`P15.3`_ implemented (_`P15.3`_, the console out of the showcase frame, the last).
-- **Next free:** _`D569`_, _`S13`_, _`P17`_, _`O89`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
+- **Next free:** _`D583`_, _`S13`_, _`P17`_, _`O89`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
 - **Working on:** _`P15`_ Showcase views (approved for its split and order, `./.workflow/PLAN-P15-showcase-views.md`), planning _`S12`_ without _`S12.1`_ (_`P16`_, later), in six children _`P15.1`_–_`P15.6`_ (_`D541`_, _`D545`_–_`D548`_).
-- **Next step:** plan _`P15.4`_ (`./.workflow/PLAN-P15-showcase-views.md`), starting with its open points. The _`O81`_ spike's evidence goes into _`P15.4`_ (keep `./.workflow/.temp/spike-hidden-frame/` until then).
+- **Next step:** implement _`P15.4`_ (`./.workflow/PLAN-P15.4-views.md`, approved), from step 1. Ask the user before deleting `./.workflow/.temp/spike-hidden-frame/` (its evidence is recorded under _`D570`_).
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/questions-p15.4/` (its choices, recorded as _`D569`_–_`D582`_); ask before deleting it.
 - `./.workflow/.temp/p15.3-check/` (the scratch host and `p15.3-check-shot.png`), `p15.3-format/` (formatting backups) and `ci-p15.3.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p15.3/` (its choices, recorded as _`D559`_–_`D568`_); ask before deleting it.
 
@@ -26,8 +27,7 @@
 
 ## Running
 
-- The dogfood `serve` of this repository, at http://localhost:5175/, and the scratch host's (`./.workflow/.temp/p15.3-check/`), at http://localhost:5174/ (background; a new session finds them gone).
-- An earlier session's `node dist/cli/bin.js serve` (pid 366984, started 2026-11-15 18:32) still listens on http://localhost:5173/; not stopped, reported at _`P15.3`_'s checkpoint.
+- Nothing.
 
 ## History
 
@@ -350,3 +350,5 @@
 - 2026-11-15: _`P15.3`_ steps 1–4: the frame script's `start` and `console` messages, the console captured and formatted in it (batched, capped, cut); the `ts` showcase adapter's `console/` deleted, `SHOWCASE_FRAME_ROOT_ID` moved; the showroom's console panel (`src/app/console/`) over `ShowcaseFrame`, whose box now holds the border; tests and documentation; _`D249`_, _`D424`_–_`D438`_ marked (_`O84`_), _`K22`_ resolved.
 - 2026-11-15: _`P15.3`_ step 5: `npm run ci` green (unit 1140, integration 24, e2e 18, serve 7); the scratch host checked by the agent in a browser (the inline counter moved inside the box's border after it); serves started for the user's check.
 - 2026-11-15: _`P15.3`_ approved as implemented (option chosen: "Approve and commit (Rec.)").
+- 2026-11-15: _`P15.4`_'s 14 choices settled (options chosen: "Agreed" for Q1, Q3, Q5–Q8, Q10–Q14; Q2 "opacity: 0, clipped (Rec.)", Q4 "Keep D526 until P16 (Rec.)", Q9 "20 lines or viewport (Rec.)"); _`P15.4`_ drafted (`PLAN-P15.4-views.md`, _`D569`_–_`D582`_).
+- 2026-11-15: _`P15.4`_ approved (option chosen: "Approve and commit (Rec.)"), without a zero-context review; _`O81`_ and _`K21`_ resolved by _`D570`_.

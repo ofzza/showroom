@@ -124,7 +124,7 @@ Planned and implemented after the rest of _`S12`_, as a segment of its own (the 
 
 For planning:
 
-- [ ] _`O81`_ (taken by _`P15.4`_, _`D543`_ (PLAN-P15-showcase-views.md); the spike run 2026-11-15) From _`D500`_, _`K21`_ (SPEC-pitfalls.md). A spike on running a showcase frame hidden: timers, animation frames, observers and sizes, against a visible one.
+- [x] _`O81`_ (resolved by _`D570`_ (PLAN-P15.4-views.md); taken by _`P15.4`_, _`D543`_ (PLAN-P15-showcase-views.md); the spike run 2026-11-15) From _`D500`_, _`K21`_ (SPEC-pitfalls.md). A spike on running a showcase frame hidden: timers, animation frames, observers and sizes, against a visible one.
 - [x] _`O82`_ (resolved by _`D559`_ (PLAN-P15.3-console.md); taken by _`P15.3`_, _`D543`_ (PLAN-P15-showcase-views.md)) From _`D504`_–_`D507`_. The frame contract's new messages (console lines, uncaught errors, the runtime's state), and the showroom's side: one console per showcase frame, matched by the message's source; cleared on a reload.
 - [ ] _`O83`_ (taken by _`P15.5`_, _`D543`_ (PLAN-P15-showcase-views.md)) From _`D506`_, _`D507`_, _`D509`_. The header bar's, the status marks' and the error list's look, and the error lines' markers; checked by the user in a browser.
 - [ ] _`O84`_ (taken by each child of _`P15`_, _`D544`_ (PLAN-P15-showcase-views.md)) From _`D504`_–_`D511`_. The plan decisions this changes, marked when the plan is written: `serve`'s error frame (_`D186`_ (PLAN-P4.3-serve.md) and its refinements), the console script (_`D249`_ (PLAN-P7.1-ts.md), _`D424`_–_`D432`_ (PLAN-P10.5-console.md)), the Markdown tab (_`D421`_ (PLAN-P10.4-code-pane.md)), and the code pane's button and states (_`D407`_, _`D414`_ (PLAN-P10.4-code-pane.md)).
