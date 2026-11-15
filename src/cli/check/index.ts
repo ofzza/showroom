@@ -20,13 +20,24 @@ import type {
   DocumentationKind,
   HostInformation,
   LinkedFile,
+  NavigationItem,
   ProjectInformation,
   Showcase,
   ShowcaseView,
   VirtualFile,
 } from '../../host/index.js';
 import { isText, LINKED_FILE_SIDEBAR_LIMIT } from '../../linked-files/index.js';
-import { getFolder, isMarkdownPath, resolvePath, scanMarkdown, splitLink, type MarkdownLink, type ScannedShowcase } from '../../markdown/index.js';
+import {
+  getFolder,
+  isMarkdownPath,
+  resolvePath,
+  scanMarkdown,
+  splitLink,
+  type MarkdownHeading,
+  type MarkdownLink,
+  type ScannedShowcase,
+} from '../../markdown/index.js';
+import { resolveNavigation } from '../../navigation/index.js';
 import { buildShowcases, getBuildShowcasesIssues } from '../../showcases/index.js';
 import { createIgnoreMatcher, resolveOutputFolder } from './internal/index.js';
 
@@ -229,8 +240,12 @@ export async function check(root: string, options: CheckOptions = {}): Promise<C
   const showcases: ScannedShowcase[] = [];
   const virtualFiles: VirtualFile[] = [];
   const links: _FoundLink[] = [];
+  const headings = new Map<string, MarkdownHeading[]>();
   for (const file of documentation.filter((file) => isMarkdownPath(file.path))) {
     const scan = scanMarkdown(file.path, file.content);
+    const heading = scan.headings.find((found) => found.text);
+    if (heading) file.heading = heading.text;
+    headings.set(file.path, scan.headings);
     showcases.push(...scan.showcases);
     virtualFiles.push(...scan.virtualFiles);
     links.push(...scan.links.map((link) => ({ ...link, documentation: file.path, image: false })));
@@ -244,9 +259,26 @@ export async function check(root: string, options: CheckOptions = {}): Promise<C
   await _checkLinks(root, links, issues);
   const linkedFiles = await _collectLinkedFiles(root, documentation, links, showcases, included, outputFolder.relativePath, issues);
 
+  // Resolve the navigation showroom.json configures, if any
+  let navigation: NavigationItem[] | undefined;
+  if (configuration.navigation && project) {
+    const headingIds = new Map([...headings].map(([path, found]) => [path, found.map(({ id }) => id)]));
+    const resolution = resolveNavigation(configuration.navigation, { documentation, headingIds, projectName: project.name });
+    issues.push(...resolution.issues.map(({ severity, message, path }) => ({ severity, message, path: path ?? CONFIGURATION_FILE_NAME })));
+    navigation = resolution.items;
+  }
+
   if (!project || issues.some((issue) => issue.severity === 'error')) return fail();
   // Every showcase has its views by now: _checkShowcases() applied the defaults, or reported an error
-  const host: HostInformation = { project, documentation, code, showcases: showcases as Showcase[], virtualFiles, linkedFiles };
+  const host: HostInformation = {
+    project,
+    documentation,
+    code,
+    showcases: showcases as Showcase[],
+    virtualFiles,
+    linkedFiles,
+    ...(navigation ? { navigation } : {}),
+  };
 
   // Build every showcase, if asked to, throwing the showcase frames away; build warnings fail nothing
   if (options.showcases) {

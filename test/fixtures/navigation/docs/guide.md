@@ -1,0 +1,3 @@
+# The `guide`
+
+## Install & run

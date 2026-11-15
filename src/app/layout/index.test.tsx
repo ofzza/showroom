@@ -6,22 +6,43 @@ import { describe, it, expect } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-components';
 import type { ProjectInformation } from '../../host/index.js';
-import type { NavigationItem } from '../navigation/index.js';
+import type { ShownNavigationItem } from '../navigation/index.js';
 import type { ThemeName } from '../theme/index.js';
 import { CONTENT_MAX_WIDTH, LAYOUT_MAX_WIDTH, Layout, NAVIGATION_WIDTH } from './index.js';
+
+/**
+ * The default navigation's items, as getNavigationItems() gives them
+ */
+const _NAVIGATION: ShownNavigationItem[] = [
+  { kind: 'page', label: 'README', href: '#/', route: '#/', path: 'README.md' },
+  { kind: 'page', label: 'docs/guide.md', href: '#/docs/guide.md', route: '#/docs/guide.md', path: 'docs/guide.md' },
+];
+
+/**
+ * A configured navigation's items: nested groups, an anchor and a URL
+ */
+const _GROUPED: ShownNavigationItem[] = [
+  { kind: 'page', label: 'Home', href: '#/', route: '#/' },
+  {
+    kind: 'group',
+    label: 'Guides',
+    items: [
+      { kind: 'page', label: 'Install', href: '#/docs/guide.md#install', route: '#/docs/guide.md', path: 'docs/guide.md' },
+      { kind: 'group', label: 'Deeper', items: [{ kind: 'page', label: 'Deep', href: '#/docs/deep.md', route: '#/docs/deep.md', path: 'docs/deep.md' }] },
+    ],
+  },
+  { kind: 'url', label: 'npm', href: 'https://www.npmjs.com/package/p' },
+];
 
 /**
  * Renders the layout around a placeholder page to HTML on the server
  * @param project Project information
  * @param current URL hash of the page shown
  * @param theme Name of the theme in use
+ * @param navigation Navigation items
  * @returns The rendered HTML, without the empty comments React puts between adjacent text nodes
  */
-function _render(project: ProjectInformation, current?: string, theme: ThemeName = 'light'): string {
-  const navigation: NavigationItem[] = [
-    { label: 'README', href: '#/' },
-    { label: 'docs/guide.md', href: '#/docs/guide.md', path: 'docs/guide.md' },
-  ];
+function _render(project: ProjectInformation, current?: string, theme: ThemeName = 'light', navigation = _NAVIGATION): string {
   return renderToString(
     <SSRProvider>
       <FluentProvider theme={webLightTheme}>
@@ -55,6 +76,30 @@ describe('app/layout', () => {
     expect(html).toMatch(/<a [^>]*href="#\/docs\/guide.md"[^>]*aria-current="page"[^>]*>|<a [^>]*aria-current="page"[^>]*href="#\/docs\/guide.md"[^>]*>/);
     expect(html.match(/aria-current/g)).toHaveLength(1);
     expect(_render({ name: 'p' })).not.toContain('aria-current');
+  });
+
+  it('Shows a tooltip with the path of each documentation file', () => {
+    expect(_render({ name: 'p' })).toMatch(/<a [^>]*title="docs\/guide.md"[^>]*>docs\/guide.md<\/a>/);
+  });
+
+  it('Shows groups expanded, their items nested under a caption button', () => {
+    const html = _render({ name: 'p' }, undefined, 'light', _GROUPED);
+    expect(html).toMatch(/<button[^>]*aria-expanded="true"[^>]*>.*Guides<\/button><ul[^>]*><li><a [^>]*href="#\/docs\/guide.md#install"[^>]*>Install<\/a>/s);
+    expect(html).toMatch(/Deeper<\/button><ul[^>]*><li><a [^>]*>Deep<\/a><\/li><\/ul>/s);
+    expect(html.match(/aria-expanded="true"/g)).toHaveLength(2);
+  });
+
+  it("Marks a page by its route, whatever its item's anchor", () => {
+    const html = _render({ name: 'p' }, '#/docs/guide.md', 'light', _GROUPED);
+    expect(html).toMatch(/<a [^>]*aria-current="page"[^>]*>Install<\/a>/);
+  });
+
+  it('Opens a URL in a new tab', () => {
+    const html = _render({ name: 'p' }, undefined, 'light', _GROUPED);
+    expect(html).toMatch(/<a [^>]*href="https:\/\/www.npmjs.com\/package\/p"[^>]*>npm<\/a>/);
+    const link = html.match(/<a [^>]*>npm<\/a>/)![0];
+    expect(link).toContain('target="_blank"');
+    expect(link).toContain('rel="noopener noreferrer"');
   });
 
   it('Shows the theme toggle switched on in the dark theme', () => {

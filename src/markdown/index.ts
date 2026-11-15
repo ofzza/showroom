@@ -3,6 +3,7 @@
  * resolving relative links. Node-free, so both `check` and the showroom can use it; internal, never re-exported.
  */
 
+import GithubSlugger from 'github-slugger';
 import JSON5 from 'json5';
 import remarkGfm from 'remark-gfm';
 import remarkParse from 'remark-parse';
@@ -415,6 +416,24 @@ export interface MarkdownError {
 export type ScannedShowcase = Omit<Showcase, 'views'> & { views?: ShowcaseView[] };
 
 /**
+ * Represents a heading of a documentation file's Markdown
+ */
+export interface MarkdownHeading {
+  /**
+   * The heading's plain text: the text of its text nodes, code spans, links and emphasis, without images and HTML, trimmed
+   */
+  text: string;
+  /**
+   * The heading's id, as the showroom gives it (`rehype-slug`'s, through `github-slugger`, unique within the file)
+   */
+  id: string;
+  /**
+   * Line the heading starts at, from 1
+   */
+  line: number;
+}
+
+/**
  * Represents what scanning a documentation file's Markdown found
  */
 export interface MarkdownScan {
@@ -435,6 +454,10 @@ export interface MarkdownScan {
    * Images with a relative, non-fragment-only source, in document order (an image reference's source is its reference definition, in `links`)
    */
   images: MarkdownLink[];
+  /**
+   * Headings, of any level, in document order
+   */
+  headings: MarkdownHeading[];
   /**
    * Errors in the showcase markers
    */
@@ -513,7 +536,8 @@ export function isValidVirtualFileName(name: string): boolean {
  * @returns What the scan found
  */
 export function scanMarkdown(path: string, content: string): MarkdownScan {
-  const scan: MarkdownScan = { showcases: [], virtualFiles: [], links: [], images: [], errors: [] };
+  const scan: MarkdownScan = { showcases: [], virtualFiles: [], links: [], images: [], headings: [], errors: [] };
+  const slugger = new GithubSlugger();
   const folder = getFolder(path);
   const name = path.slice(path.lastIndexOf('/') + 1);
   const stem = name.includes('.') ? name.slice(0, name.lastIndexOf('.')) : name;
@@ -550,6 +574,11 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
   };
 
   _visit(_parse(content), [], (node, ancestors) => {
+    // Headings, with the ids the showroom gives them (its text as hast-util-to-string reads the rendered heading, before trimming)
+    if (node.type === 'heading') {
+      const text = _getText(node);
+      scan.headings.push({ text: text.trim(), id: slugger.slug(text), line: _line(node) });
+    }
     // Fenced code blocks: code block showcases' entry points, and virtual files with no showcase adapter
     if (node.type === 'code') {
       const lang = node.lang ?? '';
@@ -758,6 +787,17 @@ function _visit(node: _Node, ancestors: _Node[], visitor: (node: _Node, ancestor
   for (const child of node.children ?? []) {
     _visit(child, [...ancestors, node], visitor);
   }
+}
+
+/**
+ * Gets a node's text as the showroom renders it: its text nodes' and code spans' values, in document order, without images and HTML (which the
+ * showroom skips)
+ * @param node A syntax tree node
+ * @returns Its text
+ */
+function _getText(node: _Node): string {
+  if (node.type === 'text' || node.type === 'inlineCode') return node.value ?? '';
+  return (node.children ?? []).map(_getText).join('');
 }
 
 /**

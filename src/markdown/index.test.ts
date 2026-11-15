@@ -239,6 +239,35 @@ describe('markdown', () => {
     });
   });
 
+  describe('Headings', () => {
+    // scanMarkdown()'s headings, on Markdown strings: their plain text and ids (the ids are compared with rehype-slug's own in src/app/markdown/).
+
+    it('Finds headings of every level, ATX and setext, in document order', () => {
+      const scan = scanMarkdown('README.md', ['Intro', '', '## Second level', '', 'Setext', '======', '', '> ### Quoted', '', '- #### Listed'].join('\n'));
+      expect(scan.headings).toEqual([
+        { text: 'Second level', id: 'second-level', line: 3 },
+        { text: 'Setext', id: 'setext', line: 5 },
+        { text: 'Quoted', id: 'quoted', line: 8 },
+        { text: 'Listed', id: 'listed', line: 10 },
+      ]);
+    });
+
+    it('Reads code spans, links and emphasis as text, and drops images and HTML', () => {
+      const scan = scanMarkdown('README.md', '# The `showroom` [*command*](./cli.md) ![logo](./logo.png)<br> **line**');
+      expect(scan.headings).toEqual([{ text: 'The showroom command  line', id: 'the-showroom-command--line', line: 1 }]);
+    });
+
+    it('Gives repeated headings unique ids', () => {
+      const scan = scanMarkdown('README.md', ['# Usage', '# Usage', '# Usage 1'].join('\n'));
+      expect(scan.headings.map(({ id }) => id)).toEqual(['usage', 'usage-1', 'usage-1-1']);
+    });
+
+    it('Keeps empty headings, with empty text', () => {
+      // check skips them when looking for a file's first heading
+      expect(scanMarkdown('README.md', ['#', '# ![logo](./logo.png)', '# Title'].join('\n')).headings.map(({ text }) => text)).toEqual(['', '', 'Title']);
+    });
+  });
+
   describe('Scanning', () => {
     // Tests scanMarkdown() on small Markdown documents, each focusing on one kind of embed.
 
@@ -356,7 +385,7 @@ describe('markdown', () => {
         'README.md',
         ['```js title="showcase"', '```', '```js', '```', '    showcase indented', '```js highlight showcase', '```'].join('\n'),
       );
-      expect(scan).toEqual({ showcases: [], virtualFiles: [], links: [], images: [], errors: [] });
+      expect(scan).toEqual({ showcases: [], virtualFiles: [], links: [], images: [], headings: [], errors: [] });
     });
 
     it('Reports markers in the wrong place, or broken', () => {

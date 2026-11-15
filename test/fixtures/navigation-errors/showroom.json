@@ -1,0 +1,13 @@
+{
+  "stack": "typescript",
+  "sourceRoot": ".",
+  "documentation": ["docs/*.md"],
+  "navigation": [
+    { "path": "docs/missing.md" },
+    { "path": "docs/a.md#nowhere" },
+    { "path": "docs/a.md" },
+    { "path": "guides/*.md" },
+    { "title": "Empty", "items": [{ "path": "docs/a*.md" }] },
+    { "path": "/#usage" }
+  ]
+}

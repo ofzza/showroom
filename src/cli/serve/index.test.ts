@@ -298,6 +298,7 @@ describe('cli/serve', () => {
       expect(getShownChange(shown('a', ['u1']), shown('a', ['u1', 'u2']))).toBe('reload');
       expect(getShownChange(shown('a', ['u1']), { ...shown('a', ['u1']), project: { name: 'q' } })).toBe('reload');
       expect(getShownChange(shown('a', ['u1']), shown('a', ['u1'], [{ path: 'a.ts', size: 1, text: true }]))).toBe('reload');
+      expect(getShownChange(shown('a', ['u1']), { ...shown('a', ['u1']), navigation: [{ kind: 'page', label: 'Home', path: '' }] })).toBe('reload');
       // A showcase's views, or a shown virtual file
       const next = shown('a', ['u1']);
       expect(getShownChange(shown('a', ['u1']), { ...next, showcases: [{ ...next.showcases[0], views: ['source'] }] })).toBe('reload');

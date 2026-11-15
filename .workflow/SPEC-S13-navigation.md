@@ -1,6 +1,6 @@
 # _`S13`_ The navigation
 
-approved 2026-11-16 (option chosen: "Approve and commit (Rec.)"); the Glossary term "Navigation" accepted ("Add as proposed (Rec.)"), added with the implementation
+implemented 2026-11-16 (_`P17`_); approved 2026-11-16 (option chosen: "Approve and commit (Rec.)"); the Glossary term "Navigation" accepted ("Add as proposed (Rec.)"), added with the implementation
 
 Customizing the showroom's navigation from `showroom.json`: titles, grouping, order, and which documentation files it lists. From the user's proposal of 2026-11-16 (a `menu` property of `{ title, path?, subs? }` items: "If not present, will render the menu exactly as it is now"), discussed as a critique (Q1–Q13). Picks up _`L13`_ (PLAN.md).
 

@@ -67,6 +67,10 @@ export interface DocumentationFile {
    * Raw text content of the file
    */
   content: string;
+  /**
+   * The file's first heading, of any level, as plain text, if it is a Markdown file with a non-empty one; labels it in the navigation
+   */
+  heading?: string;
 }
 
 // #endregion
@@ -222,6 +226,19 @@ export interface LinkedFile {
 
 // #endregion
 
+// #region Navigation
+
+/**
+ * Represents an item of the navigation as `showroom.json`'s `navigation` resolves: a page, a documentation file's (its `path`; empty for the home
+ * page), opened at its `anchor` heading if it has one; an absolute URL; or a group of items
+ */
+export type NavigationItem =
+  | { kind: 'page'; label: string; path: string; anchor?: string }
+  | { kind: 'url'; label: string; url: string }
+  | { kind: 'group'; label: string; items: NavigationItem[] };
+
+// #endregion
+
 // #region Host information
 
 /**
@@ -252,6 +269,10 @@ export interface HostInformation {
    * Linked files, sorted by path
    */
   linkedFiles: LinkedFile[];
+  /**
+   * The navigation `showroom.json` configures, resolved; undefined for the default navigation
+   */
+  navigation?: NavigationItem[];
 }
 
 // #endregion

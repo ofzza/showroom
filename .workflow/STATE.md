@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation (_`P17`_ approved); _`P1`_–_`P14`_, _`P15`_ (_`P15.1`_–_`P15.6`_) and _`P16`_ implemented (_`P16`_, linked showcases shown inline in the showcase sidebar, the last).
-- **Next free:** _`D650`_, _`S14`_, _`P18`_, _`O93`_, _`L15`_, _`R49`_, _`H1`_, _`K24`_
-- **Working on:** _`P17`_ The navigation (`./.workflow/PLAN-P17-navigation.md`), approved, implementing _`S13`_; step 1 next.
-- **Next step:** implement _`P17`_'s steps 1–7, then its checkpoint.
+- **Stage:** _`P17`_ implemented (_`S13`_, the navigation); _`P1`_–_`P14`_, _`P15`_ (_`P15.1`_–_`P15.6`_) and _`P16`_ implemented (_`P16`_, linked showcases shown inline in the showcase sidebar, the last).
+- **Next free:** _`D652`_, _`S14`_, _`P18`_, _`O93`_, _`L15`_, _`R49`_, _`H1`_, _`K24`_
+- **Working on:** nothing planned; _`S13`_ is implemented (_`P17`_).
+- **Next step:** the user's choice of the next work (e.g. _`S6`_'s open points _`O16`_–_`O19`_, or a known open issue in `./.workflow/PLAN.md`).
 
 ## Open questions
 
@@ -13,7 +13,7 @@
 
 ## Waiting on me
 
-- `./.workflow/.temp/questions-p17/` (its choices, recorded as _`D641`_–_`D649`_) and `s13-format/`; ask before deleting them.
+- `./.workflow/.temp/questions-p17/` (its choices, recorded as _`D641`_–_`D649`_), `s13-format/`, `p17-format/`, `p17-check/`, `ci-p17.log`, `serve-dogfood-p17.log` and `serve-p17-check.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p16/` (its choices, recorded as _`D615`_–_`D626`_); ask before deleting it.
 - `./.workflow/.temp/p16-check/`, `p16-format/`, `ci-p16.log`, `serve-dogfood-p16.log`, `serve-p16-check.log`; ask before deleting them.
 - `./.workflow/.temp/p15.6-check/`, `ci-p15.6.log`, `ci-p15.6-rerun.log`, `serve-dogfood-p15.6.log`, `serve-p15.6-check.log`; ask before deleting them.
@@ -387,3 +387,4 @@
 - 2026-11-16: _`S13`_ approved (option chosen: "Approve and commit (Rec.)"), after _`D636`_'s wording was clarified (the user: "Page opens, never listed"); the Glossary term "Navigation" accepted ("Add as proposed (Rec.)").
 - 2026-11-16: _`P17`_ The navigation drafted (_`D641`_–_`D649`_; options chosen: the recommendations, except Q8, "(b) Own navigation"); `github-slugger` approved as a new dependency ("Add github-slugger (Rec.)").
 - 2026-11-16: _`P17`_ approved (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
+- 2026-11-16: _`P17`_ implemented (steps 1–7; _`D650`_, this repository's navigation trimmed to its documentation files; _`D651`_, details settled while implementing); `npm run ci` green (unit 1336, integration 24, e2e 18, serve 7); approved as implemented (option chosen: "Approve and commit (Rec.)").

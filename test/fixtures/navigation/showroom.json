@@ -1,0 +1,22 @@
+{
+  "stack": "typescript",
+  "sourceRoot": ".",
+  "documentation": ["docs/*.md", "notes/*.md"],
+  "navigation": [
+    { "path": "/" },
+    {
+      "title": "Guide",
+      "items": [{ "path": "./docs/Guide.md" }, { "title": "API", "path": "docs/api.md#api-reference" }]
+    },
+    {
+      "title": "Examples",
+      "items": [
+        { "title": "Three first", "path": "examples/three/README.md" },
+        { "path": "examples/*/README.md" },
+        { "title": "More", "items": [{ "path": "LICENSE" }] }
+      ]
+    },
+    { "title": "Contributing", "path": "CONTRIBUTING.md" },
+    { "title": "npm", "path": "https://www.npmjs.com/package/navigation-host" }
+  ]
+}

@@ -1,40 +1,68 @@
 /**
- * The showroom's navigation: README (the home page), CONTRIBUTING and LICENSE, then a page per other documentation file
+ * The showroom's navigation: the one `showroom.json` configures, resolved by check; or the default one, README (the home page), CONTRIBUTING and
+ * LICENSE, then a page per other documentation file, labelled by its first heading
  */
 
-import type { DocumentationFile, DocumentationKind } from '../../host/index.js';
-import { isRootReadme } from '../host/index.js';
+import type { DocumentationFile, DocumentationKind, NavigationItem } from '../../host/index.js';
+import { getRootReadme, isRootReadme } from '../host/index.js';
 import { formatRoute } from '../routing/index.js';
 
 // #region Navigation
 
 /**
- * Represents an item of the navigation
+ * Represents an item of the navigation as the showroom shows it: a page, an absolute URL, or a group of items
  */
-export interface NavigationItem {
-  /**
-   * Label of the item: `README` for the home page, `CONTRIBUTING` or `LICENSE` for the root's contribute and license files, or the documentation file's
-   * full path for any other
-   */
-  label: string;
-  /**
-   * URL hash of the item's page
-   */
-  href: string;
-  /**
-   * POSIX-style path of the item's documentation file, or undefined for the home page
-   */
-  path?: string;
-}
+export type ShownNavigationItem =
+  | {
+      kind: 'page';
+      /**
+       * Label of the item
+       */
+      label: string;
+      /**
+       * URL hash the item leads to, with its anchor
+       */
+      href: string;
+      /**
+       * URL hash of the item's page, without its anchor, to tell whether it is the current page
+       */
+      route: string;
+      /**
+       * POSIX-style path of the item's documentation file (the root `README`'s for the home page, if there is one), shown as its tooltip
+       */
+      path?: string;
+    }
+  | {
+      kind: 'url';
+      /**
+       * Label of the item
+       */
+      label: string;
+      /**
+       * The absolute URL the item leads to, opened in a new tab
+       */
+      href: string;
+    }
+  | {
+      kind: 'group';
+      /**
+       * Caption of the group
+       */
+      label: string;
+      /**
+       * The group's items
+       */
+      items: ShownNavigationItem[];
+    };
 
 /**
- * Label of the home page's navigation item, whether or not the host repository has a root `README`
+ * Label of the home page's item in the default navigation, whether or not the host repository has a root `README`
  */
 export const HOME_LABEL = 'README';
 
 /**
- * Labels of the root's built-in documentation files other than the `README`, in their navigation order, whatever their file names (e.g. `CONTRIBUTE.md`,
- * `licence.txt`)
+ * Labels of the root's built-in documentation files other than the `README`, in their order in the default navigation, whatever their file names
+ * (e.g. `CONTRIBUTE.md`, `licence.txt`)
  */
 const _ROOT_LABELS: [DocumentationKind, string][] = [
   ['contribute', 'CONTRIBUTING'],
@@ -42,19 +70,73 @@ const _ROOT_LABELS: [DocumentationKind, string][] = [
 ];
 
 /**
- * Gets the navigation items: README (the home page), then the root's CONTRIBUTING and LICENSE files, then every other documentation file by its full
- * path, in the order given. The root `README` is only shown on the home page.
+ * Gets the navigation items: the navigation `showroom.json` configures, if any; otherwise the default one, README (the home page), then the root's
+ * CONTRIBUTING and LICENSE files, then every other documentation file in the order given, labelled by its first heading, or by its path where it has
+ * none or another item has the same label. The root `README` is only shown on the home page.
  * @param documentation Documentation files, sorted by path
+ * @param navigation The navigation `showroom.json` configures, as check resolved it; undefined for the default one
  * @returns The navigation items
  */
-export function getNavigationItems(documentation: DocumentationFile[]): NavigationItem[] {
+export function getNavigationItems(documentation: DocumentationFile[], navigation?: NavigationItem[]): ShownNavigationItem[] {
+  const rootReadme = getRootReadme(documentation);
+  const home = (label: string, anchor?: string): ShownNavigationItem => ({
+    kind: 'page',
+    label,
+    href: formatRoute(undefined, anchor),
+    route: formatRoute(),
+    ...(rootReadme ? { path: rootReadme.path } : {}),
+  });
+  const page = (label: string, path: string, anchor?: string): ShownNavigationItem => ({
+    kind: 'page',
+    label,
+    href: formatRoute(path, anchor),
+    route: formatRoute(path),
+    path,
+  });
+  if (navigation) {
+    const show = (items: NavigationItem[]): ShownNavigationItem[] =>
+      items.map((item) => {
+        if (item.kind === 'group') return { kind: 'group', label: item.label, items: show(item.items) };
+        if (item.kind === 'url') return { kind: 'url', label: item.label, href: item.url };
+        return item.path ? page(item.label, item.path, item.anchor) : home(item.label, item.anchor);
+      });
+    return show(navigation);
+  }
   const isRoot = (file: DocumentationFile) => !file.path.includes('/');
   const labelled = _ROOT_LABELS.flatMap(([kind, label]) => documentation.filter((file) => isRoot(file) && file.kind === kind).map((file) => ({ file, label })));
-  const rest = documentation.filter((file) => !isRootReadme(file) && !labelled.some((item) => item.file === file)).map((file) => ({ file, label: file.path }));
+  const rest = documentation
+    .filter((file) => !isRootReadme(file) && !labelled.some((item) => item.file === file))
+    .map((file) => ({ file, label: file.heading ?? file.path }));
+  const labels = [HOME_LABEL, ...labelled.map(({ label }) => label), ...rest.map(({ label }) => label)];
+  const unique = (label: string) => labels.indexOf(label) === labels.lastIndexOf(label);
   return [
-    { label: HOME_LABEL, href: formatRoute() },
-    ...[...labelled, ...rest].map(({ file, label }) => ({ label, href: formatRoute(file.path), path: file.path })),
+    home(HOME_LABEL),
+    ...labelled.map(({ file, label }) => page(label, file.path)),
+    ...rest.map(({ file, label }) => page(unique(label) ? label : file.path, file.path)),
   ];
+}
+
+/**
+ * Checks if a navigation item is, or holds, the current page's item
+ * @param item A navigation item
+ * @param current URL hash of the page shown, without its anchor, or undefined if no item is
+ * @returns True if the item is the current page's, or a group holding it
+ */
+export function holdsCurrentItem(item: ShownNavigationItem, current: string | undefined): boolean {
+  if (current === undefined) return false;
+  if (item.kind === 'group') return item.items.some((child) => holdsCurrentItem(child, current));
+  return item.kind === 'page' && item.route === current;
+}
+
+/**
+ * Checks if a navigation group is expanded: it is, unless it was collapsed, and expands again once the page shown changes to one of its items
+ * @param group The group
+ * @param collapsedOn URL hash of the page shown when the group was collapsed (in an object, as it can be undefined), or null if it wasn't
+ * @param current URL hash of the page shown, without its anchor, or undefined if no item is
+ * @returns True if the group is expanded
+ */
+export function isNavigationGroupExpanded(group: ShownNavigationItem, collapsedOn: { page?: string } | null, current: string | undefined): boolean {
+  return collapsedOn === null || (holdsCurrentItem(group, current) && collapsedOn.page !== current);
 }
 
 // #endregion

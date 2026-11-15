@@ -208,7 +208,7 @@ export interface ShownVirtualFile {
  * Represents the shown host information: the host information's project information, documentation files and linked files, without the code file
  * index, which the showroom doesn't show; and every showcase, with its checks and issues
  */
-export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentation' | 'linkedFiles'> & {
+export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentation' | 'linkedFiles' | 'navigation'> & {
   /**
    * Every showcase, built or not, sorted by documentation file and offset
    */

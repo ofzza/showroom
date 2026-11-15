@@ -43,11 +43,11 @@ describe('cli/check', () => {
     it('Collects the root documentation and README files anywhere, sorted', async () => {
       const { host } = await check(_fixture('minimal'));
       expect(host?.documentation).toEqual([
-        { path: 'CONTRIBUTING.md', kind: 'contribute', extension: '.md', content: '# Contributing\n' },
+        { path: 'CONTRIBUTING.md', kind: 'contribute', extension: '.md', content: '# Contributing\n', heading: 'Contributing' },
         { path: 'LICENSE', kind: 'license', extension: '', content: 'MIT License\n' },
-        { path: 'README.md', kind: 'readme', extension: '.md', content: '# Minimal host\n' },
-        { path: 'src/module/README.md', kind: 'readme', extension: '.md', content: '# Module\n' },
-        { path: 'vendor/README.md', kind: 'readme', extension: '.md', content: '# Vendor\n' },
+        { path: 'README.md', kind: 'readme', extension: '.md', content: '# Minimal host\n', heading: 'Minimal host' },
+        { path: 'src/module/README.md', kind: 'readme', extension: '.md', content: '# Module\n', heading: 'Module' },
+        { path: 'vendor/README.md', kind: 'readme', extension: '.md', content: '# Vendor\n', heading: 'Vendor' },
       ]);
     });
 
@@ -587,6 +587,78 @@ describe('cli/check', () => {
       } finally {
         await host.remove();
       }
+    });
+  });
+
+  describe('Navigation', () => {
+    // showroom.json's navigation, resolved on the navigation fixture (pages, an anchor, a URL, nested groups, a pattern skipping a file listed
+    // explicitly, the home page, a file left out) and judged on the navigation-errors fixture (every error and warning).
+
+    it('Resolves the navigation into the host information', async () => {
+      const { passed, host } = await check(_fixture('navigation'));
+      expect(passed).toBe(true);
+      expect(host?.navigation).toEqual([
+        { kind: 'page', label: 'Navigation host', path: '' },
+        {
+          kind: 'group',
+          label: 'Guide',
+          items: [
+            { kind: 'page', label: 'The guide', path: 'docs/guide.md' },
+            { kind: 'page', label: 'API', path: 'docs/api.md', anchor: 'api-reference' },
+          ],
+        },
+        {
+          kind: 'group',
+          label: 'Examples',
+          items: [
+            { kind: 'page', label: 'Three first', path: 'examples/three/README.md' },
+            { kind: 'page', label: 'One', path: 'examples/one/README.md' },
+            { kind: 'page', label: 'Two', path: 'examples/two/README.md' },
+            { kind: 'group', label: 'More', items: [{ kind: 'page', label: 'LICENSE', path: 'LICENSE' }] },
+          ],
+        },
+        { kind: 'page', label: 'Contributing', path: 'CONTRIBUTING.md' },
+        { kind: 'url', label: 'npm', url: 'https://www.npmjs.com/package/navigation-host' },
+      ]);
+    });
+
+    it('Gives each Markdown documentation file its first heading', async () => {
+      const { host } = await check(_fixture('navigation'));
+      // docs/api.md's first heading is a second-level one, and LICENSE isn't Markdown
+      expect(Object.fromEntries(host!.documentation.map(({ path, heading }) => [path, heading]))).toMatchObject({
+        'docs/api.md': 'API reference',
+        'docs/guide.md': 'The guide',
+        LICENSE: undefined,
+      });
+    });
+
+    it('Warns about the documentation files the navigation leaves out', async () => {
+      const { issues } = await check(_fixture('navigation'));
+      expect(issues).toEqual([
+        { severity: 'warning', message: 'Not listed in showroom.json\'s "navigation", so the navigation leaves it out', path: 'notes/hidden.md' },
+      ]);
+    });
+
+    it('Leaves the navigation out of the host information without one', async () => {
+      const { host } = await check(_fixture('minimal'));
+      expect(host).not.toHaveProperty('navigation');
+    });
+
+    it("Reports the navigation's errors and warnings", async () => {
+      const { passed, issues } = await check(_fixture('navigation-errors'));
+      expect(passed).toBe(false);
+      const left = 'Not listed in showroom.json\'s "navigation", so the navigation leaves it out';
+      const unmatched = "matches no documentation file the navigation doesn't already list";
+      expect(issues).toEqual([
+        { severity: 'error', message: '"navigation" item 1: "docs/missing.md" is not a documentation file', path: 'showroom.json' },
+        { severity: 'warning', message: '"navigation" item 2: "docs/a.md" has no heading "#nowhere"', path: 'showroom.json' },
+        { severity: 'warning', message: '"navigation" item 3: "docs/a.md" is listed more than once', path: 'showroom.json' },
+        { severity: 'warning', message: `"navigation" item 4: "guides/*.md" ${unmatched}`, path: 'showroom.json' },
+        { severity: 'warning', message: `"navigation" item 5.1: "docs/a*.md" ${unmatched}`, path: 'showroom.json' },
+        { severity: 'warning', message: '"navigation" item 6: "/" has no heading "#usage"', path: 'showroom.json' },
+        { severity: 'warning', message: left, path: 'LICENSE' },
+        { severity: 'warning', message: left, path: 'docs/b.md' },
+      ]);
     });
   });
 });

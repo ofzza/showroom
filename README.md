@@ -17,6 +17,7 @@ Jump to section:
   - [Configuration: `showroom.json`](#configuration-showroomjson)
   - [Patterns](#patterns)
   - [Documentation files](#documentation-files)
+  - [Navigation](#navigation)
   - [Stack adapters](#stack-adapters)
   - [Showcases](#showcases)
   - [Custom showcase adapters (experimental)](#custom-showcase-adapters-experimental)
@@ -79,6 +80,7 @@ Every host repository needs a `showroom.json` file in its root. Without it, `sho
 | `documentation`          | no       | `[]`                | [Patterns](#patterns) of documentation files, appended to the built-in ones and the stack adapter's.                                                                                                                                                                                    |
 | `customShowcaseAdapters` | no       | `{}`                | Experimental: [custom showcase adapters](#custom-showcase-adapters-experimental), as `{ "<name>": "<path>" }`.                                                                                                                                                                          |
 | `showcaseViews`          | no       | `{}`                | Default [showcase views](#showcase-views) by showcase adapter, in place of the showcase adapter's own, as `{ "<adapter>": "<view>" }` or `{ "<adapter>": ["<view>", "<view>"] }`. A name that is neither a built-in showcase adapter's nor one of `customShowcaseAdapters` is an error. |
+| `navigation`             | no       | the default one     | The showroom's [navigation](#navigation): its pages and groups, in their order, in place of the default one.                                                                                                                                                                            |
 
 Any other key is an error, which catches typos.
 
@@ -101,6 +103,34 @@ Ignored files are left out of everything: the documentation files and the code f
 - `LICENSE` (or `LICENCE`) and `CONTRIBUTE` (or `CONTRIBUTING`) in the host repository's root.
 
 The stack adapter's and the configuration's `documentation` patterns can add more files, or remove these with `!` (e.g. `!README.txt`). If one folder holds several files of the same kind (e.g. `README.md` and `README.txt`), `showroom` keeps one of them, preferring `.md`, then no extension, then `.txt`, and reports a warning.
+
+## Navigation
+
+The showroom's navigation lists its pages. Without `navigation` in `showroom.json`, it is the default one: `README` (the home page), `CONTRIBUTING` and `LICENSE` first, whatever the root files' actual names (e.g. `CONTRIBUTE.md`, `LICENCE.txt`), then every other documentation file, in path order, labelled by its first heading (of any level, as plain text), or by its path when it has none, or when another item has the same label. Each item shows its documentation file's path as its tooltip.
+
+With `navigation`, the showroom shows yours instead: a list of items, each a page or a group of items.
+
+```json
+{
+  "stack": "typescript",
+  "navigation": [
+    { "path": "/" },
+    { "title": "Guide", "items": [{ "path": "docs/guide.md" }, { "title": "Installing", "path": "docs/guide.md#install" }] },
+    { "title": "Examples", "items": [{ "title": "The first one", "path": "examples/first/README.md" }, { "path": "examples/*/README.md" }] },
+    { "title": "npm", "path": "https://www.npmjs.com/package/my-library" },
+    { "title": "License", "path": "LICENSE.md" }
+  ]
+}
+```
+
+- A **page** has a `path`, and an optional `title`, its label; without one, it is labelled by its documentation file's first heading, or its path when it has none. Its `path` is one of:
+  - a documentation file's path, relative to the host repository's root, matched as the showroom's addresses are (regardless of case, a leading `./` dropped), optionally followed by `#<heading id>` to open the page at that heading (the ids are the ones GitHub gives headings);
+  - `/`, the home page, as is the root `README`'s path; without a `title`, it is labelled by the root `README`'s first heading, or else the project's name;
+  - an absolute URL (e.g. `https://…`), opened in a new tab; it needs a `title`;
+  - a [pattern](#patterns), e.g. `examples/*/README.md` (a path holding `*`, `?` or `[`), standing for a page per documentation file it matches, in path order, each labelled by its first heading (a pattern takes no `title`). It skips the files the navigation lists anywhere else by their path, and the files an earlier pattern took, so it means "the rest of these".
+- A **group** has a `title`, its caption, and `items`, a non-empty list of items, groups included, to any depth. Each group starts expanded, and its caption collapses and expands it; the group holding the page shown expands again whenever that page changes.
+
+A documentation file the navigation doesn't list is left out of it, but its page still opens from a link or by its address, with no item marked as the current one; `showroom check` warns about each such file. A path that leads to no documentation file is an error; a pattern that matches no documentation file the navigation doesn't already list, a documentation file listed more than once (the first item is marked as the current one), and an anchor that leads to no heading of its file are warnings. An invalid item (e.g. both a `path` and `items`, or a pattern with a `title`) is an error naming its position, e.g. `"navigation" item 2.1` for the first item of the second.
 
 ## Stack adapters
 
@@ -529,14 +559,16 @@ $ npx showroom check [--root <dir>] [--out-dir <dir>] [--showcases] [--quiet]
 
 `--showcases` also builds every showcase, as `showroom build` does, and throws the result away, once the rest of the check finds no errors. A showcase that doesn't build, or whose checks find errors, is an error, naming the showcase and its entry point, then the check, if it belongs to one (e.g. `error: README.md:16: Showcase README.md#2 (README.md:14): type check: <message>`), placed where the issue is. A build's warnings are reported the same way, as warnings. Without it, `check` builds nothing, so it stays fast, and works without the host repository's dependencies installed; run `check --showcases` in CI to catch showcases that no longer build.
 
-Errors are: a missing or invalid `showroom.json`, an unknown `stack`, project information that can't be read, a source root that doesn't exist or is outside the host repository, an output folder that is the host repository's root or outside it, a [broken showcase](#showcases), and a [custom showcase adapter](#custom-showcase-adapters-experimental) that doesn't load. Warnings are: several documentation files of the same kind in one folder, broken links and images, and [linked files](#linked-files) that aren't copied (in the output folder, or outside the host repository through a symbolic link). A link (or reference definition, or image) in a Markdown documentation file is broken when its relative target, URL-decoded and without its query and fragment, leads outside the host repository, or to nothing on disk; links to fragments only, and absolute URLs, are not checked.
+Errors are: a missing or invalid `showroom.json`, an unknown `stack`, a [navigation](#navigation) path that leads to no documentation file, project information that can't be read, a source root that doesn't exist or is outside the host repository, an output folder that is the host repository's root or outside it, a [broken showcase](#showcases), and a [custom showcase adapter](#custom-showcase-adapters-experimental) that doesn't load. Warnings are: several documentation files of the same kind in one folder, documentation files the [navigation](#navigation) leaves out (and its other warnings), broken links and images, and [linked files](#linked-files) that aren't copied (in the output folder, or outside the host repository through a symbolic link). A link (or reference definition, or image) in a Markdown documentation file is broken when its relative target, URL-decoded and without its query and fragment, leads outside the host repository, or to nothing on disk; links to fragments only, and absolute URLs, are not checked.
 
 The host information has this shape (types `HostInformation`, `ProjectInformation`, `DocumentationFile`, `Showcase`, `VirtualFile` and `LinkedFile`):
 
 ````json
 {
   "project": { "name": "my-library", "version": "1.0.0" },
-  "documentation": [{ "path": "README.md", "kind": "readme", "extension": ".md", "content": "# My library\n\n```html showcase\n<p>Hi</p>\n```\n" }],
+  "documentation": [
+    { "path": "README.md", "kind": "readme", "extension": ".md", "content": "# My library\n\n```html showcase\n<p>Hi</p>\n```\n", "heading": "My library" }
+  ],
   "code": ["src/index.ts"],
   "showcases": [
     {
@@ -555,11 +587,12 @@ The host information has this shape (types `HostInformation`, `ProjectInformatio
   "virtualFiles": [
     { "path": "README.showcase-1.html", "named": false, "showcase": "README.md#1", "content": "<p>Hi</p>", "documentation": "README.md", "line": 3 }
   ],
-  "linkedFiles": [{ "path": "src/index.ts", "size": 1024, "text": true }]
+  "linkedFiles": [{ "path": "src/index.ts", "size": 1024, "text": true }],
+  "navigation": [{ "kind": "page", "label": "My library", "path": "" }]
 }
 ````
 
-Documentation files have a `kind` of `readme`, `contribute`, `license`, or `other` for the files the `documentation` patterns add. A showcase has an `id` (its documentation file and its position there), the `line` and character `offset` of its entry point (the code block, or the link), its `kind` (`code-block` or `link`), how it is shown (`display`: `block`, or `inline` for a linked showcase without the `block` key), its showcase `adapter`, its `options` as the showcase adapter validated them (left out when there are none), the path of its `entry` point (a virtual file, or the linked file), the paths of its included files (`include`, in the marker's order, without its keywords; empty when it has none), and its `tabs` in their order (`{ "kind": "source" }`, `{ "kind": "markdown" }`, or `{ "kind": "file", "path": … }` for an included file). A virtual file has its `path`, whether `file=` `named` it (or its name was generated), the `showcase` whose entry point it is (its `id`; left out for a virtual file with no showcase adapter), its `content`, and the `documentation` file and `line` of its code block. A linked file has its `path`, its `size` in bytes, and whether it is `text` (UTF-8 with no NUL byte, and no larger than 1 MB, so the showroom shows it in the showcase sidebar). Paths are POSIX-style and relative to the host repository's root. Documentation files and linked files are sorted by path, showcases and virtual files by documentation file and line.
+Documentation files have a `kind` of `readme`, `contribute`, `license`, or `other` for the files the `documentation` patterns add, and a Markdown one its first `heading` (left out when it has none). A showcase has an `id` (its documentation file and its position there), the `line` and character `offset` of its entry point (the code block, or the link), its `kind` (`code-block` or `link`), how it is shown (`display`: `block`, or `inline` for a linked showcase without the `block` key), its showcase `adapter`, its `options` as the showcase adapter validated them (left out when there are none), the path of its `entry` point (a virtual file, or the linked file), the paths of its included files (`include`, in the marker's order, without its keywords; empty when it has none), and its `tabs` in their order (`{ "kind": "source" }`, `{ "kind": "markdown" }`, or `{ "kind": "file", "path": … }` for an included file). A virtual file has its `path`, whether `file=` `named` it (or its name was generated), the `showcase` whose entry point it is (its `id`; left out for a virtual file with no showcase adapter), its `content`, and the `documentation` file and `line` of its code block. A linked file has its `path`, its `size` in bytes, and whether it is `text` (UTF-8 with no NUL byte, and no larger than 1 MB, so the showroom shows it in the showcase sidebar). Paths are POSIX-style and relative to the host repository's root. Documentation files and linked files are sorted by path, showcases and virtual files by documentation file and line. `navigation` is there only when `showroom.json` configures one, resolved: each item a `page` (its `label`, its documentation file's `path`, empty for the home page, and its `anchor`, if any), a `url` (its `label` and `url`), or a `group` (its `label` and `items`), with patterns expanded.
 
 ## `showroom serve`
 
@@ -577,7 +610,7 @@ $ npx showroom serve [--root <dir>] [--port <port>] [--out-dir <dir>]
 - A changed [custom showcase adapter](#custom-showcase-adapters-experimental) module is loaded again, but the modules it imports aren't: restart `serve` after changing them.
 - Files the `ignore` patterns skip (e.g. under `dist/`) aren't watched, except the files the latest showcase builds read (e.g. the host's own package's `dist/`, which a `ts` showcase imports by the package's name), the custom showcase adapter modules, and the linked files: a change to one checks and builds again, as any change does, so `tsc --watch` running alongside `serve` updates the showcases. While a showcase doesn't build, the files earlier builds read stay watched too, so it recovers once they're back (e.g. after `dist/` is deleted and built again). They never become documentation or code files, and files under `node_modules` or `.git` are never watched.
 
-The showroom has a page per documentation file, its address in the URL's hash (e.g. `#/docs/guide.md`), and a home page with the project information and the root `README` (when the `README` opens with a level-1 heading, that heading is the home page's title, and the project information follows it). The navigation lists `README` (the home page), `CONTRIBUTING` and `LICENSE` first, whatever the root files' actual names (e.g. `CONTRIBUTE.md`, `LICENCE.txt`), then every other documentation file by its path. `.md` files are rendered as GitHub-flavoured Markdown, with syntax-highlighted code blocks and the same heading ids as on GitHub; other documentation files are shown as plain text. The navigation stays in view as a page scrolls; on a narrow (phone) viewport, below 768 px, it opens from the header's menu button instead. In Markdown:
+The showroom has a page per documentation file, its address in the URL's hash (e.g. `#/docs/guide.md`), and a home page with the project information and the root `README` (when the `README` opens with a level-1 heading, that heading is the home page's title, and the project information follows it). The [navigation](#navigation) lists them, the default one or the one `showroom.json` configures. `.md` files are rendered as GitHub-flavoured Markdown, with syntax-highlighted code blocks and the same heading ids as on GitHub; other documentation files are shown as plain text. The navigation stays in view as a page scrolls; on a narrow (phone) viewport, below 768 px, it opens from the header's menu button instead. In Markdown:
 
 - every code block is syntax highlighted with line numbers (which are never copied with the code), whatever its length, and has a copy button (shown only where the browser allows writing to the clipboard: over HTTPS, or on `localhost`);
 - relative links to documentation files (or to folders whose `README` is one) open their page; relative links to [linked files](#linked-files), marked with a "code" icon before their text, open them in the showcase sidebar, or in a new tab; links to [linked showcases shown inline](#showcases), marked with a "play" icon, open them in the showcase sidebar; other relative links (e.g. to a folder with no `README`, or a missing file) are shown as plain text;
@@ -681,7 +714,7 @@ console.log(getStackAdapterNames(), project, errors);
 - `getStackAdapter(name)` / `getStackAdapterNames()`: look up the built-in stack adapters, which implement the `StackAdapter` interface; `TypeScriptStackAdapter` is the `typescript` one, and `DotNetStackAdapter` the `dotnet` one. `readProject(root, project?)` reads the project information, from the file `project` names (relative to `root`) or the stack adapter's default.
 - `main(args, output?)`: runs the command line with the given arguments, resolving to its exit code; `USAGE` is its help text.
 - Constants: `CONFIGURATION_FILE_NAME` (`showroom.json`), `DEFAULT_OUT_DIR` (`./showroom`), and `BUILT_IN_DOCUMENTATION` (the built-in documentation patterns).
-- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase` (with its `views` and `tabs`), `ShowcaseTab` (`source`, `markdown`, or an included `file`), `ShowcaseKind`, `ShowcaseDisplay`, `ShowcaseView` (`markdown`, `source`, `demo`, `console` or `none`), `VirtualFile` (with its fence's `offset`, and its `views` when it has no showcase adapter), `LinkedFile`, `Configuration`, `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.
+- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase` (with its `views` and `tabs`), `ShowcaseTab` (`source`, `markdown`, or an included `file`), `ShowcaseKind`, `ShowcaseDisplay`, `ShowcaseView` (`markdown`, `source`, `demo`, `console` or `none`), `VirtualFile` (with its fence's `offset`, and its `views` when it has no showcase adapter), `LinkedFile`, `NavigationItem` (the resolved navigation, `HostInformation.navigation`), `Configuration`, `NavigationEntry` (an item of its `navigation`), `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.
 - Experimental types, for [custom showcase adapters](#custom-showcase-adapters-experimental): `ShowcaseAdapter`, `ShowcaseValidation`, `ShowcaseHostCheck`, `ShowcaseBuildRequest`, `ShowcaseBuildResult`, `ShowcaseBuildFile` and `ShowcaseBuildIssue`.
 
 # Development

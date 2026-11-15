@@ -33,6 +33,7 @@ describe('configuration', () => {
         documentation: ['docs/*.md'],
         customShowcaseAdapters: { mine: './adapters/mine.js' },
         showcaseViews: { ts: 'source', mine: ['markdown', 'demo'], html: 'none' },
+        navigation: [{ path: '/' }],
       };
       expect(validateConfiguration(value)).toEqual({ configuration: value, errors: [] });
     });
@@ -104,6 +105,57 @@ describe('configuration', () => {
         'showroom.json: "showcaseViews" of "html": unknown view "Demo"; the views are: markdown, source, demo, console, none',
         'showroom.json: "showcaseViews" of "react": repeated view "demo"',
         'showroom.json: "showcaseViews" of "x": the view "none" can\'t be combined with other views',
+      ]);
+    });
+  });
+
+  describe('validateConfiguration() of the navigation', () => {
+    // The navigation's items, checked recursively and named by their position; whether their paths lead to documentation files is check's to say.
+
+    it('Accepts pages, URLs, patterns and nested groups', () => {
+      const navigation = [
+        { path: '/' },
+        { title: 'Guide', path: 'docs/guide.md#install' },
+        { title: 'npm', path: 'https://www.npmjs.com/package/x' },
+        { title: 'Examples', items: [{ path: 'examples/*/README.md' }, { title: 'Deeper', items: [{ path: './docs/deep.md' }] }] },
+      ];
+      expect(validateConfiguration({ stack: 'typescript', navigation })).toEqual({ configuration: { stack: 'typescript', navigation }, errors: [] });
+    });
+
+    it('Rejects a navigation that is not an array', () => {
+      expect(validateConfiguration({ stack: 'typescript', navigation: { path: '/' } }).errors).toEqual([
+        'showroom.json: "navigation" must be an array of navigation items',
+      ]);
+    });
+
+    it('Rejects invalid items, named by their position', () => {
+      const navigation = [
+        'README.md',
+        { path: 'a.md', link: true },
+        { title: '', path: 'a.md' },
+        { title: 'Both', path: 'a.md', items: [{ path: 'b.md' }] },
+        { title: 'Empty', items: [] },
+        { items: [{ path: 'b.md' }] },
+        { title: 'Neither' },
+        { path: ' ' },
+        { path: 'https://example.com' },
+        { title: 'Labelled', path: 'docs/*.md' },
+        { path: '!docs/a.md' },
+        { title: 'Nested', items: [{ path: 'a.md' }, { title: 'Deeper', items: [{ path: 3 }] }] },
+      ];
+      expect(validateConfiguration({ stack: 'typescript', navigation }).errors).toEqual([
+        'showroom.json: "navigation" item 1: must be an object',
+        'showroom.json: "navigation" item 2: unknown key "link"',
+        'showroom.json: "navigation" item 3: "title" must be a non-empty string',
+        'showroom.json: "navigation" item 4: a page ("path") or a group ("items"), not both',
+        'showroom.json: "navigation" item 5: "items" must be a non-empty array of navigation items',
+        'showroom.json: "navigation" item 6: a group needs a "title"',
+        'showroom.json: "navigation" item 7: needs a "path" (a page) or "items" (a group)',
+        'showroom.json: "navigation" item 8: "path" must be a non-empty string',
+        'showroom.json: "navigation" item 9: a URL needs a "title"',
+        'showroom.json: "navigation" item 10: a pattern takes no "title": each documentation file it matches is labelled by its first heading',
+        'showroom.json: "navigation" item 11: "path" can\'t be negated ("!")',
+        'showroom.json: "navigation" item 12.2.1: "path" must be a non-empty string',
       ]);
     });
   });

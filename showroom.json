@@ -3,5 +3,20 @@
   "ignore": [".workflow/*", "test/*"],
   "customShowcaseAdapters": {
     "number-table": "./examples/number-table/number-table.js"
-  }
+  },
+  "navigation": [
+    { "path": "/" },
+    {
+      "title": "Examples",
+      "items": [
+        { "title": "html", "path": "examples/html/README.md" },
+        { "title": "ts", "path": "examples/ts/README.md" },
+        { "title": "react", "path": "examples/react/README.md" },
+        { "title": "angular", "path": "examples/angular/README.md" },
+        { "title": "number-table", "path": "examples/number-table/README.md" }
+      ]
+    },
+    { "title": "Contributing", "path": "CONTRIBUTE.md" },
+    { "title": "License", "path": "LICENSE.md" }
+  ]
 }

@@ -18,9 +18,9 @@ import {
   mergeClasses,
   tokens,
 } from '@fluentui/react-components';
-import { Dismiss24Regular, Navigation24Regular } from '@fluentui/react-icons';
+import { ChevronDown16Regular, ChevronRight16Regular, Dismiss24Regular, Navigation24Regular } from '@fluentui/react-icons';
 import type { ProjectInformation } from '../../host/index.js';
-import type { NavigationItem } from '../navigation/index.js';
+import { isNavigationGroupExpanded, type ShownNavigationItem } from '../navigation/index.js';
 import { formatRoute } from '../routing/index.js';
 import type { ThemeName } from '../theme/index.js';
 
@@ -92,6 +92,10 @@ const _useStyles = makeStyles({
   // Stretched to the page's height, but at most the viewport's (FluentUI's own cap is `100vh`), and kept in view while the page scrolls
   drawer: { position: 'sticky', top: '0', maxHeight: '100dvh', [NARROW_VIEWPORT]: { display: 'none' } },
   navigation: { listStyleType: 'none', margin: '0', padding: '0', display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS },
+  // A group's items, indented under its caption
+  group: { paddingLeft: tokens.spacingHorizontalL, paddingTop: tokens.spacingVerticalS },
+  // A group's caption: a button collapsing and expanding it, as wide as the navigation, its chevron before its text
+  caption: { justifyContent: 'flex-start', minWidth: '0', padding: '0', fontWeight: tokens.fontWeightSemibold, textAlign: 'left' },
   current: { fontWeight: tokens.fontWeightSemibold },
   main: {
     flexGrow: 1,
@@ -107,13 +111,13 @@ const _useStyles = makeStyles({
 // #region Navigation
 
 /**
- * Represents the properties of the navigation
+ * Represents the properties of the navigation, and of a list of its items
  */
 interface _NavigationProps {
   /**
    * Navigation items
    */
-  navigation: NavigationItem[];
+  navigation: ShownNavigationItem[];
   /**
    * URL hash of the page shown, or undefined if no item is
    */
@@ -125,29 +129,94 @@ interface _NavigationProps {
 }
 
 /**
- * Renders the navigation's list of items, with the current page's item marked
+ * Renders the navigation: its items, with the current page's item marked, and its groups collapsible
  * @param props Properties of the component
  * @returns The rendered navigation
  */
-function _Navigation({ navigation, current, onNavigate }: _NavigationProps): ReactNode {
-  const styles = _useStyles();
+function _Navigation(props: _NavigationProps): ReactNode {
   return (
     <nav aria-label="Documentation">
-      <ul className={styles.navigation}>
-        {navigation.map((item) => (
-          <li key={item.href}>
+      <_NavigationList {...props} />
+    </nav>
+  );
+}
+
+/**
+ * Renders a list of navigation items
+ * @param props Properties of the component, with the class of the list
+ * @returns The rendered list
+ */
+function _NavigationList({ navigation, current, onNavigate, className }: _NavigationProps & { className?: string }): ReactNode {
+  const styles = _useStyles();
+  return (
+    <ul className={mergeClasses(styles.navigation, className)}>
+      {navigation.map((item, index) => (
+        <li key={`${index}:${item.label}`}>
+          {item.kind === 'group' ? (
+            <NavigationGroup group={item} current={current} onNavigate={onNavigate} />
+          ) : item.kind === 'url' ? (
+            <Link href={item.href} target="_blank" rel="noopener noreferrer" title={item.href} onClick={onNavigate}>
+              {item.label}
+            </Link>
+          ) : (
             <Link
               href={item.href}
-              className={mergeClasses(item.href === current && styles.current)}
-              aria-current={item.href === current ? 'page' : undefined}
+              title={item.path}
+              className={mergeClasses(item.route === current && styles.current)}
+              aria-current={item.route === current ? 'page' : undefined}
               onClick={onNavigate}
             >
               {item.label}
             </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Represents the properties of a navigation group
+ */
+export interface NavigationGroupProps {
+  /**
+   * The group
+   */
+  group: Extract<ShownNavigationItem, { kind: 'group' }>;
+  /**
+   * URL hash of the page shown, or undefined if no item is
+   */
+  current?: string;
+  /**
+   * Called when an item is chosen
+   */
+  onNavigate?: () => void;
+}
+
+/**
+ * Renders a navigation group: its caption, a button collapsing and expanding it, and its items, indented. It starts expanded, and expands again
+ * whenever the page shown changes to one of its items; collapsing it keeps it collapsed until then
+ * @param props Properties of the component
+ * @returns The rendered group
+ */
+export function NavigationGroup({ group, current, onNavigate }: NavigationGroupProps): ReactNode {
+  const styles = _useStyles();
+  // The page shown when the group was collapsed, or null while it is expanded (no effect needed: it is derived on rendering)
+  const [collapsedOn, setCollapsedOn] = useState<{ page?: string } | null>(null);
+  const expanded = isNavigationGroupExpanded(group, collapsedOn, current);
+  return (
+    <>
+      <Button
+        appearance="transparent"
+        className={styles.caption}
+        icon={expanded ? <ChevronDown16Regular /> : <ChevronRight16Regular />}
+        aria-expanded={expanded}
+        onClick={() => setCollapsedOn(expanded ? { page: current } : null)}
+      >
+        {group.label}
+      </Button>
+      {expanded && <_NavigationList navigation={group.items} current={current} onNavigate={onNavigate} className={styles.group} />}
+    </>
   );
 }
 
@@ -166,7 +235,7 @@ export interface LayoutProps {
   /**
    * Navigation items
    */
-  navigation: NavigationItem[];
+  navigation: ShownNavigationItem[];
   /**
    * URL hash of the page shown, to mark its navigation item as the current one, or undefined if no item is
    */

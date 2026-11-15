@@ -8,6 +8,7 @@ import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-comp
 import type { DocumentationFile, LinkedFile } from '../../host/index.js';
 import type { ShownShowcase } from '../host/index.js';
 import { COLOURED_TOKEN_CLASSES, UNCOLOURED_TOKEN_CLASSES } from '../code/index.js';
+import { scanMarkdown } from '../../markdown/index.js';
 import { Markdown, UNRESOLVED_LINK_TOOLTIP } from './index.js';
 
 /**
@@ -54,6 +55,20 @@ describe('app/markdown', () => {
     expect(html).toContain('<h1 id="getting-started">');
     expect(html).toContain('<h2 id="install--run">');
     expect(html).toContain('<h2 id="install--run-1">');
+  });
+
+  it('Gives headings the ids the Markdown scan gives them', () => {
+    // check judges the navigation's anchors by the scan's ids, so they must be the ones rehype-slug renders
+    const content = [
+      '# The `showroom` [*command*](./cli.md) ![logo](./logo.png)<br> **line**',
+      'Setext & _more_\n---',
+      '## Usage',
+      '## Usage',
+      '### Ünïcode — dashes',
+    ].join('\n\n');
+    const ids = [..._render(content).matchAll(/<h[1-6] id="([^"]*)"/g)].map(([, id]) => id);
+    expect(ids).toHaveLength(5);
+    expect(ids).toEqual(scanMarkdown('docs/guide.md', content).headings.map(({ id }) => id));
   });
 
   it('Highlights fenced code blocks, but not inline code', () => {

@@ -57,7 +57,7 @@ export function App({ data, issues = _NO_ISSUES, route, theme: initialTheme }: A
   const hash = route ?? locationHash;
   const [theme, setTheme] = useState<ThemeName>(() => initialTheme ?? getInitialTheme());
   const resolved = useMemo(() => resolveRoute(parseRoute(hash), data.documentation), [hash, data.documentation]);
-  const navigation = useMemo(() => getNavigationItems(data.documentation), [data.documentation]);
+  const navigation = useMemo(() => getNavigationItems(data.documentation, data.navigation), [data.documentation, data.navigation]);
   const redirect = resolved.page === 'not-found' ? undefined : resolved.redirect;
   const anchor = resolved.page === 'not-found' ? undefined : resolved.anchor;
   useBodyStyle(theme);

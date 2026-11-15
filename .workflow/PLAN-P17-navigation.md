@@ -1,6 +1,6 @@
 # _`P17`_ The navigation
 
-approved 2026-11-16 (option chosen: "Approve and commit (Rec.)")
+implemented 2026-11-16 (option chosen: "Approve and commit (Rec.)"); approved 2026-11-16 (option chosen: "Approve and commit (Rec.)")
 
 Implements _`S13`_ (SPEC-S13-navigation.md): `showroom.json`'s `navigation` (_`D630`_–_`D638`_, _`D640`_) and the default navigation's labels (_`D639`_). Picks up _`L13`_ (PLAN.md). One segment, no spike: configuration, a Markdown scan of headings, resolution in `check()`, and the showroom's navigation.
 
@@ -20,13 +20,16 @@ Implements _`S13`_ (SPEC-S13-navigation.md): `showroom.json`'s `navigation` (_`D
 - _`D646`_ (`live`; Q5, option chosen: "(a) As a route"; rejected: exact paths): **A page's `path` is matched as a route is**: case-insensitively (the showroom's documentation file lookup), with a leading `./` dropped.
 - _`D647`_ (`live`; Q6, option chosen: "(a) As listed"; rejected: exporting only the configuration's type): **Exports**: `NavigationEntry` (the configuration's item: `{ title?, path }` or `{ title, items }`) and `Configuration.navigation?`; `NavigationItem` (a resolved item: a page `{ kind: 'page', label, path, anchor? }`, the home page's `path` empty; a URL `{ kind: 'url', label, url }`; a group `{ kind: 'group', label, items }`) and `HostInformation.navigation?`; `DocumentationFile.heading?`, its first heading (_`D645`_). The showroom's own internal `NavigationItem` (`src/app/navigation/`) is renamed `ShownNavigationItem`.
 - _`D648`_ (`live`; Q7, option chosen: "(a) At the file"; rejected: at `showroom.json`): **A documentation file the navigation doesn't list is warned about at the file itself** ("not in the navigation"); the navigation's other issues (_`D637`_) point at `showroom.json`.
-- _`D649`_ (`live`; Q8, option chosen: "(b) Own navigation"; rejected: keeping the default navigation, the agent's recommendation): **This repository's `showroom.json` gets a `navigation` of its own**, listing every documentation file (its check must pass without issues), proposed as:
+- _`D649`_ (`live`, refined by _`D650`_; Q8, option chosen: "(b) Own navigation"; rejected: keeping the default navigation, the agent's recommendation): **This repository's `showroom.json` gets a `navigation` of its own**, listing every documentation file (its check must pass without issues), proposed as:
   - `/` (labelled by `README.md`'s first heading, `showroom`);
   - a group `Examples`: `html`, `ts`, `react`, `angular`, `number-table`, each titled by its showcase adapter's name (their first headings are their mock projects' names);
   - a group `Contributing`: `CONTRIBUTE.md` ("Contributing"), `PUBLISH.md` ("Publishing"), `AGENTS.md` ("Agents"), `CLAUDE.md` ("Claude"), `WORKFLOW.md` ("Workflow"), `WORKFLOW.custom.md` ("Workflow customizations");
   - `LICENSE.md` ("License").
 
   The default navigation stays covered by the unit tests and by the fixtures `check()` and `build()` run on.
+
+- _`D650`_ (`live`; refines _`D649`_; found implementing step 6): **This repository's navigation lists only its documentation files**: `/`, the group `Examples`, `CONTRIBUTE.md` ("Contributing") and `LICENSE.md` ("License"); `PUBLISH.md`, `AGENTS.md`, `CLAUDE.md` and the `WORKFLOW` files aren't documentation files of this repository (no pattern adds them), so listing them is an error (_`D637`_).
+- _`D651`_ (`live`; refines _`D633`_, _`D639`_ (SPEC-S13-navigation.md), _`D645`_; the agent's additions at the checkpoint, option chosen: "Approve and commit (Rec.)"): **Details settled while implementing**: a configured navigation's pages show their documentation file's path as their tooltip too, and a URL its URL; an anchor on a pattern applies to each page it matches; a file whose first heading is empty is labelled by its first non-empty one.
 
 ## Steps
 

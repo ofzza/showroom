@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ShowcaseView } from '../host/index.js';
 import { checkShowcaseViews } from '../markdown/index.js';
+import { isNavigationGlob, isNavigationUrl } from '../navigation/index.js';
 
 // #region Configuration
 
@@ -56,7 +57,18 @@ export interface Configuration {
    * for the showcase adapter's showcases shown as blocks whose marker has no `view=`, in place of the showcase adapter's own default
    */
   showcaseViews?: Record<string, ShowcaseView | ShowcaseView[]>;
+  /**
+   * The showroom's navigation, in place of the default one: its items, in their order; documentation files it doesn't list are left out of it
+   */
+  navigation?: NavigationEntry[];
 }
+
+/**
+ * Represents an item of `showroom.json`'s `navigation`: a page, by its `path` (a documentation file's path, optionally followed by
+ * `#<heading id>`; `/` for the home page; an absolute URL; or a `.gitignore`-style pattern standing for every documentation file it matches),
+ * labelled by its `title` or else by its documentation file's first heading; or a group of items, captioned by its `title`
+ */
+export type NavigationEntry = { title?: string; path: string; items?: undefined } | { title: string; items: NavigationEntry[]; path?: undefined };
 
 /**
  * Default output directory of the showroom
@@ -89,6 +101,7 @@ const _KEYS: Record<keyof Configuration, (value: unknown) => boolean> = {
     value !== null &&
     !Array.isArray(value) &&
     Object.values(value).every((item) => typeof item === 'string' || _isStringArray(item)),
+  navigation: Array.isArray,
 };
 
 /**
@@ -104,6 +117,7 @@ const _EXPECTED: Record<keyof Configuration, string> = {
   documentation: 'an array of strings',
   customShowcaseAdapters: 'an object mapping showcase adapter names to paths (non-empty strings)',
   showcaseViews: 'an object mapping showcase adapter names to a view or an array of views',
+  navigation: 'an array of navigation items',
 };
 
 /**
@@ -124,6 +138,47 @@ function _isStringRecord(value: unknown): boolean {
   return (
     typeof value === 'object' && value !== null && !Array.isArray(value) && Object.values(value).every((item) => typeof item === 'string' && item.length > 0)
   );
+}
+
+/**
+ * Keys a navigation item may hold
+ */
+const _NAVIGATION_KEYS = ['title', 'path', 'items'];
+
+/**
+ * Checks the items of a navigation, and of its groups, each named by its position (e.g. `"navigation" item 2.1`, the first item of the second)
+ * @param items Items to check
+ * @param position Position of the group holding them, or an empty string for the navigation itself
+ * @returns The problems found, in the items' order
+ */
+function _checkNavigation(items: unknown[], position = ''): string[] {
+  const problems: string[] = [];
+  items.forEach((item, index) => {
+    const at = `${position}${index + 1}`;
+    const problem = (message: string): void => void problems.push(`"navigation" item ${at}: ${message}`);
+    if (typeof item !== 'object' || item === null || Array.isArray(item)) return problem('must be an object');
+    const record = item as Record<string, unknown>;
+    const unknown = Object.keys(record).filter((key) => !_NAVIGATION_KEYS.includes(key));
+    if (unknown.length) return problem(`unknown key ${unknown.map((key) => `"${key}"`).join(', ')}`);
+    const { title, path, items: children } = record;
+    if (title !== undefined && (typeof title !== 'string' || !title.trim())) return problem('"title" must be a non-empty string');
+    if (path !== undefined && children !== undefined) return problem('a page ("path") or a group ("items"), not both');
+    if (children !== undefined) {
+      if (!Array.isArray(children) || !children.length) return problem('"items" must be a non-empty array of navigation items');
+      if (title === undefined) return problem('a group needs a "title"');
+      return void problems.push(..._checkNavigation(children, `${at}.`));
+    }
+    if (path === undefined) return problem('needs a "path" (a page) or "items" (a group)');
+    if (typeof path !== 'string' || !path.trim()) return problem('"path" must be a non-empty string');
+    if (path.startsWith('!')) {
+      problem('"path" can\'t be negated ("!")');
+    } else if (isNavigationUrl(path)) {
+      if (title === undefined) problem('a URL needs a "title"');
+    } else if (isNavigationGlob(path)) {
+      if (title !== undefined) problem('a pattern takes no "title": each documentation file it matches is labelled by its first heading');
+    }
+  });
+  return problems;
 }
 
 /**
@@ -149,6 +204,8 @@ export function validateConfiguration(value: unknown): ConfigurationResult {
         const problem = checkShowcaseViews(typeof views === 'string' ? [views] : views);
         if (problem) errors.push(`${CONFIGURATION_FILE_NAME}: "showcaseViews" of "${name}": ${problem}`);
       }
+    } else if (key === 'navigation') {
+      errors.push(..._checkNavigation(record[key] as unknown[]).map((problem) => `${CONFIGURATION_FILE_NAME}: ${problem}`));
     }
   }
   if (!('stack' in record)) {

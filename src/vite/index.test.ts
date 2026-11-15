@@ -172,6 +172,11 @@ describe('vite', () => {
     ]);
   });
 
+  it('Gets the shown host information with the navigation showroom.json configures', () => {
+    const navigation = [{ kind: 'page' as const, label: 'Home', path: '' }];
+    expect(getShownHostInformation({ ..._HOST, navigation }).navigation).toEqual(navigation);
+  });
+
   it('Gets the shown showcases with their showcase frames, by URL-encoded relative URLs', () => {
     expect(getShownHostInformation(_HOST, { frames: _FRAMES }).showcases).toEqual([
       {

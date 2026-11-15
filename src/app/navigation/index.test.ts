@@ -3,48 +3,121 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { DocumentationFile } from '../../host/index.js';
-import { getNavigationItems } from './index.js';
+import type { DocumentationFile, NavigationItem } from '../../host/index.js';
+import { getNavigationItems, holdsCurrentItem, isNavigationGroupExpanded, type ShownNavigationItem } from './index.js';
 
 /**
  * Creates a documentation file with empty content
  * @param path Path of the file
  * @param kind Kind of the file
+ * @param heading Its first heading, if it has one
  * @returns The documentation file
  */
-function _file(path: string, kind: DocumentationFile['kind'] = 'other'): DocumentationFile {
-  return { path, kind, extension: '.md', content: '' };
+function _file(path: string, kind: DocumentationFile['kind'] = 'other', heading?: string): DocumentationFile {
+  return { path, kind, extension: '.md', content: '', ...(heading ? { heading } : {}) };
+}
+
+/**
+ * Gets the labels of navigation items, a group's as its label and its items' labels
+ * @param items Navigation items
+ * @returns Their labels
+ */
+function _labels(items: ShownNavigationItem[]): unknown[] {
+  return items.map((item) => (item.kind === 'group' ? [item.label, _labels(item.items)] : item.label));
 }
 
 describe('app/navigation', () => {
-  // Tests getNavigationItems() on hand-made lists of documentation files, sorted by path as check() sorts them.
+  // Tests getNavigationItems() on hand-made lists of documentation files, sorted by path as check() sorts them, and on hand-made resolved
+  // navigations; and the current item and the groups' expansion on hand-made items.
 
-  it('Lists README, CONTRIBUTING and LICENSE first, then every other documentation file by its full path, in order', () => {
-    const documentation = [
-      _file('CONTRIBUTE.md', 'contribute'),
-      _file('README.md', 'readme'),
-      _file('api.md'),
-      _file('docs/README.md', 'readme'),
-      _file('docs/guide.md'),
-      _file('licence.txt', 'license'),
-    ];
-    expect(getNavigationItems(documentation)).toEqual([
-      { label: 'README', href: '#/' },
-      { label: 'CONTRIBUTING', href: '#/CONTRIBUTE.md', path: 'CONTRIBUTE.md' },
-      { label: 'LICENSE', href: '#/licence.txt', path: 'licence.txt' },
-      { label: 'api.md', href: '#/api.md', path: 'api.md' },
-      { label: 'docs/README.md', href: '#/docs/README.md', path: 'docs/README.md' },
-      { label: 'docs/guide.md', href: '#/docs/guide.md', path: 'docs/guide.md' },
-    ]);
+  describe('The default navigation', () => {
+    // Without showroom.json's navigation: README, CONTRIBUTING and LICENSE, then every other documentation file, by its first heading.
+
+    it('Lists README, CONTRIBUTING and LICENSE first, then every other documentation file by its first heading, else its path, in order', () => {
+      const documentation = [
+        _file('CONTRIBUTE.md', 'contribute', 'How to contribute'),
+        _file('README.md', 'readme', 'My library'),
+        _file('api.md', 'other', 'API'),
+        _file('docs/README.md', 'readme'),
+        _file('docs/guide.md', 'other', 'The guide'),
+        _file('licence.txt', 'license'),
+      ];
+      expect(getNavigationItems(documentation)).toEqual([
+        { kind: 'page', label: 'README', href: '#/', route: '#/', path: 'README.md' },
+        { kind: 'page', label: 'CONTRIBUTING', href: '#/CONTRIBUTE.md', route: '#/CONTRIBUTE.md', path: 'CONTRIBUTE.md' },
+        { kind: 'page', label: 'LICENSE', href: '#/licence.txt', route: '#/licence.txt', path: 'licence.txt' },
+        { kind: 'page', label: 'API', href: '#/api.md', route: '#/api.md', path: 'api.md' },
+        { kind: 'page', label: 'docs/README.md', href: '#/docs/README.md', route: '#/docs/README.md', path: 'docs/README.md' },
+        { kind: 'page', label: 'The guide', href: '#/docs/guide.md', route: '#/docs/guide.md', path: 'docs/guide.md' },
+      ]);
+    });
+
+    it('Labels only the root contribute and license files, by kind', () => {
+      // The documentation patterns can add a file of a built-in kind elsewhere (e.g. `docs/LICENSE.md` in test/fixtures/minimal); it keeps its path
+      const documentation = [_file('LICENSE', 'license'), _file('docs/CONTRIBUTING.md', 'contribute'), _file('docs/LICENSE.md', 'license')];
+      expect(_labels(getNavigationItems(documentation))).toEqual(['README', 'LICENSE', 'docs/CONTRIBUTING.md', 'docs/LICENSE.md']);
+    });
+
+    it('Labels by path the files whose heading another item has too', () => {
+      const documentation = [_file('a.md', 'other', 'Usage'), _file('b.md', 'other', 'Usage'), _file('c.md', 'other', 'README'), _file('d.md', 'other', 'D')];
+      expect(_labels(getNavigationItems(documentation))).toEqual(['README', 'a.md', 'b.md', 'c.md', 'D']);
+    });
+
+    it('Labels the home page README even without a root README', () => {
+      expect(getNavigationItems([])).toEqual([{ kind: 'page', label: 'README', href: '#/', route: '#/' }]);
+    });
   });
 
-  it('Labels only the root contribute and license files, by kind', () => {
-    // The documentation patterns can add a file of a built-in kind elsewhere (e.g. `docs/LICENSE.md` in test/fixtures/minimal); it keeps its path
-    const documentation = [_file('LICENSE', 'license'), _file('docs/CONTRIBUTING.md', 'contribute'), _file('docs/LICENSE.md', 'license')];
-    expect(getNavigationItems(documentation).map((item) => item.label)).toEqual(['README', 'LICENSE', 'docs/CONTRIBUTING.md', 'docs/LICENSE.md']);
+  describe('A configured navigation', () => {
+    // showroom.json's navigation, as check resolved it.
+
+    it('Shows pages, anchors, URLs and nested groups', () => {
+      const navigation: NavigationItem[] = [
+        { kind: 'page', label: 'Home', path: '', anchor: 'usage' },
+        { kind: 'group', label: 'Docs', items: [{ kind: 'group', label: 'Deeper', items: [{ kind: 'page', label: 'Guide', path: 'docs/guide.md' }] }] },
+        { kind: 'url', label: 'npm', url: 'https://npmjs.com' },
+      ];
+      expect(getNavigationItems([_file('README.md', 'readme')], navigation)).toEqual([
+        { kind: 'page', label: 'Home', href: '#/#usage', route: '#/', path: 'README.md' },
+        {
+          kind: 'group',
+          label: 'Docs',
+          items: [
+            {
+              kind: 'group',
+              label: 'Deeper',
+              items: [{ kind: 'page', label: 'Guide', href: '#/docs/guide.md', route: '#/docs/guide.md', path: 'docs/guide.md' }],
+            },
+          ],
+        },
+        { kind: 'url', label: 'npm', href: 'https://npmjs.com' },
+      ]);
+    });
   });
 
-  it('Labels the home page README even without a root README', () => {
-    expect(getNavigationItems([])).toEqual([{ label: 'README', href: '#/' }]);
+  describe('Groups', () => {
+    // The current item, and whether a group is expanded.
+
+    const group: ShownNavigationItem = {
+      kind: 'group',
+      label: 'Docs',
+      items: [{ kind: 'group', label: 'Deeper', items: [{ kind: 'page', label: 'Guide', href: '#/a.md#x', route: '#/a.md', path: 'a.md' }] }],
+    };
+
+    it('Finds the current item in nested groups, by route', () => {
+      expect(holdsCurrentItem(group, '#/a.md')).toBe(true);
+      expect(holdsCurrentItem(group, '#/b.md')).toBe(false);
+      expect(holdsCurrentItem(group, undefined)).toBe(false);
+    });
+
+    it('Expands a group until it is collapsed, and again once the page shown changes to one of its items', () => {
+      expect(isNavigationGroupExpanded(group, null, '#/b.md')).toBe(true);
+      // Collapsed on another page: stays collapsed there, and on a page outside it
+      expect(isNavigationGroupExpanded(group, { page: '#/b.md' }, '#/b.md')).toBe(false);
+      expect(isNavigationGroupExpanded(group, { page: '#/b.md' }, '#/c.md')).toBe(false);
+      // Showing one of its pages expands it again; collapsing it there keeps it collapsed until the page shown changes
+      expect(isNavigationGroupExpanded(group, { page: '#/b.md' }, '#/a.md')).toBe(true);
+      expect(isNavigationGroupExpanded(group, { page: '#/a.md' }, '#/a.md')).toBe(false);
+    });
   });
 });

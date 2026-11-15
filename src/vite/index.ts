@@ -121,7 +121,14 @@ export function getShownHostInformation(
       ? [{ path, documentation, offset, views, markdown: getSources(documentation).get(offset) ?? '' }]
       : [],
   );
-  return { project: host.project, documentation: host.documentation, showcases, virtualFiles, linkedFiles: host.linkedFiles };
+  return {
+    project: host.project,
+    documentation: host.documentation,
+    showcases,
+    virtualFiles,
+    linkedFiles: host.linkedFiles,
+    ...(host.navigation ? { navigation: host.navigation } : {}),
+  };
 }
 
 /**
