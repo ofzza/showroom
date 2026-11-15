@@ -31,6 +31,6 @@ Customizing the showroom's navigation from `showroom.json`: titles, grouping, or
 
 ## Open points
 
-- [ ] _`O90`_ (From _`D635`_) How the navigation lists the home page when the host repository has no root `README` (e.g. a reserved `path`), and the home page's label when no `title` is given.
-- [ ] _`O91`_ (From _`D632`_) A glob's syntax: the `documentation` patterns' `.gitignore` style, or plain globs; and whether a glob matches hidden or ignored files (it only ever matches documentation files).
-- [ ] _`O92`_ (From _`D633`_) Which heading counts as the first: the first of any level, or the first `#` heading; and how its Markdown (code spans, emphasis, links) is turned into a label.
+- [x] _`O90`_ (resolved by _`D643`_ (PLAN-P17-navigation.md)) (From _`D635`_) How the navigation lists the home page when the host repository has no root `README` (e.g. a reserved `path`), and the home page's label when no `title` is given.
+- [x] _`O91`_ (resolved by _`D644`_ (PLAN-P17-navigation.md)) (From _`D632`_) A glob's syntax: the `documentation` patterns' `.gitignore` style, or plain globs; and whether a glob matches hidden or ignored files (it only ever matches documentation files).
+- [x] _`O92`_ (resolved by _`D645`_ (PLAN-P17-navigation.md)) (From _`D633`_) Which heading counts as the first: the first of any level, or the first `#` heading; and how its Markdown (code spans, emphasis, links) is turned into a label.

@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning (_`S13`_ approved, _`P17`_ next); _`P1`_–_`P14`_, _`P15`_ (_`P15.1`_–_`P15.6`_) and _`P16`_ implemented (_`P16`_, linked showcases shown inline in the showcase sidebar, the last).
-- **Next free:** _`D641`_, _`S14`_, _`P17`_, _`O93`_, _`L15`_, _`R49`_, _`H1`_, _`K24`_
-- **Working on:** _`S13`_ The navigation (`./.workflow/SPEC-S13-navigation.md`), approved; picks up _`L13`_.
-- **Next step:** plan _`S13`_ as _`P17`_, starting from its open points _`O90`_–_`O92`_; the Glossary term "Navigation" (accepted) goes in with the implementation.
+- **Stage:** implementation (_`P17`_ approved); _`P1`_–_`P14`_, _`P15`_ (_`P15.1`_–_`P15.6`_) and _`P16`_ implemented (_`P16`_, linked showcases shown inline in the showcase sidebar, the last).
+- **Next free:** _`D650`_, _`S14`_, _`P18`_, _`O93`_, _`L15`_, _`R49`_, _`H1`_, _`K24`_
+- **Working on:** _`P17`_ The navigation (`./.workflow/PLAN-P17-navigation.md`), approved, implementing _`S13`_; step 1 next.
+- **Next step:** implement _`P17`_'s steps 1–7, then its checkpoint.
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/questions-p17/` (its choices, recorded as _`D641`_–_`D649`_) and `s13-format/`; ask before deleting them.
 - `./.workflow/.temp/questions-p16/` (its choices, recorded as _`D615`_–_`D626`_); ask before deleting it.
 - `./.workflow/.temp/p16-check/`, `p16-format/`, `ci-p16.log`, `serve-dogfood-p16.log`, `serve-p16-check.log`; ask before deleting them.
 - `./.workflow/.temp/p15.6-check/`, `ci-p15.6.log`, `ci-p15.6-rerun.log`, `serve-dogfood-p15.6.log`, `serve-p15.6-check.log`; ask before deleting them.
@@ -384,3 +385,5 @@
 - 2026-11-15: _`P16`_ approved as implemented (option chosen: "Approve and commit (Rec.)"), with _`D629`_'s Glossary wording ("Apply (Rec.)"); `npm run ci` green before the commit.
 - 2026-11-16: _`S13`_ The navigation drafted (_`D630`_–_`D640`_, from the user's proposal and the critique's Q1–Q13; options chosen: the recommendations, except Q3, "Hidden, warned", and Q9, "Optional everywhere", extended to the default navigation); _`L13`_ picked up by _`S13`_.
 - 2026-11-16: _`S13`_ approved (option chosen: "Approve and commit (Rec.)"), after _`D636`_'s wording was clarified (the user: "Page opens, never listed"); the Glossary term "Navigation" accepted ("Add as proposed (Rec.)").
+- 2026-11-16: _`P17`_ The navigation drafted (_`D641`_–_`D649`_; options chosen: the recommendations, except Q8, "(b) Own navigation"); `github-slugger` approved as a new dependency ("Add github-slugger (Rec.)").
+- 2026-11-16: _`P17`_ approved (option chosen: "Approve and commit (Rec.)"), without a zero-context review.

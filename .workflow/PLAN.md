@@ -294,6 +294,7 @@ None (_`D61`_).
 
 - _`P15`_ Showcase views (implemented 2026-11-15; approved 2026-11-15, for its split and order): _`S12`_ without _`S12.1`_ (SPEC-S12-showcase-views.md), in six child segments _`P15.1`_–_`P15.6`_: named virtual files, the adapters' checks and issues, the console out of the showcase frame, the showcase views, the header bar with its status marks and issue list, and the `include=` keywords; _`S12.1`_ is _`P16`_, planned later (_`D542`_ (PLAN-P15-showcase-views.md)). [See Showcase views](./PLAN-P15-showcase-views.md)
 - _`P16`_ Showcases shown inline, in the sidebar (implemented 2026-11-15; approved 2026-11-15): _`S12.1`_ (SPEC-S12-showcase-views.md), a linked showcase shown inline as a link opening the showcase in the showcase sidebar, shown as a block shows it; the code sidebar renamed; the link icons. [See Showcases shown inline, in the sidebar](./PLAN-P16-inline-sidebar.md)
+- _`P17`_ The navigation (approved 2026-11-16, [See The navigation](./PLAN-P17-navigation.md)): _`S13`_ (SPEC-S13-navigation.md), `showroom.json`'s `navigation`, resolved by `check()`, and the default navigation's labels by first heading.
 
 ## Known open issues
 
