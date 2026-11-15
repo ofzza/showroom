@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** _`P1`_–_`P14`_ implemented (_`P14`_, the .NET stack adapter, the last).
-- **Next free:** _`D554`_, _`S13`_, _`P17`_, _`O89`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
+- **Stage:** _`P1`_–_`P14`_ and _`P15.1`_ implemented (_`P15.1`_, named virtual files, the last).
+- **Next free:** _`D559`_, _`S13`_, _`P17`_, _`O89`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
 - **Working on:** _`P15`_ Showcase views (approved for its split and order, `./.workflow/PLAN-P15-showcase-views.md`), planning _`S12`_ without _`S12.1`_ (_`P16`_, later), in six children _`P15.1`_–_`P15.6`_ (_`D541`_, _`D545`_–_`D548`_).
-- **Next step:** plan _`P15.2`_ Checks and issues in the adapter result (`./.workflow/PLAN-P15-showcase-views.md`). The _`O81`_ spike's evidence goes into _`P15.4`_ (keep `./.workflow/.temp/spike-hidden-frame/` until then).
+- **Next step:** implement _`P15.2`_ Checks and issues in the adapter result (`./.workflow/PLAN-P15.2-checks-and-issues.md`, approved), from step 1. The _`O81`_ spike's evidence goes into _`P15.4`_ (keep `./.workflow/.temp/spike-hidden-frame/` until then).
 
 ## Open questions
 
@@ -336,3 +336,5 @@
 - 2026-11-15: _`P15.1`_ steps 1–6: `VirtualFile`'s `named` and `showcase`; `file=` with a showcase adapter in the scan; the `html` showcase adapter copying named virtual files; "resource" retired; fixtures, tests, documentation, the Glossary; the `ts` example's `list.ts` a named showcase; the changed decisions' statuses.
 - 2026-11-15: _`P15.1`_ step 7: `npm run ci` green (unit 1134, integration 24, e2e 18, serve 7), after fixing expectations of the extended fixtures; the dogfood `serve` started for the user's check.
 - 2026-11-15: _`P15.1`_ approved as implemented, after the browser checks (option chosen: "Approve and commit (Rec.)").
+- 2026-11-15: _`P15.2`_'s choices settled (options chosen: "One issues list (Rec.)", "Strict (Rec.)", "Add check, show it (Rec.)", "As described (Rec.)"); _`P15.2`_ drafted (`PLAN-P15.2-checks-and-issues.md`, _`D554`_–_`D558`_).
+- 2026-11-15: _`P15.2`_ approved, without a zero-context review (option chosen: "Approve and commit (Rec.)").
