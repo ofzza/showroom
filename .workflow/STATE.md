@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** _`P1`_–_`P14`_, _`P15.1`_ and _`P15.2`_ implemented (_`P15.2`_, checks and issues in the adapter result, the last).
-- **Next free:** _`D559`_, _`S13`_, _`P17`_, _`O89`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
+- **Next free:** _`D569`_, _`S13`_, _`P17`_, _`O89`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
 - **Working on:** _`P15`_ Showcase views (approved for its split and order, `./.workflow/PLAN-P15-showcase-views.md`), planning _`S12`_ without _`S12.1`_ (_`P16`_, later), in six children _`P15.1`_–_`P15.6`_ (_`D541`_, _`D545`_–_`D548`_).
-- **Next step:** plan _`P15.3`_ The console out of the showcase frame (`./.workflow/PLAN-P15-showcase-views.md`), starting with its open points _`O82`_, _`O88`_ and pitfall _`K22`_. The _`O81`_ spike's evidence goes into _`P15.4`_ (keep `./.workflow/.temp/spike-hidden-frame/` until then).
+- **Next step:** implement _`P15.3`_ The console out of the showcase frame (`./.workflow/PLAN-P15.3-console.md`, approved), from step 1. The _`O81`_ spike's evidence goes into _`P15.4`_ (keep `./.workflow/.temp/spike-hidden-frame/` until then).
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/questions-p15.3/` (its choices, recorded as _`D559`_–_`D568`_); ask before deleting it.
 
 - `./.workflow/.temp/ci-p15.1.log` and `ci-p15.2.log` (the `npm run ci` logs); ask before deleting them.
 
@@ -342,3 +343,5 @@
 - 2026-11-15: _`P15.2`_ steps 1–6: `ShowcaseBuildIssue`, the build result's `checks` and `issues`, validated strictly; `CheckIssue`'s `check`, named in the message; `buildShowcases()`'s `checks`, and frames beside a check's errors; `serve`'s error frame on any error; the built-in adapters' `type check`; the `number-table` example and the fixtures' adapters; tests and documentation; the changed decisions' statuses.
 - 2026-11-15: _`P15.2`_ step 7: `npm run ci` green (unit 1138, integration 24, e2e 18, serve 7); the dogfood `serve` restarted, and checked by the agent in a browser (the `ts` example unchanged, no console errors).
 - 2026-11-15: _`P15.2`_ approved as implemented (option chosen: "Approve and commit (Rec.)").
+- 2026-11-15: _`P15.3`_ The console out of the showcase frame drafted; its 10 choices accepted as recommended (option chosen: "Accept all (Rec.)"), recorded as _`D559`_–_`D568`_; _`O82`_ and _`O88`_ resolved.
+- 2026-11-15: _`P15.3`_ approved (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
