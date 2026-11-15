@@ -26,6 +26,7 @@ describe('configuration', () => {
       const value = {
         stack: 'typescript',
         sourceRoot: 'lib',
+        project: 'src/App/App.csproj',
         outDir: 'out',
         ignore: ['a'],
         code: ['*.ts'],
@@ -57,10 +58,20 @@ describe('configuration', () => {
 
     it('Rejects values of the wrong type', () => {
       expect(
-        validateConfiguration({ stack: '', sourceRoot: 1, outDir: [], ignore: 'x', code: [1], documentation: {}, exposeShowcaseMarkdownSyntax: 'yes' }).errors,
+        validateConfiguration({
+          stack: '',
+          sourceRoot: 1,
+          project: '',
+          outDir: [],
+          ignore: 'x',
+          code: [1],
+          documentation: {},
+          exposeShowcaseMarkdownSyntax: 'yes',
+        }).errors,
       ).toEqual([
         'showroom.json: "stack" must be a non-empty string',
         'showroom.json: "sourceRoot" must be a non-empty string',
+        'showroom.json: "project" must be a non-empty string',
         'showroom.json: "outDir" must be a non-empty string',
         'showroom.json: "ignore" must be an array of strings',
         'showroom.json: "code" must be an array of strings',

@@ -50,7 +50,7 @@ Or run it without installing it:
 $ npx @ofzza/showroom check
 ```
 
-A host repository with no `package.json` of its own (e.g. a .NET one) can run it the same way, with Node installed: `npx --package @ofzza/showroom showroom build`. It still needs a stack adapter for its kind of repository, and the only one so far is `typescript`.
+A host repository with no `package.json` of its own (e.g. a .NET one) can run it the same way, with Node installed: `npx --package @ofzza/showroom showroom build`. It still needs a stack adapter for its kind of repository: `typescript`, or `dotnet` for a .NET one (see [Stack adapters](#stack-adapters)).
 
 # Usage
 
@@ -72,6 +72,7 @@ Every host repository needs a `showroom.json` file in its root. Without it, `sho
 | ------------------------ | -------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `stack`                  | yes      |                     | Name of the [stack adapter](#stack-adapters) to use.                                                                                                                   |
 | `sourceRoot`             | no       | the stack adapter's | Source root directory, relative to the host repository's root. Code files are only looked for under it.                                                                |
+| `project`                | no       | the stack adapter's | File the project information is read from, relative to the host repository's root, and inside it. The `dotnet` stack adapter requires it.                              |
 | `outDir`                 | no       | `./showroom`        | Output folder of `showroom build`, relative to the host repository's root. It must be inside the host repository, and isn't its root. Nothing in it is ever collected. |
 | `ignore`                 | no       | `[]`                | [Patterns](#patterns) of files to ignore, appended to the stack adapter's.                                                                                             |
 | `code`                   | no       | `[]`                | [Patterns](#patterns) of code files, relative to the source root, appended to the stack adapter's.                                                                     |
@@ -104,11 +105,32 @@ The stack adapter's and the configuration's `documentation` patterns can add mor
 
 A stack adapter handles one kind of host repository: it reads the project information and sets the default source root and patterns. The `stack` key selects one by name.
 
-| Stack adapter | Project information | Source root | Code (`code`)                                                        | Ignored (`ignore`)                         | Documentation (`documentation`) |
-| ------------- | ------------------- | ----------- | -------------------------------------------------------------------- | ------------------------------------------ | ------------------------------- |
-| `typescript`  | `package.json`      | `src`       | `*.ts`, `*.tsx`, `*.mts`, `*.cts`, `*.js`, `*.jsx`, `*.mjs`, `*.cjs` | `.git`, `node_modules`, `dist`, `coverage` | none beyond the built-in ones   |
+| Stack adapter | Project information  | Source root | Code (`code`)                                                            | Ignored (`ignore`)                                      | Documentation (`documentation`) |
+| ------------- | -------------------- | ----------- | ------------------------------------------------------------------------ | ------------------------------------------------------- | ------------------------------- |
+| `typescript`  | `package.json`       | `src`       | `*.ts`, `*.tsx`, `*.mts`, `*.cts`, `*.js`, `*.jsx`, `*.mjs`, `*.cjs`     | `.git`, `node_modules`, `dist`, `coverage`              | none beyond the built-in ones   |
+| `dotnet`      | `project` (required) | `src`       | `*.cs`, `*.csx`, `*.fs`, `*.fsi`, `*.fsx`, `*.vb`, `*.razor`, `*.cshtml` | `.git`, `.vs`, `bin`, `obj`, `artifacts`, `TestResults` | none beyond the built-in ones   |
 
-The `typescript` stack adapter reads the `name` (required), `version`, `description`, `license`, `author`, `homepage` and `repository` fields of `package.json`.
+The `typescript` stack adapter reads the `name` (required), `version`, `description`, `license`, `author`, `homepage` and `repository` fields of `package.json`, or of the file `project` names.
+
+The `dotnet` stack adapter reads the project file `project` names (a `.csproj`, `.fsproj` or `.vbproj`; a repository can hold many, so it never picks one itself), for .NET host repositories in C#, F# or VB:
+
+```json
+{ "stack": "dotnet", "project": "src/MyLibrary/MyLibrary.csproj" }
+```
+
+It reads the file as XML, with no .NET SDK, after the nearest `Directory.Build.props` (in the project file's folder, or the first folder above it, up to the host repository's root), whose properties the project file's override:
+
+| Project information | MSBuild property                                                         |
+| ------------------- | ------------------------------------------------------------------------ |
+| name                | `PackageId`, else `AssemblyName`, else the project file's name           |
+| version             | `Version`, else `VersionPrefix` (with `-` and `VersionSuffix`, when set) |
+| description         | `Description`                                                            |
+| license             | `PackageLicenseExpression`                                               |
+| author              | `Authors`                                                                |
+| homepage            | `PackageProjectUrl`                                                      |
+| repository          | `RepositoryUrl`                                                          |
+
+Only properties of `<PropertyGroup>`s directly in `<Project>` count, and only where neither the group nor the property has a `Condition`. A `$(Name)` reference is replaced by that property's value, as set so far in these two files (or the project file's name, for `$(MSBuildProjectName)`), and a value with a reference it can't replace (another property, or a property function such as `$([System.DateTime]::Now.Year)`) is left out. So what MSBuild only works out when it builds (conditions, other imported files, the SDK's defaults, a version computed from git) isn't shown: set such a value unconditionally in the project file or its `Directory.Build.props` for the showroom to show it.
 
 ## Showcases
 
@@ -590,13 +612,13 @@ const { configuration, errors } = await readConfiguration('./path/to/host');
 
 // Looks up a built-in stack adapter by name
 const adapter = getStackAdapter(configuration?.stack ?? 'typescript');
-const project = await adapter?.readProject('./path/to/host');
+const project = await adapter?.readProject('./path/to/host', configuration?.project);
 console.log(getStackAdapterNames(), project, errors);
 ```
 
 - `check(root, options?)`: checks a host repository and collects its host information; resolves to a `CheckResult` (`passed`, `host` when it passed, and `issues`, each with its `severity`, `message`, and the `path` and `line` it concerns, if any). `options` (`CheckOptions`) overrides the configuration: `outDir`, absolute or relative to the current directory; and `showcases: true` also builds every showcase, failing the check on any that doesn't build.
 - `readConfiguration(root)` / `validateConfiguration(value)`: read and validate a `showroom.json`, resolving to either a `configuration` or `errors`.
-- `getStackAdapter(name)` / `getStackAdapterNames()`: look up the built-in stack adapters, which implement the `StackAdapter` interface; `TypeScriptStackAdapter` is the `typescript` one.
+- `getStackAdapter(name)` / `getStackAdapterNames()`: look up the built-in stack adapters, which implement the `StackAdapter` interface; `TypeScriptStackAdapter` is the `typescript` one, and `DotNetStackAdapter` the `dotnet` one. `readProject(root, project?)` reads the project information, from the file `project` names (relative to `root`) or the stack adapter's default.
 - `main(args, output?)`: runs the command line with the given arguments, resolving to its exit code; `USAGE` is its help text.
 - Constants: `CONFIGURATION_FILE_NAME` (`showroom.json`), `DEFAULT_OUT_DIR` (`./showroom`), and `BUILT_IN_DOCUMENTATION` (the built-in documentation patterns).
 - Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase`, `ShowcaseKind`, `ShowcaseDisplay`, `VirtualFile`, `VirtualFileKind`, `LinkedFile`, `Configuration`, `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.

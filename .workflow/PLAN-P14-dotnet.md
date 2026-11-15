@@ -1,6 +1,6 @@
 # _`P14`_ The .NET stack adapter
 
-approved 2026-11-15 (option chosen: "Approve (Rec.)"), without a zero-context review
+implemented 2026-11-15 (option chosen: "Approve and commit (Rec.)"); approved 2026-11-15 (option chosen: "Approve (Rec.)"), without a zero-context review
 
 ## Goals
 

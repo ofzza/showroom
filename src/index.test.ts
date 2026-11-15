@@ -31,6 +31,7 @@ describe('index', () => {
       'BUILT_IN_DOCUMENTATION',
       'CONFIGURATION_FILE_NAME',
       'DEFAULT_OUT_DIR',
+      'DotNetStackAdapter',
       'TypeScriptStackAdapter',
       'USAGE',
       'check',
@@ -56,6 +57,9 @@ describe('index', () => {
     expectTypeOf<CheckResult['host']>().toEqualTypeOf<HostInformation | undefined>();
     expectTypeOf<Configuration['stack']>().toEqualTypeOf<string>();
     expectTypeOf<api.TypeScriptStackAdapter>().toExtend<StackAdapter>();
+    expectTypeOf<api.DotNetStackAdapter>().toExtend<StackAdapter>();
+    expectTypeOf<Configuration['project']>().toEqualTypeOf<string | undefined>();
+    expectTypeOf<Parameters<StackAdapter['readProject']>[1]>().toEqualTypeOf<string | undefined>();
     expectTypeOf<CheckIssue['line']>().toEqualTypeOf<number | undefined>();
     expectTypeOf<Configuration['customShowcaseAdapters']>().toEqualTypeOf<Record<string, string> | undefined>();
     expectTypeOf<HostInformation['showcases']>().toEqualTypeOf<Showcase[]>();

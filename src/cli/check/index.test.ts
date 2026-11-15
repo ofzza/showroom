@@ -21,7 +21,7 @@ function _fixture(name: string): string {
 
 describe('cli/check', () => {
   // Tests check() end to end on the fixture host repositories in `test/fixtures/`, each built to exercise one area: the defaults, file name
-  // variants, duplicates, configured patterns, every error, the output folder, showcases and links.
+  // variants, duplicates, configured patterns, a .NET host repository, every error, the output folder, showcases and links.
 
   it('Starts the documentation patterns with README anywhere and the rest in the root only', () => {
     expect(BUILT_IN_DOCUMENTATION).toContain('README.md');
@@ -126,6 +126,60 @@ describe('cli/check', () => {
     });
   });
 
+  describe('dotnet', () => {
+    // The dotnet fixture: a .NET host repository, its project information read from the project file `project` names, and the stack adapter's
+    // patterns indexing C#, F# and Razor files, never those in bin/ or obj/.
+
+    it('Passes with the project information of the configured project file', async () => {
+      const result = await check(_fixture('dotnet'));
+      expect(result.issues).toEqual([]);
+      expect(result.passed).toBe(true);
+      expect(result.host?.project).toEqual({
+        name: 'Numbers.Core',
+        version: '2.1.0-beta.1',
+        description: 'Numbers & figures, formatted',
+        license: 'MIT',
+        author: 'Jane Doe',
+        homepage: 'https://example.com/numbers/wiki',
+        repository: 'https://example.com/numbers',
+      });
+    });
+
+    it('Indexes the .NET code files under the source root, skipping build output', async () => {
+      // src/Numbers/bin/Numbers.cs would be code, if bin/ weren't ignored
+      const { host } = await check(_fixture('dotnet'));
+      expect(host?.code).toEqual(['src/Numbers.FSharp/Library.fs', 'src/Numbers/Format.cs', 'src/Numbers/Views/Counter.razor']);
+      expect(host?.documentation.map(({ path }) => path)).toEqual(['README.md', 'src/Numbers/README.md']);
+    });
+
+    it('Fails on a project outside the host repository, without reading it', async () => {
+      const scratch = await copyFixture('dotnet');
+      try {
+        await writeFile(join(scratch.path, 'showroom.json'), JSON.stringify({ stack: 'dotnet', project: '../Other/Other.csproj' }));
+        expect(await check(scratch.path)).toEqual({
+          passed: false,
+          issues: [{ severity: 'error', message: 'Project "../Other/Other.csproj" is outside the host repository', path: 'showroom.json' }],
+        });
+      } finally {
+        await scratch.remove();
+      }
+    });
+
+    it('Fails without a project, as the dotnet stack adapter requires one', async () => {
+      const scratch = await copyFixture('dotnet');
+      try {
+        await writeFile(join(scratch.path, 'showroom.json'), JSON.stringify({ stack: 'dotnet' }));
+        const result = await check(scratch.path);
+        expect(result.passed).toBe(false);
+        expect(result.issues).toEqual([
+          { severity: 'error', message: 'The dotnet stack adapter needs "project" in showroom.json: the path of a .csproj, .fsproj or .vbproj' },
+        ]);
+      } finally {
+        await scratch.remove();
+      }
+    });
+  });
+
   describe('Errors', () => {
     // A fixture per error: each fails the check, reports the error, and gives no host information.
 
@@ -133,7 +187,7 @@ describe('cli/check', () => {
       ['no-configuration', /^showroom\.json not found in /, 'showroom.json'],
       ['invalid-configuration', /^showroom\.json is not valid JSON: /, 'showroom.json'],
       ['wrong-configuration', /^showroom\.json: /, 'showroom.json'],
-      ['unknown-stack', /^Unknown stack "cobol"; the stack adapters are: typescript$/, 'showroom.json'],
+      ['unknown-stack', /^Unknown stack "cobol"; the stack adapters are: dotnet, typescript$/, 'showroom.json'],
       ['no-project', /^package\.json not found in /, undefined],
       ['no-source-root', /^Source root "lib" is not a directory$/, undefined],
       ['outside-source-root', /^Source root "\.\.\/minimal" is outside the host repository$/, 'showroom.json'],

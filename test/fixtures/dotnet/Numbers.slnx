@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Numbers/Numbers.csproj" />
+    <Project Path="src/Numbers.FSharp/Numbers.FSharp.fsproj" />
+  </Folder>
+</Solution>

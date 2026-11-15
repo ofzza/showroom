@@ -3,8 +3,10 @@
  */
 
 import type { ProjectInformation } from '../../host/index.js';
+import { DotNetStackAdapter } from './dotnet/index.js';
 import { TypeScriptStackAdapter } from './typescript/index.js';
 
+export * from './dotnet/index.js';
 export * from './typescript/index.js';
 
 // #region Interface
@@ -37,9 +39,11 @@ export interface StackAdapter {
   /**
    * Reads the host repository's project information
    * @param root Path of the host repository's root
+   * @param project Path of the file to read it from, relative to the root, as the configuration's `project` key sets it; the stack adapter's
+   * default if undefined
    * @returns Project information; throws an error explaining why it can't be read
    */
-  readProject(root: string): Promise<ProjectInformation>;
+  readProject(root: string, project?: string): Promise<ProjectInformation>;
 }
 
 // #endregion
@@ -50,6 +54,7 @@ export interface StackAdapter {
  * Built-in stack adapters, by name
  */
 const _STACK_ADAPTERS: Record<string, () => StackAdapter> = {
+  dotnet: () => new DotNetStackAdapter(),
   typescript: () => new TypeScriptStackAdapter(),
 };
 

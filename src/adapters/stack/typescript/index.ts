@@ -1,5 +1,5 @@
 /**
- * TypeScript stack adapter: covers plain TypeScript and JavaScript host repositories, React libraries included, reading their `package.json`
+ * TypeScript stack adapter: covers plain TypeScript and JavaScript host repositories, React and Angular ones included, reading their `package.json`
  */
 
 import { readFile } from 'node:fs/promises';
@@ -18,40 +18,41 @@ export class TypeScriptStackAdapter implements StackAdapter {
   public readonly documentation: readonly string[] = [];
 
   /**
-   * Reads the project information from the host repository's `package.json`
+   * Reads the project information from the host repository's `package.json`, or the file the configuration names
    * @param root Path of the host repository's root
+   * @param project Path of the `package.json`-shaped file to read, relative to the root; `package.json` if undefined
    * @returns Project information; throws an error explaining why it can't be read
    */
-  public async readProject(root: string): Promise<ProjectInformation> {
-    // Read and parse package.json
+  public async readProject(root: string, project: string = 'package.json'): Promise<ProjectInformation> {
+    // Read and parse the file
     let text: string;
     try {
-      text = await readFile(join(root, 'package.json'), 'utf8');
+      text = await readFile(join(root, project), 'utf8');
     } catch (err) {
-      throw new Error(`package.json not found in ${root}`, { cause: err });
+      throw new Error(`${project} not found in ${root}`, { cause: err });
     }
     let json: Record<string, unknown>;
     try {
       json = JSON.parse(text);
     } catch (err) {
-      throw new Error(`package.json is not valid JSON: ${(err as Error).message}`, { cause: err });
+      throw new Error(`${project} is not valid JSON: ${(err as Error).message}`, { cause: err });
     }
     if (typeof json !== 'object' || json === null || Array.isArray(json)) {
-      throw new Error('package.json must contain a JSON object');
+      throw new Error(`${project} must contain a JSON object`);
     }
     if (typeof json.name !== 'string' || !json.name) {
-      throw new Error('package.json has no "name"');
+      throw new Error(`${project} has no "name"`);
     }
     // Collect the project information
-    const project: ProjectInformation = { name: json.name };
+    const information: ProjectInformation = { name: json.name };
     for (const key of ['version', 'description', 'license', 'homepage'] as const) {
-      if (typeof json[key] === 'string') project[key] = json[key];
+      if (typeof json[key] === 'string') information[key] = json[key];
     }
     const author = _nameOrField(json.author, 'name');
-    if (author) project.author = author;
+    if (author) information.author = author;
     const repository = _nameOrField(json.repository, 'url');
-    if (repository) project.repository = repository;
-    return project;
+    if (repository) information.repository = repository;
+    return information;
   }
 }
 

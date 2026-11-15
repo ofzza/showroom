@@ -288,7 +288,7 @@ None (_`D61`_).
 
 ## The .NET stack adapter
 
-- _`P14`_ The .NET stack adapter (approved 2026-11-15): the `dotnet` stack adapter and `showroom.json`'s `project` key (_`S11`_, SPEC.md). [See The .NET stack adapter](./PLAN-P14-dotnet.md)
+- _`P14`_ The .NET stack adapter (implemented 2026-11-15; approved 2026-11-15): the `dotnet` stack adapter and `showroom.json`'s `project` key (_`S11`_, SPEC.md). [See The .NET stack adapter](./PLAN-P14-dotnet.md)
 
 ## Known open issues
 

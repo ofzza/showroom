@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>$(MSBuildProjectName).Core</PackageId>
+    <Description><![CDATA[Numbers & figures, formatted]]></Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>$(repositoryurl)/wiki</PackageProjectUrl>
+    <Copyright>$([System.DateTime]::Now.Year) Jane Doe</Copyright>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+  </PropertyGroup>
+
+</Project>

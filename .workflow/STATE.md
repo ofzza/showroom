@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** specification: _`S11`_ approved; _`P14`_, the .NET stack adapter, approved, to implement (_`P1`_–_`P13`_ implemented).
+- **Stage:** _`P1`_–_`P14`_ implemented (_`P14`_, the .NET stack adapter, the last).
 - **Next free:** _`D495`_, _`S12`_, _`P15`_, _`O81`_, _`L15`_, _`R40`_, _`H1`_, _`K21`_
-- **Working on:** _`S11`_ (SPEC.md), the `dotnet` stack adapter; then its plan segment, _`P14`_.
-- **Next step:** implementing _`P14`_ (`PLAN-P14-dotnet.md`), from step 1.
+- **Working on:** nothing in progress.
+- **Next step:** the user's choice of what comes next (the known open issues in `./.workflow/PLAN.md`; pitfall _`K20`_ stays open).
 
 ## Open questions
 
@@ -18,7 +18,7 @@
 
 ## Running
 
-- None (the dogfood `serve` of the previous session is gone).
+- None.
 
 ## History
 
@@ -309,3 +309,6 @@
 - 2026-11-15: _`S11`_ approved (option chosen: "Approve (Rec.)").
 - 2026-11-15: The XML parser re-asked after the agent's correction (`fast-xml-parser` has 5 runtime dependencies, about 1.3 MB): `sax` chosen (option chosen: "sax (Rec.)"); _`P14`_ drafted (`PLAN-P14-dotnet.md`).
 - 2026-11-15: _`P14`_ approved (option chosen: "Approve (Rec.)"), without a zero-context review.
+- 2026-11-15: _`P14`_ steps 1–5: `sax` and `@types/sax`; the `project` key; `DotNetStackAdapter`; the `dotnet` fixture and tests; `README.md`, `AGENTS.md`, `CONTRIBUTE.md`.
+- 2026-11-15: _`P14`_ step 6: `npm run ci` green; `check` on the `dotnet` fixture and on the copy of `../dotnetschema` pass; both served for the user's check.
+- 2026-11-15: _`P14`_ approved as implemented, after the browser check (option chosen: "Approve and commit (Rec.)"); `./.workflow/.temp/format-backup/` and `dotnet-check/` deleted with the user's yes (option chosen: "Delete both (Rec.)").

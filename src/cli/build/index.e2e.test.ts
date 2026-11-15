@@ -89,6 +89,20 @@ describe('cli/build (end to end)', () => {
     expect(bundle).toContain(`files/demos/page.css?hash=${getShowcaseFrameHash([{ path: 'demos/page.css', content: Buffer.from(css) }])}`);
   });
 
+  it('Builds the showroom of a .NET host repository, with no package.json', async () => {
+    const root = await copy('dotnet');
+    const { code, stdout, stderr } = await run(root);
+    expect(stderr).toBe('');
+    expect(code).toBe(0);
+    const out = join(root, 'showroom');
+    expect(stdout).toBe(`Built the showroom of Numbers.Core into ${out}\n`);
+    expect(existsSync(join(out, 'index.html'))).toBe(true);
+    // The bundle's shown host information holds the project information read from the project file
+    const bundle = (await Promise.all((await readdir(join(out, 'assets'))).map((name) => readFile(join(out, 'assets', name), 'utf8')))).join('\n');
+    expect(bundle).toContain('Numbers & figures, formatted');
+    expect(bundle).toContain('2.1.0-beta.1');
+  });
+
   it('Copies exactly the linked files into the output folder, at files/<path>', async () => {
     const root = await copy('linked-files');
     const { code, stderr } = await run(root);

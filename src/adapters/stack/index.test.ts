@@ -3,17 +3,18 @@
  */
 
 import { describe, it, expect, expectTypeOf } from 'vitest';
-import { getStackAdapter, getStackAdapterNames, TypeScriptStackAdapter, type StackAdapter } from './index.js';
+import { DotNetStackAdapter, getStackAdapter, getStackAdapterNames, TypeScriptStackAdapter, type StackAdapter } from './index.js';
 
 describe('adapters/stack', () => {
   // Tests looking up the built-in stack adapters by name, and that they implement the stack adapter interface.
 
   it('Lists the built-in stack adapters', () => {
-    expect(getStackAdapterNames()).toEqual(['typescript']);
+    expect(getStackAdapterNames()).toEqual(['dotnet', 'typescript']);
   });
 
   it('Gets a stack adapter by name', () => {
     expect(getStackAdapter('typescript')).toBeInstanceOf(TypeScriptStackAdapter);
+    expect(getStackAdapter('dotnet')).toBeInstanceOf(DotNetStackAdapter);
   });
 
   it('Gets a new instance on every call', () => {
@@ -28,5 +29,6 @@ describe('adapters/stack', () => {
 
   it('Implements the stack adapter interface', () => {
     expectTypeOf<TypeScriptStackAdapter>().toExtend<StackAdapter>();
+    expectTypeOf<DotNetStackAdapter>().toExtend<StackAdapter>();
   });
 });

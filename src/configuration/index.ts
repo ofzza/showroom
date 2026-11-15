@@ -25,6 +25,11 @@ export interface Configuration {
    */
   sourceRoot?: string;
   /**
+   * Path of the file the stack adapter reads the project information from, relative to the host repository's root (e.g. a `.csproj`); defaults
+   * to the stack adapter's (`package.json` for `typescript`), and the `dotnet` stack adapter requires it
+   */
+  project?: string;
+  /**
    * Output directory of the showroom, relative to the host repository's root; defaults to `./showroom`
    */
   outDir?: string;
@@ -71,6 +76,7 @@ export type ConfigurationResult = { configuration: Configuration; errors: [] } |
 const _KEYS: Record<keyof Configuration, (value: unknown) => boolean> = {
   stack: (value) => typeof value === 'string' && value.length > 0,
   sourceRoot: (value) => typeof value === 'string' && value.length > 0,
+  project: (value) => typeof value === 'string' && value.length > 0,
   outDir: (value) => typeof value === 'string' && value.length > 0,
   ignore: _isStringArray,
   code: _isStringArray,
@@ -85,6 +91,7 @@ const _KEYS: Record<keyof Configuration, (value: unknown) => boolean> = {
 const _EXPECTED: Record<keyof Configuration, string> = {
   stack: 'a non-empty string',
   sourceRoot: 'a non-empty string',
+  project: 'a non-empty string',
   outDir: 'a non-empty string',
   ignore: 'an array of strings',
   code: 'an array of strings',

@@ -149,10 +149,20 @@ export async function check(root: string, options: CheckOptions = {}): Promise<C
     return fail();
   }
 
+  // Resolve the project file the configuration names, which must be inside the host repository
+  let projectFile: string | undefined;
+  if (configuration.project !== undefined) {
+    projectFile = _toPosix(relative(resolve(root), resolve(root, configuration.project)));
+    if (projectFile === '..' || projectFile.startsWith('../') || isAbsolute(projectFile)) {
+      issues.push({ severity: 'error', message: `Project "${configuration.project}" is outside the host repository`, path: CONFIGURATION_FILE_NAME });
+      return fail();
+    }
+  }
+
   // Read the project information
   let project: ProjectInformation | undefined;
   try {
-    project = await adapter.readProject(root);
+    project = await adapter.readProject(root, projectFile);
   } catch (err) {
     issues.push({ severity: 'error', message: (err as Error).message });
   }

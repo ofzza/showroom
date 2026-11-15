@@ -1,0 +1,16 @@
+<Project>
+  <!-- Shared by every project below this folder -->
+  <PropertyGroup>
+    <Authors>Jane Doe</Authors>
+    <VersionPrefix>2.1.0</VersionPrefix>
+    <RepositoryUrl>https://example.com/numbers</RepositoryUrl>
+    <Description>Overridden by the project</Description>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <VersionSuffix>conditioned</VersionSuffix>
+  </PropertyGroup>
+  <PropertyGroup>
+    <VersionSuffix Condition="'$(CI)' == 'true'">ci</VersionSuffix>
+    <VersionSuffix>beta.1</VersionSuffix>
+  </PropertyGroup>
+</Project>

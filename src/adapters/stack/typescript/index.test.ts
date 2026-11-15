@@ -76,5 +76,14 @@ describe('adapters/stack/typescript', () => {
     it('Fails when package.json has no name', async () => {
       await expect(new TypeScriptStackAdapter().readProject(_fixture('project-errors/no-name'))).rejects.toThrow('package.json has no "name"');
     });
+
+    it('Reads the file the configuration names instead, naming it in its errors', async () => {
+      // The fixtures' folder has no package.json of its own: each fixture's is read by the path the `project` key would give
+      expect(await new TypeScriptStackAdapter().readProject(_fixture(''), 'minimal/package.json')).toMatchObject({ name: 'minimal-host' });
+      await expect(new TypeScriptStackAdapter().readProject(_fixture('project-errors'), 'no-name/package.json')).rejects.toThrow(
+        'no-name/package.json has no "name"',
+      );
+      await expect(new TypeScriptStackAdapter().readProject(_fixture('project-errors'), 'missing.json')).rejects.toThrow(/^missing\.json not found in /);
+    });
   });
 });
