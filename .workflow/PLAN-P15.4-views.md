@@ -1,6 +1,6 @@
 # _`P15.4`_ Showcase views
 
-approved 2026-11-15 (option chosen: "Approve and commit (Rec.)"), without a zero-context review
+implemented 2026-11-15 (option chosen: "Approve and commit (Rec.)"); approved 2026-11-15 (option chosen: "Approve and commit (Rec.)"), without a zero-context review
 
 ## Goals
 
@@ -48,4 +48,4 @@ The draft's choices 1–14 (`./.workflow/.temp/questions-p15.4/QUESTIONS.md`): o
 
 ## Open points
 
-- None yet.
+- [ ] _`O89`_ (From _`P15.4`_ step 3, 2026-11-15) ESLint warns that `CheckIssueSeverity` is imported and unused in `src/showcases/index.ts`, already so at `458db12` (before _`P15.4`_); `ci:eslint` passes, as ESLint exits 0 on warnings. Remove the import in a later change.

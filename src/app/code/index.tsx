@@ -4,7 +4,7 @@
  * `react-markdown` and `rehype-highlight` as Markdown's code blocks
  */
 
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { Fragment, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import { Button, makeStyles, mergeClasses, tokens, type GriffelStyle } from '@fluentui/react-components';
@@ -64,6 +64,26 @@ export const TOKEN_STYLES: Record<string, GriffelStyle> = Object.fromEntries(
 // #region Code block
 
 /**
+ * Most lines a showcase view's code block shows before scrolling, as the code pane's code (unless the viewport is shorter)
+ */
+export const MAX_CODE_LINES = 20;
+
+/**
+ * Room for a horizontal scrollbar below the code, added to a height counted in lines, so long lines don't scroll the code vertically too
+ */
+const _SCROLLBAR_ROOM = '16px';
+
+/**
+ * Gets the height of a number of code lines, as the code block shows them: its line height, its code's padding above and below, and room for a
+ * horizontal scrollbar
+ * @param lines The number of lines (a number, or a CSS expression)
+ * @returns The CSS height
+ */
+export function getCodeHeight(lines: number | string): string {
+  return `calc(${lines} * ${tokens.lineHeightBase300} + 2 * ${tokens.spacingHorizontalM} + ${_SCROLLBAR_ROOM})`;
+}
+
+/**
  * Styles of a code block
  */
 const _useStyles = makeStyles({
@@ -95,6 +115,9 @@ const _useStyles = makeStyles({
     userSelect: 'none',
     borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
   },
+  // A showcase view: the block's border and corners, at most MAX_CODE_LINES lines or the viewport's height, scrolling both ways inside
+  viewBlock: { margin: '0', borderRadius: '0' },
+  viewScroll: { maxHeight: `min(${getCodeHeight(MAX_CODE_LINES)}, 100vh)`, overflow: 'auto', alignItems: 'flex-start' },
   code: { flexGrow: 1, minWidth: 0 },
   copy: { position: 'absolute', top: tokens.spacingVerticalXS, right: tokens.spacingHorizontalXS, zIndex: 2 },
 });
@@ -129,6 +152,11 @@ export interface CodeBlockProps {
    * False to leave out its copy button (the code pane has one of its own, in its header); true by default
    */
   copy?: boolean;
+  /**
+   * True for a showcase view: no margin or rounded corners of its own, and at most MAX_CODE_LINES lines or the viewport's height high, scrolling
+   * inside; otherwise as high as its code
+   */
+  view?: boolean;
 }
 
 /**
@@ -136,11 +164,11 @@ export interface CodeBlockProps {
  * @param props Properties of the component
  * @returns The code block
  */
-export function CodeBlock({ text, children, fill = false, copy = true }: CodeBlockProps): ReactNode {
+export function CodeBlock({ text, children, fill = false, copy = true, view = false }: CodeBlockProps): ReactNode {
   const styles = _useStyles();
   return (
-    <div className={mergeClasses(styles.block, fill && styles.fillBlock)}>
-      <div className={mergeClasses(styles.scroll, fill && styles.fillScroll)}>
+    <div className={mergeClasses(styles.block, fill && styles.fillBlock, view && styles.viewBlock)}>
+      <div className={mergeClasses(styles.scroll, fill && styles.fillScroll, view && styles.viewScroll)}>
         <pre className={styles.gutter} aria-hidden="true">
           {Array.from({ length: countLines(text) }, (_, index) => index + 1).join('\n')}
         </pre>
@@ -291,6 +319,10 @@ export interface HighlightedCodeProps {
    * False to leave out its copy button (see CodeBlockProps' `copy`)
    */
   copy?: boolean;
+  /**
+   * True for a showcase view (see CodeBlockProps' `view`)
+   */
+  view?: boolean;
 }
 
 /**
@@ -298,12 +330,51 @@ export interface HighlightedCodeProps {
  * @param props Properties of the component
  * @returns The code block
  */
-export function HighlightedCode({ content, language, fill, copy }: HighlightedCodeProps): ReactNode {
+export function HighlightedCode({ content, language, fill, copy, view }: HighlightedCodeProps): ReactNode {
   return (
-    <CodeBlock text={content} fill={fill} copy={copy}>
+    <CodeBlock text={content} fill={fill} copy={copy} view={view}>
       <ReactMarkdown rehypePlugins={[rehypeHighlight]} skipHtml>
         {getFence(content, language).markdown}
       </ReactMarkdown>
+    </CodeBlock>
+  );
+}
+
+/**
+ * Represents a segment of a code block highlighted in a language of its own
+ */
+export interface CodeSegment {
+  /**
+   * Its text: whole lines, with no line break ending it
+   */
+  text: string;
+  /**
+   * Its highlighting language
+   */
+  language: string;
+}
+
+/**
+ * Renders highlighted segments, one after the other, as one code block: one line numbering, one copy button copying them all (e.g. a fence's lines
+ * highlighted as Markdown around its inside highlighted as its language)
+ * @param props Properties of the component: the segments, and whether it is a showcase view (see CodeBlockProps' `view`)
+ * @returns The code block
+ */
+export function SegmentedCode({ segments, view }: { segments: CodeSegment[]; view?: boolean }): ReactNode {
+  // Each segment is highlighted as a fence of its own, its `pre` dropped, so all their `code` elements share one `pre`; each code element's text
+  // ends with a line break already, which separates it from the next
+  const components = { pre: ({ children }: { children?: ReactNode }) => <>{children}</> };
+  return (
+    <CodeBlock text={segments.map(({ text }) => text).join('\n')} view={view}>
+      <pre>
+        {segments.map(({ text, language }, index) => (
+          <Fragment key={index}>
+            <ReactMarkdown rehypePlugins={[rehypeHighlight]} skipHtml components={components}>
+              {getFence(text, language).markdown}
+            </ReactMarkdown>
+          </Fragment>
+        ))}
+      </pre>
     </CodeBlock>
   );
 }

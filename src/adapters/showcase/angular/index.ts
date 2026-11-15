@@ -6,7 +6,7 @@
  */
 
 import { basename, resolve } from 'node:path';
-import type { Showcase } from '../../../host/index.js';
+import type { Showcase, ShowcaseView } from '../../../host/index.js';
 import type { ShowcaseAdapter, ShowcaseBuildRequest, ShowcaseBuildResult, ShowcaseHostCheck, ShowcaseValidation } from '../index.js';
 import { getMountModulePath } from '../react/index.js';
 import { buildTsShowcase, SHOWCASE_FRAME_ROOT_ID, toBuildIssues, TYPE_CHECK, validateTsShowcaseOptions, type GeneratedModule } from '../ts/index.js';
@@ -160,6 +160,11 @@ export function getAngularMountModule(entry: string, zone: boolean): string {
  * Represents the `angular` showcase adapter
  */
 export class AngularShowcaseAdapter implements ShowcaseAdapter {
+  /**
+   * Its default showcase views: the rendered component
+   */
+  readonly defaultViews: readonly ShowcaseView[] = ['demo'];
+
   /**
    * Creates the `angular` showcase adapter
    * @param _resolvePackage Resolves a package from a folder (see resolvePackage()); the tests replace it

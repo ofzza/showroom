@@ -29,6 +29,7 @@ function _showcase(kind: Showcase['kind'], entry: string, extra: Partial<Showcas
     adapter: 'angular',
     entry,
     include: [],
+    views: ['demo'],
     ...extra,
   };
 }

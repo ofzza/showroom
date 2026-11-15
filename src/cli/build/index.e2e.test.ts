@@ -139,9 +139,12 @@ describe('cli/build (end to end)', () => {
 
   it('Builds ts showcases into their showcase frames, and writes build warnings without failing', async () => {
     const root = await copy('showcase-ts');
-    // A showcase whose build warns, added to the copy
+    // A showcase whose build warns, and one shown by its source alone, added to the copy
     await writeFile(join(root, 'demos', 'warning.ts'), "console.log(eval('1 + 1'));\n");
-    await writeFile(join(root, 'README.md'), `${await readFile(join(root, 'README.md'), 'utf8')}\nA [warning](./demos/warning.ts 'showcase=ts').\n`);
+    await writeFile(
+      join(root, 'README.md'),
+      `${await readFile(join(root, 'README.md'), 'utf8')}\nA [warning](./demos/warning.ts 'showcase=ts').\n\n[Its source](./demos/linked.ts 'showcase=ts block view=source')\n`,
+    );
     const { code, stderr } = await run(root);
     expect(stderr).toMatch(/^warning: demos\/warning\.ts:1: Showcase README\.md#4 \(README\.md:\d+\): Use of direct `eval` function/);
     expect(code).toBe(0);
@@ -156,6 +159,8 @@ describe('cli/build (end to end)', () => {
     expect(page).toContain(`<script type="module" crossorigin src="./assets/${entry}"></script>`);
     expect(await readFile(join(frame, 'assets', entry), 'utf8')).toContain('`production`');
     expect(await readFile(join(root, 'showroom', 'showcases', 'README.md', '3', 'index.html'), 'utf8')).toContain('src="./assets/linked-');
+    // Built and checked, but no view loads its page, so it isn't emitted (D574)
+    expect(existsSync(join(root, 'showroom', 'showcases', 'README.md', '5'))).toBe(false);
   });
 
   it("Builds react showcases with the host's own React, on an installed fixture's copy", async () => {

@@ -31,6 +31,7 @@ function _showcase(kind: Showcase['kind'], entry: string, extra: Partial<Showcas
     adapter: 'html',
     entry,
     include: [],
+    views: ['demo'],
     ...extra,
   };
 }
@@ -94,6 +95,7 @@ describe('adapters/showcase/html', () => {
       named,
       content,
       documentation: 'README.md',
+      offset: 0,
       line: 3,
     });
 
@@ -123,8 +125,8 @@ describe('adapters/showcase/html', () => {
         virtual('README.showcase-1.html', '<script src="./demo.js"></script>'),
         virtual('README.showcase-2.html', '<p>Other</p>'),
         virtual('demo.js', 'run();', true),
-        { path: 'lib.ts', named: true, showcase: 'README.md#3', content: 'export {};', documentation: 'README.md', line: 12 },
-        { path: 'unused.css', named: true, content: 'p {}', documentation: 'CONTRIBUTE.md', line: 9 },
+        { path: 'lib.ts', named: true, showcase: 'README.md#3', content: 'export {};', documentation: 'README.md', line: 12, offset: 0 },
+        { path: 'unused.css', named: true, content: 'p {}', documentation: 'CONTRIBUTE.md', line: 9, offset: 0 },
       ];
       const result = await adapter.build(request(_showcase('code-block', 'README.showcase-1.html'), files));
       expect(result).toEqual({
@@ -155,7 +157,7 @@ describe('adapters/showcase/html', () => {
 
     it('Fails on a named html showcase called index.html, its own build too', async () => {
       // See PLAN-P15.1 D551: no exception for the showcase's own entry point
-      const page = { path: 'index.html', named: true, showcase: 'README.md#1', content: '<p>Hi</p>', documentation: 'README.md', line: 3 };
+      const page = { path: 'index.html', named: true, showcase: 'README.md#1', content: '<p>Hi</p>', documentation: 'README.md', line: 3, offset: 0 };
       expect(await adapter.build(request(_showcase('code-block', 'index.html'), [page]))).toEqual({
         reads: ['README.md'],
         issues: [{ severity: 'error', message: 'The virtual file "index.html" would replace the showcase frame\'s page', path: 'index.html' }],
@@ -164,7 +166,7 @@ describe('adapters/showcase/html', () => {
 
     it('Puts the included files next to the page, as they sit next to the entry point', async () => {
       // A real file, read as bytes; another documentation file's virtual file; a named virtual file of the folder, copied once
-      const theme = { path: 'demos/theme.css', named: true, content: 'b {}', documentation: 'demos/README.md', line: 4 };
+      const theme = { path: 'demos/theme.css', named: true, content: 'b {}', documentation: 'demos/README.md', line: 4, offset: 0 };
       const showcase = _showcase('link', 'demos/page.html', { include: ['demos/page.css', 'demos/theme.css', 'demos/widget.txt'] });
       const result = await adapter.build({ ...request(showcase, [virtual('demos/widget.txt', 'w', true)]), hostVirtualFiles: [theme] });
       expect(result.issues).toBeUndefined();

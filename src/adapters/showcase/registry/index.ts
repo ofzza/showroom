@@ -7,7 +7,8 @@ import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { SHOWCASE_ADAPTER_NAME } from '../../../markdown/index.js';
+import type { ShowcaseView } from '../../../host/index.js';
+import { checkShowcaseViews, SHOWCASE_ADAPTER_NAME } from '../../../markdown/index.js';
 import { HtmlShowcaseAdapter } from '../html/index.js';
 import { AngularShowcaseAdapter } from '../angular/index.js';
 import type { ShowcaseAdapter, ShowcaseHostCheck } from '../index.js';
@@ -30,6 +31,20 @@ const _SHOWCASE_ADAPTERS: Record<string, () => ShowcaseAdapter> = {
  * Names of the showcase adapters planned as built-in ones, which custom showcase adapters can't take either
  */
 export const PLANNED_SHOWCASE_ADAPTER_NAMES: readonly string[] = [];
+
+/**
+ * Default showcase views of a showcase adapter that declares none (see ShowcaseAdapter's `defaultViews`)
+ */
+export const DEFAULT_SHOWCASE_VIEWS: readonly ShowcaseView[] = ['demo'];
+
+/**
+ * Gets a showcase adapter's default showcase views
+ * @param adapter The showcase adapter
+ * @returns Its `defaultViews`, or DEFAULT_SHOWCASE_VIEWS if it declares none
+ */
+export function getDefaultViews(adapter: ShowcaseAdapter): ShowcaseView[] {
+  return [...(adapter.defaultViews ?? DEFAULT_SHOWCASE_VIEWS)];
+}
 
 /**
  * Gets the names of the built-in showcase adapters
@@ -150,6 +165,11 @@ async function _load(root: string, name: string, path: string): Promise<{ adapte
   if (missing.length || invalid.length) {
     const methods = [...missing, ...invalid].map((method) => `"${method}"`).join(', ');
     return { error: `"${path}"'s default export must return an object implementing the showcase adapter interface; check ${methods}` };
+  }
+  const views = adapter.defaultViews;
+  if (views !== undefined) {
+    const problem = Array.isArray(views) ? checkShowcaseViews(views) : 'it must be a list of views';
+    if (problem) return { error: `"${path}"'s showcase adapter has invalid "defaultViews": ${problem}` };
   }
   return { adapter: adapter as unknown as ShowcaseAdapter };
 }

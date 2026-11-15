@@ -10,6 +10,8 @@ import {
   COLOURED_TOKEN_CLASSES,
   CodeBlock,
   HighlightedCode,
+  MAX_CODE_LINES,
+  SegmentedCode,
   TOKEN_STYLES,
   UNCOLOURED_TOKEN_CLASSES,
   canCopy,
@@ -164,6 +166,42 @@ describe('app/code', () => {
       expect(scroll).toBeGreaterThan(plainScroll!);
       // The copy button is the block's last child, after the scroll's closing tag
       expect(_renderElement(element(true))).toMatch(/<\/code><\/pre><\/div><\/div><button /);
+    });
+  });
+
+  describe('SegmentedCode', () => {
+    // Segments highlighted in languages of their own, as one code block.
+
+    it('Highlights each segment in its language, in one code block numbered across them', () => {
+      const html = _renderElement(
+        <SegmentedCode
+          segments={[
+            { text: '```ts showcase=ts', language: 'md' },
+            { text: 'const a = 1;\nconst b = 2;', language: 'ts' },
+            { text: '```', language: 'md' },
+          ]}
+        />,
+      );
+      expect(html.match(/<pre/g)).toHaveLength(2);
+      expect(html).toMatch(/<pre [^>]*aria-hidden="true"[^>]*>1\n2\n3\n4<\/pre>/);
+      expect(html).toMatch(
+        /<code class="hljs language-md">.*\n(<\/span>)?<\/code><code class="hljs language-ts">.*\n(<\/span>)?<\/code><code class="hljs language-md">/s,
+      );
+      expect(html.match(/aria-label="Copy code"/g)).toHaveLength(1);
+    });
+
+    it('Takes other classes as a showcase view, with no margin and a capped height', () => {
+      // Griffel's classes are atomic, one per property: the view's margin and corners replace the plain ones, and its height cap adds its own
+      const classes = (view: boolean) =>
+        [..._renderElement(<SegmentedCode segments={[{ text: 'a', language: 'md' }]} view={view} />).matchAll(/<div class="([^"]+)"/g)]
+          // The block and its scroll, before the code's own
+          .slice(-3, -1)
+          .map((match) => match[1].split(' '));
+      const [block, scroll] = classes(true);
+      const [plainBlock, plainScroll] = classes(false);
+      expect(block).not.toEqual(plainBlock);
+      expect(scroll!.length).toBeGreaterThan(plainScroll!.length);
+      expect(MAX_CODE_LINES).toBe(20);
     });
   });
 

@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-components';
+import type { ShowcaseView } from '../../host/index.js';
 import type { ShownShowcase } from '../host/index.js';
 import { MISSING_FILE_MESSAGE } from '../code-sidebar/index.js';
 import {
@@ -13,6 +14,7 @@ import {
   SHOWCASE_BLOCK_FRAME_MIN_HEIGHT,
   ShowcaseBlock,
   getCodePaneMinLines,
+  getFrameView,
   getNextCodePaneState,
   type CodePaneState,
 } from './index.js';
@@ -25,6 +27,9 @@ const _SHOWCASE: ShownShowcase = {
   documentation: 'README.md',
   offset: 0,
   display: 'block',
+  views: ['demo'],
+  markdown: '',
+  entryTab: 0,
   tabs: [
     { label: 'HTML', path: 'README.showcase-1.html', language: 'html', source: { kind: 'virtual', content: '<p class="big">Hi</p>' } },
     { label: 'theme.css', path: 'theme.css', language: 'css', source: { kind: 'virtual', content: '.big {}' } },
@@ -50,24 +55,24 @@ function _render(showcase: ShownShowcase, initialState?: CodePaneState): string 
 }
 
 describe('app/code-pane', () => {
-  // Tests the showcase block by rendering it on the server in each state (effects don't run, so nothing is fetched, and the layout itself, a
-  // container query, is only checked in a browser, see AGENTS.md › Testing), and the cycling button's order of states.
+  // Tests the showcase block by rendering it on the server in each state and with each showcase view (effects don't run, so nothing is fetched,
+  // and the layout itself, a container query, is only checked in a browser, see AGENTS.md › Testing), and the cycling button's order of states.
 
   it('Cycles hidden, half, sidebar, and back, starting hidden', () => {
     expect(INITIAL_CODE_PANE_STATE).toBe('hidden');
     expect([getNextCodePaneState('hidden'), getNextCodePaneState('half'), getNextCodePaneState('sidebar')]).toEqual(['half', 'sidebar', 'hidden']);
   });
 
-  it('Renders the showcase frame first, then the code pane with its tabs, copy button and selected tab, then the cycling button', () => {
+  it('Renders the header bar with the cycling button first, then the views, then the code pane with its tabs, copy button and selected tab', () => {
     const html = _render(_SHOWCASE, 'half');
     expect(html).toContain('data-code-pane-state="half"');
+    const button = html.indexOf(`aria-label="${CODE_PANE_BUTTON_LABELS.half}"`);
     const frame = html.indexOf('<iframe');
     const tabs = html.indexOf('role="tablist"');
     const copy = html.indexOf('aria-label="Copy code"');
     const panel = html.indexOf('role="tabpanel"');
-    const button = html.indexOf(`aria-label="${CODE_PANE_BUTTON_LABELS.half}"`);
-    expect(frame).toBeGreaterThan(-1);
-    expect([frame < tabs, tabs < copy, copy < panel, panel < button]).toEqual([true, true, true, true]);
+    expect(button).toBeGreaterThan(-1);
+    expect([button < frame, frame < tabs, tabs < copy, copy < panel]).toEqual([true, true, true, true]);
     // The code block in the panel has no copy button of its own (D415)
     expect(html.split('aria-label="Copy code"')).toHaveLength(2);
     // Each tab by its label; the first selected, its code shown, labelled by its tab
@@ -78,9 +83,9 @@ describe('app/code-pane', () => {
     expect(html).toContain(`aria-labelledby="${tabId![1] ?? tabId![2]}"`);
   });
 
-  it('Gives the showcase frame a minimum height in every state', () => {
-    // A short showcase frame would put a console panel's counter, at its bottom, under the cycling button floating over its top-right corner
-    expect(SHOWCASE_BLOCK_FRAME_MIN_HEIGHT).toBe(64);
+  it('Gives the demo view a minimum height in every state', () => {
+    // The console panel's counter's row (D576); the cycling button no longer floats over the showcase frame
+    expect(SHOWCASE_BLOCK_FRAME_MIN_HEIGHT).toBe(32);
     for (const state of ['hidden', 'half', 'sidebar'] as const) {
       expect(_render(_SHOWCASE, state)).toMatch(new RegExp(`<iframe [^>]*style="[^"]*min-height:${SHOWCASE_BLOCK_FRAME_MIN_HEIGHT}px`));
     }
@@ -121,6 +126,33 @@ describe('app/code-pane', () => {
     const html = _render({ ..._SHOWCASE, tabs: [_SHOWCASE.tabs[2]] }, 'half');
     expect(html).toContain('Loading…');
     expect(html).not.toContain('aria-label="Copy code"');
+  });
+
+  it('Stacks the views in their order, each in a view of its own', () => {
+    const order = (views: ShowcaseView[]) => [..._render({ ..._SHOWCASE, views }).matchAll(/data-showcase-view="(\w+)"/g)].map((match) => match[1]);
+    expect(order(['demo'])).toEqual(['demo']);
+    expect(order(['console', 'markdown', 'source', 'demo'])).toEqual(['console', 'markdown', 'source', 'demo']);
+  });
+
+  it("Shows the entry point's tab as the source view, and the showcase's Markdown as the markdown view", () => {
+    const showcase: ShownShowcase = { ..._SHOWCASE, views: ['markdown', 'source'], markdown: '```html showcase\n<p class="big">Hi</p>\n```' };
+    const html = _render(showcase);
+    expect(html).toMatch(
+      /data-showcase-view="markdown">.*class="hljs language-md".*class="hljs language-html".*data-showcase-view="source">.*class="hljs language-html"/s,
+    );
+    // The entry point's tab follows the Markdown tab, where it comes first
+    const markdownTab = { label: 'Markdown', path: 'README.md', language: 'md', source: { kind: 'virtual' as const, content: 'x' } };
+    const shifted = _render({ ..._SHOWCASE, views: ['source'], tabs: [markdownTab, ..._SHOWCASE.tabs], entryTab: 1 });
+    expect(shifted).toMatch(/data-showcase-view="source">.*class="hljs language-html"/s);
+  });
+
+  it('Loads no showcase frame where no view needs its page running', () => {
+    const { url: _url, ...unloaded } = _SHOWCASE;
+    const html = _render({ ...unloaded, views: ['source'] });
+    expect(html).not.toContain('<iframe');
+    expect(getFrameView(['source'])).toBeUndefined();
+    expect(getFrameView(['source', 'console'])).toBe('console');
+    expect(getFrameView(['console', 'demo'])).toBe('demo');
   });
 
   it("Takes the selected tab's own lines as its minimum when it has fewer, or the minimum while its text isn't at hand", () => {

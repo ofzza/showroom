@@ -8,7 +8,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { InlineConfig, Logger, Plugin, Rolldown } from 'vite';
 import { SILENCED_WARNINGS } from '../../../cli/check/internal/index.js';
-import type { Showcase, VirtualFile } from '../../../host/index.js';
+import type { Showcase, ShowcaseView, VirtualFile } from '../../../host/index.js';
 import type {
   ShowcaseAdapter,
   ShowcaseBuildFile,
@@ -859,6 +859,11 @@ export async function buildTsShowcase({
  * Represents the `ts` showcase adapter
  */
 export class TsShowcaseAdapter implements ShowcaseAdapter {
+  /**
+   * Its default showcase views: its code and its console, as plain TypeScript is more often logic than UI
+   */
+  readonly defaultViews: readonly ShowcaseView[] = ['source', 'console'];
+
   /**
    * Parsed source files shared between this run's type checks, released in close()
    */

@@ -32,6 +32,7 @@ describe('configuration', () => {
         code: ['*.ts'],
         documentation: ['docs/*.md'],
         customShowcaseAdapters: { mine: './adapters/mine.js' },
+        showcaseViews: { ts: 'source', mine: ['markdown', 'demo'], html: 'none' },
         exposeShowcaseMarkdownSyntax: true,
       };
       expect(validateConfiguration(value)).toEqual({ configuration: value, errors: [] });
@@ -86,6 +87,23 @@ describe('configuration', () => {
           'showroom.json: "customShowcaseAdapters" must be an object mapping showcase adapter names to paths (non-empty strings)',
         ]);
       }
+    });
+
+    it('Rejects default views that are not a view or an array of views', () => {
+      for (const showcaseViews of [[], 'demo', null, { ts: 1 }, { ts: [1] }, { ts: null }]) {
+        expect(validateConfiguration({ stack: 'typescript', showcaseViews }).errors).toEqual([
+          'showroom.json: "showcaseViews" must be an object mapping showcase adapter names to a view or an array of views',
+        ]);
+      }
+      // Each list is checked as a marker's view key is; whether each showcase adapter exists is check's to say
+      expect(
+        validateConfiguration({ stack: 'typescript', showcaseViews: { ts: [], html: 'Demo', react: ['demo', 'demo'], x: ['none', 'source'] } }).errors,
+      ).toEqual([
+        'showroom.json: "showcaseViews" of "ts": no views',
+        'showroom.json: "showcaseViews" of "html": unknown view "Demo"; the views are: markdown, source, demo, console, none',
+        'showroom.json: "showcaseViews" of "react": repeated view "demo"',
+        'showroom.json: "showcaseViews" of "x": the view "none" can\'t be combined with other views',
+      ]);
     });
   });
 

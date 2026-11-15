@@ -3,7 +3,7 @@
  * declared stable). The registry of built-in showcase adapters and the loading of custom ones are internal (`./registry/`), never re-exported.
  */
 
-import type { Showcase, VirtualFile } from '../../host/index.js';
+import type { Showcase, ShowcaseView, VirtualFile } from '../../host/index.js';
 
 // #region Validation
 
@@ -150,6 +150,11 @@ export interface ShowcaseHostCheck {
  * Experimental: this interface may change in any release until it is declared stable.
  */
 export interface ShowcaseAdapter {
+  /**
+   * Its default showcase views, for its showcases shown as blocks whose marker has no `view=` and whose showcase adapter `showroom.json`'s
+   * `showcaseViews` doesn't list: at least one view, none repeated, `none` alone; `['demo']` if not given
+   */
+  readonly defaultViews?: readonly ShowcaseView[];
   /**
    * Validates one showcase, statically: its options and its entry point (e.g. the entry point's extension)
    * @param showcase The showcase, with its options as its marker gives them

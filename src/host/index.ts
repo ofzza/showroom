@@ -85,6 +85,13 @@ export type ShowcaseKind = 'code-block' | 'link';
 export type ShowcaseDisplay = 'inline' | 'block';
 
 /**
+ * Represents a showcase view: one way the showroom shows a showcase in its block, the views stacked in their order. `markdown`, the showcase as
+ * written in its documentation file; `source`, its entry point's code; `demo`, its showcase frame; `console`, its console panel alone; `none`,
+ * nothing (the showcase is still built and checked)
+ */
+export type ShowcaseView = 'markdown' | 'source' | 'demo' | 'console' | 'none';
+
+/**
  * Represents a showcase embedded in a documentation file
  */
 export interface Showcase {
@@ -129,6 +136,11 @@ export interface Showcase {
    * POSIX-style paths of its included files (`include=`), relative to the host repository's root, in the marker's order; empty if it has none
    */
   include: string[];
+  /**
+   * Its showcase views, in the order they are shown: the marker's `view=`, or else the defaults `showroom.json`'s `showcaseViews` sets for its
+   * showcase adapter, or else its showcase adapter's own (`demo` for a linked showcase shown inline, which takes no `view=`)
+   */
+  views: ShowcaseView[];
 }
 
 /**
@@ -150,6 +162,11 @@ export interface VirtualFile {
    */
   showcase?: string;
   /**
+   * Showcase views of a virtual file with no showcase adapter, in the order they are shown: the marker's `view=` (`source`, `markdown` or `none`),
+   * or `source`, an ordinary code block; undefined for a showcase's entry point, whose showcase has its views
+   */
+  views?: ShowcaseView[];
+  /**
    * Content of the virtual file: the code block's text
    */
   content: string;
@@ -161,6 +178,10 @@ export interface VirtualFile {
    * Line of the code block's fence in the documentation file, from 1
    */
   line: number;
+  /**
+   * Offset of the code block's fence in the documentation file's content, in characters, from 0
+   */
+  offset: number;
 }
 
 // #endregion

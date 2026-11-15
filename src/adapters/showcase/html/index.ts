@@ -6,7 +6,7 @@
 
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { Showcase } from '../../../host/index.js';
+import type { Showcase, ShowcaseView } from '../../../host/index.js';
 import { getFolder } from '../../../markdown/index.js';
 import type { ShowcaseAdapter, ShowcaseBuildFile, ShowcaseBuildIssue, ShowcaseBuildRequest, ShowcaseBuildResult, ShowcaseValidation } from '../index.js';
 
@@ -14,6 +14,11 @@ import type { ShowcaseAdapter, ShowcaseBuildFile, ShowcaseBuildIssue, ShowcaseBu
  * Represents the `html` showcase adapter
  */
 export class HtmlShowcaseAdapter implements ShowcaseAdapter {
+  /**
+   * Its default showcase views: its page
+   */
+  readonly defaultViews: readonly ShowcaseView[] = ['demo'];
+
   /**
    * Validates a showcase: it takes no options, its entry point must be an `html` or `htm` code block, or a linked `.html` or `.htm` file, and its
    * included files must be inside its entry point's folder, none where the page goes (`index.html`, in any case)

@@ -2,7 +2,7 @@
  * The shown host information: the part of the host information the showroom presents, and helpers for finding its documentation files
  */
 
-import type { DocumentationFile, HostInformation, ShowcaseDisplay } from '../../host/index.js';
+import type { DocumentationFile, HostInformation, ShowcaseDisplay, ShowcaseView } from '../../host/index.js';
 import { getFolder, isMarkdownPath } from '../../markdown/index.js';
 
 export { getFolder };
@@ -97,14 +97,67 @@ export interface ShownShowcase {
    */
   display: ShowcaseDisplay;
   /**
-   * Its files, as tabs: the entry point, then the included files, in the marker's order
+   * Its showcase views, in the order they are shown
+   */
+  views: ShowcaseView[];
+  /**
+   * Its Markdown source, as written in its documentation file (its fence, or its link): what its `markdown` view and its Markdown tab show
+   */
+  markdown: string;
+  /**
+   * Its files, as tabs: the entry point, then the included files, in the marker's order (after its Markdown tab, where it has one)
    */
   tabs: ShownTab[];
   /**
-   * URL of the showcase frame's page, relative to the showroom's page, with its content's hash as its query (`?hash=<hash>`), so a changed showcase
-   * frame gets a new URL
+   * Index of its entry point's tab among its tabs, which its `source` view shows
    */
-  url: string;
+  entryTab: number;
+  /**
+   * URL of the showcase frame's page, relative to the showroom's page, with its content's hash as its query (`?hash=<hash>`), so a changed showcase
+   * frame gets a new URL; undefined when none of its views loads it (neither `demo` nor `console`)
+   */
+  url?: string;
+}
+
+/**
+ * Represents a shown showcase whose views load its showcase frame, so it has its URL
+ */
+export type LoadedShowcase = ShownShowcase & { url: string };
+
+/**
+ * Checks if a shown showcase's views load its showcase frame (it then has its URL)
+ * @param showcase The shown showcase
+ * @returns True if it has its showcase frame's URL
+ */
+export function isLoadedShowcase(showcase: ShownShowcase): showcase is LoadedShowcase {
+  return showcase.url !== undefined;
+}
+
+/**
+ * Represents a shown virtual file with no showcase adapter whose views aren't an ordinary code block's (`source`): where the showroom places it,
+ * and what it shows
+ */
+export interface ShownVirtualFile {
+  /**
+   * POSIX-style path of the virtual file, relative to the host repository's root
+   */
+  path: string;
+  /**
+   * POSIX-style path of the documentation file holding it, relative to the host repository's root
+   */
+  documentation: string;
+  /**
+   * Offset of its fence in the documentation file's content, in characters, from 0
+   */
+  offset: number;
+  /**
+   * Its showcase views (`source`, `markdown` or `none`)
+   */
+  views: ShowcaseView[];
+  /**
+   * Its Markdown source, as written in its documentation file (its fence, marker included)
+   */
+  markdown: string;
 }
 
 /**
@@ -117,6 +170,10 @@ export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentat
    * showing its build errors
    */
   showcases: ShownShowcase[];
+  /**
+   * The virtual files with no showcase adapter whose views aren't `source` alone, sorted by documentation file and offset
+   */
+  virtualFiles: ShownVirtualFile[];
 };
 
 /**

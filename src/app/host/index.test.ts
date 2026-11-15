@@ -80,8 +80,18 @@ describe('app/host', () => {
 
   it("Applies showcase frames' new URLs by id, keeping the list when none changed", () => {
     const showcases: ShownShowcase[] = [
-      { id: 'README.md#1', documentation: 'README.md', offset: 0, display: 'block', tabs: [_tab('a.html', 'files/a.html?hash=1')], url: 'a?hash=1' },
-      { id: 'README.md#2', documentation: 'README.md', offset: 9, display: 'block', tabs: [], url: 'b?hash=1' },
+      {
+        id: 'README.md#1',
+        documentation: 'README.md',
+        offset: 0,
+        display: 'block',
+        views: ['demo'],
+        markdown: '',
+        entryTab: 0,
+        tabs: [_tab('a.html', 'files/a.html?hash=1')],
+        url: 'a?hash=1',
+      },
+      { id: 'README.md#2', documentation: 'README.md', offset: 9, display: 'block', views: ['demo'], markdown: '', entryTab: 0, tabs: [], url: 'b?hash=1' },
     ];
     const applied = applyShowcaseUrls(showcases, [
       { id: 'README.md#1', url: 'a?hash=1', tabs: showcases[0].tabs },
@@ -96,7 +106,17 @@ describe('app/host', () => {
 
   it("Applies a tab's new URL alone, keeping its showcase frame's", () => {
     const showcases: ShownShowcase[] = [
-      { id: 'README.md#1', documentation: 'README.md', offset: 0, display: 'block', tabs: [_tab('a.html', 'files/a.html?hash=1')], url: 'a?hash=1' },
+      {
+        id: 'README.md#1',
+        documentation: 'README.md',
+        offset: 0,
+        display: 'block',
+        views: ['demo'],
+        markdown: '',
+        entryTab: 0,
+        tabs: [_tab('a.html', 'files/a.html?hash=1')],
+        url: 'a?hash=1',
+      },
     ];
     const tabs = [_tab('a.html', 'files/a.html?hash=2')];
     expect(applyShowcaseUrls(showcases, [{ id: 'README.md#1', url: 'a?hash=1', tabs }])).toEqual([{ ...showcases[0], tabs }]);

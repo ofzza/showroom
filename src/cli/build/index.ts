@@ -12,7 +12,14 @@ import { formatIssues, resolveOutputFolder, SILENCED_WARNINGS } from '../check/i
 import type { CliOutput } from '../index.js';
 import { readConfiguration } from '../../configuration/index.js';
 import { buildShowcases, getBuildShowcasesIssues } from '../../showcases/index.js';
-import { getAppDir, getShownHostInformation, getTabFileHashes, getViteConfiguration, type ViteConfigurationOptions } from '../../vite/index.js';
+import {
+  getAppDir,
+  getShownHostInformation,
+  getTabFileHashes,
+  getViteConfiguration,
+  loadsShowcaseFrame,
+  type ViteConfigurationOptions,
+} from '../../vite/index.js';
 
 // #region Output folder marker
 
@@ -155,10 +162,12 @@ export async function build({ root, outDir, output, appDir = getAppDir() }: Buil
   if (issues.some((issue) => issue.severity === 'error')) {
     return 1;
   }
-  const frames = showcases.frames;
-  const host = getShownHostInformation(result.host, frames, await getTabFileHashes(root, result.host), {
+  const host = getShownHostInformation(result.host, showcases.frames, await getTabFileHashes(root, result.host), {
     exposeShowcaseMarkdownSyntax: configuration.exposeShowcaseMarkdownSyntax,
   });
+  // Only the showcase frames a view loads are emitted: a showcase shown by its markdown or source alone was built and checked, and that's all
+  const loaded = new Set(result.host.showcases.filter(({ views }) => loadsShowcaseFrame(views)).map(({ id }) => id));
+  const frames = new Map([...showcases.frames].filter(([id]) => loaded.has(id)));
 
   // Build, with Vite's cache in a fresh folder of its own, removed afterwards
   const cacheDir = await mkdtemp(join(tmpdir(), 'showroom-'));

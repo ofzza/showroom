@@ -7,7 +7,7 @@ import { renderToString } from 'react-dom/server';
 import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-components';
 import { CONSOLE_MAX_LINES, type ConsoleLine } from '../../frame/index.js';
 import { ShowcaseBlock } from '../code-pane/index.js';
-import type { ShownShowcase } from '../host/index.js';
+import type { LoadedShowcase } from '../host/index.js';
 import { ShowcaseFrame } from '../showcases/index.js';
 import {
   CONSOLE_FADING_LINES,
@@ -15,8 +15,8 @@ import {
   CONSOLE_LINE_SHOWN_MS,
   CONSOLE_PANEL_HEIGHT,
   CONSOLE_ROW_HEIGHT,
-  CONSOLE_TOP_ROOM,
   ConsolePanel,
+  ConsoleView,
   INITIAL_CONSOLE_STATE,
   getConsoleMinHeight,
   getConsoleTitle,
@@ -25,6 +25,8 @@ import {
   getDroppedText,
   getFadingLines,
   getNextFadeTime,
+  isScrolledToBottom,
+  NO_OUTPUT_TEXT,
   updateConsole,
   type ConsoleAction,
   type ConsoleState,
@@ -72,11 +74,14 @@ function _render(node: React.ReactNode): string {
 /**
  * A showcase shown as a block
  */
-const _SHOWCASE: ShownShowcase = {
+const _SHOWCASE: LoadedShowcase = {
   id: 'README.md#1',
   documentation: 'README.md',
   offset: 0,
   display: 'block',
+  views: ['demo'],
+  markdown: '',
+  entryTab: 0,
   tabs: [{ label: 'HTML', path: 'README.showcase-1.html', language: 'html', source: { kind: 'virtual', content: '<p>Hi</p>' } }],
   url: 'showcases/README.md/1/index.html?hash=00000001',
 };
@@ -188,13 +193,19 @@ describe('app/console', () => {
 
     it("Grows the showcase frame's box to the counter's row once anything is logged, and to the open console panel", () => {
       // D565: a short showcase frame shown inline holds the counter; D531: opening the console panel grows the box to fit it
-      expect(getConsoleMinHeight(INITIAL_CONSOLE_STATE, false)).toBe(0);
+      expect(getConsoleMinHeight(INITIAL_CONSOLE_STATE)).toBe(0);
       const logged = _apply([_lines(['a'])]);
-      expect(getConsoleMinHeight(logged, true)).toBe(CONSOLE_ROW_HEIGHT);
-      const open = updateConsole(logged, { type: 'open' });
-      expect(getConsoleMinHeight(open, false)).toBe(CONSOLE_PANEL_HEIGHT);
-      // D564: the room at the top in a block only
-      expect(getConsoleMinHeight(open, true)).toBe(CONSOLE_PANEL_HEIGHT + CONSOLE_TOP_ROOM);
+      expect(getConsoleMinHeight(logged)).toBe(CONSOLE_ROW_HEIGHT);
+      // D576: no room left at the top, in a block or not, as the cycling button sits in the header bar
+      expect(getConsoleMinHeight(updateConsole(logged, { type: 'open' }))).toBe(CONSOLE_PANEL_HEIGHT);
+    });
+
+    it('Follows the newest line only while scrolled to the bottom', () => {
+      expect(isScrolledToBottom(100, 50, 150)).toBe(true);
+      // Browsers round scroll positions
+      expect(isScrolledToBottom(98, 50, 150)).toBe(true);
+      expect(isScrolledToBottom(90, 50, 150)).toBe(false);
+      expect(isScrolledToBottom(0, 50, 50)).toBe(true);
     });
   });
 
@@ -228,7 +239,7 @@ describe('app/console', () => {
     });
 
     it('Renders over a showcase frame shown inline, its box at least as high as the console panel needs', () => {
-      const showcase: ShownShowcase = { ..._SHOWCASE, display: 'inline' };
+      const showcase: LoadedShowcase = { ..._SHOWCASE, display: 'inline' };
       const empty = _render(<ShowcaseFrame showcase={showcase} />);
       expect(empty).toMatch(/<div class="[^"]*"><iframe [^>]*><\/iframe><\/div><\/div>$/);
       const logged = _render(<ShowcaseFrame showcase={showcase} initialConsole={_apply([_lines(['a'])])} />);
@@ -237,10 +248,48 @@ describe('app/console', () => {
       expect(open).toContain(`style="min-height:${CONSOLE_PANEL_HEIGHT}px"`);
     });
 
-    it('Leaves the room at the top of the open console panel in a block', () => {
+    it("Grows a block's demo view to the open console panel, with no room left at its top", () => {
       const html = _render(<ShowcaseBlock showcase={_SHOWCASE} documentation={[]} initialConsole={_apply([_lines(['a']), { type: 'open' }])} />);
-      expect(html).toContain(`style="min-height:${CONSOLE_PANEL_HEIGHT + CONSOLE_TOP_ROOM}px"`);
+      expect(html).toContain(`style="min-height:${CONSOLE_PANEL_HEIGHT}px"`);
       expect(html).toContain('role="region" aria-label="Console"');
+    });
+  });
+
+  describe('Console view', () => {
+    // Renders ConsoleView, and blocks with a console view, on the server with a given state.
+
+    it('Shows a greyed placeholder while nothing is logged', () => {
+      const html = _render(<ConsoleView state={INITIAL_CONSOLE_STATE} />);
+      expect(html).toContain('role="log" aria-label="Console"');
+      expect(html).toContain(`>${NO_OUTPUT_TEXT}</div>`);
+    });
+
+    it('Shows every line kept, after the dropped line, with no counter or fading lines', () => {
+      const html = _render(<ConsoleView state={_apply([_lines(['a', { level: 'error', text: 'b' }], _T0, 3)])} />);
+      expect(html).toMatch(/… 3 earlier lines dropped<\/div><div [^>]*>a<\/div><div [^>]*>b<\/div>/);
+      expect(html).not.toContain(NO_OUTPUT_TEXT);
+      expect(html).not.toContain('Open the console');
+    });
+
+    it('Takes the console out of the demo view when the block shows a console view too', () => {
+      // The user's caveat on D498: no console over the demo when the console is a view of its own
+      const state = _apply([_lines(['a'])]);
+      const both = _render(<ShowcaseBlock showcase={{ ..._SHOWCASE, views: ['demo', 'console'] }} documentation={[]} initialConsole={state} />);
+      expect(both).not.toContain('Open the console');
+      expect(both).toContain('role="log" aria-label="Console"');
+      expect(both).toMatch(/data-showcase-view="console"><div [^>]*role="log"[^>]*><div [^>]*>a<\/div>/);
+      const demo = _render(<ShowcaseBlock showcase={_SHOWCASE} documentation={[]} initialConsole={state} />);
+      expect(demo).toContain('Open the console');
+      expect(demo).not.toContain('role="log"');
+    });
+
+    it('Runs the showcase frame hidden at the top of a console view with no demo view', () => {
+      // D570: laid out at its real width, invisible, clipped to no height, out of reach of the pointer, the keyboard and screen readers
+      const html = _render(<ShowcaseBlock showcase={{ ..._SHOWCASE, views: ['source', 'console'] }} documentation={[]} />);
+      expect(html).toMatch(/data-showcase-view="console"><div class="[^"]+"><iframe [^>]*aria-hidden="true"[^>]*><\/iframe><\/div><div [^>]*role="log"/);
+      expect(html).toMatch(/<iframe [^>]*tabindex="-1"/i);
+      expect(html).not.toMatch(/<iframe [^>]*loading="lazy"/);
+      expect(html).toContain(NO_OUTPUT_TEXT);
     });
   });
 });

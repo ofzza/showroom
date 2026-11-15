@@ -70,7 +70,17 @@ describe('app/pages', () => {
       const content = '# Welcome\n\n```html showcase\n<b>Hi</b>\n```\n';
       const [found] = scanMarkdown('README.md', content).showcases;
       const showcases: ShownShowcase[] = [
-        { id: found!.id, documentation: 'README.md', offset: found!.offset, display: 'block', tabs: [], url: 'showcases/README.md/1/index.html?hash=00000001' },
+        {
+          id: found!.id,
+          documentation: 'README.md',
+          offset: found!.offset,
+          display: 'block',
+          views: ['demo'],
+          markdown: '',
+          entryTab: 0,
+          tabs: [],
+          url: 'showcases/README.md/1/index.html?hash=00000001',
+        },
       ];
       const html = _render(<HomePage project={project} readme={{ ...readme, content }} documentation={documentation} showcases={showcases} />);
       expect(html.indexOf('Jane Doe')).toBeLessThan(html.indexOf('<iframe'));

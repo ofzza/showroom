@@ -95,13 +95,22 @@ export function App({ data, issues = _NO_ISSUES, route, theme: initialTheme }: A
           readme={getRootReadme(data.documentation)}
           documentation={data.documentation}
           showcases={data.showcases}
+          virtualFiles={data.virtualFiles}
           linkedFiles={data.linkedFiles}
         />
       );
       current = formatRoute();
       break;
     case 'documentation':
-      page = <DocumentationPage file={resolved.file} documentation={data.documentation} showcases={data.showcases} linkedFiles={data.linkedFiles} />;
+      page = (
+        <DocumentationPage
+          file={resolved.file}
+          documentation={data.documentation}
+          showcases={data.showcases}
+          virtualFiles={data.virtualFiles}
+          linkedFiles={data.linkedFiles}
+        />
+      );
       current = formatRoute(resolved.file.path);
       break;
     case 'not-found':

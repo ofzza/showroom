@@ -5,7 +5,7 @@
  */
 
 import { basename, resolve } from 'node:path';
-import type { Showcase } from '../../../host/index.js';
+import type { Showcase, ShowcaseView } from '../../../host/index.js';
 import type { ShowcaseAdapter, ShowcaseBuildRequest, ShowcaseBuildResult, ShowcaseHostCheck, ShowcaseValidation } from '../index.js';
 import { buildTsShowcase, REACT_ENTRY, SHOWCASE_FRAME_ROOT_ID, TS_ENTRY, validateTsShowcaseOptions, type GeneratedModule } from '../ts/index.js';
 import {
@@ -157,6 +157,11 @@ export function getMountModule(entry: string): string {
  * Represents the `react` showcase adapter
  */
 export class ReactShowcaseAdapter implements ShowcaseAdapter {
+  /**
+   * Its default showcase views: the rendered component
+   */
+  readonly defaultViews: readonly ShowcaseView[] = ['demo'];
+
   /**
    * Parsed source files shared between this run's type checks, released in close()
    */

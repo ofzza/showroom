@@ -47,7 +47,19 @@ const _TYPESCRIPT = join(REPOSITORY_ROOT, 'node_modules', 'typescript');
  * @returns The showcase
  */
 function _showcase(documentation: string, entry: string, options: unknown = { typeCheck: true, allowJs: false }): Showcase {
-  return { id: `${documentation}#1`, documentation, line: 1, offset: 0, kind: 'code-block', display: 'block', adapter: 'ts', entry, include: [], options };
+  return {
+    id: `${documentation}#1`,
+    documentation,
+    line: 1,
+    offset: 0,
+    kind: 'code-block',
+    display: 'block',
+    adapter: 'ts',
+    entry,
+    include: [],
+    views: ['source', 'console'],
+    options,
+  };
 }
 
 /**
@@ -57,7 +69,7 @@ function _showcase(documentation: string, entry: string, options: unknown = { ty
  * @returns The virtual file
  */
 function _virtual(path: string, content: string): VirtualFile {
-  return { path, named: false, content, documentation: 'README.md', line: 10 };
+  return { path, named: false, content, documentation: 'README.md', line: 10, offset: 0 };
 }
 
 /**

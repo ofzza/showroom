@@ -17,10 +17,18 @@ import { getOpeningTitleOffset } from '../../markdown/index.js';
 import { CodeBlock } from '../code/index.js';
 import { ShowcaseBlock } from '../code-pane/index.js';
 import { CodeSidebar } from '../code-sidebar/index.js';
-import type { ShownShowcase } from '../host/index.js';
+import { isLoadedShowcase, type ShownShowcase, type ShownVirtualFile } from '../host/index.js';
 import { resolveImage, resolveLink } from '../links/index.js';
 import { scrollToAnchor } from '../routing/index.js';
-import { SHOWCASE_BLOCK_ELEMENT, SHOWCASE_FRAME_ELEMENT, SHOWCASE_ID_PROPERTY, ShowcaseFrame, remarkShowcaseFrames } from '../showcases/index.js';
+import {
+  SHOWCASE_BLOCK_ELEMENT,
+  SHOWCASE_FRAME_ELEMENT,
+  SHOWCASE_ID_PROPERTY,
+  SHOWCASE_VIRTUAL_FILE_ELEMENT,
+  ShowcaseFrame,
+  VirtualFileViews,
+  remarkShowcaseFrames,
+} from '../showcases/index.js';
 
 // #region Styles
 
@@ -85,6 +93,10 @@ export interface MarkdownProps {
    */
   showcases?: ShownShowcase[];
   /**
+   * Shown virtual files, placed in the documentation file holding them; none if not given
+   */
+  virtualFiles?: ShownVirtualFile[];
+  /**
    * Linked files, to resolve links and images against; none if not given
    */
   linkedFiles?: LinkedFile[];
@@ -100,6 +112,11 @@ export interface MarkdownProps {
 const _NO_SHOWCASES: ShownShowcase[] = [];
 
 /**
+ * No shown virtual files, the default of the Markdown component's, kept as one array so its memoised values stay put
+ */
+const _NO_VIRTUAL_FILES: ShownVirtualFile[] = [];
+
+/**
  * No linked files, the default of the Markdown component's, kept as one array so its memoised values stay put
  */
 const _NO_LINKED_FILES: LinkedFile[] = [];
@@ -109,13 +126,24 @@ const _NO_LINKED_FILES: LinkedFile[] = [];
  * @param props Properties of the component
  * @returns The rendered Markdown
  */
-export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, linkedFiles = _NO_LINKED_FILES, afterTitle }: MarkdownProps): ReactNode {
+export function Markdown({
+  file,
+  documentation,
+  showcases = _NO_SHOWCASES,
+  virtualFiles = _NO_VIRTUAL_FILES,
+  linkedFiles = _NO_LINKED_FILES,
+  afterTitle,
+}: MarkdownProps): ReactNode {
   const styles = _useStyles();
   // The linked file shown in the code sidebar, if any, with the id of the linked showcase shown inline whose tabs it shows
   const [shown, setShown] = useState<{ file: LinkedFile; showcase?: string } | undefined>(undefined);
   const titleOffset = useMemo(() => (afterTitle === undefined ? undefined : getOpeningTitleOffset(file.content)), [afterTitle, file.content]);
   const fileShowcases = useMemo(() => showcases.filter((showcase) => showcase.documentation === file.path), [showcases, file.path]);
-  const remarkPlugins = useMemo<Options['remarkPlugins']>(() => [remarkGfm, [remarkShowcaseFrames, { showcases: fileShowcases }]], [fileShowcases]);
+  const fileVirtualFiles = useMemo(() => virtualFiles.filter((virtualFile) => virtualFile.documentation === file.path), [virtualFiles, file.path]);
+  const remarkPlugins = useMemo<Options['remarkPlugins']>(
+    () => [remarkGfm, [remarkShowcaseFrames, { showcases: fileShowcases, virtualFiles: fileVirtualFiles }]],
+    [fileShowcases, fileVirtualFiles],
+  );
   // Kept between renders, so react-markdown doesn't remount every link, image and showcase frame on each one; the theme and the showcases reach
   // showcase frames through contexts, so neither a theme change nor a showcase frame's new URL remounts them
   const components = useMemo<Components>(
@@ -161,6 +189,7 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, linke
       ...({
         [SHOWCASE_FRAME_ELEMENT]: (props: Record<string, unknown>) => <PlacedShowcaseFrame id={props[SHOWCASE_ID_PROPERTY]} />,
         [SHOWCASE_BLOCK_ELEMENT]: (props: Record<string, unknown>) => <PlacedShowcaseBlock id={props[SHOWCASE_ID_PROPERTY]} documentation={documentation} />,
+        [SHOWCASE_VIRTUAL_FILE_ELEMENT]: (props: Record<string, unknown>) => <PlacedVirtualFile path={props[SHOWCASE_ID_PROPERTY]} />,
       } as Components),
     }),
     [file, documentation, linkedFiles, styles.fileIcon, styles.unresolved, titleOffset, afterTitle],
@@ -168,9 +197,11 @@ export function Markdown({ file, documentation, showcases = _NO_SHOWCASES, linke
   return (
     <div className={styles.markdown}>
       <_ShowcasesContext.Provider value={fileShowcases}>
-        <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={[rehypeSlug, rehypeHighlight]} skipHtml components={components}>
-          {file.content}
-        </ReactMarkdown>
+        <_VirtualFilesContext.Provider value={fileVirtualFiles}>
+          <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={[rehypeSlug, rehypeHighlight]} skipHtml components={components}>
+            {file.content}
+          </ReactMarkdown>
+        </_VirtualFilesContext.Provider>
       </_ShowcasesContext.Provider>
       <CodeSidebar
         file={shown?.file}
@@ -206,13 +237,18 @@ function _getText(node: _TextNode): string {
 const _ShowcasesContext = createContext<ShownShowcase[]>(_NO_SHOWCASES);
 
 /**
+ * The shown virtual files of the documentation file being rendered, which placed virtual files look theirs up in
+ */
+const _VirtualFilesContext = createContext<ShownVirtualFile[]>(_NO_VIRTUAL_FILES);
+
+/**
  * Renders a showcase frame the remark plugin placed, looking its showcase up by id in the documentation file's showcases
  * @param props Properties of the component: the showcase's id
  * @returns The showcase frame, or nothing if no showcase has that id
  */
 export function PlacedShowcaseFrame({ id }: { id: unknown }): ReactNode {
   const showcase = useContext(_ShowcasesContext).find((candidate) => candidate.id === id);
-  return showcase ? <ShowcaseFrame showcase={showcase} /> : null;
+  return showcase && isLoadedShowcase(showcase) ? <ShowcaseFrame showcase={showcase} /> : null;
 }
 
 /**
@@ -223,6 +259,16 @@ export function PlacedShowcaseFrame({ id }: { id: unknown }): ReactNode {
 export function PlacedShowcaseBlock({ id, documentation }: { id: unknown; documentation: DocumentationFile[] }): ReactNode {
   const showcase = useContext(_ShowcasesContext).find((candidate) => candidate.id === id);
   return showcase ? <ShowcaseBlock showcase={showcase} documentation={documentation} /> : null;
+}
+
+/**
+ * Renders a shown virtual file the remark plugin placed, looking it up by path in the documentation file's shown virtual files
+ * @param props Properties of the component: the virtual file's path
+ * @returns Its views, or nothing if no shown virtual file has that path
+ */
+export function PlacedVirtualFile({ path }: { path: unknown }): ReactNode {
+  const file = useContext(_VirtualFilesContext).find((candidate) => candidate.path === path);
+  return file ? <VirtualFileViews file={file} /> : null;
 }
 
 /**

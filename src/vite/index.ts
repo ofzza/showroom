@@ -12,7 +12,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Alias, InlineConfig, Plugin } from 'vite';
 import type { CheckIssue } from '../cli/check/index.js';
-import type { HostInformation, LinkedFile, Showcase } from '../host/index.js';
+import type { HostInformation, LinkedFile, Showcase, ShowcaseView } from '../host/index.js';
 import { LINKED_FILES_FOLDER, getLanguage, getLinkedFileUrl } from '../linked-files/index.js';
 import { getRelativePath, getShowcaseSources } from '../markdown/index.js';
 import type { ShownHostInformation, ShownTab, ShownTabSource } from '../app/host/index.js';
@@ -41,13 +41,23 @@ export interface ShownHostOptions {
 }
 
 /**
+ * Checks if a showcase's views load its showcase frame: `demo`, or `console` (whose page runs hidden without `demo`)
+ * @param views The showcase's views
+ * @returns True if a view needs its page running
+ */
+export function loadsShowcaseFrame(views: readonly ShowcaseView[]): boolean {
+  return views.includes('demo') || views.includes('console');
+}
+
+/**
  * Gets the shown host information: the part of the host information the showroom presents
  * @param host Host information
  * @param frames The showcase frames built, by showcase id; none when they aren't built
  * @param hashes The hashes of the text linked files shown as tabs, by path (see getTabFileHashes()); a tab without one has no hash in its URL
  * @param options Options from the configuration: whether showcases shown as blocks get their Markdown tab
- * @returns The project information, documentation files and linked files, without the code file index, and the showcases with a showcase frame,
- * each with its tabs
+ * @returns The project information, documentation files and linked files, without the code file index; the showcases with a showcase frame, each
+ * with its views, its Markdown source, its tabs, and its showcase frame's URL where a view loads it; and the virtual files with no showcase adapter
+ * whose views aren't `source` alone
  */
 export function getShownHostInformation(
   host: HostInformation,
@@ -55,7 +65,7 @@ export function getShownHostInformation(
   hashes: ReadonlyMap<string, string> = new Map(),
   options: ShownHostOptions = {},
 ): ShownHostInformation {
-  // Each documentation file holding a shown showcase shown as a block is parsed once, for its showcases' Markdown tabs, when they have them
+  // Each documentation file holding a shown showcase or virtual file is parsed once, for their Markdown sources
   const sources = new Map<string, Map<number, string>>();
   const getSources = (path: string) => {
     if (!sources.has(path)) sources.set(path, getShowcaseSources(host.documentation.find((file) => file.path === path)?.content ?? ''));
@@ -64,13 +74,20 @@ export function getShownHostInformation(
   const showcases = host.showcases.flatMap((showcase) => {
     const frame = frames?.get(showcase.id);
     if (!frame) return [];
-    const { id, documentation, offset, display } = showcase;
+    const { id, documentation, offset, display, views } = showcase;
     const tabs = getShownTabs(host, showcase, hashes);
-    const markdown = options.exposeShowcaseMarkdownSyntax && display === 'block' ? getSources(documentation).get(offset) : undefined;
-    if (markdown !== undefined) tabs.unshift(getMarkdownTab(showcase, markdown));
-    return [{ id, documentation, offset, display, tabs, url: getShowcaseFrameUrl(frame) }];
+    const markdown = getSources(documentation).get(offset) ?? '';
+    const markdownTab = options.exposeShowcaseMarkdownSyntax && display === 'block';
+    if (markdownTab) tabs.unshift(getMarkdownTab(showcase, markdown));
+    const url = loadsShowcaseFrame(views) ? { url: getShowcaseFrameUrl(frame) } : {};
+    return [{ id, documentation, offset, display, views, markdown, tabs, entryTab: markdownTab ? 1 : 0, ...url }];
   });
-  return { project: host.project, documentation: host.documentation, showcases, linkedFiles: host.linkedFiles };
+  const virtualFiles = host.virtualFiles.flatMap(({ path, documentation, offset, views }) =>
+    views && !(views.length === 1 && views[0] === 'source')
+      ? [{ path, documentation, offset, views, markdown: getSources(documentation).get(offset) ?? '' }]
+      : [],
+  );
+  return { project: host.project, documentation: host.documentation, showcases, virtualFiles, linkedFiles: host.linkedFiles };
 }
 
 /**

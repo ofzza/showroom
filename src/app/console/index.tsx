@@ -1,8 +1,8 @@
 /**
  * The console panel: what a showcase frame writes to its console, its uncaught errors and its rejected promises, as the frame script posts them,
- * shown by the showroom over the showcase frame. Its state is a pure function of the showcase frame's messages and the user's actions; the overlay
- * shows the newest lines briefly at the bottom of the showcase frame, then fades them, beside a counter (red while errors are unseen) that opens the
- * whole console panel over the showcase.
+ * shown by the showroom over the showcase frame, or as a showcase's `console` view. Its state is a pure function of the showcase frame's messages
+ * and the user's actions; the overlay shows the newest lines briefly at the bottom of the showcase frame, then fades them, beside a counter (red
+ * while errors are unseen) that opens the whole console panel over the showcase; the `console` view shows every line, always.
  */
 
 import { useEffect, useLayoutEffect, useReducer, useRef, type Dispatch, type KeyboardEvent, type ReactNode } from 'react';
@@ -31,12 +31,6 @@ export const CONSOLE_LINE_SHOWN_MS = 3000;
  * Time a line takes to fade, in milliseconds
  */
 export const CONSOLE_LINE_FADE_MS = 1000;
-
-/**
- * Room the open console panel leaves at the top of a showcase frame in a block, in pixels, so it never covers the code pane's cycling button
- * floating over the showcase frame's top-right corner (the height of the code pane's header row, `src/app/code-pane/`)
- */
-export const CONSOLE_TOP_ROOM = 32;
 
 /**
  * Height of the counter's row, in pixels: the least a showcase frame's box is high once anything is logged, so the counter and the fading lines fit
@@ -218,14 +212,25 @@ export function getNextFadeTime(state: ConsoleState): number | undefined {
 
 /**
  * Gets the least height of a showcase frame's box for its console panel: nothing while nothing is logged; the counter's row once anything is; and
- * the open console panel, below the room it leaves at the top in a block
+ * the open console panel
  * @param state The state
- * @param topRoom True to leave CONSOLE_TOP_ROOM at the top of the open console panel (a showcase frame in a block)
  * @returns The height, in pixels
  */
-export function getConsoleMinHeight(state: ConsoleState, topRoom: boolean): number {
-  if (state.open) return CONSOLE_PANEL_HEIGHT + (topRoom ? CONSOLE_TOP_ROOM : 0);
+export function getConsoleMinHeight(state: ConsoleState): number {
+  if (state.open) return CONSOLE_PANEL_HEIGHT;
   return state.count ? CONSOLE_ROW_HEIGHT : 0;
+}
+
+/**
+ * Checks if a scrolled log is at its bottom (within 2 pixels, as browsers round), so new lines scroll it on; once the reader scrolls up, it stays
+ * where they left it
+ * @param scrollTop The log's scroll position
+ * @param clientHeight Its visible height
+ * @param scrollHeight Its whole height
+ * @returns True if it is scrolled to its bottom
+ */
+export function isScrolledToBottom(scrollTop: number, clientHeight: number, scrollHeight: number): boolean {
+  return scrollTop + clientHeight >= scrollHeight - 2;
 }
 
 /**
@@ -286,6 +291,11 @@ export function getConsoleTitle(state: ConsoleState): string {
 }
 
 /**
+ * The `console` view's placeholder, while nothing is logged
+ */
+export const NO_OUTPUT_TEXT = 'No output';
+
+/**
  * Gets the console panel's first line, saying how many earlier lines were dropped
  * @param dropped The number of lines dropped
  * @returns The line
@@ -304,7 +314,6 @@ export function getDroppedText(dropped: number): string {
 const _useStyles = makeStyles({
   // Over the showcase frame's box, letting clicks through to the showcase but on its own parts
   overlay: { position: 'absolute', inset: '0', zIndex: 1, pointerEvents: 'none', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' },
-  overlayRoom: { top: `${CONSOLE_TOP_ROOM}px` },
   text: { fontFamily: tokens.fontFamilyMonospace, fontSize: '12px', lineHeight: `${_LINE_HEIGHT}px` },
   bar: { display: 'flex', alignItems: 'flex-end', gap: tokens.spacingHorizontalS, padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}` },
   fading: { flex: '1 1 auto', minWidth: '0', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', overflow: 'hidden' },
@@ -356,6 +365,9 @@ const _useStyles = makeStyles({
     overflow: 'auto',
   },
   line: { padding: `0 ${tokens.spacingHorizontalS}`, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' },
+  // The console view: the log alone, always CONSOLE_PANEL_LINES lines high
+  view: { color: tokens.colorNeutralForeground1, backgroundColor: tokens.colorNeutralBackground3, flex: 'none' },
+  placeholder: { padding: `0 ${tokens.spacingHorizontalS}`, color: tokens.colorNeutralForegroundDisabled, fontStyle: 'italic' },
   info: { color: tokens.colorPaletteBlueForeground2 },
   debug: { opacity: 0.7 },
   warn: { color: tokens.colorPaletteMarigoldForeground2, backgroundColor: tokens.colorPaletteYellowBackground1 },
@@ -374,10 +386,6 @@ export interface ConsolePanelProps {
    * Updates the console panel's state, with the user's actions
    */
   dispatch: Dispatch<ConsoleAction>;
-  /**
-   * True to leave CONSOLE_TOP_ROOM at the top of the open console panel (a showcase frame in a block)
-   */
-  topRoom?: boolean;
 }
 
 /**
@@ -388,7 +396,7 @@ export interface ConsolePanelProps {
  * @param props Properties of the component
  * @returns The console panel
  */
-export function ConsolePanel({ state, dispatch, topRoom = false }: ConsolePanelProps): ReactNode {
+export function ConsolePanel({ state, dispatch }: ConsolePanelProps): ReactNode {
   const styles = _useStyles();
   const panel = useRef<HTMLDivElement>(null);
   const log = useRef<HTMLDivElement>(null);
@@ -429,7 +437,7 @@ export function ConsolePanel({ state, dispatch, topRoom = false }: ConsolePanelP
 
   if (state.open) {
     return (
-      <div className={mergeClasses(styles.overlay, topRoom && styles.overlayRoom)}>
+      <div className={styles.overlay}>
         <div ref={panel} className={mergeClasses(styles.panel, styles.text)} role="region" aria-label="Console" onKeyDown={onKeyDown}>
           <div className={styles.header}>
             <span>{getConsoleTitle(state)}</span>
@@ -448,15 +456,10 @@ export function ConsolePanel({ state, dispatch, topRoom = false }: ConsolePanelP
             className={styles.log}
             onScroll={(event) => {
               const element = event.currentTarget;
-              following.current = element.scrollTop + element.clientHeight >= element.scrollHeight - 2;
+              following.current = isScrolledToBottom(element.scrollTop, element.clientHeight, element.scrollHeight);
             }}
           >
-            {state.dropped > 0 && <div className={mergeClasses(styles.line, styles.debug)}>{getDroppedText(state.dropped)}</div>}
-            {state.lines.map((entry) => (
-              <div key={entry.id} className={mergeClasses(styles.line, level(entry))}>
-                {entry.text}
-              </div>
-            ))}
+            <_ConsoleLines state={state} />
           </div>
         </div>
       </div>
@@ -489,6 +492,60 @@ export function ConsolePanel({ state, dispatch, topRoom = false }: ConsolePanelP
           {getCounterText(state)}
         </Button>
       </div>
+    </div>
+  );
+}
+
+// #endregion
+
+// #region Console view
+
+/**
+ * Renders a console's lines: the line saying how many earlier ones were dropped, then each line, styled by its level
+ * @param props Properties of the component: the console's state
+ * @returns The lines
+ */
+function _ConsoleLines({ state }: { state: ConsoleState }): ReactNode {
+  const styles = _useStyles();
+  return (
+    <>
+      {state.dropped > 0 && <div className={mergeClasses(styles.line, styles.debug)}>{getDroppedText(state.dropped)}</div>}
+      {state.lines.map((entry) => (
+        <div key={entry.id} className={mergeClasses(styles.line, entry.level === 'log' ? undefined : styles[entry.level])}>
+          {entry.text}
+        </div>
+      ))}
+    </>
+  );
+}
+
+/**
+ * Renders a showcase's `console` view: the console's lines alone, always shown, CONSOLE_PANEL_LINES lines high and scrolling beyond them, following
+ * the newest line unless the reader has scrolled up; a greyed placeholder while nothing is logged
+ * @param props Properties of the component: the console's state
+ * @returns The console view
+ */
+export function ConsoleView({ state }: { state: ConsoleState }): ReactNode {
+  const styles = _useStyles();
+  const log = useRef<HTMLDivElement>(null);
+  const following = useRef(true);
+  const newest = state.lines.at(-1)?.id;
+  useLayoutEffect(() => {
+    if (following.current && log.current) log.current.scrollTop = log.current.scrollHeight;
+  }, [newest]);
+  return (
+    <div
+      ref={log}
+      className={mergeClasses(styles.view, styles.log, styles.text)}
+      role="log"
+      aria-label="Console"
+      tabIndex={0}
+      onScroll={(event) => {
+        const element = event.currentTarget;
+        following.current = isScrolledToBottom(element.scrollTop, element.clientHeight, element.scrollHeight);
+      }}
+    >
+      {state.count || state.dropped ? <_ConsoleLines state={state} /> : <div className={styles.placeholder}>{NO_OUTPUT_TEXT}</div>}
     </div>
   );
 }

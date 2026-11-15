@@ -160,6 +160,10 @@ export interface LinkedFileViewProps {
    * False to leave out the code block's copy button (see CodeBlockProps' `copy`)
    */
   copy?: boolean;
+  /**
+   * True for a showcase view (see CodeBlockProps' `view`)
+   */
+  view?: boolean;
 }
 
 /**
@@ -167,7 +171,7 @@ export interface LinkedFileViewProps {
  * @param props Properties of the component
  * @returns The rendered content
  */
-export function LinkedFileView({ path, content, fill, copy }: LinkedFileViewProps): ReactNode {
+export function LinkedFileView({ path, content, fill, copy, view }: LinkedFileViewProps): ReactNode {
   switch (content.status) {
     case 'loading':
       return <Spinner label="Loading…" />;
@@ -178,7 +182,7 @@ export function LinkedFileView({ path, content, fill, copy }: LinkedFileViewProp
         </MessageBar>
       );
     case 'loaded':
-      return <HighlightedCode content={content.text} language={getLanguage(path)} fill={fill} copy={copy} />;
+      return <HighlightedCode content={content.text} language={getLanguage(path)} fill={fill} copy={copy} view={view} />;
   }
 }
 
@@ -206,6 +210,10 @@ export interface ShownTabViewProps {
    * False to leave out the code block's copy button (see CodeBlockProps' `copy`)
    */
   copy?: boolean;
+  /**
+   * True for a showcase view (see CodeBlockProps' `view`)
+   */
+  view?: boolean;
 }
 
 /**
@@ -214,18 +222,22 @@ export interface ShownTabViewProps {
  * @param props Properties of the component
  * @returns The rendered content
  */
-export function ShownTabView({ tab, documentation, content, fill, copy }: ShownTabViewProps): ReactNode {
+export function ShownTabView({ tab, documentation, content, fill, copy, view }: ShownTabViewProps): ReactNode {
   const { source } = tab;
   switch (source.kind) {
     case 'virtual':
-      return <HighlightedCode content={source.content} language={tab.language} fill={fill} copy={copy} />;
+      return <HighlightedCode content={source.content} language={tab.language} fill={fill} copy={copy} view={view} />;
     case 'documentation': {
       const file = documentation.find((candidate) => candidate.path === tab.path);
-      return file ? <HighlightedCode content={file.content} language={tab.language} fill={fill} copy={copy} /> : _message(MISSING_DOCUMENTATION_MESSAGE);
+      return file ? (
+        <HighlightedCode content={file.content} language={tab.language} fill={fill} copy={copy} view={view} />
+      ) : (
+        _message(MISSING_DOCUMENTATION_MESSAGE)
+      );
     }
     case 'file':
       return source.text ? (
-        <LinkedFileView path={tab.path} content={content} fill={fill} copy={copy} />
+        <LinkedFileView path={tab.path} content={content} fill={fill} copy={copy} view={view} />
       ) : (
         _message(NOT_TEXT_MESSAGE, <NewTabLink href={source.url} />)
       );

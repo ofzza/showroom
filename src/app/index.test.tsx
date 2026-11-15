@@ -20,6 +20,7 @@ const _DATA: ShownHostInformation = {
     { path: 'docs/guide.md', kind: 'other', extension: '.md', content: '# Guide\n\n## Install' },
   ],
   showcases: [],
+  virtualFiles: [],
   linkedFiles: [],
 };
 
@@ -80,7 +81,7 @@ describe('app', () => {
   });
 
   it('Shows only the project information without a root README', () => {
-    const html = _render(undefined, undefined, { project: { name: 'bare' }, documentation: [], showcases: [], linkedFiles: [] });
+    const html = _render(undefined, undefined, { project: { name: 'bare' }, documentation: [], showcases: [], virtualFiles: [], linkedFiles: [] });
     expect(html).toMatch(/<h1 [^>]*>bare<\/h1>/);
     expect(html).not.toContain('<h1 id=');
   });
@@ -96,6 +97,9 @@ describe('app', () => {
           documentation: 'docs/guide.md',
           offset: content.indexOf('```'),
           display: 'block',
+          views: ['demo'],
+          markdown: '',
+          entryTab: 0,
           tabs: [{ label: 'HTML', path: 'docs/guide.showcase-1.html', language: 'html', source: { kind: 'virtual', content: '<p>x</p>' } }],
           url: 'showcases/docs/guide.md/1/index.html?hash=0123abcd',
         },
@@ -131,6 +135,9 @@ describe('app', () => {
       documentation: 'README.md',
       offset: 0,
       display: 'inline',
+      views: ['demo'],
+      markdown: '',
+      entryTab: 0,
       tabs: [tab],
       url: 'showcases/README.md/1/index.html?hash=00000001',
     };

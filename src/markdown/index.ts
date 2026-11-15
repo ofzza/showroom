@@ -7,7 +7,7 @@ import JSON5 from 'json5';
 import remarkGfm from 'remark-gfm';
 import remarkParse from 'remark-parse';
 import { unified } from 'unified';
-import type { Showcase, VirtualFile } from '../host/index.js';
+import type { Showcase, ShowcaseView, VirtualFile } from '../host/index.js';
 
 // #region Paths
 
@@ -142,6 +142,31 @@ export function resolvePath(from: string, path: string): ResolvedPath | undefine
 export const SHOWCASE_KEYWORD = 'showcase';
 
 /**
+ * The showcase views, in the order the documentation lists them
+ */
+export const SHOWCASE_VIEWS: readonly ShowcaseView[] = ['markdown', 'source', 'demo', 'console', 'none'];
+
+/**
+ * Checks a list of showcase views, as a marker's `view=`, `showroom.json`'s `showcaseViews` or a showcase adapter's `defaultViews` gives it:
+ * at least one, each a showcase view, none repeated, and `none` alone
+ * @param views The list to check
+ * @returns The problem with the list, or undefined if it is a valid list of showcase views
+ */
+export function checkShowcaseViews(views: readonly unknown[]): string | undefined {
+  if (!views.length) return 'no views';
+  const seen = new Set<unknown>();
+  for (const view of views) {
+    if (!SHOWCASE_VIEWS.includes(view as ShowcaseView)) {
+      return `unknown view ${typeof view === 'string' ? `"${view}"` : String(view)}; the views are: ${SHOWCASE_VIEWS.join(', ')}`;
+    }
+    if (seen.has(view)) return `repeated view "${view as string}"`;
+    seen.add(view);
+  }
+  if (views.length > 1 && views.includes('none')) return 'the view "none" can\'t be combined with other views';
+  return undefined;
+}
+
+/**
  * Represents a parsed showcase marker
  */
 export interface ShowcaseMarker {
@@ -169,12 +194,16 @@ export interface ShowcaseMarker {
    * Paths the `include` key lists, URL-decoded, as written (relative to the documentation file's folder), if the marker has one
    */
   include?: string[];
+  /**
+   * Showcase views the `view` key lists, in its order, if the marker has one
+   */
+  views?: ShowcaseView[];
 }
 
 /**
  * Keys a showcase marker can have after its adapter and options
  */
-const _MARKER_KEYS = ['file', 'anchor', 'inline', 'block', 'include'];
+const _MARKER_KEYS = ['file', 'anchor', 'inline', 'block', 'include', 'view'];
 
 /**
  * Pattern of a showcase adapter's name
@@ -192,7 +221,7 @@ export function isShowcaseMarker(word: string): boolean {
 
 /**
  * Parses a showcase marker: `showcase`, `showcase=<adapter>` or `showcase=<adapter>(<JSON5 options>)`, followed by space-separated keys
- * (`file=<name>`; `inline` or `block`; `include=<path>,<path>`; `anchor=<name>` is reserved). Keys are checked on their own here; where each
+ * (`file=<name>`; `inline` or `block`; `include=<path>,<path>`; `view=<view>,<view>`; `anchor=<name>` is reserved). Keys are checked on their own here; where each
  * may be used is the scan's to check
  * @param text The marker and its keys
  * @returns The marker, or the error that prevents parsing it
@@ -260,6 +289,18 @@ export function parseShowcaseMarker(text: string): { marker: ShowcaseMarker; err
         return { error: `${include.error} in showcase marker ${quoted}` };
       }
       marker.include = include.paths;
+      continue;
+    }
+    if (key === 'view') {
+      if (!value) {
+        return { error: `The key "view" needs views ("view=<view>,<view>") in showcase marker ${quoted}` };
+      }
+      const views = value.split(',');
+      const problem = views.includes('') ? `empty view in "view=${value}"` : checkShowcaseViews(views);
+      if (problem) {
+        return { error: `${problem[0].toUpperCase()}${problem.slice(1)}, in showcase marker ${quoted}` };
+      }
+      marker.views = views as ShowcaseView[];
       continue;
     }
     if (!value) {
@@ -355,13 +396,20 @@ export interface MarkdownError {
 }
 
 /**
+ * Represents a showcase as scanning finds it: its views are the marker's, or undefined when its marker has no `view=`, for `check` to apply the
+ * defaults (a linked showcase shown inline always has `demo`)
+ */
+export type ScannedShowcase = Omit<Showcase, 'views'> & { views?: ShowcaseView[] };
+
+/**
  * Represents what scanning a documentation file's Markdown found
  */
 export interface MarkdownScan {
   /**
-   * Showcases, in document order, with their options as the marker gives them (not yet validated by their showcase adapters)
+   * Showcases, in document order, with their options as the marker gives them (not yet validated by their showcase adapters), and their views as
+   * the marker gives them
    */
-  showcases: Showcase[];
+  showcases: ScannedShowcase[];
   /**
    * Virtual files (code block showcases' entry points, and virtual files with no showcase adapter), in document order
    */
@@ -483,6 +531,7 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
       ...(marker.hasOptions ? { options: marker.options } : {}),
       entry: entryPath,
       include: include.paths,
+      ...(kind === 'link' && marker.display !== 'block' ? { views: ['demo' as const] } : marker.views ? { views: marker.views } : {}),
     });
   };
 
@@ -510,7 +559,22 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
         if (marker.include !== undefined) {
           return error(node, `A virtual file with no showcase adapter can't include files; only a showcase's marker can have an "include" key`);
         }
-        scan.virtualFiles.push({ path: virtualPath(marker.file), named: true, content: node.value ?? '', documentation: path, line: _line(node) });
+        const built = marker.views?.find((view) => view === 'demo' || view === 'console');
+        if (built) {
+          return error(
+            node,
+            `A virtual file with no showcase adapter is never built, so it can't have the view "${built}"; its views are source, markdown and none`,
+          );
+        }
+        scan.virtualFiles.push({
+          path: virtualPath(marker.file),
+          named: true,
+          views: marker.views ?? ['source'],
+          content: node.value ?? '',
+          documentation: path,
+          line: _line(node),
+          offset: node.position?.start.offset ?? 0,
+        });
         return;
       }
       // A code block showcase's entry point: named by the "file" key, with the extension its language gives, or with a generated name
@@ -531,6 +595,7 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
           content: node.value ?? '',
           documentation: path,
           line: _line(node),
+          offset: node.position?.start.offset ?? 0,
         });
         return virtualPath(name);
       });
@@ -553,6 +618,9 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
           node,
           `A linked showcase can't have a "file" key: its entry point is a real file already; "file=<name>" names a code block's virtual file`,
         );
+      }
+      if (marker.display !== 'block' && marker.views !== undefined) {
+        return error(node, `A linked showcase shown inline is shown as a demo for now, so it can't have a "view" key; add "block" to choose its views`);
       }
       if (marker.display === 'block') {
         const blockError = _checkBlockPlacement(node, ancestors);

@@ -10,7 +10,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Alias, Plugin } from 'vite';
-import type { HostInformation, LinkedFile } from '../host/index.js';
+import type { HostInformation, LinkedFile, ShowcaseView, VirtualFile } from '../host/index.js';
 import { LINKED_FILES_FOLDER } from '../linked-files/index.js';
 import { getShowcaseFrameHash, type ShowcaseFrame } from '../showcases/index.js';
 import {
@@ -26,6 +26,7 @@ import {
   getLinkedFileContentType,
   getReactAliases,
   getShownHostInformation,
+  loadsShowcaseFrame,
   MARKDOWN_TAB_LABEL,
   getShownTabs,
   getTabFileHashes,
@@ -50,6 +51,7 @@ const _HOST: HostInformation = {
       adapter: 'html',
       entry: 'README.showcase-1.html',
       include: [],
+      views: ['demo'],
     },
     {
       id: 'my docs/a #1.md#2',
@@ -61,9 +63,12 @@ const _HOST: HostInformation = {
       adapter: 'x',
       entry: 'demo.html',
       include: [],
+      views: ['demo'],
     },
   ],
-  virtualFiles: [{ path: 'README.showcase-1.html', named: false, showcase: 'README.md#1', content: '<p>1</p>', documentation: 'README.md', line: 3 }],
+  virtualFiles: [
+    { path: 'README.showcase-1.html', named: false, showcase: 'README.md#1', content: '<p>1</p>', documentation: 'README.md', line: 3, offset: 0 },
+  ],
   linkedFiles: [{ path: 'src/index.ts', size: 75, text: true }],
 };
 
@@ -153,6 +158,7 @@ describe('vite', () => {
       project: _HOST.project,
       documentation: _HOST.documentation,
       showcases: [],
+      virtualFiles: [],
       linkedFiles: _HOST.linkedFiles,
     });
   });
@@ -164,6 +170,10 @@ describe('vite', () => {
         documentation: 'README.md',
         offset: 10,
         display: 'block',
+        views: ['demo'],
+        // No fence or link at its offset in this hand-written host information
+        markdown: '',
+        entryTab: 0,
         tabs: [{ label: 'HTML', path: 'README.showcase-1.html', language: 'html', source: { kind: 'virtual', content: '<p>1</p>' } }],
         url: `showcases/README.md/1/index.html?hash=${_hash('README.md#1')}`,
       },
@@ -172,12 +182,79 @@ describe('vite', () => {
         documentation: 'my docs/a #1.md',
         offset: 40,
         display: 'inline',
+        views: ['demo'],
+        markdown: '',
+        entryTab: 0,
         // Not among the linked files (check left it out, with a warning)
         tabs: [{ label: '../demo.html', path: 'demo.html', language: 'html', source: { kind: 'missing' } }],
         url: `showcases/my%20docs/a%20%231.md/2/pages/index.html?hash=${_hash('my docs/a #1.md#2')}`,
       },
     ]);
     expect(getShownHostInformation(_HOST, new Map([['README.md#1', _FRAMES.get('README.md#1')!]])).showcases.map(({ id }) => id)).toEqual(['README.md#1']);
+  });
+
+  it("Gives each shown showcase its views and Markdown source, and its showcase frame's URL only where a view loads it", () => {
+    const content = '# Hi\n\n```html showcase view=source\n<p>1</p>\n```\n\n[demo](demo.html "showcase block view=console")\n';
+    const host: HostInformation = {
+      ..._HOST,
+      documentation: [{ path: 'README.md', kind: 'readme', extension: '.md', content }],
+      showcases: [
+        { ..._HOST.showcases[0], offset: content.indexOf('```'), views: ['source'] },
+        { ..._HOST.showcases[1], documentation: 'README.md', display: 'block', offset: content.indexOf('[demo]'), views: ['console'] },
+      ],
+    };
+    const [source, console] = getShownHostInformation(host, _FRAMES).showcases;
+    expect(source).toMatchObject({ views: ['source'], markdown: '```html showcase view=source\n<p>1</p>\n```' });
+    // Its page is never loaded, so it has no URL (D574)
+    expect(source).not.toHaveProperty('url');
+    expect(console).toMatchObject({ views: ['console'], markdown: '[demo](demo.html "showcase block view=console")' });
+    expect(console.url).toMatch(/^showcases\/my%20docs\//);
+  });
+
+  it('Checks which views load a showcase frame', () => {
+    expect(loadsShowcaseFrame(['demo'])).toBe(true);
+    expect(loadsShowcaseFrame(['source', 'console'])).toBe(true);
+    expect(loadsShowcaseFrame(['markdown', 'source'])).toBe(false);
+    expect(loadsShowcaseFrame(['none'])).toBe(false);
+  });
+
+  it("Gets the virtual files with no showcase adapter whose views aren't an ordinary code block's, with their Markdown source", () => {
+    const content = '# Hi\n\n```css showcase file=a.css\n```\n\n```css showcase file=b.css view=markdown\n```\n\n```css showcase file=c.css view=none\n```\n';
+    const file = (path: string, views: ShowcaseView[], fence: string): VirtualFile => ({
+      path,
+      named: true,
+      views,
+      content: '',
+      documentation: 'README.md',
+      line: 1,
+      offset: content.indexOf(fence),
+    });
+    const host: HostInformation = {
+      ..._HOST,
+      documentation: [{ path: 'README.md', kind: 'readme', extension: '.md', content }],
+      virtualFiles: [
+        ..._HOST.virtualFiles,
+        file('a.css', ['source'], '```css showcase file=a.css'),
+        file('b.css', ['markdown'], '```css showcase file=b.css'),
+        file('c.css', ['none'], '```css showcase file=c.css'),
+      ],
+    };
+    expect(getShownHostInformation(host).virtualFiles).toEqual([
+      {
+        path: 'b.css',
+        documentation: 'README.md',
+        offset: content.indexOf('```css showcase file=b.css'),
+        views: ['markdown'],
+        markdown: '```css showcase file=b.css view=markdown\n```',
+      },
+      {
+        path: 'c.css',
+        documentation: 'README.md',
+        offset: content.indexOf('```css showcase file=c.css'),
+        views: ['none'],
+        markdown: '```css showcase file=c.css view=none\n```',
+      },
+    ]);
   });
 
   it('Adds a Markdown tab, first, to a showcase shown as a block only, with its source as written, only where the configuration asks for it', () => {
@@ -207,13 +284,15 @@ describe('vite', () => {
     });
     // The code sidebar of a linked showcase shown inline has no Markdown tab (D421, D484)
     expect(inline.tabs.map(({ label }) => label)).toEqual(['demo.html']);
+    // The source view shows the entry point's tab, after the Markdown tab
+    expect([block.entryTab, inline.entryTab]).toEqual([1, 0]);
   });
 
   it("Gets a showcase's tabs from every kind of source, labelled, with hashes for text linked files only", () => {
     const host: HostInformation = {
       ..._HOST,
       documentation: [..._HOST.documentation, { path: 'docs/guide.md', kind: 'other', extension: '.md', content: '' }],
-      virtualFiles: [{ path: 'docs/theme.css', named: true, content: 'p {}', documentation: 'docs/guide.md', line: 1 }],
+      virtualFiles: [{ path: 'docs/theme.css', named: true, content: 'p {}', documentation: 'docs/guide.md', line: 1, offset: 0 }],
       linkedFiles: [
         { path: 'docs/demos/clock.html', size: 9, text: true },
         { path: 'docs/my logo.png', size: 9, text: false },

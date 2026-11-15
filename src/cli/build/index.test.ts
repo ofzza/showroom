@@ -72,7 +72,7 @@ describe('cli/build', () => {
       appDir: '/app',
       cacheDir: '/cache',
       hostRoot: '/host',
-      getHost: () => ({ project: { name: 'host' }, documentation: [], showcases: [], linkedFiles: [] }),
+      getHost: () => ({ project: { name: 'host' }, documentation: [], showcases: [], virtualFiles: [], linkedFiles: [] }),
       outDir: '/host/showroom',
     });
 

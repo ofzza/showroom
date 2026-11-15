@@ -56,6 +56,7 @@ function _host(content: string, code: string[] = [], showcases = 0): HostInforma
       adapter: 'html',
       entry: 'a.html',
       include: [],
+      views: ['demo'],
     })),
     virtualFiles: [],
     linkedFiles: [],
@@ -246,9 +247,13 @@ describe('cli/serve', () => {
         documentation: 'README.md',
         offset: index,
         display: 'block' as const,
+        views: ['demo' as const],
+        markdown: '',
+        entryTab: 0,
         tabs: [{ label: 'a.css', path: 'a.css', language: 'css', source: { kind: 'file' as const, url: tabUrl, text: true } }],
         url,
       })),
+      virtualFiles: [],
       linkedFiles,
     });
 
@@ -271,6 +276,11 @@ describe('cli/serve', () => {
       expect(getShownChange(shown('a', ['u1']), shown('a', ['u1', 'u2']))).toBe('reload');
       expect(getShownChange(shown('a', ['u1']), { ...shown('a', ['u1']), project: { name: 'q' } })).toBe('reload');
       expect(getShownChange(shown('a', ['u1']), shown('a', ['u1'], [{ path: 'a.ts', size: 1, text: true }]))).toBe('reload');
+      // A showcase's views, or a shown virtual file
+      const next = shown('a', ['u1']);
+      expect(getShownChange(shown('a', ['u1']), { ...next, showcases: [{ ...next.showcases[0], views: ['source'] }] })).toBe('reload');
+      const file = { path: 'a.css', documentation: 'README.md', offset: 0, views: ['none' as const], markdown: '```css showcase file=a.css view=none\n```' };
+      expect(getShownChange(shown('a', ['u1']), { ...next, virtualFiles: [file] })).toBe('reload');
     });
   });
 

@@ -4,6 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  checkShowcaseViews,
   getFolder,
   getRelativePath,
   getShowcaseSources,
@@ -14,6 +15,7 @@ import {
   parseShowcaseMarker,
   resolvePath,
   scanMarkdown,
+  SHOWCASE_VIEWS,
   splitLink,
 } from './index.js';
 
@@ -137,6 +139,40 @@ describe('markdown', () => {
       expect(parseShowcaseMarker('showcase include=%E0%A4%A').error).toMatch(/^Included path "%E0%A4%A" can't be URL-decoded/);
     });
 
+    it('Parses the view key, in its order', () => {
+      expect(parseShowcaseMarker('showcase view=source')).toEqual({ marker: { hasOptions: false, views: ['source'] } });
+      expect(parseShowcaseMarker('showcase=ts block view=console,markdown,source,demo')).toEqual({
+        marker: { adapter: 'ts', hasOptions: false, display: 'block', views: ['console', 'markdown', 'source', 'demo'] },
+      });
+      expect(parseShowcaseMarker('showcase file=a.css view=none').marker?.views).toEqual(['none']);
+    });
+
+    it('Rejects misused view keys', () => {
+      expect(parseShowcaseMarker('showcase view=').error).toMatch(/^The key "view" needs views/);
+      expect(parseShowcaseMarker('showcase view').error).toMatch(/^The key "view" needs views/);
+      expect(parseShowcaseMarker('showcase view=demo view=source').error).toMatch(/^Repeated key "view"/);
+      for (const value of ['demo,,source', 'demo,', ',demo']) {
+        expect(parseShowcaseMarker(`showcase view=${value}`).error).toBe(`Empty view in "view=${value}", in showcase marker "showcase view=${value}"`);
+      }
+      // Marker keys and values are case-sensitive
+      expect(parseShowcaseMarker('showcase view=Demo').error).toBe(
+        'Unknown view "Demo"; the views are: markdown, source, demo, console, none, in showcase marker "showcase view=Demo"',
+      );
+      expect(parseShowcaseMarker('showcase view=demo,source,demo').error).toMatch(/^Repeated view "demo", in showcase marker/);
+      expect(parseShowcaseMarker('showcase view=none,demo').error).toMatch(/^The view "none" can't be combined with other views, in showcase marker/);
+    });
+
+    it('Checks lists of views', () => {
+      expect(SHOWCASE_VIEWS).toEqual(['markdown', 'source', 'demo', 'console', 'none']);
+      expect(checkShowcaseViews(['demo'])).toBeUndefined();
+      expect(checkShowcaseViews(['source', 'console'])).toBeUndefined();
+      expect(checkShowcaseViews(['none'])).toBeUndefined();
+      expect(checkShowcaseViews([])).toBe('no views');
+      expect(checkShowcaseViews(['demo', 1])).toBe('unknown view 1; the views are: markdown, source, demo, console, none');
+      expect(checkShowcaseViews(['demo', 'demo'])).toBe('repeated view "demo"');
+      expect(checkShowcaseViews(['source', 'none'])).toBe('the view "none" can\'t be combined with other views');
+    });
+
     it('Rejects invalid adapter names, options and keys', () => {
       expect(parseShowcaseMarker('showcase=').error).toMatch(/^Invalid showcase adapter name ""/);
       expect(parseShowcaseMarker('showcase=React').error).toMatch(/^Invalid showcase adapter name "React"/);
@@ -220,8 +256,24 @@ describe('markdown', () => {
         },
       ]);
       expect(scan.virtualFiles).toEqual([
-        { path: 'docs/guide.showcase-1.html', named: false, showcase: 'docs/guide.md#1', content: '<p>Hi</p>', documentation: 'docs/guide.md', line: 3 },
-        { path: 'docs/guide.showcase-2.ts', named: false, showcase: 'docs/guide.md#2', content: 'log(1);', documentation: 'docs/guide.md', line: 7 },
+        {
+          path: 'docs/guide.showcase-1.html',
+          named: false,
+          showcase: 'docs/guide.md#1',
+          content: '<p>Hi</p>',
+          documentation: 'docs/guide.md',
+          line: 3,
+          offset: 9,
+        },
+        {
+          path: 'docs/guide.showcase-2.ts',
+          named: false,
+          showcase: 'docs/guide.md#2',
+          content: 'log(1);',
+          documentation: 'docs/guide.md',
+          line: 7,
+          offset: 41,
+        },
       ]);
     });
 
@@ -233,7 +285,9 @@ describe('markdown', () => {
     it('Finds virtual files with no showcase adapter', () => {
       const scan = scanMarkdown('docs/guide.md', ['```css showcase file=styles.css', 'p {}', '```'].join('\n'));
       expect(scan.showcases).toEqual([]);
-      expect(scan.virtualFiles).toEqual([{ path: 'docs/styles.css', named: true, content: 'p {}', documentation: 'docs/guide.md', line: 1 }]);
+      expect(scan.virtualFiles).toEqual([
+        { path: 'docs/styles.css', named: true, views: ['source'], content: 'p {}', documentation: 'docs/guide.md', line: 1, offset: 0 },
+      ]);
     });
 
     it('Finds named code block showcases, counted among the showcases', () => {
@@ -356,6 +410,52 @@ describe('markdown', () => {
         { kind: 'link', display: 'block', include: [] },
         { kind: 'code-block', display: 'block', include: ['docs/b.css', 'docs/README.showcase-1.html'] },
       ]);
+    });
+
+    it("Finds showcases' and virtual files' views, leaving a showcase's defaults to check", () => {
+      const scan = scanMarkdown(
+        'docs/guide.md',
+        [
+          'See [a](./a.html "showcase").',
+          '',
+          '[b](./b.html "showcase block view=source,demo")',
+          '',
+          '[c](./c.html "showcase block")',
+          '',
+          '```html showcase view=markdown',
+          '```',
+          '',
+          '```css showcase file=a.css',
+          '```',
+          '',
+          '```css showcase file=b.css view=markdown',
+          '```',
+          '',
+          '```css showcase file=c.css view=none',
+          '```',
+        ].join('\n'),
+      );
+      expect(scan.errors).toEqual([]);
+      // A linked showcase shown inline is shown as a demo, until it opens in the sidebar
+      expect(scan.showcases.map(({ views }) => views)).toEqual([['demo'], ['source', 'demo'], undefined, ['markdown']]);
+      expect(scan.virtualFiles.filter(({ named }) => named).map(({ path, views }) => ({ path, views }))).toEqual([
+        { path: 'docs/a.css', views: ['source'] },
+        { path: 'docs/b.css', views: ['markdown'] },
+        { path: 'docs/c.css', views: ['none'] },
+      ]);
+      expect(scan.virtualFiles.find(({ named }) => !named)?.views).toBeUndefined();
+    });
+
+    it('Reports the view key where it can not be', () => {
+      const errors = (markdown: string) => scanMarkdown('docs/guide.md', markdown).errors.map(({ message }) => message);
+      for (const marker of ['showcase view=source', 'showcase inline view=demo']) {
+        expect(errors(`See [a](./a.html "${marker}").`)).toEqual([expect.stringMatching(/^A linked showcase shown inline is shown as a demo for now/)]);
+      }
+      for (const view of ['demo', 'source,console']) {
+        expect(errors(`\`\`\`css showcase file=a.css view=${view}\n\`\`\``)).toEqual([
+          expect.stringMatching(/^A virtual file with no showcase adapter is never built, so it can't have the view "(demo|console)"/),
+        ]);
+      }
     });
 
     it('Reports the inline, block and include keys where they can not be', () => {

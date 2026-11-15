@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, expectTypeOf } from 'vitest';
-import type { DocumentationKind, HostInformation, ProjectInformation, Showcase, ShowcaseDisplay, ShowcaseKind } from './index.js';
+import type { DocumentationKind, HostInformation, ProjectInformation, Showcase, ShowcaseDisplay, ShowcaseKind, ShowcaseView, VirtualFile } from './index.js';
 
 describe('host', () => {
   // The module only declares types: checks at compile time that they accept what the showroom relies on and reject what they
@@ -30,6 +30,25 @@ describe('host', () => {
     const _showcase: Showcase = { id: 'a#1', documentation: 'a', line: 1, offset: 0, kind: 'link', adapter: 'html', entry: 'a.html' };
   });
 
+  it('Limits showcase views to the five views, required on a showcase and optional on a virtual file', () => {
+    expectTypeOf<ShowcaseView>().toEqualTypeOf<'markdown' | 'source' | 'demo' | 'console' | 'none'>();
+    expectTypeOf<Showcase['views']>().toEqualTypeOf<ShowcaseView[]>();
+    expectTypeOf<VirtualFile['views']>().toEqualTypeOf<ShowcaseView[] | undefined>();
+    const _showcase: Showcase = {
+      id: 'a#1',
+      documentation: 'a',
+      line: 1,
+      offset: 0,
+      kind: 'link',
+      display: 'block',
+      adapter: 'html',
+      entry: 'a.html',
+      include: [],
+      // @ts-expect-error Views are named, and case-sensitive
+      views: ['Demo'],
+    };
+  });
+
   it('Survives a JSON round trip unchanged', () => {
     const host: HostInformation = {
       project: { name: 'host', version: '1.0.0' },
@@ -46,6 +65,7 @@ describe('host', () => {
           adapter: 'html',
           entry: 'README.showcase-1.html',
           include: [],
+          views: ['demo'],
         },
         {
           id: 'README.md#2',
@@ -58,9 +78,12 @@ describe('host', () => {
           options: { a: [1] },
           entry: 'demo.js',
           include: [],
+          views: ['demo'],
         },
       ],
-      virtualFiles: [{ path: 'README.showcase-1.html', named: false, showcase: 'README.md#1', content: '<p>Hi</p>', documentation: 'README.md', line: 3 }],
+      virtualFiles: [
+        { path: 'README.showcase-1.html', named: false, showcase: 'README.md#1', content: '<p>Hi</p>', documentation: 'README.md', line: 3, offset: 0 },
+      ],
       linkedFiles: [{ path: 'src/index.ts', size: 12, text: true }],
     };
     expect(JSON.parse(JSON.stringify(host))).toEqual(host);

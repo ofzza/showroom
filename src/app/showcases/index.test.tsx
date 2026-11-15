@@ -6,11 +6,11 @@ import { describe, expect, it } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-components';
 import type { DocumentationFile } from '../../host/index.js';
-import { scanMarkdown } from '../../markdown/index.js';
-import type { ShownShowcase } from '../host/index.js';
+import { getShowcaseSources, scanMarkdown } from '../../markdown/index.js';
+import type { LoadedShowcase, ShownShowcase, ShownVirtualFile } from '../host/index.js';
 import { Markdown } from '../markdown/index.js';
 import { ThemeContext, type ThemeName } from '../theme/index.js';
-import { DEFAULT_FRAME_HEIGHT, ShowcaseFrame, getShowcaseFrameTitle, remarkShowcaseFrames } from './index.js';
+import { DEFAULT_FRAME_HEIGHT, ShowcaseFrame, getFenceInside, getShowcaseFrameTitle, remarkShowcaseFrames, splitShowcaseMarkdown } from './index.js';
 
 /**
  * Path of the documentation file the tests render
@@ -29,6 +29,9 @@ function _showcases(content: string): ShownShowcase[] {
     documentation,
     offset,
     display,
+    views: ['demo'],
+    markdown: '',
+    entryTab: 0,
     tabs: [{ label: 'HTML', path: entry, language: 'html', source: { kind: 'virtual', content: `code of ${id.slice(id.lastIndexOf('#') + 1)}` } }],
     url: `showcases/${id.replace('#', '/')}/index.html?hash=0123abcd`,
   }));
@@ -39,16 +42,17 @@ function _showcases(content: string): ShownShowcase[] {
  * @param content Markdown content of the documentation file
  * @param showcases Shown showcases; those of the content by default
  * @param theme Name of the theme
+ * @param virtualFiles Shown virtual files; none by default
  * @returns The rendered HTML, without the empty comments React puts between adjacent text nodes, and with every showcase frame (its box, with its
  * iframe and nothing logged) replaced by `[<n>]`, `<n>` being its showcase's position
  */
-function _render(content: string, showcases = _showcases(content), theme: ThemeName = 'light'): string {
+function _render(content: string, showcases = _showcases(content), theme: ThemeName = 'light', virtualFiles: ShownVirtualFile[] = []): string {
   const file: DocumentationFile = { path: _PATH, kind: 'other', extension: '.md', content };
   return renderToString(
     <SSRProvider>
       <FluentProvider theme={webLightTheme}>
         <ThemeContext.Provider value={theme}>
-          <Markdown file={file} documentation={[file]} showcases={showcases} />
+          <Markdown file={file} documentation={[file]} showcases={showcases} virtualFiles={virtualFiles} />
         </ThemeContext.Provider>
       </FluentProvider>
     </SSRProvider>,
@@ -115,6 +119,32 @@ describe('app/showcases', () => {
       expect(_render(content, [])).not.toContain('<iframe');
     });
 
+    it('Removes a showcase shown as nothing, block or linked, leaving no trace of its fence or paragraph', () => {
+      const content = 'Before\n\n```html showcase view=none\n<p>x</p>\n```\n\n[a](a.html "showcase block view=none")\n\nAfter';
+      const html = _render(
+        content,
+        _showcases(content).map((showcase) => ({ ...showcase, views: ['none'] })),
+      );
+      expect(html).toMatch(/<p>Before<\/p>\s*<p>After<\/p>/);
+      expect(html).not.toContain('data-code-pane-state');
+    });
+
+    it("Places the shown virtual files with no showcase adapter in their fences' place, or removes them, leaving the others as code blocks", () => {
+      const content =
+        '```css showcase file=a.css\na {}\n```\n\n```css showcase file=b.css view=markdown\nb {}\n```\n\n```css showcase file=c.css view=none\nc {}\n```';
+      const sources = getShowcaseSources(content);
+      const virtualFiles = scanMarkdown(_PATH, content)
+        .virtualFiles.filter(({ views }) => views?.[0] !== 'source')
+        .map(({ path, offset, views }) => ({ path, documentation: _PATH, offset, views: views!, markdown: sources.get(offset)! }));
+      const html = _render(content, [], 'light', virtualFiles);
+      // a.css stays an ordinary code block; b.css shows its fence, marker included; c.css is gone
+      expect(html).toContain('class="hljs language-css">');
+      expect(html).not.toContain('showcase file=a.css');
+      expect(html).toMatch(/class="hljs language-md">.*showcase file=b.css view=markdown.*class="hljs language-css">/s);
+      expect(html).not.toContain('c {}');
+      expect(html).not.toContain('data-code-pane-state');
+    });
+
     it('Changes nothing without showcases', () => {
       const transform = remarkShowcaseFrames({ showcases: [] });
       const tree = { type: 'root', children: [{ type: 'paragraph', position: { start: { offset: 0 } } }] };
@@ -123,14 +153,56 @@ describe('app/showcases', () => {
     });
   });
 
+  describe('Markdown and source views', () => {
+    // Splitting a showcase's Markdown source into the segments its markdown view highlights, on hand-written sources.
+
+    it('Splits a fence into its lines, as Markdown, around its inside, as its language', () => {
+      expect(splitShowcaseMarkdown('```ts showcase=ts\nconst a = 1;\nconst b = 2;\n```')).toEqual([
+        { text: '```ts showcase=ts', language: 'md' },
+        { text: 'const a = 1;\nconst b = 2;', language: 'ts' },
+        { text: '```', language: 'md' },
+      ]);
+      expect(splitShowcaseMarkdown('~~~~HTML showcase\n<p>~~~</p>\n~~~~~')).toEqual([
+        { text: '~~~~HTML showcase', language: 'md' },
+        { text: '<p>~~~</p>', language: 'html' },
+        { text: '~~~~~', language: 'md' },
+      ]);
+    });
+
+    it('Splits a fence with nothing inside, or never closed', () => {
+      expect(splitShowcaseMarkdown('```css showcase file=a.css\n```')).toEqual([
+        { text: '```css showcase file=a.css', language: 'md' },
+        { text: '```', language: 'md' },
+      ]);
+      // A shorter fence doesn't close it
+      expect(splitShowcaseMarkdown('````js showcase\na\n```')).toEqual([
+        { text: '````js showcase', language: 'md' },
+        { text: 'a\n```', language: 'js' },
+      ]);
+    });
+
+    it('Keeps a link, or a fence in a blockquote, whole, as Markdown', () => {
+      expect(splitShowcaseMarkdown('[a](a.html "showcase block")')).toEqual([{ text: '[a](a.html "showcase block")', language: 'md' }]);
+      expect(splitShowcaseMarkdown('> ```html showcase\n> <p>x</p>\n> ```')).toEqual([{ text: '> ```html showcase\n> <p>x</p>\n> ```', language: 'md' }]);
+    });
+
+    it("Gets a fence's inside, with its language", () => {
+      expect(getFenceInside('```css showcase file=a.css\na {}\n```')).toEqual({ text: 'a {}', language: 'css' });
+      expect(getFenceInside('```css showcase file=a.css\n```')).toEqual({ text: '', language: '' });
+    });
+  });
+
   describe('Showcase frame', () => {
     // The iframe a showcase frame renders as, before any message: its URL with the theme, its title and its default height.
 
-    const showcase: ShownShowcase = {
+    const showcase: LoadedShowcase = {
       id: 'docs/my notes.md#2',
       documentation: 'docs/my notes.md',
       offset: 0,
       display: 'inline',
+      views: ['demo'],
+      markdown: '',
+      entryTab: 0,
       tabs: [],
       url: 'showcases/docs/my%20notes.md/2/index.html?hash=0123abcd',
     };

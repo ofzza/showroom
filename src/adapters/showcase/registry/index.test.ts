@@ -11,7 +11,15 @@ import { HtmlShowcaseAdapter } from '../html/index.js';
 import { AngularShowcaseAdapter } from '../angular/index.js';
 import { ReactShowcaseAdapter } from '../react/index.js';
 import { TsShowcaseAdapter } from '../ts/index.js';
-import { checkHostCheckResult, createShowcaseAdapter, getShowcaseAdapterNames, loadCustomShowcaseAdapters, PLANNED_SHOWCASE_ADAPTER_NAMES } from './index.js';
+import {
+  checkHostCheckResult,
+  createShowcaseAdapter,
+  DEFAULT_SHOWCASE_VIEWS,
+  getDefaultViews,
+  getShowcaseAdapterNames,
+  loadCustomShowcaseAdapters,
+  PLANNED_SHOWCASE_ADAPTER_NAMES,
+} from './index.js';
 
 /**
  * Path of the fixture host repository listing custom showcase adapters
@@ -32,6 +40,16 @@ describe('adapters/showcase/registry', () => {
     expect(createShowcaseAdapter('toString')).toBeUndefined();
   });
 
+  it("Gets each showcase adapter's default views", () => {
+    // Plain TypeScript is more often logic than UI, so its code and console show by default
+    expect(getDefaultViews(createShowcaseAdapter('html')!)).toEqual(['demo']);
+    expect(getDefaultViews(createShowcaseAdapter('ts')!)).toEqual(['source', 'console']);
+    expect(getDefaultViews(createShowcaseAdapter('react')!)).toEqual(['demo']);
+    expect(getDefaultViews(createShowcaseAdapter('angular')!)).toEqual(['demo']);
+    expect(DEFAULT_SHOWCASE_VIEWS).toEqual(['demo']);
+    expect(getDefaultViews({ validate: () => ({ errors: [] }), build: async () => ({ reads: [] }) })).toEqual(['demo']);
+  });
+
   it('Reserves no planned built-in name, now that angular is built in', () => {
     expect(PLANNED_SHOWCASE_ADAPTER_NAMES).toEqual([]);
   });
@@ -41,6 +59,13 @@ describe('adapters/showcase/registry', () => {
     expect(errors).toEqual([]);
     expect([...adapters.keys()]).toEqual(['good', 'good-mjs']);
     expect(await adapters.get('good')!.check!(_ROOT, [])).toEqual({ errors: ['good needs nothing, but says so'], warnings: [] });
+  });
+
+  it('Loads the default views a custom showcase adapter declares', async () => {
+    const { adapters, errors } = await loadCustomShowcaseAdapters(_ROOT, { views: './adapters/views.js', good: './adapters/good.js' });
+    expect(errors).toEqual([]);
+    expect(getDefaultViews(adapters.get('views')!)).toEqual(['source', 'console']);
+    expect(getDefaultViews(adapters.get('good')!)).toEqual(['demo']);
   });
 
   it('Creates fresh custom showcase adapter objects on every load', async () => {
@@ -85,6 +110,8 @@ describe('adapters/showcase/registry', () => {
       object: './adapters/object.js',
       'factory-throws': './adapters/factory-throws.js',
       'returns-nothing': './adapters/returns-nothing.js',
+      'views-repeated': './adapters/views-repeated.js',
+      'views-not-list': './adapters/views-not-list.js',
     });
     expect(adapters.size).toBe(0);
     expect(errors).toEqual([
@@ -102,6 +129,8 @@ describe('adapters/showcase/registry', () => {
       'Custom showcase adapter "object": "./adapters/object.js" must have a default export: a function returning an object implementing the showcase adapter interface',
       'Custom showcase adapter "factory-throws": "./adapters/factory-throws.js" failed to create its showcase adapter: factory broke',
       'Custom showcase adapter "returns-nothing": "./adapters/returns-nothing.js"\'s default export must return an object implementing the showcase adapter interface',
+      'Custom showcase adapter "views-repeated": "./adapters/views-repeated.js"\'s showcase adapter has invalid "defaultViews": repeated view "demo"',
+      'Custom showcase adapter "views-not-list": "./adapters/views-not-list.js"\'s showcase adapter has invalid "defaultViews": it must be a list of views',
     ]);
   });
 

@@ -254,7 +254,8 @@ describe('cli/check', () => {
   describe('Showcases', () => {
     // The showcases fixture embeds code block, linked and custom showcases, and virtual files with no showcase adapter, in Markdown documentation files, and passes; the
     // showcase-errors fixture holds one documentation file per kind of broken showcase, the showcase-adapters fixture lists one custom showcase
-    // adapter per way of getting it wrong, and the showcase-ts-invalid fixture holds ts showcases the ts showcase adapter rejects.
+    // adapter per way of getting it wrong, and the showcase-ts-invalid fixture holds ts showcases the ts showcase adapter rejects. The
+    // showcase-views fixture gives its showcases views through each layer of defaults, and the showcase-views-errors fixture misuses them.
 
     it('Reports ts showcases in other languages, or with invalid options, and accepts every language of the ts showcase adapter', async () => {
       // The showcase-ts-invalid fixture: tsx, html, jsx and cjs entry points, invalid options, then one valid showcase per accepted language
@@ -325,9 +326,13 @@ describe('cli/check', () => {
     it('Collects the virtual files, and parses Markdown documentation files only', async () => {
       // docs/notes.txt holds a broken marker, ignored as the file is plain text
       const { host } = await check(_fixture('showcases'));
-      expect(host?.virtualFiles).toEqual([
+      // Each offset is its fence's, in its documentation file
+      for (const file of host!.virtualFiles) {
+        expect(host!.documentation.find(({ path }) => path === file.documentation)!.content.slice(file.offset)).toMatch(/^```/);
+      }
+      expect(host?.virtualFiles.map(({ offset: _offset, ...file }) => file)).toEqual([
         { path: 'README.showcase-1.html', named: false, showcase: 'README.md#1', content: '<p class="hello">Hello</p>', documentation: 'README.md', line: 3 },
-        { path: 'styles.css', named: true, content: '.hello { color: red; }', documentation: 'README.md', line: 7 },
+        { path: 'styles.css', named: true, views: ['source'], content: '.hello { color: red; }', documentation: 'README.md', line: 7 },
         {
           path: 'docs/guide.showcase-1.html',
           named: false,
@@ -414,6 +419,42 @@ describe('cli/check', () => {
         'showroom.json: Custom showcase adapter "no-default": "./adapters/no-default.js" must have a default export: a function returning an object implementing the showcase adapter interface',
         'showroom.json: Custom showcase adapter "incomplete": "./adapters/incomplete.js"\'s default export must return an object implementing the showcase adapter interface; check "build", "check"',
         'showroom.json: Custom showcase adapter "throws": "./adapters/throws.js" failed to load: broken on purpose',
+      ]);
+    });
+
+    it("Gives each showcase its views: the marker's, or showroom.json's default for its showcase adapter, or the showcase adapter's own", async () => {
+      // The showcase-views fixture sets html's and the custom bare showcase adapter's defaults in showroom.json; the custom plain one declares its own
+      const { passed, issues, host } = await check(_fixture('showcase-views'));
+      expect({ passed, issues }).toEqual({ passed: true, issues: [] });
+      expect(host!.showcases.map(({ adapter, views }) => `${adapter}: ${views.join(',')}`)).toEqual([
+        'html: source,demo',
+        'html: console',
+        'ts: source,console',
+        'plain: source',
+        'bare: markdown',
+        'bare: demo,console',
+        'html: demo',
+        'html: none',
+      ]);
+      expect(host!.virtualFiles.filter(({ named }) => named).map(({ path, views }) => `${path}: ${views!.join(',')}`)).toEqual([
+        'notes.css: source',
+        'shown.css: markdown',
+        'hidden.css: none',
+      ]);
+    });
+
+    it('Reports every misused view, and default views for a showcase adapter there is not', async () => {
+      // The showcase-views-errors fixture: one showcase per rule, and showroom.json naming an unknown showcase adapter and giving html "none"
+      const result = await check(_fixture('showcase-views-errors'));
+      expect(result.passed).toBe(false);
+      expect(result.issues.map(({ path, line, message }) => `${path}${line ? `:${line}` : ''}: ${message}`)).toEqual([
+        'README.md:5: Unknown view "Demo"; the views are: markdown, source, demo, console, none, in showcase marker "showcase view=Demo"',
+        'README.md:9: The view "none" can\'t be combined with other views, in showcase marker "showcase view=none,demo"',
+        'README.md:21: A linked showcase shown inline is shown as a demo for now, so it can\'t have a "view" key; add "block" to choose its views',
+        'README.md:23: A virtual file with no showcase adapter is never built, so it can\'t have the view "demo"; its views are source, markdown and none',
+        'showroom.json: "showcaseViews" names "nowhere", which is neither a built-in showcase adapter nor one of "customShowcaseAdapters"',
+        'README.md:13: A showcase shown with the view "none" can\'t include files, as nothing would show them',
+        'README.md:17: A showcase shown with the view "none" can\'t include files, as nothing would show them',
       ]);
     });
   });

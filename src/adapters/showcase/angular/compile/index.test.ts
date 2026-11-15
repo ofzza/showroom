@@ -35,7 +35,10 @@ import {
  */
 function _scan(root: string, documents: Record<string, string | undefined>): { showcases: Showcase[]; virtualFiles: VirtualFile[] } {
   const scans = Object.entries(documents).map(([path, markdown]) => scanMarkdown(path, markdown ?? readFileSync(join(root, path), 'utf8')));
-  return { showcases: scans.flatMap((scan) => scan.showcases), virtualFiles: scans.flatMap((scan) => scan.virtualFiles) };
+  return {
+    showcases: scans.flatMap((scan) => scan.showcases.map((showcase) => ({ ...showcase, views: showcase.views ?? ['demo'] }))),
+    virtualFiles: scans.flatMap((scan) => scan.virtualFiles),
+  };
 }
 
 describe('adapters/showcase/angular/compile', () => {

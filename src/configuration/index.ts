@@ -4,6 +4,8 @@
 
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { ShowcaseView } from '../host/index.js';
+import { checkShowcaseViews } from '../markdown/index.js';
 
 // #region Configuration
 
@@ -50,6 +52,11 @@ export interface Configuration {
    */
   customShowcaseAdapters?: Record<string, string>;
   /**
+   * Default showcase views by showcase adapter name (a built-in showcase adapter's, or one of `customShowcaseAdapters`): a view, or a list of views,
+   * for the showcase adapter's showcases shown as blocks whose marker has no `view=`, in place of the showcase adapter's own default
+   */
+  showcaseViews?: Record<string, ShowcaseView | ShowcaseView[]>;
+  /**
    * True to give every showcase shown as a block its Markdown tab (the showcase as written in its documentation file), as its first tab, selected
    * by default; false by default, with no Markdown tab. Meant for `showroom`'s own repository, which documents its markers with live showcases
    */
@@ -82,6 +89,11 @@ const _KEYS: Record<keyof Configuration, (value: unknown) => boolean> = {
   code: _isStringArray,
   documentation: _isStringArray,
   customShowcaseAdapters: _isStringRecord,
+  showcaseViews: (value) =>
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.values(value).every((item) => typeof item === 'string' || _isStringArray(item)),
   exposeShowcaseMarkdownSyntax: (value) => typeof value === 'boolean',
 };
 
@@ -97,6 +109,7 @@ const _EXPECTED: Record<keyof Configuration, string> = {
   code: 'an array of strings',
   documentation: 'an array of strings',
   customShowcaseAdapters: 'an object mapping showcase adapter names to paths (non-empty strings)',
+  showcaseViews: 'an object mapping showcase adapter names to a view or an array of views',
   exposeShowcaseMarkdownSyntax: 'a boolean',
 };
 
@@ -138,6 +151,11 @@ export function validateConfiguration(value: unknown): ConfigurationResult {
       errors.push(`${CONFIGURATION_FILE_NAME}: unknown key "${key}"`);
     } else if (!_KEYS[key as keyof Configuration](record[key])) {
       errors.push(`${CONFIGURATION_FILE_NAME}: "${key}" must be ${_EXPECTED[key as keyof Configuration]}`);
+    } else if (key === 'showcaseViews') {
+      for (const [name, views] of Object.entries(record[key] as Record<string, string | string[]>)) {
+        const problem = checkShowcaseViews(typeof views === 'string' ? [views] : views);
+        if (problem) errors.push(`${CONFIGURATION_FILE_NAME}: "showcaseViews" of "${name}": ${problem}`);
+      }
     }
   }
   if (!('stack' in record)) {

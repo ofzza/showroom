@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 import { Body1, Caption1, Link, Title1, Title2, makeStyles, tokens } from '@fluentui/react-components';
 import type { DocumentationFile, LinkedFile, ProjectInformation } from '../../host/index.js';
 import { getOpeningTitleOffset } from '../../markdown/index.js';
-import { isMarkdown, type ShownShowcase } from '../host/index.js';
+import { isMarkdown, type ShownShowcase, type ShownVirtualFile } from '../host/index.js';
 import { Markdown } from '../markdown/index.js';
 import { formatRoute } from '../routing/index.js';
 
@@ -53,6 +53,10 @@ export interface DocumentationContentProps {
    */
   showcases?: ShownShowcase[];
   /**
+   * Shown virtual files, placed in the documentation files holding them
+   */
+  virtualFiles?: ShownVirtualFile[];
+  /**
    * Linked files, to resolve links and images against
    */
   linkedFiles?: LinkedFile[];
@@ -63,10 +67,10 @@ export interface DocumentationContentProps {
  * @param props Properties of the component
  * @returns The rendered content
  */
-export function DocumentationContent({ file, documentation, showcases, linkedFiles }: DocumentationContentProps): ReactNode {
+export function DocumentationContent({ file, documentation, showcases, virtualFiles, linkedFiles }: DocumentationContentProps): ReactNode {
   const styles = _useStyles();
   return isMarkdown(file) ? (
-    <Markdown file={file} documentation={documentation} showcases={showcases} linkedFiles={linkedFiles} />
+    <Markdown file={file} documentation={documentation} showcases={showcases} virtualFiles={virtualFiles} linkedFiles={linkedFiles} />
   ) : (
     <pre className={styles.text}>{file.content}</pre>
   );
@@ -96,6 +100,10 @@ export interface HomePageProps {
    * Shown showcases, whose showcase frames are placed in the documentation files embedding them
    */
   showcases?: ShownShowcase[];
+  /**
+   * Shown virtual files, placed in the documentation files holding them
+   */
+  virtualFiles?: ShownVirtualFile[];
   /**
    * Linked files, to resolve links and images against
    */
@@ -161,7 +169,7 @@ function _ProjectInformation({ project, untitled }: { project: ProjectInformatio
  * @param props Properties of the component
  * @returns The rendered page
  */
-export function HomePage({ project, readme, documentation, showcases, linkedFiles }: HomePageProps): ReactNode {
+export function HomePage({ project, readme, documentation, showcases, virtualFiles, linkedFiles }: HomePageProps): ReactNode {
   const styles = _useStyles();
   const titled = readme !== undefined && isMarkdown(readme) && getOpeningTitleOffset(readme.content) !== undefined;
   return (
@@ -171,13 +179,16 @@ export function HomePage({ project, readme, documentation, showcases, linkedFile
           file={readme}
           documentation={documentation}
           showcases={showcases}
+          virtualFiles={virtualFiles}
           linkedFiles={linkedFiles}
           afterTitle={<_ProjectInformation project={project} untitled />}
         />
       ) : (
         <>
           <_ProjectInformation project={project} />
-          {readme ? <DocumentationContent file={readme} documentation={documentation} showcases={showcases} linkedFiles={linkedFiles} /> : null}
+          {readme ? (
+            <DocumentationContent file={readme} documentation={documentation} showcases={showcases} virtualFiles={virtualFiles} linkedFiles={linkedFiles} />
+          ) : null}
         </>
       )}
     </div>
@@ -205,6 +216,10 @@ export interface DocumentationPageProps {
    */
   showcases?: ShownShowcase[];
   /**
+   * Shown virtual files, placed in the documentation files holding them
+   */
+  virtualFiles?: ShownVirtualFile[];
+  /**
    * Linked files, to resolve links and images against
    */
   linkedFiles?: LinkedFile[];
@@ -215,12 +230,12 @@ export interface DocumentationPageProps {
  * @param props Properties of the component
  * @returns The rendered page
  */
-export function DocumentationPage({ file, documentation, showcases, linkedFiles }: DocumentationPageProps): ReactNode {
+export function DocumentationPage({ file, documentation, showcases, virtualFiles, linkedFiles }: DocumentationPageProps): ReactNode {
   const styles = _useStyles();
   return (
     <article className={styles.page}>
       <Caption1 className={styles.path}>{file.path}</Caption1>
-      <DocumentationContent file={file} documentation={documentation} showcases={showcases} linkedFiles={linkedFiles} />
+      <DocumentationContent file={file} documentation={documentation} showcases={showcases} virtualFiles={virtualFiles} linkedFiles={linkedFiles} />
     </article>
   );
 }

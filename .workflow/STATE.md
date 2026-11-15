@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** _`P1`_–_`P14`_, _`P15.1`_–_`P15.3`_ implemented (_`P15.3`_, the console out of the showcase frame, the last).
-- **Next free:** _`D583`_, _`S13`_, _`P17`_, _`O89`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
+- **Stage:** _`P1`_–_`P14`_, _`P15.1`_–_`P15.4`_ implemented (_`P15.4`_, the showcase views, the last).
+- **Next free:** _`D583`_, _`S13`_, _`P17`_, _`O90`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
 - **Working on:** _`P15`_ Showcase views (approved for its split and order, `./.workflow/PLAN-P15-showcase-views.md`), planning _`S12`_ without _`S12.1`_ (_`P16`_, later), in six children _`P15.1`_–_`P15.6`_ (_`D541`_, _`D545`_–_`D548`_).
-- **Next step:** implement _`P15.4`_ (`./.workflow/PLAN-P15.4-views.md`, approved), from step 1. Ask the user before deleting `./.workflow/.temp/spike-hidden-frame/` (its evidence is recorded under _`D570`_).
+- **Next step:** plan _`P15.5`_ Status marks and issue list (`./.workflow/PLAN-P15-showcase-views.md`), starting with its open points (_`O83`_, and _`D529`_'s "not built" placeholder, _`D580`_).
 
 ## Open questions
 
@@ -13,7 +13,7 @@
 
 ## Waiting on me
 
-- `./.workflow/.temp/questions-p15.4/` (its choices, recorded as _`D569`_–_`D582`_); ask before deleting it.
+- `./.workflow/.temp/p15.4-check/`, `p15.4-check-shot-*.png`, `p15.4-format/`, `p15.4-readme-ts/` and `ci-p15.4.log`; ask before deleting them.
 - `./.workflow/.temp/p15.3-check/` (the scratch host and `p15.3-check-shot.png`), `p15.3-format/` (formatting backups) and `ci-p15.3.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p15.3/` (its choices, recorded as _`D559`_–_`D568`_); ask before deleting it.
 
@@ -27,7 +27,7 @@
 
 ## Running
 
-- Nothing.
+- `serve` of the scratch host `./.workflow/.temp/p15.4-check/` on http://localhost:5184/, and the dogfood `serve` of this repository on http://localhost:5185/ (background; a new session finds them gone).
 
 ## History
 
@@ -352,3 +352,9 @@
 - 2026-11-15: _`P15.3`_ approved as implemented (option chosen: "Approve and commit (Rec.)").
 - 2026-11-15: _`P15.4`_'s 14 choices settled (options chosen: "Agreed" for Q1, Q3, Q5–Q8, Q10–Q14; Q2 "opacity: 0, clipped (Rec.)", Q4 "Keep D526 until P16 (Rec.)", Q9 "20 lines or viewport (Rec.)"); _`P15.4`_ drafted (`PLAN-P15.4-views.md`, _`D569`_–_`D582`_).
 - 2026-11-15: _`P15.4`_ approved (option chosen: "Approve and commit (Rec.)"), without a zero-context review; _`O81`_ and _`K21`_ resolved by _`D570`_.
+- 2026-11-15: _`P15.4`_ step 1: `ShowcaseView`, `view=` in the marker grammar and the scan, `Showcase.views` and `VirtualFile.views`, `showcaseViews`, the showcase adapters' `defaultViews`, `check()` applying the layers; the `showcase-views` and `showcase-views-errors` fixtures; `test:unit` green (1162).
+- 2026-11-15: _`P15.4`_ step 2: the shown showcases' `views`, `markdown` and optional `url` (`LoadedShowcase`), the shown virtual files with no showcase adapter (`VirtualFile.offset` added), `build` emitting only loaded showcase frames; unit, and the `ts` build `e2e` test, green.
+- 2026-11-15: _`P15.4`_ steps 3–4: the block's header bar, the stacked views (`markdown`, `source`, `demo`, `console`), the hidden showcase frame, `view=none` and the shown virtual files placed; `test:unit` green (1200+); the scratch host `p15.4-check/` checked by the agent in Chromium (the hidden frame sees its real width and media queries; a doubled line break in the `markdown` view fixed).
+- 2026-11-15: _`P15.4`_ steps 5–6: `view=` on the `ts` example's and `README.md`'s rendering showcases, `README.md`'s Showcase views section (live), cheat-sheet, configuration, code pane, console panel and API; `CONTRIBUTE.md` (architecture, Glossary: Showcase view, Header bar, and the changed terms); `AGENTS.md`; the decisions' back-references; _`O89`_ recorded.
+- 2026-11-15: _`P15.4`_ step 7: `npm run ci` green (unit 1200, integration 24, e2e 18, serve 7); serves started for the user's check.
+- 2026-11-15: _`P15.4`_ approved as implemented, with its Glossary changes (option chosen: "Approve and commit (Rec.)").

@@ -6,12 +6,27 @@ import ignore from 'ignore';
 import { open, readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { ShowcaseAdapter } from '../../adapters/showcase/index.js';
-import { checkHostCheckResult, createShowcaseAdapter, getShowcaseAdapterNames, loadCustomShowcaseAdapters } from '../../adapters/showcase/registry/index.js';
+import {
+  checkHostCheckResult,
+  createShowcaseAdapter,
+  getDefaultViews,
+  getShowcaseAdapterNames,
+  loadCustomShowcaseAdapters,
+} from '../../adapters/showcase/registry/index.js';
 import { getStackAdapter, getStackAdapterNames } from '../../adapters/stack/index.js';
 import { readConfiguration, CONFIGURATION_FILE_NAME, type Configuration } from '../../configuration/index.js';
-import type { DocumentationFile, DocumentationKind, HostInformation, LinkedFile, ProjectInformation, Showcase, VirtualFile } from '../../host/index.js';
+import type {
+  DocumentationFile,
+  DocumentationKind,
+  HostInformation,
+  LinkedFile,
+  ProjectInformation,
+  Showcase,
+  ShowcaseView,
+  VirtualFile,
+} from '../../host/index.js';
 import { isText, LINKED_FILE_SIDEBAR_LIMIT } from '../../linked-files/index.js';
-import { getFolder, isMarkdownPath, resolvePath, scanMarkdown, splitLink, type MarkdownLink } from '../../markdown/index.js';
+import { getFolder, isMarkdownPath, resolvePath, scanMarkdown, splitLink, type MarkdownLink, type ScannedShowcase } from '../../markdown/index.js';
 import { buildShowcases, getBuildShowcasesIssues } from '../../showcases/index.js';
 import { createIgnoreMatcher, resolveOutputFolder } from './internal/index.js';
 
@@ -211,7 +226,7 @@ export async function check(root: string, options: CheckOptions = {}): Promise<C
   }
 
   // Find the showcases, virtual files, links and images in the Markdown documentation files, and check them
-  const showcases: Showcase[] = [];
+  const showcases: ScannedShowcase[] = [];
   const virtualFiles: VirtualFile[] = [];
   const links: _FoundLink[] = [];
   for (const file of documentation.filter((file) => isMarkdownPath(file.path))) {
@@ -230,7 +245,8 @@ export async function check(root: string, options: CheckOptions = {}): Promise<C
   const linkedFiles = await _collectLinkedFiles(root, documentation, links, showcases, included, outputFolder.relativePath, issues);
 
   if (!project || issues.some((issue) => issue.severity === 'error')) return fail();
-  const host: HostInformation = { project, documentation, code, showcases, virtualFiles, linkedFiles };
+  // Every showcase has its views by now: _checkShowcases() applied the defaults, or reported an error
+  const host: HostInformation = { project, documentation, code, showcases: showcases as Showcase[], virtualFiles, linkedFiles };
 
   // Build every showcase, if asked to, throwing the showcase frames away; build warnings fail nothing
   if (options.showcases) {
@@ -278,9 +294,10 @@ async function _checkVirtualFiles(root: string, virtualFiles: VirtualFile[], iss
 }
 
 /**
- * Checks every showcase: its linked entry point, and its showcase adapter's validation; then each used showcase adapter's host requirements, given
- * the showcases whose validation passed (errors as error issues, warnings as warning issues). Every custom showcase adapter is loaded, used or not.
- * Each showcase's options are replaced by the validated ones.
+ * Checks every showcase: its linked entry point, its views, and its showcase adapter's validation; then each used showcase adapter's host
+ * requirements, given the showcases whose validation passed (errors as error issues, warnings as warning issues). Every custom showcase adapter is
+ * loaded, used or not. Each showcase's options are replaced by the validated ones, and each showcase without views gets its defaults: those
+ * `showroom.json`'s `showcaseViews` sets for its showcase adapter, or else its showcase adapter's own.
  * @param root Path of the host repository's root
  * @param configuration Configuration of the host repository
  * @param showcases Showcases, sorted by documentation file and line
@@ -290,7 +307,7 @@ async function _checkVirtualFiles(root: string, virtualFiles: VirtualFile[], iss
 async function _checkShowcases(
   root: string,
   configuration: Configuration,
-  showcases: Showcase[],
+  showcases: ScannedShowcase[],
   virtualFiles: VirtualFile[],
   issues: CheckIssue[],
 ): Promise<void> {
@@ -298,6 +315,16 @@ async function _checkShowcases(
   const listed = configuration.customShowcaseAdapters ?? {};
   const custom = await loadCustomShowcaseAdapters(root, listed);
   issues.push(...custom.errors.map((message) => ({ severity: 'error' as const, message, path: CONFIGURATION_FILE_NAME })));
+
+  // The default views the configuration sets, each for a showcase adapter there is
+  const configured = new Map<string, ShowcaseView[]>();
+  for (const [name, views] of Object.entries(configuration.showcaseViews ?? {})) {
+    configured.set(name, typeof views === 'string' ? [views] : views);
+    if (!getShowcaseAdapterNames().includes(name) && !Object.hasOwn(listed, name)) {
+      const message = `"showcaseViews" names "${name}", which is neither a built-in showcase adapter nor one of "customShowcaseAdapters"`;
+      issues.push({ severity: 'error', message, path: CONFIGURATION_FILE_NAME });
+    }
+  }
   const adapters = new Map<string, ShowcaseAdapter>(custom.adapters);
   const used = new Map<string, Showcase[]>();
   const virtualPaths = new Set(virtualFiles.map((file) => file.path.toLowerCase()));
@@ -331,12 +358,19 @@ async function _checkShowcases(
       }
       const adapter = adapters.get(showcase.adapter);
       if (!adapter) continue; // A custom showcase adapter that didn't load, reported already
+
+      // Its views: the marker's, or the configuration's default for its showcase adapter, or the showcase adapter's own
+      const resolved: Showcase = Object.assign(showcase, { views: showcase.views ?? configured.get(showcase.adapter) ?? getDefaultViews(adapter) });
+      if (resolved.views.includes('none') && resolved.include.length) {
+        error(`A showcase shown with the view "none" can't include files, as nothing would show them`);
+        continue;
+      }
       const valid = used.get(showcase.adapter) ?? [];
       used.set(showcase.adapter, valid);
 
       // Its validation
       try {
-        const validation = await adapter.validate({ ...showcase });
+        const validation = await adapter.validate({ ...resolved });
         if (validation.errors.length) {
           validation.errors.forEach(error);
         } else {
@@ -345,7 +379,7 @@ async function _checkShowcases(
           } else {
             showcase.options = validation.options;
           }
-          valid.push(showcase);
+          valid.push(resolved);
         }
       } catch (err) {
         error(`Showcase adapter "${showcase.adapter}" failed to validate the showcase: ${(err as Error).message}`);
@@ -415,7 +449,7 @@ interface _IncludedFiles {
 async function _checkIncludes(
   root: string,
   documentation: DocumentationFile[],
-  showcases: Showcase[],
+  showcases: ScannedShowcase[],
   virtualFiles: VirtualFile[],
   outputFolder: string,
   issues: CheckIssue[],
@@ -561,7 +595,7 @@ async function _collectLinkedFiles(
   root: string,
   documentation: DocumentationFile[],
   links: _FoundLink[],
-  showcases: Showcase[],
+  showcases: ScannedShowcase[],
   included: _IncludedFiles,
   outputFolder: string,
   issues: CheckIssue[],
