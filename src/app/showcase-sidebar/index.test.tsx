@@ -1,5 +1,5 @@
 /**
- * Tests of the code sidebar
+ * Tests of the showcase sidebar
  */
 
 import { afterEach, describe, it, expect, vi } from 'vitest';
@@ -8,11 +8,11 @@ import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-comp
 import type { DocumentationFile, LinkedFile } from '../../host/index.js';
 import type { ShownShowcase, ShownTab } from '../host/index.js';
 import {
-  CODE_SIDEBAR_MAX_WIDTH,
-  CODE_SIDEBAR_MIN_WIDTH,
-  CODE_SIDEBAR_WIDTH,
-  CodeSidebar,
-  CodeSidebarView,
+  SHOWCASE_SIDEBAR_MAX_WIDTH,
+  SHOWCASE_SIDEBAR_MIN_WIDTH,
+  SHOWCASE_SIDEBAR_WIDTH,
+  ShowcaseSidebar,
+  ShowcaseSidebarView,
   LinkedFileView,
   MISSING_DOCUMENTATION_MESSAGE,
   MISSING_FILE_MESSAGE,
@@ -67,9 +67,9 @@ const _TABS = {
  */
 const _DOCUMENTATION: DocumentationFile[] = [{ path: 'docs/guide.md', kind: 'other', extension: '.md', content: '# A guide\n' }];
 
-describe('app/code-sidebar', () => {
-  // Tests the code sidebar's header and body (CodeSidebarView) and the tabs' content by rendering them on the server with given content (effects
-  // don't run, and FluentUI's drawer renders through a portal, so CodeSidebar itself renders nothing on the server), what the code sidebar shows with
+describe('app/showcase-sidebar', () => {
+  // Tests the showcase sidebar's header and body (ShowcaseSidebarView) and the tabs' content by rendering them on the server with given content (effects
+  // don't run, and FluentUI's drawer renders through a portal, so ShowcaseSidebar itself renders nothing on the server), what the showcase sidebar shows with
   // and without tabs (getSidebarView()), the tabs' marks from hand-written issues, and fetching a linked file with a stubbed `fetch`.
 
   afterEach(() => {
@@ -226,7 +226,7 @@ describe('app/code-sidebar', () => {
   });
 
   describe('getSidebarView', () => {
-    // What the code sidebar shows: the file alone, or the selected tab of a linked showcase shown inline with included files, or of a code pane.
+    // What the showcase sidebar shows: the file alone, or the selected tab of a linked showcase shown inline with included files, or of a code pane.
 
     it('Shows the file alone, titled with its name, without tabs, or with one', () => {
       const alone = { index: 0, title: 'my index.ts', fetchUrl: 'files/src/my%20index.ts', openUrl: 'files/src/my%20index.ts' };
@@ -254,11 +254,11 @@ describe('app/code-sidebar', () => {
     });
   });
 
-  describe('CodeSidebarView', () => {
-    // The code sidebar's header (the title or the tab list, the link, the close button) and body, rendered on the server.
+  describe('ShowcaseSidebarView', () => {
+    // The showcase sidebar's header (the title or the tab list, the link, the close button) and body, rendered on the server.
 
     it('Titles a file alone with its name, its path as the tooltip, before the link and the close button, above its content', () => {
-      const html = _render(<CodeSidebarView file={_FILE} documentation={[]} onClose={() => undefined} />);
+      const html = _render(<ShowcaseSidebarView file={_FILE} documentation={[]} onClose={() => undefined} />);
       expect(html).toMatch(/<h2 [^>]*title="src\/my index.ts"[^>]*>my index.ts<\/h2>/);
       const link = html.indexOf('Open in a new tab');
       const close = html.indexOf('aria-label="Close"');
@@ -270,11 +270,11 @@ describe('app/code-sidebar', () => {
 
     it('Puts the tab list in place of the title, from the initial tab, with the link for a linked file only', () => {
       const tabs = [_TABS.file, _TABS.virtual];
-      const first = _render(<CodeSidebarView file={_FILE} tabs={tabs} documentation={[]} onClose={() => undefined} />);
+      const first = _render(<ShowcaseSidebarView file={_FILE} tabs={tabs} documentation={[]} onClose={() => undefined} />);
       expect(first).toMatch(/role="tablist".*>src\/my index.ts<.*>HTML</s);
       expect(first).not.toContain('<h2');
       expect(first).toContain('Open in a new tab');
-      const second = _render(<CodeSidebarView tabs={tabs} documentation={[]} initialTab={1} onClose={() => undefined} />);
+      const second = _render(<ShowcaseSidebarView tabs={tabs} documentation={[]} initialTab={1} onClose={() => undefined} />);
       expect(second).toContain('class="hljs language-html"');
       expect(second).not.toContain('Open in a new tab');
       expect(second).toContain('aria-label="Close"');
@@ -282,7 +282,7 @@ describe('app/code-sidebar', () => {
   });
 
   it('Is 66% of the viewport wide, between 400 and 1200 pixels', () => {
-    expect([CODE_SIDEBAR_WIDTH, CODE_SIDEBAR_MIN_WIDTH, CODE_SIDEBAR_MAX_WIDTH]).toEqual(['66vw', 400, 1200]);
+    expect([SHOWCASE_SIDEBAR_WIDTH, SHOWCASE_SIDEBAR_MIN_WIDTH, SHOWCASE_SIDEBAR_MAX_WIDTH]).toEqual(['66vw', 400, 1200]);
   });
 
   it('Renders nothing while closed', () => {
@@ -291,8 +291,8 @@ describe('app/code-sidebar', () => {
       _render(
         <>
           <span>Page</span>
-          <CodeSidebar onClose={() => undefined} />
-          <CodeSidebar tabs={[_TABS.virtual]} open={false} onClose={() => undefined} />
+          <ShowcaseSidebar onClose={() => undefined} />
+          <ShowcaseSidebar tabs={[_TABS.virtual]} open={false} onClose={() => undefined} />
         </>,
       ),
     ).toBe(without);

@@ -7,19 +7,24 @@ import { renderToString } from 'react-dom/server';
 import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-components';
 import type { ShowcaseView } from '../../host/index.js';
 import type { ShownShowcase } from '../host/index.js';
-import { MISSING_FILE_MESSAGE } from '../code-sidebar/index.js';
+import { MISSING_FILE_MESSAGE } from '../showcase-sidebar/index.js';
 import { CONSOLE_VIEW_HEIGHT, INITIAL_CONSOLE_STATE, type ConsoleState } from '../console/index.js';
 import {
+  CLOSE_LABEL,
   CODE_PANE_BUTTON_LABELS,
+  CODE_PANE_HIDE_LABEL,
   INITIAL_CODE_PANE_STATE,
-  InlineShowcase,
+  SIDEBAR_VIEWS_BUTTON_LABELS,
   NOT_BUILT_TEXT,
   SHOWCASE_BLOCK_FRAME_MIN_HEIGHT,
   ShowcaseBlock,
   getCodePaneMinLines,
   getFrameView,
+  getInitialCodePaneState,
   getIssueLocation,
   getNextCodePaneState,
+  getNextSidebarCodePaneState,
+  getSidebarViewsState,
   getPlaceholderHeight,
   getStatusMarkLabel,
   getStatusMarkText,
@@ -95,7 +100,7 @@ describe('app/code-pane', () => {
   // Tests the showcase block by rendering it on the server in each state and with each showcase view, with given checks, issues and console states
   // (effects don't run, so nothing is fetched, and the layout itself, a container query, is only checked in a browser, see AGENTS.md › Testing);
   // the cycling button's order of states, the status marks, the issue list's decisions and the placeholder's height as pure functions; and a linked
-  // showcase shown inline's header bar.
+  // showcase shown inline's block, in the showcase sidebar.
 
   it('Cycles hidden, half, sidebar, and back, starting hidden', () => {
     expect(INITIAL_CODE_PANE_STATE).toBe('hidden');
@@ -145,14 +150,25 @@ describe('app/code-pane', () => {
     expect(CODE_PANE_BUTTON_LABELS).toEqual({ hidden: 'Show the code', half: 'Show the code in a sidebar' });
   });
 
-  it('Hides the cycling button while the code sidebar is open', () => {
-    // The code sidebar itself renders nothing on the server (FluentUI's drawer, through its portal); its content is tested in src/app/code-sidebar/
+  it('Hides the cycling button while the showcase sidebar is open', () => {
+    // The showcase sidebar itself renders nothing on the server (FluentUI's drawer, through its portal); its content is tested in src/app/showcase-sidebar/
     const html = _render(_SHOWCASE, 'sidebar');
     expect(html).toContain('data-code-pane-state="sidebar"');
     expect(html).toContain('<iframe');
     expect(html).not.toContain(`aria-label="${CODE_PANE_BUTTON_LABELS.hidden}"`);
     expect(html).not.toContain(`aria-label="${CODE_PANE_BUTTON_LABELS.half}"`);
+    expect(html).not.toContain(`aria-label="${CODE_PANE_HIDE_LABEL}"`);
     expect(html).not.toContain('inert');
+  });
+
+  it('Shows a button hiding the code pane right of the cycling button in the half state only', () => {
+    // So hiding the code pane needn't go through the showcase sidebar (D629, .workflow/PLAN-P16-inline-sidebar.md)
+    const html = _render(_SHOWCASE, 'half');
+    const cycling = html.indexOf(`aria-label="${CODE_PANE_BUTTON_LABELS.half}"`);
+    const hide = html.indexOf(`aria-label="${CODE_PANE_HIDE_LABEL}"`);
+    expect(cycling).toBeGreaterThan(-1);
+    expect(hide).toBeGreaterThan(cycling);
+    expect(_render(_SHOWCASE, 'hidden')).not.toContain(`aria-label="${CODE_PANE_HIDE_LABEL}"`);
   });
 
   it("Shows a missing file's tab saying so, with no copy button", () => {
@@ -334,32 +350,84 @@ describe('app/code-pane', () => {
     });
   });
 
-  describe('InlineShowcase', () => {
-    // A linked showcase shown inline: the block's header bar until P16 (D593, .workflow/PLAN-P15.5-status-marks.md), rendered on the server.
+  describe('In the showcase sidebar', () => {
+    // A linked showcase shown inline, shown as a block in the showcase sidebar (D616, .workflow/PLAN-P16-inline-sidebar.md): ShowcaseBlock with its
+    // onClose, rendered on the server in each state (SidebarShowcase's drawer renders nothing there, through its portal).
 
     /**
-     * Renders a linked showcase shown inline
+     * Renders a linked showcase shown inline's block, as the showcase sidebar shows it
      * @param showcase The showcase
+     * @param initialState The code pane's state; getInitialCodePaneState()'s by default
      * @returns The rendered HTML
      */
-    const render = (showcase: ShownShowcase) =>
+    const render = (showcase: ShownShowcase, initialState?: CodePaneState) =>
       renderToString(
         <SSRProvider>
           <FluentProvider theme={webLightTheme}>
-            <InlineShowcase showcase={showcase} initialConsole={_ready()} />
+            <ShowcaseBlock showcase={showcase} documentation={[]} initialState={initialState} initialConsole={_ready()} onClose={() => {}} />
           </FluentProvider>
         </SSRProvider>,
       ).replaceAll('<!-- -->', '');
+    const inline: ShownShowcase = { ..._ISSUES, display: 'inline' };
 
-    it('Shows its status marks with no cycling button, then its issue list, then its showcase frame', () => {
-      const html = render({ ..._ISSUES, display: 'inline' });
-      expect(html).toContain('aria-label="type check: 2 errors. Hide the issues"');
-      expect(html).not.toContain(CODE_PANE_BUTTON_LABELS.hidden);
-      expect(html.indexOf('aria-label="Issues"')).toBeLessThan(html.indexOf('<iframe'));
+    it('Starts below its views, or filling the showcase sidebar when it has none, and hidden on a page', () => {
+      expect(getInitialCodePaneState(['demo'], true)).toBe('half');
+      expect(getInitialCodePaneState(['source', 'console'], true)).toBe('half');
+      expect(getInitialCodePaneState(['none'], true)).toBe('sidebar');
+      expect(getInitialCodePaneState(['none'], false)).toBe(INITIAL_CODE_PANE_STATE);
+      expect(render(inline)).toContain('data-code-pane-state="half"');
+      expect(render({ ...inline, views: ['none'] })).toContain('data-code-pane-state="sidebar"');
+    });
+
+    it('Shows its status marks, the toggle button and the close button, then its issue list, its views and its code pane', () => {
+      const html = render(inline);
+      expect(html).toContain('data-showcase-sidebar=""');
+      const marks = html.indexOf('aria-label="type check: 2 errors. Hide the issues"');
+      const button = html.indexOf(`aria-label="${SIDEBAR_VIEWS_BUTTON_LABELS.expanded}"`);
+      const close = html.indexOf(`aria-label="${CLOSE_LABEL}"`);
+      const issues = html.indexOf('aria-label="Issues"');
+      const frame = html.indexOf('<iframe');
+      const tabs = html.indexOf('role="tablist"');
+      expect(marks).toBeGreaterThan(-1);
+      expect([marks < button, button < close, close < issues, issues < frame, frame < tabs]).toEqual([true, true, true, true, true]);
+      // Never a showcase sidebar of its own
+      expect(html.split('data-code-pane-state')).toHaveLength(2);
+    });
+
+    it('Toggles its views, expanded above the code pane or collapsed with the code pane filling the showcase sidebar, never hiding the code pane', () => {
+      // A two-state toggle instead of the code pane's cycle (D628, .workflow/PLAN-P16-inline-sidebar.md)
+      expect([getNextSidebarCodePaneState('half'), getNextSidebarCodePaneState('sidebar')]).toEqual(['sidebar', 'half']);
+      expect([getSidebarViewsState('half'), getSidebarViewsState('sidebar')]).toEqual(['expanded', 'collapsed']);
+      expect(render(inline)).toMatch(
+        new RegExp(
+          `aria-label="${SIDEBAR_VIEWS_BUTTON_LABELS.expanded}"[^>]*aria-expanded="true"|aria-expanded="true"[^>]*aria-label="${SIDEBAR_VIEWS_BUTTON_LABELS.expanded}"`,
+        ),
+      );
+      const html = render(inline, 'sidebar');
+      expect(html).toContain(`aria-label="${SIDEBAR_VIEWS_BUTTON_LABELS.collapsed}"`);
+      expect(html).toContain('aria-expanded="false"');
+      // The views stay mounted, the showcase frame never reloading (D617), but out of reach
+      expect(html).toMatch(/<div [^>]*aria-hidden="true"[^>]*inert=""[^>]*>.*<iframe/s);
+      expect(html).toContain('role="tabpanel"');
+    });
+
+    it('Has no toggle button with no views, the code pane always filling the showcase sidebar', () => {
+      const html = render({ ...inline, views: ['none'] });
+      for (const label of Object.values(SIDEBAR_VIEWS_BUTTON_LABELS)) expect(html).not.toContain(`aria-label="${label}"`);
+      expect(html).toContain(`aria-label="${CLOSE_LABEL}"`);
+      expect(html).not.toContain('<iframe');
+      expect(html).toContain('role="tabpanel"');
+    });
+
+    it("Links a linked file's tab to a new tab, beside the copy button", () => {
+      const html = render({ ...inline, views: ['none'], tabs: [inline.tabs[2]], entryTab: 0 });
+      expect(html).toMatch(/href="files\/docs\/clock.ts\?hash=0123abcd"[^>]*target="_blank"/);
+      // A virtual file's tab has no link
+      expect(render({ ...inline, views: ['none'] })).not.toContain('target="_blank"');
     });
 
     it('Shows "Not built" when it doesn\'t build', () => {
-      const html = render({ ..._ISSUES, display: 'inline', url: undefined });
+      const html = render({ ...inline, url: undefined });
       expect(html).not.toContain('<iframe');
       expect(html).toContain(`data-not-built="">${NOT_BUILT_TEXT}<`);
     });

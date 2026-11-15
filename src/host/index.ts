@@ -79,8 +79,8 @@ export interface DocumentationFile {
 export type ShowcaseKind = 'code-block' | 'link';
 
 /**
- * Represents how a showcase is shown: `inline`, a linked showcase's showcase frame before the paragraph holding its link; or `block`, its code pane
- * and showcase frame in place of its code block, or of the paragraph holding its link
+ * Represents how a showcase is shown: `inline`, a linked showcase's link, opening it in the showcase sidebar as a block shows it; or `block`, its
+ * showcase views and code pane in place of its code block, or of the paragraph holding its link
  */
 export type ShowcaseDisplay = 'inline' | 'block';
 
@@ -92,7 +92,7 @@ export type ShowcaseDisplay = 'inline' | 'block';
 export type ShowcaseView = 'markdown' | 'source' | 'demo' | 'console' | 'none';
 
 /**
- * Represents one of a showcase's tabs, in its code pane (or its code sidebar, for a linked showcase shown inline): `source`, its entry point's code;
+ * Represents one of a showcase's tabs, in its code pane (or its showcase sidebar, for a linked showcase shown inline): `source`, its entry point's code;
  * `markdown`, the showcase as written in its documentation file; `file`, an included file
  */
 export type ShowcaseTab = { kind: 'source' } | { kind: 'markdown' } | { kind: 'file'; path: string };
@@ -150,7 +150,7 @@ export interface Showcase {
   tabs: ShowcaseTab[];
   /**
    * Its showcase views, in the order they are shown: the marker's `view=`, or else the defaults `showroom.json`'s `showcaseViews` sets for its
-   * showcase adapter, or else its showcase adapter's own (`demo` for a linked showcase shown inline, which takes no `view=`)
+   * showcase adapter, or else its showcase adapter's own; for a linked showcase shown inline, its marker's `view=`, or else `none` (no defaults)
    */
   views: ShowcaseView[];
 }
@@ -214,7 +214,7 @@ export interface LinkedFile {
    */
   size: number;
   /**
-   * True if the file is text (valid UTF-8 with no NUL byte) and no larger than 1 MB, so the showroom shows it in the code sidebar; false for a binary file,
+   * True if the file is text (valid UTF-8 with no NUL byte) and no larger than 1 MB, so the showroom shows it in the showcase sidebar; false for a binary file,
    * or any file larger than 1 MB, which the showroom opens directly
    */
   text: boolean;

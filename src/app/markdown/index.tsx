@@ -1,8 +1,8 @@
 /**
  * Markdown rendering of documentation files: GitHub-flavoured Markdown, with heading ids, syntax-highlighted code blocks with line numbers and a copy
- * button, links resolved inside the showroom (linked files marked with a "code" icon, opening in the
- * code sidebar, or in a new tab; a linked showcase shown inline with included files, with its tabs), relative images shown from their linked files (or as
- * their alt text), showcase frames placed before their entry points, showcases shown as blocks in their entry points' place, and no raw HTML
+ * button, links resolved inside the showroom (linked files marked with a "code" icon before their text, opening in the showcase sidebar, or in a new
+ * tab; linked showcases shown inline marked with a "play" icon, opening the showcase in the showcase sidebar), relative images shown from their
+ * linked files (or as their alt text), showcases shown as blocks in their entry points' place, and no raw HTML
  */
 
 import { createContext, useContext, useMemo, useState, type ComponentProps, type ReactNode } from 'react';
@@ -11,23 +11,16 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeSlug from 'rehype-slug';
 import { Link, Tooltip, makeStyles, tokens } from '@fluentui/react-components';
-import { Code16Regular } from '@fluentui/react-icons';
+import { Code16Regular, Play16Regular } from '@fluentui/react-icons';
 import type { DocumentationFile, LinkedFile } from '../../host/index.js';
 import { getOpeningTitleOffset } from '../../markdown/index.js';
 import { CodeBlock } from '../code/index.js';
-import { InlineShowcase, ShowcaseBlock } from '../code-pane/index.js';
-import { CodeSidebar, getTabMarks } from '../code-sidebar/index.js';
+import { ShowcaseBlock, SidebarShowcase } from '../code-pane/index.js';
+import { ShowcaseSidebar } from '../showcase-sidebar/index.js';
 import type { ShownShowcase, ShownVirtualFile } from '../host/index.js';
 import { resolveImage, resolveLink } from '../links/index.js';
 import { scrollToAnchor } from '../routing/index.js';
-import {
-  SHOWCASE_BLOCK_ELEMENT,
-  SHOWCASE_FRAME_ELEMENT,
-  SHOWCASE_ID_PROPERTY,
-  SHOWCASE_VIRTUAL_FILE_ELEMENT,
-  VirtualFileViews,
-  remarkShowcaseFrames,
-} from '../showcases/index.js';
+import { SHOWCASE_BLOCK_ELEMENT, SHOWCASE_ID_PROPERTY, SHOWCASE_VIRTUAL_FILE_ELEMENT, VirtualFileViews, remarkShowcaseFrames } from '../showcases/index.js';
 
 // #region Styles
 
@@ -63,7 +56,14 @@ const _useStyles = makeStyles({
     '& td': { border: `1px solid ${tokens.colorNeutralStroke1}`, padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}` },
     '& img': { maxWidth: '100%' },
   },
-  fileIcon: { marginLeft: '0.15em', verticalAlign: 'middle' },
+  // A link's icon, before its text, inside the link; the link underlined by a bottom border, as no underline is drawn under an inline SVG (D622)
+  icon: { marginRight: '0.15em', verticalAlign: 'middle' },
+  iconLink: {
+    textDecorationLine: 'none',
+    borderBottom: `${tokens.strokeWidthThin} solid currentColor`,
+    ':hover': { textDecorationLine: 'none' },
+    ':active': { textDecorationLine: 'none' },
+  },
   unresolved: {
     textDecorationLine: 'underline',
     textDecorationStyle: 'dotted',
@@ -134,8 +134,8 @@ export function Markdown({
   afterTitle,
 }: MarkdownProps): ReactNode {
   const styles = _useStyles();
-  // The linked file shown in the code sidebar, if any, with the id of the linked showcase shown inline whose tabs it shows
-  const [shown, setShown] = useState<{ file: LinkedFile; showcase?: string } | undefined>(undefined);
+  // What the showcase sidebar shows, if anything: a linked file, or a linked showcase shown inline (by id, so it follows the showcase's updates)
+  const [shown, setShown] = useState<{ file: LinkedFile } | { showcase: string } | undefined>(undefined);
   const titleOffset = useMemo(() => (afterTitle === undefined ? undefined : getOpeningTitleOffset(file.content)), [afterTitle, file.content]);
   const fileShowcases = useMemo(() => showcases.filter((showcase) => showcase.documentation === file.path), [showcases, file.path]);
   const fileVirtualFiles = useMemo(() => virtualFiles.filter((virtualFile) => virtualFile.documentation === file.path), [virtualFiles, file.path]);
@@ -154,8 +154,10 @@ export function Markdown({
           from={file}
           documentation={documentation}
           linkedFiles={linkedFiles}
-          onShowFile={(shownFile, showcase) => setShown({ file: shownFile, showcase })}
-          fileIconClassName={styles.fileIcon}
+          onShowFile={(shownFile) => setShown({ file: shownFile })}
+          onShowShowcase={(showcase) => setShown({ showcase })}
+          iconClassName={styles.icon}
+          iconLinkClassName={styles.iconLink}
           unresolvedClassName={styles.unresolved}
         >
           {children}
@@ -186,14 +188,13 @@ export function Markdown({
       },
       // An element react-markdown's types don't know, as the remark plugin names it
       ...({
-        [SHOWCASE_FRAME_ELEMENT]: (props: Record<string, unknown>) => <PlacedShowcaseFrame id={props[SHOWCASE_ID_PROPERTY]} />,
         [SHOWCASE_BLOCK_ELEMENT]: (props: Record<string, unknown>) => <PlacedShowcaseBlock id={props[SHOWCASE_ID_PROPERTY]} documentation={documentation} />,
         [SHOWCASE_VIRTUAL_FILE_ELEMENT]: (props: Record<string, unknown>) => <PlacedVirtualFile path={props[SHOWCASE_ID_PROPERTY]} />,
       } as Components),
     }),
-    [file, documentation, linkedFiles, styles.fileIcon, styles.unresolved, titleOffset, afterTitle],
+    [file, documentation, linkedFiles, styles.icon, styles.iconLink, styles.unresolved, titleOffset, afterTitle],
   );
-  const shownShowcase = shown?.showcase === undefined ? undefined : fileShowcases.find((showcase) => showcase.id === shown.showcase);
+  const shownShowcase = shown && 'showcase' in shown ? fileShowcases.find((showcase) => showcase.id === shown.showcase) : undefined;
   return (
     <div className={styles.markdown}>
       <_ShowcasesContext.Provider value={fileShowcases}>
@@ -203,13 +204,8 @@ export function Markdown({
           </ReactMarkdown>
         </_VirtualFilesContext.Provider>
       </_ShowcasesContext.Provider>
-      <CodeSidebar
-        file={shown?.file}
-        tabs={shownShowcase?.tabs}
-        tabMarks={shownShowcase && getTabMarks(shownShowcase)}
-        documentation={documentation}
-        onClose={() => setShown(undefined)}
-      />
+      <ShowcaseSidebar file={shown && 'file' in shown ? shown.file : undefined} documentation={documentation} onClose={() => setShown(undefined)} />
+      <SidebarShowcase showcase={shownShowcase} documentation={documentation} onClose={() => setShown(undefined)} />
     </div>
   );
 }
@@ -241,17 +237,6 @@ const _ShowcasesContext = createContext<ShownShowcase[]>(_NO_SHOWCASES);
  * The shown virtual files of the documentation file being rendered, which placed virtual files look theirs up in
  */
 const _VirtualFilesContext = createContext<ShownVirtualFile[]>(_NO_VIRTUAL_FILES);
-
-/**
- * Renders a linked showcase shown inline that the remark plugin placed (its header bar, its issue list and its showcase frame), looking its showcase
- * up by id in the documentation file's showcases
- * @param props Properties of the component: the showcase's id
- * @returns The showcase, or nothing if no showcase has that id
- */
-export function PlacedShowcaseFrame({ id }: { id: unknown }): ReactNode {
-  const showcase = useContext(_ShowcasesContext).find((candidate) => candidate.id === id);
-  return showcase ? <InlineShowcase showcase={showcase} /> : null;
-}
 
 /**
  * Renders a showcase shown as a block that the remark plugin placed, looking its showcase up by id in the documentation file's showcases
@@ -298,13 +283,21 @@ export interface MarkdownLinkProps {
    */
   linkedFiles: LinkedFile[];
   /**
-   * Shows a linked file in the code sidebar, with the tabs of the linked showcase shown inline it is the entry point of, if any
+   * Shows a linked file in the showcase sidebar
    */
-  onShowFile: (file: LinkedFile, showcase?: string) => void;
+  onShowFile: (file: LinkedFile) => void;
   /**
-   * Class name of the "code" icon after a link to a linked file
+   * Shows a linked showcase shown inline in the showcase sidebar, by its id
    */
-  fileIconClassName: string;
+  onShowShowcase: (id: string) => void;
+  /**
+   * Class name of the icon before a link's text: a linked file's "code" icon, or a linked showcase shown inline's "play" icon
+   */
+  iconClassName: string;
+  /**
+   * Class name of a link with an icon
+   */
+  iconLinkClassName: string;
   /**
    * Class name of a link that points to nothing in the showroom
    */
@@ -317,8 +310,9 @@ export interface MarkdownLinkProps {
 
 /**
  * Renders a link in rendered Markdown: to an absolute URL in a new tab, to a page of the showroom, to a linked file (a text file up to 1 MB in the
- * code sidebar, any other in a new tab; a linked showcase shown inline with included files, with its tabs), marked with a "code" icon, or as plain text
- * with a tooltip when it points to nothing in the showroom; exported only as ESLint's React hooks rules take a `_`-prefixed function for no component
+ * showcase sidebar, any other in a new tab), marked with a "code" icon before its text, to a linked showcase shown inline (opening it in the showcase
+ * sidebar), marked with a "play" icon, or as plain text with a tooltip when it points to nothing in the showroom; exported only as ESLint's React
+ * hooks rules take a `_`-prefixed function for no component
  * @param props Properties of the component
  * @returns The rendered link
  */
@@ -329,15 +323,15 @@ export function MarkdownLink({
   documentation,
   linkedFiles,
   onShowFile,
-  fileIconClassName,
+  onShowShowcase,
+  iconClassName,
+  iconLinkClassName,
   unresolvedClassName,
   children,
 }: MarkdownLinkProps): ReactNode {
   const link = href === undefined ? ({ kind: 'unresolved' } as const) : resolveLink(href, from, documentation, linkedFiles);
-  // The linked showcase shown inline this link is the entry point of, when it has included files to show as tabs
-  const showcase = useContext(_ShowcasesContext).find(
-    (candidate) => candidate.offset === offset && candidate.display === 'inline' && candidate.tabs.length > 1,
-  );
+  // The linked showcase shown inline this link is the entry point of, if any
+  const showcase = useContext(_ShowcasesContext).find((candidate) => candidate.offset === offset && candidate.display === 'inline');
   switch (link.kind) {
     case 'external':
       return (
@@ -358,25 +352,31 @@ export function MarkdownLink({
       );
     case 'file': {
       // The link's own text names the file, so the icon is hidden from screen readers
-      const icon = <Code16Regular className={fileIconClassName} aria-hidden="true" />;
-      return link.file.text ? (
+      const icon = showcase ? (
+        <Play16Regular className={iconClassName} aria-hidden="true" data-link-icon="showcase" />
+      ) : (
+        <Code16Regular className={iconClassName} aria-hidden="true" data-link-icon="file" />
+      );
+      return link.file.text || showcase ? (
         <Link
           inline
+          className={iconLinkClassName}
           href={link.href}
           // The link's own URL still opens the file in a new tab, from the browser's menu or with a modifier key
           onClick={(event) => {
             if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
             event.preventDefault();
-            onShowFile(link.file, showcase?.id);
+            if (showcase) onShowShowcase(showcase.id);
+            else onShowFile(link.file);
           }}
         >
-          {children}
           {icon}
+          {children}
         </Link>
       ) : (
-        <Link inline href={link.href} target="_blank" rel="noopener noreferrer">
-          {children}
+        <Link inline className={iconLinkClassName} href={link.href} target="_blank" rel="noopener noreferrer">
           {icon}
+          {children}
         </Link>
       );
     }

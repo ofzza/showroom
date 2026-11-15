@@ -442,7 +442,10 @@ describe('cli/check', () => {
         'plain: source',
         'bare: markdown',
         'bare: demo,console',
+        // The inline links: none by default, whatever showroom.json says for html; or their markers' views
+        'html: none',
         'html: demo',
+        'html: source,console',
         'html: none',
       ]);
       expect(host!.virtualFiles.filter(({ named }) => named).map(({ path, views }) => `${path}: ${views!.join(',')}`)).toEqual([
@@ -453,13 +456,13 @@ describe('cli/check', () => {
     });
 
     it('Reports every misused view, and default views for a showcase adapter there is not', async () => {
-      // The showcase-views-errors fixture: one showcase per rule, and showroom.json naming an unknown showcase adapter and giving html "none"
+      // The showcase-views-errors fixture: one showcase per rule, and showroom.json naming an unknown showcase adapter and giving html "none"; its
+      // inline link with "none" and included files is no error (line 21), as the showcase sidebar shows its tabs
       const result = await check(_fixture('showcase-views-errors'));
       expect(result.passed).toBe(false);
       expect(result.issues.map(({ path, line, message }) => `${path}${line ? `:${line}` : ''}: ${message}`)).toEqual([
         'README.md:5: Unknown view "Demo"; the views are: markdown, source, demo, console, none, in showcase marker "showcase view=Demo"',
         'README.md:9: The view "none" can\'t be combined with other views, in showcase marker "showcase view=none,demo"',
-        'README.md:21: A linked showcase shown inline is shown as a demo for now, so it can\'t have a "view" key; add "block" to choose its views',
         'README.md:23: A virtual file with no showcase adapter is never built, so it can\'t have the view "demo"; its views are source, markdown and none',
         'showroom.json: "showcaseViews" names "nowhere", which is neither a built-in showcase adapter nor one of "customShowcaseAdapters"',
         'README.md:13: A showcase shown with the view "none" can\'t have "include=", as nothing would show its tabs',
@@ -489,7 +492,7 @@ describe('cli/check', () => {
   describe('Linked files', () => {
     // The linked-files fixture: text, code, extensionless, binary (linked and shown as an image) and ignored files, a linked showcase's entry point,
     // and links that name no linked file (a documentation file, folders, a missing file, the output folder, an absolute URL); scratch copies of it
-    // for a symbolic link leading outside the host repository, and a text file over the code sidebar's limit.
+    // for a symbolic link leading outside the host repository, and a text file over the showcase sidebar's limit.
 
     it('Collects the linked files, once each, ignored or not, sorted by path', async () => {
       const result = await check(_fixture('linked-files'));
@@ -573,7 +576,7 @@ describe('cli/check', () => {
       }
     });
 
-    it("Marks a text file over the code sidebar's limit as not text", async () => {
+    it("Marks a text file over the showcase sidebar's limit as not text", async () => {
       const host = await copyFixture('linked-files');
       try {
         await writeFile(join(host.path, 'notes.txt'), 'a'.repeat(LINKED_FILE_SIDEBAR_LIMIT + 1));

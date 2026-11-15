@@ -14,7 +14,7 @@ describe('linked-files', () => {
     expect(getLinkedFileUrl('docs/my notes/#1?.txt')).toBe('files/docs/my%20notes/%231%3F.txt');
   });
 
-  it('Limits the code sidebar to 1 MB', () => {
+  it('Limits the showcase sidebar to 1 MB', () => {
     expect(LINKED_FILE_SIDEBAR_LIMIT).toBe(1024 * 1024);
   });
 

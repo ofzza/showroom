@@ -18,7 +18,7 @@ Each showcase below breaks one rule of the views.
 <p>none from showroom.json, with included files</p>
 ```
 
-An inline link takes no views yet: [the page](./page.html 'showcase view=source').
+An inline link with none and included files is no error, as the showcase sidebar shows its tabs: [the page](./page.html 'showcase view=none include=extra.css').
 
 ```css showcase file=built.css view=demo
 /* A virtual file with no showcase adapter is never built */

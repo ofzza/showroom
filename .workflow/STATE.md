@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** _`P1`_–_`P14`_, _`P15`_ (_`P15.1`_–_`P15.6`_) implemented (_`P15.6`_, the included keywords, the last).
-- **Next free:** _`D627`_, _`S13`_, _`P17`_, _`O90`_, _`L15`_, _`R49`_, _`H1`_, _`K24`_
-- **Working on:** _`P16`_ (PLAN-P16-inline-sidebar.md), approved: _`S12.1`_, a linked showcase shown inline as a link opening the sidebar.
-- **Next step:** implement _`P16`_'s step 1 (the rename to Showcase sidebar, _`D623`_).
+- **Stage:** _`P1`_–_`P14`_, _`P15`_ (_`P15.1`_–_`P15.6`_) and _`P16`_ implemented (_`P16`_, linked showcases shown inline in the showcase sidebar, the last).
+- **Next free:** _`D630`_, _`S13`_, _`P17`_, _`O90`_, _`L15`_, _`R49`_, _`H1`_, _`K24`_
+- **Working on:** nothing planned; _`S12`_ is fully implemented.
+- **Next step:** the user's choice of the next work (e.g. _`S6`_'s open points _`O16`_–_`O19`_, or a known open issue in `./.workflow/PLAN.md`).
 
 ## Open questions
 
@@ -14,6 +14,7 @@
 ## Waiting on me
 
 - `./.workflow/.temp/questions-p16/` (its choices, recorded as _`D615`_–_`D626`_); ask before deleting it.
+- `./.workflow/.temp/p16-check/`, `p16-format/`, `ci-p16.log`, `serve-dogfood-p16.log`, `serve-p16-check.log`; ask before deleting them.
 - `./.workflow/.temp/p15.6-check/`, `ci-p15.6.log`, `ci-p15.6-rerun.log`, `serve-dogfood-p15.6.log`, `serve-p15.6-check.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p15.6/` (its choices, recorded as _`D602`_–_`D610`_); ask before deleting it.
 - `./.workflow/.temp/p15.6-format/` (formatting backups); ask before deleting it.
@@ -377,3 +378,7 @@
 - 2026-11-15: stop and report: `./.workflow/.temp/questions-p16/QUESTIONS.md` formatted without the agent-facing backup-and-compare (layout only); the user resumed (option chosen: "Resume (Rec.)").
 - 2026-11-15: _`P16`_ Showcases shown inline, in the sidebar drafted (_`D615`_–_`D626`_, its choices; options chosen: the recommendations, except Q3, "Start below the views").
 - 2026-11-15: _`P16`_ approved (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
+- 2026-11-15: _`P16`_ steps 1–6 implemented: the rename to Showcase sidebar, `view=` inline (default `none`), `ShowcaseBlock` in the showcase sidebar (`SidebarShowcase`), the link icons, the documentation; six fixtures' inline links given `view=demo`; `npm run ci` green (unit 1266, integration 24, e2e 18, serve 7); serves started for the user's check.
+- 2026-11-15: _`P16`_ checkpoint: the user's browser check found the inline showcases' sidebar empty (the block 0 px wide, fixed); the code pane always below the views in the showcase sidebar (_`D627`_); _`D626`_'s Glossary changes accepted ("Accept (Rec.)"); a two-state toggle collapsing and expanding the views there (_`D628`_, the user's request); `npm run ci` green (unit 1266, integration 24, e2e 18, serve 7); serves restarted.
+- 2026-11-15: _`P16`_ checkpoint: _`D628`_'s Glossary change accepted ("Accept (Rec.)"); a block's half state gains a button hiding the code pane (_`D629`_, the user's request); unit tier, ESLint and Prettier green; serves restarted (they had served a stale module).
+- 2026-11-15: _`P16`_ approved as implemented (option chosen: "Approve and commit (Rec.)"), with _`D629`_'s Glossary wording ("Apply (Rec.)"); `npm run ci` green before the commit.

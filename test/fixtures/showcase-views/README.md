@@ -26,7 +26,7 @@ console.log('ts: its own source and console');
 // bare: the marker's demo and console
 ```
 
-An inline link is always a demo: [the page](./page.html 'showcase').
+An inline link has no views unless its marker names them, whatever `showroom.json` says: [the page](./page.html 'showcase'), [its demo](./page.html 'showcase view=demo'), and [its source and console](./page.html 'showcase inline view=source,console').
 
 [The page, shown as nothing](./page.html 'showcase block view=none')
 

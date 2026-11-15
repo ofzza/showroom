@@ -1,19 +1,30 @@
 /**
  * The code pane: a showcase shown as a block, its header bar (its status marks, and the code pane's cycling button) and its issue list above its
- * showcase views, stacked in their order, beside its code (a tab per file, marked with its issues); the code hidden, beside the views, or in the code
- * sidebar, switched by the cycling button; side by side, or stacked when the block is narrow, by a container query alone, around views that are
- * never moved, so a showcase frame never reloads. A showcase that doesn't build shows "Not built" in place of its showcase frame. Also a linked
- * showcase shown inline's header bar and issue list, above its showcase frame.
+ * showcase views, stacked in their order, beside its code (a tab per file, marked with its issues); the code hidden, beside the views, or in the
+ * showcase sidebar, switched by the cycling button; side by side, or stacked when the block is narrow, by a container query alone, around views that
+ * are never moved, so a showcase frame never reloads. A showcase that doesn't build shows "Not built" in place of its showcase frame. Also a linked
+ * showcase shown inline, shown as a block in the showcase sidebar, its code pane always shown: below its views, or filling it while they are collapsed.
  */
 
 import { useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Button, makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
-import { CheckmarkCircle16Filled, Code16Regular, DismissCircle16Filled, PanelRight16Regular, Warning16Filled } from '@fluentui/react-icons';
+import {
+  CheckmarkCircle16Filled,
+  ChevronDown16Regular,
+  ChevronUp16Regular,
+  Code16Regular,
+  Dismiss16Regular,
+  DismissCircle16Filled,
+  PanelRight16Regular,
+  Warning16Filled,
+} from '@fluentui/react-icons';
 import type { DocumentationFile, ShowcaseView } from '../../host/index.js';
 import { getRelativePath } from '../../markdown/index.js';
 import { CopyButton, countLines, getCodeHeight, MAX_CODE_LINES } from '../code/index.js';
 import {
-  CodeSidebar,
+  NewTabLink,
+  ShowcaseSidebar,
+  ShowcaseSidebarDrawer,
   ShownTabList,
   ShownTabView,
   getFetchedTabUrl,
@@ -22,7 +33,7 @@ import {
   getTabId,
   getTabMarks,
   useLinkedFileContent,
-} from '../code-sidebar/index.js';
+} from '../showcase-sidebar/index.js';
 import { isLoadedShowcase, type ShownIssue, type ShownShowcase } from '../host/index.js';
 import {
   CONSOLE_LINE_ATTRIBUTE,
@@ -38,8 +49,9 @@ import { MarkdownView, ShowcaseFrame, SourceView } from '../showcases/index.js';
 // #region States
 
 /**
- * Represents the state of a code pane: hidden (the views alone), half (the code pane beside the views, or below them when stacked), or sidebar (the
- * views alone, its tabs in the code sidebar, without the cycling button until the code sidebar closes)
+ * Represents the state of a code pane: hidden (the views alone), half (the code pane beside the views, or below them when stacked), or sidebar (on a
+ * page: the views alone, its tabs in the showcase sidebar, without the cycling button until the showcase sidebar closes; in the showcase sidebar: the
+ * code pane filling it, the views running hidden)
  */
 export type CodePaneState = 'hidden' | 'half' | 'sidebar';
 
@@ -49,7 +61,7 @@ export type CodePaneState = 'hidden' | 'half' | 'sidebar';
 export const INITIAL_CODE_PANE_STATE: CodePaneState = 'hidden';
 
 /**
- * Gets the state the cycling button switches a code pane to: hidden, then half, then sidebar; closing the code sidebar goes back to hidden
+ * Gets the state the cycling button switches a code pane to: hidden, then half, then sidebar; closing the showcase sidebar goes back to hidden
  * @param state The code pane's state
  * @returns The next state
  */
@@ -59,12 +71,72 @@ export function getNextCodePaneState(state: CodePaneState): CodePaneState {
 
 /**
  * Labels of the cycling button (its tooltip and accessible name), by the code pane's state: each says what the button switches to; there is no
- * cycling button while the code sidebar is open
+ * cycling button while the showcase sidebar is open
  */
 export const CODE_PANE_BUTTON_LABELS: Record<Exclude<CodePaneState, 'sidebar'>, string> = {
   hidden: 'Show the code',
   half: 'Show the code in a sidebar',
 };
+
+/**
+ * Label of the button hiding a code pane shown beside (or below) the views, on a page: it sits right of the cycling button in the half state, so
+ * hiding the code pane needn't go through the showcase sidebar (D629)
+ */
+export const CODE_PANE_HIDE_LABEL = 'Hide the code';
+
+/**
+ * Represents the state of a block's views in the showcase sidebar (a linked showcase shown inline's), its code pane always shown: expanded (the
+ * views, the code pane below them; its code pane's `half` state) or collapsed (the views running hidden, the code pane filling the showcase sidebar;
+ * its code pane's `sidebar` state)
+ */
+export type SidebarViewsState = 'expanded' | 'collapsed';
+
+/**
+ * Gets the state of a block's views in the showcase sidebar from its code pane's state
+ * @param state The code pane's state (`half` or `sidebar`, as it is never hidden there)
+ * @returns Expanded or collapsed
+ */
+export function getSidebarViewsState(state: CodePaneState): SidebarViewsState {
+  return state === 'sidebar' ? 'collapsed' : 'expanded';
+}
+
+/**
+ * Gets the state the toggle button of a block in the showcase sidebar switches its code pane to: below the views (expanded), then filling the
+ * showcase sidebar (collapsed), and back
+ * @param state The code pane's state
+ * @returns The next state
+ */
+export function getNextSidebarCodePaneState(state: CodePaneState): CodePaneState {
+  return state === 'sidebar' ? 'half' : 'sidebar';
+}
+
+/**
+ * Labels of the toggle button of a block in the showcase sidebar, by its views' state: each says what the button does (D628)
+ */
+export const SIDEBAR_VIEWS_BUTTON_LABELS: Record<SidebarViewsState, string> = {
+  expanded: 'Collapse the showcase',
+  collapsed: 'Expand the showcase',
+};
+
+/**
+ * Gets the state a block's code pane starts in: on a page, hidden; in the showcase sidebar, half (below the views, expanded), or filling it when
+ * there are no views (`none`), which it then never leaves
+ * @param views The block's views
+ * @param sidebar True for a block in the showcase sidebar
+ * @returns The state it starts in
+ */
+export function getInitialCodePaneState(views: readonly ShowcaseView[], sidebar: boolean): CodePaneState {
+  return !sidebar ? INITIAL_CODE_PANE_STATE : _showsNothing(views) ? 'sidebar' : 'half';
+}
+
+/**
+ * Checks if showcase views show nothing (`none`)
+ * @param views The views
+ * @returns True if the views are `none`
+ */
+function _showsNothing(views: readonly ShowcaseView[]): boolean {
+  return views.length === 1 && views[0] === 'none';
+}
 
 // #endregion
 
@@ -487,20 +559,13 @@ const _useBarStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground2,
     borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
   },
-  end: { marginLeft: 'auto', flexShrink: 0 },
+  end: { marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center' },
   placeholder: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     color: tokens.colorNeutralForegroundDisabled,
     fontStyle: 'italic',
-  },
-  // A linked showcase shown inline: the header bar, the issue list and the showcase frame, in one bordered box
-  inline: {
-    margin: `${tokens.spacingVerticalM} 0`,
-    border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
-    borderRadius: tokens.borderRadiusMedium,
-    overflow: 'hidden',
   },
 });
 
@@ -521,7 +586,7 @@ export interface HeaderBarProps {
    */
   onRuntime: () => void;
   /**
-   * What sits at its right end (a block's cycling button), if anything
+   * What sits at its right end (a block's cycling button, and in the showcase sidebar its close button), if anything
    */
   end?: ReactNode;
 }
@@ -576,42 +641,6 @@ function _NotBuilt({ height }: { height: number }): ReactNode {
   );
 }
 
-/**
- * Represents the properties of a linked showcase shown inline
- */
-export interface InlineShowcaseProps {
-  /**
-   * The showcase, shown inline
-   */
-  showcase: ShownShowcase;
-  /**
-   * The console's state to start with (the tests' server-side rendering sets it); empty by default
-   */
-  initialConsole?: ConsoleState;
-}
-
-/**
- * Renders a linked showcase shown inline, in one bordered box: its header bar with its status marks (no cycling button, as it has no code pane), its
- * issue list, and its showcase frame with its console panel over it, or "Not built" when it doesn't build
- * @param props Properties of the component
- * @returns The showcase
- */
-export function InlineShowcase({ showcase, initialConsole }: InlineShowcaseProps): ReactNode {
-  const styles = _useBarStyles();
-  const shared = useConsole(initialConsole);
-  const [lastHeight, setLastHeight] = useState<number>();
-  return (
-    <div className={styles.inline} data-inline-showcase="">
-      <HeaderBar showcase={showcase} console={shared} onRuntime={() => shared[1]({ type: 'open' })} />
-      {isLoadedShowcase(showcase) ? (
-        <ShowcaseFrame showcase={showcase} block console={shared} onResize={setLastHeight} />
-      ) : (
-        <_NotBuilt height={getPlaceholderHeight('demo', lastHeight)} />
-      )}
-    </div>
-  );
-}
-
 // #endregion
 
 // #region Block
@@ -662,9 +691,29 @@ const _useStyles = makeStyles({
       borderTop: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
     },
   },
-  // The tab list, then the copy button at its right end
+  // In the showcase sidebar: filling it, scrolling under its header bar, borderless
+  // Its width given, as a container query's container (`inline-size`) never takes it from its content (D616)
+  containerSidebar: { flex: '1 1 auto', width: '100%', minHeight: '0', height: '100%', margin: '0' },
+  gridSidebar: { height: '100%', alignContent: 'start', overflowY: 'auto', border: 'none', borderRadius: '0' },
+  topSidebar: { position: 'sticky', top: '0', zIndex: 1, backgroundColor: tokens.colorNeutralBackground1 },
+  // Half, in the showcase sidebar: always stacked, the code pane below the views (D627), as high as its content, between the minimum and the maximum
+  gridHalfSidebar: { gridTemplateColumns: 'minmax(0, 1fr)', gridTemplateRows: 'auto auto auto' },
+  paneHalfSidebar: {
+    gridColumn: '1',
+    gridRow: '3',
+    contain: 'none',
+    borderLeft: 'none',
+    borderTop: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
+  },
+  codeHalfSidebar: { minHeight: _MIN_CODE_HEIGHT, maxHeight: _MAX_CODE_HEIGHT },
+  // The code pane filling the showcase sidebar, the views below it running hidden (D570): at their width, in a row of no height that clips them
+  gridFill: { gridTemplateRows: 'auto minmax(0, 1fr) 0', alignContent: 'stretch' },
+  viewsFill: { gridRow: '3', height: '0', overflow: 'hidden', opacity: 0, pointerEvents: 'none' },
+  paneFill: { gridColumn: '1', gridRow: '2', minHeight: '0' },
+  // The tab list, then the "Open in a new tab" link (in the showcase sidebar) and the copy button at its right end
   header: { display: 'flex', alignItems: 'center', minHeight: _HEADER_HEIGHT, overflowX: 'auto' },
-  copy: { marginLeft: 'auto', flexShrink: 0 },
+  actions: { marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', columnGap: tokens.spacingHorizontalS },
+  copy: { flexShrink: 0 },
   code: { flex: '1 1 auto', minHeight: '0', display: 'flex', flexDirection: 'column' },
   // Stacked: the code takes its content's height, between the minimum and the maximum
   codeHalf: { [_STACKED]: { minHeight: _MIN_CODE_HEIGHT, maxHeight: _MAX_CODE_HEIGHT } },
@@ -692,9 +741,14 @@ export interface ShowcaseBlockProps {
    */
   documentation: DocumentationFile[];
   /**
-   * The state the code pane starts in (INITIAL_CODE_PANE_STATE by default); the tests' server-side rendering sets it, as no click happens there
+   * The state the code pane starts in (getInitialCodePaneState()'s by default); the tests' server-side rendering sets it, as no click happens there
    */
   initialState?: CodePaneState;
+  /**
+   * Closes the showcase sidebar: given for a block shown in it (a linked showcase shown inline's), which then has a close button in its header bar,
+   * fills the showcase sidebar, and toggles its views instead of cycling its code pane
+   */
+  onClose?: () => void;
   /**
    * The console's state to start with (the tests' server-side rendering sets it); empty by default
    */
@@ -706,14 +760,17 @@ export interface ShowcaseBlockProps {
  * order (`markdown` and `source` with their issue lines marked, `demo` with the console panel over it unless a `console` view shows it, `console`
  * with the showcase frame running hidden at its top when there is no `demo` view; "Not built" in place of the showcase frame and the console when it
  * doesn't build); its code pane (the tab list and the copy button above the selected tab's code, its issue lines marked); in the sidebar state, the
- * views alone, and the code sidebar with its tabs, from the selected one
+ * views alone, and the showcase sidebar with its tabs, from the selected one
  * @param props Properties of the component
  * @returns The block
  */
-export function ShowcaseBlock({ showcase, documentation, initialState = INITIAL_CODE_PANE_STATE, initialConsole }: ShowcaseBlockProps): ReactNode {
+export function ShowcaseBlock({ showcase, documentation, initialState, initialConsole, onClose }: ShowcaseBlockProps): ReactNode {
   const styles = _useStyles();
   const idPrefix = useId();
-  const [state, setState] = useState<CodePaneState>(initialState);
+  const sidebar = onClose !== undefined;
+  const [state, setState] = useState<CodePaneState>(() => initialState ?? getInitialCodePaneState(showcase.views, sidebar));
+  // In the showcase sidebar, the code pane fills it in the sidebar state
+  const fill = sidebar && state === 'sidebar';
   const [selected, setSelected] = useState(0);
   const shared = useConsole(initialConsole);
   const [lastHeight, setLastHeight] = useState<number>();
@@ -722,8 +779,9 @@ export function ShowcaseBlock({ showcase, documentation, initialState = INITIAL_
   const index = Math.min(selected, tabs.length - 1);
   const tab = tabs[index];
   const tabMarks = useMemo(() => getTabMarks(showcase), [showcase]);
-  // Fetched once shown beside the views: the code sidebar fetches its own
-  const content = useLinkedFileContent(state === 'half' ? getFetchedTabUrl(tab) : undefined);
+  // Fetched once shown beside the views, or filling the showcase sidebar: on a page, the showcase sidebar fetches its own
+  const content = useLinkedFileContent(state === 'half' || fill ? getFetchedTabUrl(tab) : undefined);
+  const openUrl = sidebar && tab?.source.kind === 'file' ? tab.source.url : undefined;
   const text = getShownTabText(tab, documentation, content);
   const frameView = getFrameView(showcase.views);
   const loaded = isLoadedShowcase(showcase);
@@ -770,48 +828,148 @@ export function ShowcaseBlock({ showcase, documentation, initialState = INITIAL_
         return null;
     }
   };
-  const cycling = state !== 'sidebar' && (
+  // On a page, the cycling button, none while the showcase sidebar shows the tabs; in the showcase sidebar, the views' toggle button (D628), none when
+  // there are no views, as the code pane always fills it
+  const views = getSidebarViewsState(state);
+  const label = sidebar ? SIDEBAR_VIEWS_BUTTON_LABELS[views] : state === 'sidebar' ? undefined : CODE_PANE_BUTTON_LABELS[state];
+  const cycling = label !== undefined && !(sidebar && _showsNothing(showcase.views)) && (
     <Button
       appearance="subtle"
       size="small"
-      icon={state === 'hidden' ? <Code16Regular /> : <PanelRight16Regular />}
-      aria-label={CODE_PANE_BUTTON_LABELS[state]}
-      title={CODE_PANE_BUTTON_LABELS[state]}
-      onClick={() => setState(getNextCodePaneState)}
+      icon={
+        sidebar ? views === 'expanded' ? <ChevronUp16Regular /> : <ChevronDown16Regular /> : state === 'hidden' ? <Code16Regular /> : <PanelRight16Regular />
+      }
+      aria-label={label}
+      title={label}
+      aria-expanded={sidebar ? views === 'expanded' : undefined}
+      onClick={() => setState(sidebar ? getNextSidebarCodePaneState : getNextCodePaneState)}
     />
   );
+  // On a page, in the half state, a button hiding the code pane at once, right of the cycling button (D629)
+  const hide = !sidebar && state === 'half' && (
+    <Button
+      appearance="subtle"
+      size="small"
+      icon={<Dismiss16Regular />}
+      aria-label={CODE_PANE_HIDE_LABEL}
+      title={CODE_PANE_HIDE_LABEL}
+      onClick={() => setState('hidden')}
+    />
+  );
+  const close = sidebar && (
+    <Button appearance="subtle" size="small" icon={<Dismiss16Regular />} aria-label={CLOSE_LABEL} title={CLOSE_LABEL} onClick={onClose} />
+  );
   return (
-    <div className={styles.container} data-code-pane-state={state} style={{ [_MIN_LINES_PROPERTY]: getCodePaneMinLines(text) } as CSSProperties}>
-      <div className={mergeClasses(styles.grid, state === 'half' && styles.gridHalf)}>
-        <div className={styles.top}>
-          <HeaderBar showcase={showcase} console={shared} onRuntime={onRuntime} end={cycling} />
+    <div
+      className={mergeClasses(styles.container, sidebar && styles.containerSidebar)}
+      data-code-pane-state={state}
+      data-showcase-sidebar={sidebar ? '' : undefined}
+      style={{ [_MIN_LINES_PROPERTY]: getCodePaneMinLines(text) } as CSSProperties}
+    >
+      <div
+        className={mergeClasses(
+          styles.grid,
+          sidebar && styles.gridSidebar,
+          state === 'half' && styles.gridHalf,
+          state === 'half' && sidebar && styles.gridHalfSidebar,
+          fill && styles.gridFill,
+        )}
+      >
+        <div className={mergeClasses(styles.top, sidebar && styles.topSidebar)}>
+          <HeaderBar
+            showcase={showcase}
+            console={shared}
+            onRuntime={onRuntime}
+            end={
+              (cycling || hide || close) && (
+                <>
+                  {cycling}
+                  {hide}
+                  {close}
+                </>
+              )
+            }
+          />
         </div>
-        <div className={styles.views}>
+        {/* Filling the showcase sidebar, the views run hidden, out of reach of the pointer, the keyboard and screen readers */}
+        <div className={mergeClasses(styles.views, fill && styles.viewsFill)} aria-hidden={fill || undefined} inert={fill || undefined}>
           {showcase.views.map((view) => (
             <div key={view} ref={view === 'console' ? consoleView : undefined} className={styles.view} data-showcase-view={view}>
               {renderView(view)}
             </div>
           ))}
         </div>
-        <div className={mergeClasses(styles.pane, state === 'half' ? styles.paneHalf : styles.paneHidden)}>
+        <div
+          className={mergeClasses(
+            styles.pane,
+            state === 'half' ? styles.paneHalf : fill ? styles.paneFill : styles.paneHidden,
+            state === 'half' && sidebar && styles.paneHalfSidebar,
+          )}
+        >
           <div className={styles.header}>
             <ShownTabList tabs={tabs} selected={index} onSelect={setSelected} idPrefix={idPrefix} marks={tabMarks} />
-            {text !== undefined && <CopyButton text={text} className={styles.copy} />}
+            <div className={styles.actions}>
+              {openUrl !== undefined && <NewTabLink href={openUrl} />}
+              {text !== undefined && <CopyButton text={text} className={styles.copy} />}
+            </div>
           </div>
-          <div className={mergeClasses(styles.code, styles.codeHalf)} role="tabpanel" aria-labelledby={getTabId(idPrefix, index)}>
+          <div
+            className={mergeClasses(styles.code, !fill && styles.codeHalf, state === 'half' && sidebar && styles.codeHalfSidebar)}
+            role="tabpanel"
+            aria-labelledby={getTabId(idPrefix, index)}
+          >
             {tab && <ShownTabView tab={tab} documentation={documentation} content={content} fill copy={false} markers={tabMarks[index]?.markers} />}
           </div>
         </div>
       </div>
-      <CodeSidebar
-        tabs={tabs}
-        documentation={documentation}
-        open={state === 'sidebar'}
-        initialTab={index}
-        tabMarks={tabMarks}
-        onClose={() => setState('hidden')}
-      />
+      {!sidebar && (
+        <ShowcaseSidebar
+          tabs={tabs}
+          documentation={documentation}
+          open={state === 'sidebar'}
+          initialTab={index}
+          tabMarks={tabMarks}
+          onClose={() => setState('hidden')}
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * Accessible name and tooltip of the close button of a block in the showcase sidebar
+ */
+export const CLOSE_LABEL = 'Close';
+
+/**
+ * Represents the properties of a linked showcase shown inline, in the showcase sidebar
+ */
+export interface SidebarShowcaseProps {
+  /**
+   * The showcase shown, while the showcase sidebar is open
+   */
+  showcase?: ShownShowcase;
+  /**
+   * The shown documentation files, holding a documentation file tab's content
+   */
+  documentation: DocumentationFile[];
+  /**
+   * Closes the showcase sidebar
+   */
+  onClose: () => void;
+}
+
+/**
+ * Renders a linked showcase shown inline in the showcase sidebar, as a block shows it (D616): rendered only while open, so closing it unloads its
+ * showcase frame and clears its console, and reopening loads it afresh (D618)
+ * @param props Properties of the component
+ * @returns The showcase sidebar
+ */
+export function SidebarShowcase({ showcase, documentation, onClose }: SidebarShowcaseProps): ReactNode {
+  return (
+    <ShowcaseSidebarDrawer open={showcase !== undefined} onClose={onClose}>
+      {showcase && <ShowcaseBlock key={showcase.id} showcase={showcase} documentation={documentation} onClose={onClose} />}
+    </ShowcaseSidebarDrawer>
   );
 }
 

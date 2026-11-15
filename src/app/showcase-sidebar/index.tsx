@@ -1,8 +1,8 @@
 /**
- * The code sidebar: a panel opening from the right over the showroom, showing a text linked file's content, fetched when it opens, highlighted with
- * line numbers, under its name, with a link opening the file in a new tab, and a close button; for a linked showcase shown inline with included
- * files, or a code pane, a tab per file, each marked with its issues. Also what the code pane shares with it: fetching a linked file by its URL, the
- * tab list, a tab's content, and the tabs' marks.
+ * The showcase sidebar: a panel opening from the right over the showroom, showing a text linked file's content, fetched when it opens, highlighted
+ * with line numbers, under its name, with a link opening the file in a new tab, and a close button; for a code pane, a tab per file, each marked
+ * with its issues; or what it is given (a linked showcase shown inline's block, from the code pane). Also what the code pane shares with it:
+ * fetching a linked file by its URL, the tab list, a tab's content, and the tabs' marks.
  */
 
 import { useEffect, useId, useState, type ReactNode } from 'react';
@@ -29,7 +29,7 @@ import type { ShownShowcase, ShownTab } from '../host/index.js';
 // #region Content
 
 /**
- * Represents the content of a linked file shown in the code sidebar or a tab: being fetched, fetched, or failed to fetch
+ * Represents the content of a linked file shown in the showcase sidebar or a tab: being fetched, fetched, or failed to fetch
  */
 export type LinkedFileContent =
   | {
@@ -142,7 +142,7 @@ export const MISSING_FILE_MESSAGE = "This file isn't copied into the showroom.";
 export const MISSING_DOCUMENTATION_MESSAGE = "This documentation file isn't in the showroom.";
 
 /**
- * Represents the properties of a linked file's content in the code sidebar
+ * Represents the properties of a linked file's content in the showcase sidebar
  */
 export interface LinkedFileViewProps {
   /**
@@ -419,30 +419,30 @@ export function ShownTabList({ tabs, selected, onSelect, idPrefix, className, ma
 
 // #endregion
 
-// #region Code sidebar
+// #region Showcase sidebar
 
 /**
- * The code sidebar's width, as a share of the viewport's
+ * The showcase sidebar's width, as a share of the viewport's
  */
-export const CODE_SIDEBAR_WIDTH = '66vw';
+export const SHOWCASE_SIDEBAR_WIDTH = '66vw';
 
 /**
- * The code sidebar's minimum width, in pixels, unless the viewport is narrower
+ * The showcase sidebar's minimum width, in pixels, unless the viewport is narrower
  */
-export const CODE_SIDEBAR_MIN_WIDTH = 400;
+export const SHOWCASE_SIDEBAR_MIN_WIDTH = 400;
 
 /**
- * The code sidebar's maximum width, in pixels
+ * The showcase sidebar's maximum width, in pixels
  */
-export const CODE_SIDEBAR_MAX_WIDTH = 1200;
+export const SHOWCASE_SIDEBAR_MAX_WIDTH = 1200;
 
 /**
- * Styles of the code sidebar
+ * Styles of the showcase sidebar
  */
 const _useStyles = makeStyles({
   // Switched by CSS alone: never wider than the viewport, so it fills a phone's
   drawer: {
-    width: `clamp(min(${CODE_SIDEBAR_MIN_WIDTH}px, 100vw), ${CODE_SIDEBAR_WIDTH}, min(${CODE_SIDEBAR_MAX_WIDTH}px, 100vw))`,
+    width: `clamp(min(${SHOWCASE_SIDEBAR_MIN_WIDTH}px, 100vw), ${SHOWCASE_SIDEBAR_WIDTH}, min(${SHOWCASE_SIDEBAR_MAX_WIDTH}px, 100vw))`,
     maxWidth: '100vw',
   },
   // The title (or the tab list) takes the room left by the link and the close button
@@ -463,11 +463,11 @@ const _useStyles = makeStyles({
 });
 
 /**
- * Represents what the code sidebar shows: the file alone, or the selected tab
+ * Represents what the showcase sidebar shows: the file alone, or the selected tab
  */
 export interface SidebarView {
   /**
-   * The selected tab, when the code sidebar shows tabs
+   * The selected tab, when the showcase sidebar shows tabs
    */
   tab?: ShownTab;
   /**
@@ -489,12 +489,12 @@ export interface SidebarView {
 }
 
 /**
- * Gets what the code sidebar shows: a file alone (a linked file, or a linked showcase shown inline with no included files), its name as the title;
+ * Gets what the showcase sidebar shows: a linked file alone, its name as the title (or, given tabs too, the file's tab first among them);
  * otherwise the selected tab, the link for a linked file only
  * @param file The linked file it opened for, if any (none for a code pane's tabs, which are always shown)
- * @param tabs The tabs: a linked showcase shown inline's, or a code pane's, if any
+ * @param tabs The tabs: a code pane's, if any
  * @param selected Index of the selected tab
- * @returns What the code sidebar shows
+ * @returns What the showcase sidebar shows
  */
 export function getSidebarView(file: LinkedFile | undefined, tabs: ShownTab[] | undefined, selected: number): SidebarView {
   if (file && (!tabs || tabs.length < 2)) {
@@ -508,15 +508,15 @@ export function getSidebarView(file: LinkedFile | undefined, tabs: ShownTab[] | 
 }
 
 /**
- * Represents the properties of the code sidebar
+ * Represents the properties of the showcase sidebar
  */
-export interface CodeSidebarProps {
+export interface ShowcaseSidebarProps {
   /**
    * The linked file shown (alone, or with its linked showcase's tabs), if any
    */
   file?: LinkedFile;
   /**
-   * The tabs shown: a linked showcase shown inline's (the file's first, with included files), or a code pane's, if any
+   * The tabs shown: a code pane's, if any
    */
   tabs?: ShownTab[];
   /**
@@ -542,37 +542,69 @@ export interface CodeSidebarProps {
 }
 
 /**
- * Renders the code sidebar (FluentUI's `OverlayDrawer`, from the right, modal): a text linked file's content, or a showcase's tabs, highlighted,
+ * Renders the showcase sidebar (FluentUI's `OverlayDrawer`, from the right, modal): a text linked file's content, or a showcase's tabs, highlighted,
  * under a header holding the file's name (or the tab list), the link opening the file in a new tab, and a close button; it closes on Escape, on a
  * click beside it, or on the close button. Its content is fetched each time it opens.
  * @param props Properties of the component
- * @returns The code sidebar
+ * @returns The showcase sidebar
  */
-export function CodeSidebar({ file, tabs, documentation = [], open, initialTab = 0, tabMarks, onClose }: CodeSidebarProps): ReactNode {
-  const styles = _useStyles();
+export function ShowcaseSidebar({ file, tabs, documentation = [], open, initialTab = 0, tabMarks, onClose }: ShowcaseSidebarProps): ReactNode {
   const isOpen = open ?? (file !== undefined || tabs !== undefined);
   return (
-    <OverlayDrawer className={styles.drawer} position="end" open={isOpen} onOpenChange={(_event, data) => !data.open && onClose()}>
+    <ShowcaseSidebarDrawer open={isOpen} onClose={onClose}>
       {/* Rendered only while open, so each opening fetches anew, and starts at its initial tab */}
-      {isOpen && <CodeSidebarView file={file} tabs={tabs} documentation={documentation} initialTab={initialTab} tabMarks={tabMarks} onClose={onClose} />}
+      {isOpen && <ShowcaseSidebarView file={file} tabs={tabs} documentation={documentation} initialTab={initialTab} tabMarks={tabMarks} onClose={onClose} />}
+    </ShowcaseSidebarDrawer>
+  );
+}
+
+/**
+ * Represents the properties of the showcase sidebar's drawer
+ */
+export interface ShowcaseSidebarDrawerProps {
+  /**
+   * True while it is open
+   */
+  open: boolean;
+  /**
+   * Closes it
+   */
+  onClose: () => void;
+  /**
+   * What it shows; render it only while open, so closing unmounts it
+   */
+  children?: ReactNode;
+}
+
+/**
+ * Renders the showcase sidebar's drawer (FluentUI's `OverlayDrawer`, from the right, modal), holding what it is given: a linked file or tabs
+ * (ShowcaseSidebar()), or a linked showcase shown inline's block; it closes on Escape, or on a click beside it
+ * @param props Properties of the component
+ * @returns The drawer
+ */
+export function ShowcaseSidebarDrawer({ open, onClose, children }: ShowcaseSidebarDrawerProps): ReactNode {
+  const styles = _useStyles();
+  return (
+    <OverlayDrawer className={styles.drawer} position="end" open={open} onOpenChange={(_event, data) => !data.open && onClose()}>
+      {children}
     </OverlayDrawer>
   );
 }
 
 /**
- * Renders the code sidebar's header and body (see CodeSidebar()); rendered on its own by the tests, as FluentUI's drawer renders nothing on the
+ * Renders the showcase sidebar's header and body (see ShowcaseSidebar()); rendered on its own by the tests, as FluentUI's drawer renders nothing on the
  * server (through its portal)
  * @param props Properties of the component
  * @returns The header and the body
  */
-export function CodeSidebarView({
+export function ShowcaseSidebarView({
   file,
   tabs,
   documentation,
   initialTab = 0,
   tabMarks = [],
   onClose,
-}: Omit<CodeSidebarProps, 'open' | 'documentation'> & { documentation: DocumentationFile[] }): ReactNode {
+}: Omit<ShowcaseSidebarProps, 'open' | 'documentation'> & { documentation: DocumentationFile[] }): ReactNode {
   const styles = _useStyles();
   const idPrefix = useId();
   const [selected, setSelected] = useState(initialTab);

@@ -37,7 +37,7 @@ A JavaScript one:
 console.info('plain JavaScript');
 ```
 
-A [linked one](./demos/linked.ts 'showcase=ts'), importing a virtual file:
+A [linked one](./demos/linked.ts 'showcase=ts view=demo'), importing a virtual file:
 
 ```ts showcase file=helper.ts
 export const helper = (): string => 'helper';

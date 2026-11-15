@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-components';
 import type { DocumentationFile, LinkedFile } from '../../host/index.js';
+import type { ShownShowcase } from '../host/index.js';
 import { COLOURED_TOKEN_CLASSES, UNCOLOURED_TOKEN_CLASSES } from '../code/index.js';
 import { Markdown, UNRESOLVED_LINK_TOOLTIP } from './index.js';
 
@@ -22,15 +23,16 @@ const _LINKED_FILES: LinkedFile[] = [
  * Renders a Markdown documentation file to HTML on the server
  * @param content Markdown content of the file
  * @param path Path of the file
+ * @param showcases Its shown showcases; none by default
  * @returns The rendered HTML, without the empty comments React puts between adjacent text nodes
  */
-function _render(content: string, path = 'docs/guide.md'): string {
+function _render(content: string, path = 'docs/guide.md', showcases?: ShownShowcase[]): string {
   const file: DocumentationFile = { path, kind: 'other', extension: '.md', content };
   const documentation: DocumentationFile[] = [{ path: 'README.md', kind: 'readme', extension: '.md', content: '' }, file];
   return renderToString(
     <SSRProvider>
       <FluentProvider theme={webLightTheme}>
-        <Markdown file={file} documentation={documentation} linkedFiles={_LINKED_FILES} />
+        <Markdown file={file} documentation={documentation} linkedFiles={_LINKED_FILES} showcases={showcases} />
       </FluentProvider>
     </SSRProvider>,
   ).replaceAll('<!-- -->', '');
@@ -106,19 +108,45 @@ describe('app/markdown', () => {
     expect(html).toMatch(/<a [^>]*href="https:\/\/example.com"[^>]*target="_blank"[^>]*rel="noopener noreferrer"[^>]*>Site<\/a>/);
   });
 
-  it('Links text linked files to their copies, opened in the code sidebar on click, and other linked files to a new tab', () => {
+  it('Links text linked files to their copies, opened in the showcase sidebar on click, and other linked files to a new tab', () => {
     const html = _render('[code](../src/index.ts#L2) [big](../src/big.json) [diagram](diagram.png)');
-    // The code sidebar opens on click, which needs effects; the link still names the copy, for the browser's own "open in a new tab"
-    expect(html).toMatch(/<a [^>]*href="files\/src\/index.ts"[^>]*>code<svg [^>]*aria-hidden="true"[^>]*>.*?<\/svg><\/a>/);
+    // The showcase sidebar opens on click, which needs effects; the link still names the copy, for the browser's own "open in a new tab"
+    // The icon is before the text, inside the link (D516, .workflow/SPEC-S12-showcase-views.md)
+    expect(html).toMatch(/<a [^>]*href="files\/src\/index.ts"[^>]*><svg [^>]*aria-hidden="true"[^>]*>.*?<\/svg>code<\/a>/);
     expect(html).not.toMatch(/<a [^>]*href="files\/src\/index.ts"[^>]*target=/);
-    expect(html).toMatch(/<a [^>]*href="files\/src\/big.json"[^>]*target="_blank"[^>]*rel="noopener noreferrer"[^>]*>big<svg [^>]*>.*?<\/svg><\/a>/);
-    expect(html).toMatch(/<a [^>]*href="files\/docs\/diagram.png"[^>]*target="_blank"[^>]*>diagram<svg [^>]*>.*?<\/svg><\/a>/);
+    expect(html).toMatch(/<a [^>]*href="files\/src\/big.json"[^>]*target="_blank"[^>]*rel="noopener noreferrer"[^>]*><svg [^>]*>.*?<\/svg>big<\/a>/);
+    expect(html).toMatch(/<a [^>]*href="files\/docs\/diagram.png"[^>]*target="_blank"[^>]*><svg [^>]*>.*?<\/svg>diagram<\/a>/);
   });
 
   it('Marks links to linked files with a "code" icon, and no other link or image', () => {
     const html = _render('[code](../src/index.ts) [Home](../README.md) [Site](https://example.com) ![A diagram](./diagram.png)');
     expect(html.match(/<svg /g)).toHaveLength(1);
-    expect(html).toMatch(/>code<svg /);
+    expect(html).toMatch(/<svg [^>]*data-link-icon="file"[^>]*>.*?<\/svg>code</);
+  });
+
+  it('Links a linked showcase shown inline to its entry point, marked with a "play" icon, opening it in the showcase sidebar on click', () => {
+    // No showcase frame is placed for it (D513, .workflow/SPEC-S12-showcase-views.md): its link opens it, even when its entry point isn't text
+    for (const href of ['../src/index.ts', '../src/big.json']) {
+      const content = `See [the demo](${href} "showcase") here.`;
+      const showcase: ShownShowcase = {
+        id: 'docs/guide.md#1',
+        documentation: 'docs/guide.md',
+        offset: content.indexOf('[the demo]'),
+        display: 'inline',
+        views: ['demo'],
+        markdown: '',
+        entryTab: 0,
+        checks: [],
+        issues: [],
+        buildMark: true,
+        tabs: [],
+        url: 'showcases/docs/guide.md/1/index.html?hash=0123abcd',
+      };
+      const html = _render(content, 'docs/guide.md', [showcase]);
+      expect(html).toMatch(/<a [^>]*href="files\/src\/[^"]+"[^>]*><svg [^>]*data-link-icon="showcase"[^>]*>.*?<\/svg>the demo<\/a>/);
+      expect(html).not.toMatch(/<a [^>]*href="files\/src\/[^"]+"[^>]*target=/);
+      expect(html).not.toContain('<iframe');
+    }
   });
 
   it('Shows links to anything else as plain text', () => {

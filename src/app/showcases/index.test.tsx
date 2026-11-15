@@ -47,8 +47,7 @@ function _showcases(content: string): ShownShowcase[] {
  * @param theme Name of the theme
  * @param virtualFiles Shown virtual files; none by default
  * @returns The rendered HTML, without the empty comments React puts between adjacent text nodes, and with every showcase frame (its box, with its
- * iframe and nothing logged; a linked showcase shown inline's with its header bar, in their box) replaced by `[<n>]`, `<n>` being its showcase's
- * position
+ * iframe and nothing logged) replaced by `[<n>]`, `<n>` being its showcase's position
  */
 function _render(content: string, showcases = _showcases(content), theme: ThemeName = 'light', virtualFiles: ShownVirtualFile[] = []): string {
   const file: DocumentationFile = { path: _PATH, kind: 'other', extension: '.md', content };
@@ -62,8 +61,7 @@ function _render(content: string, showcases = _showcases(content), theme: ThemeN
     </SSRProvider>,
   )
     .replaceAll('<!-- -->', '')
-    .replace(/<div class="[^"]*"><iframe [^>]*src="showcases\/docs\/guide\.md\/(\d+)\/index\.html[^>]*><\/iframe><\/div>/g, '[$1]')
-    .replace(/<div [^>]*data-inline-showcase=""><div class="[^"]*">.*?<\/div>\[(\d+)\]<\/div>/gs, '[$1]');
+    .replace(/<div class="[^"]*"><iframe [^>]*src="showcases\/docs\/guide\.md\/(\d+)\/index\.html[^>]*><\/iframe><\/div>/g, '[$1]');
 }
 
 describe('app/showcases', () => {
@@ -71,12 +69,13 @@ describe('app/showcases', () => {
   // the ones `check` gives), with each showcase frame's iframe reduced to its position; and the iframe itself, server-rendered.
 
   describe('Placement', () => {
-    // Where the remark plugin puts each showcase: a showcase shown inline before the nearest paragraph, heading, table or code block holding its
-    // entry point; a showcase shown as a block (its code pane marked by `data-code-pane-state`) in its fence's or paragraph's place.
+    // Where the remark plugin puts each showcase: a showcase shown as a block (its code pane marked by `data-code-pane-state`) in its fence's or
+    // paragraph's place; a linked showcase shown inline nowhere, as its link opens it in the showcase sidebar.
 
-    it("Places a code block showcase as a block in its fence's place, and a linked one shown inline before its paragraph", () => {
+    it("Places a code block showcase as a block in its fence's place, and leaves a linked one shown inline as its link", () => {
       const html = _render('Intro\n\n```html showcase\n<p>x</p>\n```\n\nSee [the demo](demo.html "showcase") here.');
-      expect(html).toMatch(/<p>Intro<\/p>\s*<div [^>]*data-code-pane-state="hidden"[^>]*>.*\[1\].*code of 1.*\[2\]\s*<p>See /s);
+      expect(html).toMatch(/<p>Intro<\/p>\s*<div [^>]*data-code-pane-state="hidden"[^>]*>.*\[1\].*code of 1.*<\/div>\s*<p>See /s);
+      expect(html).not.toContain('[2]');
       // The fence itself is gone: its code is only in the code pane
       expect(html).not.toContain('&lt;p&gt;x&lt;/p&gt;');
     });
@@ -99,26 +98,18 @@ describe('app/showcases', () => {
       expect(html).not.toContain('data-code-pane-state');
     });
 
-    it('Places several showcases before one paragraph, in document order', () => {
-      expect(_render('[a](a.html "showcase") and [b](b.html "showcase")')).toMatch(/>\s*\[1\]\s*\[2\]\s*<p>/);
-    });
-
-    it('Places showcases inside lists and blockquotes, before their paragraphs', () => {
-      const html = _render('- item [a](a.html "showcase")\n\n> quote [b](b.html "showcase")');
-      // A tight list's paragraph renders without its <p>
-      expect(html).toMatch(/<li>\s*\[1\]\s*item /);
-      expect(html).toMatch(/<blockquote>\s*\[2\]\s*<p>quote /);
-    });
-
-    it('Places showcases in a heading or a table cell before the heading or the table', () => {
-      const html = _render('## Demo [a](a.html "showcase")\n\n| x |\n| - |\n| [b](b.html "showcase") |');
-      expect(html).toMatch(/\[1\]\s*<h2 id="demo-a">/);
-      expect(html).toMatch(/\[2\]\s*<table>/);
+    it('Places no showcase frame for linked showcases shown inline, wherever their links are', () => {
+      // Before P16 (D513, .workflow/SPEC-S12-showcase-views.md), each was placed before its paragraph, heading or table
+      const html = _render('[a](a.html "showcase") and [b](b.html "showcase")\n\n- item [c](c.html "showcase")\n\n## Demo [d](d.html "showcase")');
+      expect(html).not.toContain('<iframe');
+      expect(html).toMatch(/<li>item /);
+      expect(html).toMatch(/<h2 id="demo-d">/);
     });
 
     it('Skips a showcase whose offset matches no fence or link, and those of other documentation files', () => {
-      const content = 'Text [a](a.html "showcase")';
+      const content = 'Text\n\n[a](a.html "showcase block")';
       const [showcase] = _showcases(content);
+      expect(_render(content, [showcase])).toContain('[1]');
       expect(_render(content, [{ ...showcase, offset: 0 }])).not.toContain('[1]');
       expect(_render(content, [{ ...showcase, documentation: 'README.md' }])).not.toContain('[1]');
       expect(_render(content, [])).not.toContain('<iframe');

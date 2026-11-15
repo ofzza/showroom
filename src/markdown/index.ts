@@ -410,7 +410,7 @@ export interface MarkdownError {
 
 /**
  * Represents a showcase as scanning finds it: its views are the marker's, or undefined when its marker has no `view=`, for `check` to apply the
- * defaults (a linked showcase shown inline always has `demo`)
+ * defaults (a linked showcase shown inline has none: its marker's views, or `none`)
  */
 export type ScannedShowcase = Omit<Showcase, 'views'> & { views?: ShowcaseView[] };
 
@@ -545,7 +545,7 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
       entry: entryPath,
       include: include.paths,
       tabs: _getTabs(marker.tabs, include.paths),
-      ...(kind === 'link' && marker.display !== 'block' ? { views: ['demo' as const] } : marker.views ? { views: marker.views } : {}),
+      ...(kind === 'link' && marker.display !== 'block' ? { views: marker.views ?? ['none' as const] } : marker.views ? { views: marker.views } : {}),
     });
   };
 
@@ -632,9 +632,6 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
           node,
           `A linked showcase can't have a "file" key: its entry point is a real file already; "file=<name>" names a code block's virtual file`,
         );
-      }
-      if (marker.display !== 'block' && marker.views !== undefined) {
-        return error(node, `A linked showcase shown inline is shown as a demo for now, so it can't have a "view" key; add "block" to choose its views`);
       }
       if (marker.display === 'block') {
         const blockError = _checkBlockPlacement(node, ancestors);

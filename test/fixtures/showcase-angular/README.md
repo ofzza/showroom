@@ -25,7 +25,7 @@ export default class Demo {
 .last { color: teal; }
 ```
 
-A [linked one](./demos/badge-demo.ts 'showcase=angular'), with a host component's real template and style, an NgModule import and a named export.
+A [linked one](./demos/badge-demo.ts 'showcase=angular view=demo'), with a host component's real template and style, an NgModule import and a named export.
 
 The host's own partially compiled library, by its name:
 

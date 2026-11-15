@@ -255,6 +255,22 @@ describe('vite', () => {
     expect(console.url).toMatch(/^showcases\/my%20docs\//);
   });
 
+  it("Gives a linked showcase shown inline its showcase frame's URL only where its views load it", () => {
+    // Shown in the showcase sidebar, it has no views by default (D619), so its page is never loaded
+    const content = '# Hi\n\nSee [demo](demo.html "showcase").\n';
+    const shown = (views: ShowcaseView[]) =>
+      getShownHostInformation(
+        {
+          ..._HOST,
+          documentation: [{ path: 'README.md', kind: 'readme', extension: '.md', content }],
+          showcases: [{ ..._HOST.showcases[1], documentation: 'README.md', display: 'inline', offset: content.indexOf('[demo]'), views }],
+        },
+        { frames: _FRAMES },
+      ).showcases[0];
+    expect(shown(['none'])).not.toHaveProperty('url');
+    expect(shown(['demo']).url).toMatch(/^showcases\/my%20docs\//);
+  });
+
   it('Checks which views load a showcase frame', () => {
     expect(loadsShowcaseFrame(['demo'])).toBe(true);
     expect(loadsShowcaseFrame(['source', 'console'])).toBe(true);
@@ -330,7 +346,7 @@ describe('vite', () => {
       markdown: true,
     });
     expect(block.tabs.filter((tab) => tab.markdown)).toHaveLength(1);
-    // A linked showcase shown inline gets its Markdown tab too, for its code sidebar (D535)
+    // A linked showcase shown inline gets its Markdown tab too, for its showcase sidebar (D535)
     expect(inline.tabs.map(({ label }) => label)).toEqual([MARKDOWN_TAB_LABEL, 'demo.html']);
     expect(inline.tabs[0].source).toEqual({ kind: 'virtual', content: '[demo](demo.html "showcase include=markdown,source")' });
     // The source view shows the source tab, wherever it is

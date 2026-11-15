@@ -37,4 +37,4 @@ export default memo(function Memoized() {
 });
 ```
 
-A [linked JSX one](./demos/Plain.jsx 'showcase=react'), with named exports too.
+A [linked JSX one](./demos/Plain.jsx 'showcase=react view=demo'), with named exports too.

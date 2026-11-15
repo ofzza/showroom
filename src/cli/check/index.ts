@@ -361,7 +361,8 @@ async function _checkShowcases(
 
       // Its views: the marker's, or the configuration's default for its showcase adapter, or the showcase adapter's own
       const resolved: Showcase = Object.assign(showcase, { views: showcase.views ?? configured.get(showcase.adapter) ?? getDefaultViews(adapter) });
-      if (resolved.views.includes('none') && resolved.tabs.length > 1) {
+      // A linked showcase shown inline shows its tabs in the showcase sidebar, whatever its views
+      if (resolved.views.includes('none') && resolved.tabs.length > 1 && resolved.display === 'block') {
         error(`A showcase shown with the view "none" can't have "include=", as nothing would show its tabs`);
         continue;
       }
@@ -581,7 +582,7 @@ async function _checkLinks(root: string, links: _FoundLink[], issues: CheckIssue
  * Collects the linked files: the files the links, images and linked showcases' entry points name, and the included real files that passed their
  * check, ignored or not, except documentation files, folders and missing files (warned or errored about already). A file in the output folder, which `build` empties, and a file whose real path (following
  * symbolic links) is outside the host repository are warned about, and left out. Each file's text-ness is decided from its content, read only up
- * to the code sidebar's limit.
+ * to the showcase sidebar's limit.
  * @param root Path of the host repository's root
  * @param documentation Documentation files
  * @param links Links and images, with the documentation file holding each

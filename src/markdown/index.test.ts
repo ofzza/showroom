@@ -466,7 +466,7 @@ describe('markdown', () => {
       const scan = scanMarkdown(
         'docs/guide.md',
         [
-          'See [a](./a.html "showcase").',
+          'See [a](./a.html "showcase") and [d](./d.html "showcase inline view=source,console").',
           '',
           '[b](./b.html "showcase block view=source,demo")',
           '',
@@ -486,8 +486,8 @@ describe('markdown', () => {
         ].join('\n'),
       );
       expect(scan.errors).toEqual([]);
-      // A linked showcase shown inline is shown as a demo, until it opens in the sidebar
-      expect(scan.showcases.map(({ views }) => views)).toEqual([['demo'], ['source', 'demo'], undefined, ['markdown']]);
+      // A linked showcase shown inline has no defaults: its marker's views, or none
+      expect(scan.showcases.map(({ views }) => views)).toEqual([['none'], ['source', 'console'], ['source', 'demo'], undefined, ['markdown']]);
       expect(scan.virtualFiles.filter(({ named }) => named).map(({ path, views }) => ({ path, views }))).toEqual([
         { path: 'docs/a.css', views: ['source'] },
         { path: 'docs/b.css', views: ['markdown'] },
@@ -498,8 +498,9 @@ describe('markdown', () => {
 
     it('Reports the view key where it can not be', () => {
       const errors = (markdown: string) => scanMarkdown('docs/guide.md', markdown).errors.map(({ message }) => message);
-      for (const marker of ['showcase view=source', 'showcase inline view=demo']) {
-        expect(errors(`See [a](./a.html "${marker}").`)).toEqual([expect.stringMatching(/^A linked showcase shown inline is shown as a demo for now/)]);
+      // A linked showcase shown inline takes any views, none included, with included files too: the showcase sidebar shows its tabs
+      for (const marker of ['showcase view=source', 'showcase inline view=demo,console', 'showcase view=none include=./a.css']) {
+        expect(errors(`See [a](./a.html "${marker}").`)).toEqual([]);
       }
       for (const view of ['demo', 'source,console']) {
         expect(errors(`\`\`\`css showcase file=a.css view=${view}\n\`\`\``)).toEqual([
