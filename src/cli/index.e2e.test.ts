@@ -89,7 +89,7 @@ describe('cli (end to end)', () => {
       expect(code).toBe(1);
       expect(stdout).toBe('');
       const lines = stderr.trimEnd().split('\n');
-      expect(lines).toHaveLength(39);
+      expect(lines).toHaveLength(41);
       expect(lines).toContain(
         'error: errors/markers.md:6: Invalid showcase adapter name "Html" in showcase marker "showcase=Html": use lower-case letters, digits and "-", starting with a letter',
       );
@@ -132,7 +132,7 @@ describe('cli (end to end)', () => {
       const { code, stdout, stderr } = await _run(['check', '--showcases', '--root', root]);
       expect(stderr).toBe('');
       expect(code).toBe(0);
-      expect(JSON.parse(stdout).showcases).toHaveLength(4);
+      expect(JSON.parse(stdout).showcases).toHaveLength(5);
     });
 
     it('Writes nothing to stdout with --quiet, as npm run ci runs it on this repository', async () => {

@@ -5,13 +5,15 @@
 - **Stage:** _`P1`_–_`P14`_ implemented (_`P14`_, the .NET stack adapter, the last).
 - **Next free:** _`D554`_, _`S13`_, _`P17`_, _`O89`_, _`L15`_, _`R48`_, _`H1`_, _`K24`_
 - **Working on:** _`P15`_ Showcase views (approved for its split and order, `./.workflow/PLAN-P15-showcase-views.md`), planning _`S12`_ without _`S12.1`_ (_`P16`_, later), in six children _`P15.1`_–_`P15.6`_ (_`D541`_, _`D545`_–_`D548`_).
-- **Next step:** implement _`P15.1`_ Named virtual files (`./.workflow/PLAN-P15.1-named-files.md`, approved), from step 1. The _`O81`_ spike's evidence goes into _`P15.4`_ (keep `./.workflow/.temp/spike-hidden-frame/` until then).
+- **Next step:** plan _`P15.2`_ Checks and issues in the adapter result (`./.workflow/PLAN-P15-showcase-views.md`). The _`O81`_ spike's evidence goes into _`P15.4`_ (keep `./.workflow/.temp/spike-hidden-frame/` until then).
 
 ## Open questions
 
 - See _`S6`_'s open points _`O16`_–_`O19`_. Open pitfalls are in `./.workflow/SPEC-pitfalls.md`.
 
 ## Waiting on me
+
+- `./.workflow/.temp/ci-p15.1.log` (the last `npm run ci` log); ask before deleting it.
 
 - `./.workflow/.temp/spike-vite-deps/` is kept at the user's request; ask again before deleting it.
 - `./.workflow/.temp/showcases-ideas/NOTES.md` holds proposals for planning (not decided; its format ideas are superseded by _`S6.5`_ and _`S6.6`_); read it when planning starts, and ask before deleting it.
@@ -21,7 +23,7 @@
 
 ## Running
 
-- None.
+- The dogfood `serve` of this repository, at http://localhost:5173/ (background; a new session finds it gone).
 
 ## History
 
@@ -331,3 +333,6 @@
 - 2026-11-15: _`P15`_ approved for its split and order (option chosen: "Approve and commit (Rec.)"); `./.workflow/.temp/review-p15/` deleted (option chosen: "Delete it (Rec.)").
 - 2026-11-15: _`P15.1`_'s choices settled (options chosen: "named + showcase (Rec.)", "Convert ts example", "Error, as today (Rec.)"); _`P15.1`_ drafted (`PLAN-P15.1-named-files.md`, _`D549`_–_`D553`_).
 - 2026-11-15: _`P15.1`_ approved, without a zero-context review (option chosen: "Approve and commit (Rec.)").
+- 2026-11-15: _`P15.1`_ steps 1–6: `VirtualFile`'s `named` and `showcase`; `file=` with a showcase adapter in the scan; the `html` showcase adapter copying named virtual files; "resource" retired; fixtures, tests, documentation, the Glossary; the `ts` example's `list.ts` a named showcase; the changed decisions' statuses.
+- 2026-11-15: _`P15.1`_ step 7: `npm run ci` green (unit 1134, integration 24, e2e 18, serve 7), after fixing expectations of the extended fixtures; the dogfood `serve` started for the user's check.
+- 2026-11-15: _`P15.1`_ approved as implemented, after the browser checks (option chosen: "Approve and commit (Rec.)").

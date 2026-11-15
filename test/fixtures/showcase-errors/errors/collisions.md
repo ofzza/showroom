@@ -14,3 +14,9 @@
 
 ```html showcase
 ```
+
+```html showcase=html file=collisions.showcase-3.html
+```
+
+```html showcase
+```

@@ -7,7 +7,7 @@ const inline: number = 'one';
 console.log(inline);
 ```
 
-A [linked one](./demos/linked.ts 'showcase=ts'), and one with a type error in a virtual resource:
+A [linked one](./demos/linked.ts 'showcase=ts'), and one with a type error in a virtual file with no showcase adapter:
 
 ```ts showcase=ts
 import { helper } from './helper';

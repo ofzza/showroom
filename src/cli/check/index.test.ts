@@ -252,7 +252,7 @@ describe('cli/check', () => {
   });
 
   describe('Showcases', () => {
-    // The showcases fixture embeds code block, linked and custom showcases, and resources, in Markdown documentation files, and passes; the
+    // The showcases fixture embeds code block, linked and custom showcases, and virtual files with no showcase adapter, in Markdown documentation files, and passes; the
     // showcase-errors fixture holds one documentation file per kind of broken showcase, the showcase-adapters fixture lists one custom showcase
     // adapter per way of getting it wrong, and the showcase-ts-invalid fixture holds ts showcases the ts showcase adapter rejects.
 
@@ -286,18 +286,32 @@ describe('cli/check', () => {
     });
 
     it('Collects how showcases are shown and their included files, and the included real files as linked files', async () => {
-      // The showcase-keys fixture: inline and block linked showcases, in a list item and a blockquote; included resources, real files (a binary one
+      // The showcase-keys fixture: inline and block linked showcases, in a list item and a blockquote; included virtual files, real files (a binary one
       // among them), a documentation file, a code block showcase's entry point and another folder's virtual file (on a custom showcase adapter,
-      // as an html showcase can't include outside its entry point's folder)
+      // as an html showcase can't include outside its entry point's folder); named showcases (greeting.html, docs/helper.js), included by name
       const { passed, issues, host } = await check(_fixture('showcase-keys'));
       expect(issues).toEqual([]);
       expect(passed).toBe(true);
       expect(host?.showcases.map(({ id, kind, display, include }) => ({ id, kind, display, include }))).toEqual([
-        { id: 'README.md#1', kind: 'code-block', display: 'block', include: ['theme.css'] },
+        { id: 'README.md#1', kind: 'code-block', display: 'block', include: ['theme.css', 'greeting.html'] },
         { id: 'README.md#2', kind: 'link', display: 'inline', include: ['demos/demo.css', 'demos/logo.png'] },
         { id: 'README.md#3', kind: 'link', display: 'block', include: ['demos/demo.css'] },
-        { id: 'README.md#4', kind: 'link', display: 'block', include: ['docs/guide.md', 'README.showcase-1.html', 'docs/guide.showcase-1.js'] },
+        {
+          id: 'README.md#4',
+          kind: 'link',
+          display: 'block',
+          include: ['docs/guide.md', 'README.showcase-1.html', 'docs/guide.showcase-1.js', 'docs/helper.js'],
+        },
+        { id: 'README.md#5', kind: 'code-block', display: 'block', include: [] },
         { id: 'docs/guide.md#1', kind: 'code-block', display: 'block', include: [] },
+        { id: 'docs/guide.md#2', kind: 'code-block', display: 'block', include: [] },
+      ]);
+      expect(host?.virtualFiles.map(({ path, named, showcase }) => ({ path, named, showcase }))).toEqual([
+        { path: 'README.showcase-1.html', named: false, showcase: 'README.md#1' },
+        { path: 'theme.css', named: true, showcase: undefined },
+        { path: 'greeting.html', named: true, showcase: 'README.md#5' },
+        { path: 'docs/guide.showcase-1.js', named: false, showcase: 'docs/guide.md#1' },
+        { path: 'docs/helper.js', named: true, showcase: 'docs/guide.md#2' },
       ]);
       // Included real files are linked files; virtual and documentation files aren't
       expect(host?.linkedFiles).toEqual([
@@ -312,16 +326,17 @@ describe('cli/check', () => {
       // docs/notes.txt holds a broken marker, ignored as the file is plain text
       const { host } = await check(_fixture('showcases'));
       expect(host?.virtualFiles).toEqual([
-        { path: 'README.showcase-1.html', kind: 'entry', content: '<p class="hello">Hello</p>', documentation: 'README.md', line: 3 },
-        { path: 'styles.css', kind: 'resource', content: '.hello { color: red; }', documentation: 'README.md', line: 7 },
+        { path: 'README.showcase-1.html', named: false, showcase: 'README.md#1', content: '<p class="hello">Hello</p>', documentation: 'README.md', line: 3 },
+        { path: 'styles.css', named: true, content: '.hello { color: red; }', documentation: 'README.md', line: 7 },
         {
           path: 'docs/guide.showcase-1.html',
-          kind: 'entry',
+          named: false,
+          showcase: 'docs/guide.md#1',
           content: '<link rel="stylesheet" href="../styles.css" />',
           documentation: 'docs/guide.md',
           line: 3,
         },
-        { path: 'docs/guide.showcase-2.js', kind: 'entry', content: "console.log('Hi');", documentation: 'docs/guide.md', line: 7 },
+        { path: 'docs/guide.showcase-2.js', named: false, showcase: 'docs/guide.md#2', content: "console.log('Hi');", documentation: 'docs/guide.md', line: 7 },
       ]);
     });
 
@@ -340,17 +355,20 @@ describe('cli/check', () => {
         "errors/keys.md:22: A linked showcase shown as a block can't be in a footnote",
         'errors/markers.md:3: The showcase marker must follow the code block\'s language ("```<language> showcase=html")',
         'errors/markers.md:6: Invalid showcase adapter name "Html" in showcase marker "showcase=Html": use lower-case letters, digits and "-", starting with a letter',
-        `errors/markers.md:9: A showcase's entry point can't have a "file" key; a resource's marker is "showcase file=<name>"`,
-        'errors/markers.md:12: Invalid resource name "a/b.css": use a plain file name, with no "/" or "\\"',
+        `errors/markers.md:9: The code block showcase's name "a.htm" must end in ".html", the extension its language "html" gives`,
+        'errors/markers.md:12: Invalid virtual file name "a/b.css": use a plain file name, with no "/" or "\\"',
         'errors/markers.md:15: Invalid showcase options (JSON5: invalid end of input at 1:6) in showcase marker "showcase=needy({ a: )"',
         'errors/markers.md:18: The key "anchor" is reserved for later, in showcase marker "showcase anchor=here"',
         "errors/markers.md:21: Only inline links can be showcases; an image can't hold a showcase marker",
         "errors/markers.md:23: Only inline links can be showcases; a reference definition can't hold a showcase marker",
         'errors/markers.md:25: Unknown key "of" in showcase marker "showcase of buttons"',
+        `errors/markers.md:27: A linked showcase can't have a "file" key: its entry point is a real file already; "file=<name>" names a code block's virtual file`,
         // The virtual files' names, across documentation files, on disk, and against generated names
         'errors/collisions.md:6: Virtual file "errors/shared.css" collides with the virtual file at errors/collisions-more.md:3',
         'errors/collisions.md:9: Virtual file "errors/Existing.TXT" collides with "errors/existing.txt" on disk',
         'errors/collisions.md:15: Virtual file "errors/collisions.showcase-1.html" collides with the virtual file at errors/collisions.md:12',
+        // A named showcase's name against a later showcase's generated name, which counts the named one (D533, .workflow/SPEC-S12-showcase-views.md)
+        'errors/collisions.md:21: Virtual file "errors/collisions.showcase-3.html" collides with the virtual file at errors/collisions.md:18',
         // The custom showcase adapters
         'showroom.json:undefined: Custom showcase adapter "broken": "./adapters/missing.js" not found',
         // The showcases: unknown adapters, linked entry points, validation

@@ -132,13 +132,8 @@ export interface Showcase {
 }
 
 /**
- * Represents the kind of a virtual file: a resource (`resource`), or a code block showcase's entry point (`entry`)
- */
-export type VirtualFileKind = 'resource' | 'entry';
-
-/**
- * Represents a virtual file: a fenced code block of a documentation file (a resource, or a code block showcase's entry point) that resolves like a
- * real file in its documentation file's folder
+ * Represents a virtual file: the fenced code block of a documentation file marked with a showcase marker (a code block showcase's entry point, or a
+ * virtual file with no showcase adapter, `showcase file=<name>`), which resolves like a real file in its documentation file's folder
  */
 export interface VirtualFile {
   /**
@@ -146,9 +141,14 @@ export interface VirtualFile {
    */
   path: string;
   /**
-   * What the code block is: a resource (marked `showcase file=<name>`), or a code block showcase's entry point
+   * True if the marker's `file=` named the virtual file; false for a code block showcase's generated name
+   * (`<documentation file's name>.showcase-<n>.<extension>`)
    */
-  kind: VirtualFileKind;
+  named: boolean;
+  /**
+   * Identifier of the showcase whose entry point the virtual file is (`Showcase.id`), or undefined for a virtual file with no showcase adapter
+   */
+  showcase?: string;
   /**
    * Content of the virtual file: the code block's text
    */

@@ -42,7 +42,7 @@ export default function Theme() {
 
 ## A shared component
 
-A showcase resource: a virtual TSX file in this folder, which the next showcase imports as if it were on disk.
+A virtual file with no showcase adapter: a TSX file in this folder, which the next showcase imports as if it were on disk.
 
 ```tsx showcase file=Laps.tsx
 import { formatElapsed } from './src/format.js';

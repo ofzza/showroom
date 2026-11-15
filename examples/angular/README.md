@@ -50,7 +50,7 @@ export default class Theme {
 
 ## A shared template
 
-A showcase resource: a virtual HTML file in this folder, which the next showcase names as its template, as if it were on disk. Angular's compiler type checks it against its component too.
+A virtual file with no showcase adapter: an HTML file in this folder, which the next showcase names as its template, as if it were on disk. Angular's compiler type checks it against its component too.
 
 ```html showcase file=laps.html
 <button type="button" (click)="lap()">Lap</button>

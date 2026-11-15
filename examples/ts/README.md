@@ -29,9 +29,9 @@ console.log('Both, broken down', sprint.plus(meeting).parts());
 
 ## A shared helper
 
-A showcase resource: a virtual TypeScript file in this folder, which the next two showcases import as if it were on disk.
+A named showcase: its virtual TypeScript file is `list.ts`, in this folder, which the next two showcases import as if it were on disk. It is built and type checked as a showcase of its own, whose showcase frame stays empty: it only declares a function.
 
-```ts showcase file=list.ts
+```ts showcase=ts file=list.ts
 /**
  * Renders a titled list of label and value rows into the showcase frame root
  * @param title Title of the list

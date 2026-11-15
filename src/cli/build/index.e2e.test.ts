@@ -63,9 +63,10 @@ describe('cli/build (end to end)', () => {
     for (const n of [1, 2, 3]) {
       expect(await readFile(join(out, 'showcases', 'README.md', String(n), 'index.html'), 'utf8')).toContain(script);
     }
-    // The html showcase frames, each with the README's resource next to its page
-    for (const n of [1, 2, 3]) {
-      expect(await readFile(join(out, 'showcases', 'README.md', String(n), 'fragment.js'), 'utf8')).toContain("textContent += ', with a resource'");
+    // The html showcase frames, each with the README's named virtual file and named showcase next to its page
+    for (const n of [1, 2, 3, 4]) {
+      expect(await readFile(join(out, 'showcases', 'README.md', String(n), 'fragment.js'), 'utf8')).toContain("textContent += ', with a virtual file'");
+      expect(await readFile(join(out, 'showcases', 'README.md', String(n), 'extra.html'), 'utf8')).toBe('<p>A named showcase</p>');
     }
     // The linked page's included stylesheet, next to its page, and copied as a linked file too
     const css = await readFile(join(root, 'demos', 'page.css'), 'utf8');
@@ -81,7 +82,7 @@ describe('cli/build (end to end)', () => {
     // The bundle's shown host information places them, by URL-encoded relative URLs with their content's hash
     const bundle = (await Promise.all((await readdir(join(out, 'assets'))).map((name) => readFile(join(out, 'assets', name), 'utf8')))).join('\n');
     const first = await Promise.all(
-      ['index.html', 'fragment.js'].map(async (path) => ({ path, content: await readFile(join(out, 'showcases', 'README.md', '1', path)) })),
+      ['index.html', 'fragment.js', 'extra.html'].map(async (path) => ({ path, content: await readFile(join(out, 'showcases', 'README.md', '1', path)) })),
     );
     expect(bundle).toContain(`showcases/README.md/1/index.html?hash=${getShowcaseFrameHash(first)}`);
     expect(bundle).toMatch(/showcases\/docs\/my%20notes%20%231\.md\/1\/index\.html\?hash=[0-9a-f]{8}/);

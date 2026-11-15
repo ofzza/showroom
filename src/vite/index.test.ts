@@ -63,7 +63,7 @@ const _HOST: HostInformation = {
       include: [],
     },
   ],
-  virtualFiles: [{ path: 'README.showcase-1.html', kind: 'entry', content: '<p>1</p>', documentation: 'README.md', line: 3 }],
+  virtualFiles: [{ path: 'README.showcase-1.html', named: false, showcase: 'README.md#1', content: '<p>1</p>', documentation: 'README.md', line: 3 }],
   linkedFiles: [{ path: 'src/index.ts', size: 75, text: true }],
 };
 
@@ -213,7 +213,7 @@ describe('vite', () => {
     const host: HostInformation = {
       ..._HOST,
       documentation: [..._HOST.documentation, { path: 'docs/guide.md', kind: 'other', extension: '.md', content: '' }],
-      virtualFiles: [{ path: 'docs/theme.css', kind: 'resource', content: 'p {}', documentation: 'docs/guide.md', line: 1 }],
+      virtualFiles: [{ path: 'docs/theme.css', named: true, content: 'p {}', documentation: 'docs/guide.md', line: 1 }],
       linkedFiles: [
         { path: 'docs/demos/clock.html', size: 9, text: true },
         { path: 'docs/my logo.png', size: 9, text: false },

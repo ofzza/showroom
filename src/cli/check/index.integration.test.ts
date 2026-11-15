@@ -66,7 +66,7 @@ describe('cli/check (integration)', () => {
     const showcases = result.host!.showcases.filter((showcase) => showcase.documentation === 'README.md');
     expect(showcases[0]).toMatchObject({ kind: 'code-block', adapter: 'html', entry: 'README.showcase-1.html' });
     expect(showcases.map((showcase) => showcase.kind)).toEqual(expect.arrayContaining(['code-block', 'link']));
-    expect(result.host!.virtualFiles.filter((file) => file.documentation === 'README.md').map((file) => file.kind)).toContain('resource');
+    expect(result.host!.virtualFiles.filter((file) => file.documentation === 'README.md').some((file) => file.named && !file.showcase)).toBe(true);
     const examples = result.host!.showcases.filter((showcase) => showcase.documentation.startsWith('examples/'));
     expect(new Set(examples.map((showcase) => `${showcase.documentation} ${showcase.adapter}`))).toEqual(
       new Set([

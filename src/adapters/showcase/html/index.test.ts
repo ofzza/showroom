@@ -4,7 +4,7 @@
 
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import type { Showcase, VirtualFile, VirtualFileKind } from '../../../host/index.js';
+import type { Showcase, VirtualFile } from '../../../host/index.js';
 import type { ShowcaseAdapter, ShowcaseBuildRequest } from '../index.js';
 import { HtmlShowcaseAdapter, isHtmlPage, skipHtmlSpaceAndComments, wrapHtmlFragment } from './index.js';
 
@@ -71,7 +71,7 @@ describe('adapters/showcase/html', () => {
   });
 
   describe('Build', () => {
-    // Tests building showcase frames: the entry point as the page, or a fragment wrapped into one, with the resources of its folder and its
+    // Tests building showcase frames: the entry point as the page, or a fragment wrapped into one, with the named virtual files of its folder and its
     // included files next to it.
 
     /**
@@ -89,9 +89,9 @@ describe('adapters/showcase/html', () => {
       mode: 'production',
       scratchFolder: _ROOT,
     });
-    const virtual = (path: string, content: string, kind: VirtualFileKind = 'entry'): VirtualFile => ({
+    const virtual = (path: string, content: string, named = false): VirtualFile => ({
       path,
-      kind,
+      named,
       content,
       documentation: 'README.md',
       line: 3,
@@ -117,12 +117,14 @@ describe('adapters/showcase/html', () => {
       expect(result.files![0].content).toContain('<link rel="stylesheet" href="./page.css" />');
     });
 
-    it('Puts every resource of its folder next to the page, and no other showcase entry point', async () => {
+    it('Puts every named virtual file of its folder next to the page, named showcases too, and no generated entry point', async () => {
+      // See SPEC-S12 D521: a named showcase (lib.ts, a ts showcase's entry point) is copied like a virtual file with no showcase adapter
       const files = [
         virtual('README.showcase-1.html', '<script src="./demo.js"></script>'),
         virtual('README.showcase-2.html', '<p>Other</p>'),
-        virtual('demo.js', 'run();', 'resource'),
-        { path: 'unused.css', kind: 'resource' as const, content: 'p {}', documentation: 'CONTRIBUTE.md', line: 9 },
+        virtual('demo.js', 'run();', true),
+        { path: 'lib.ts', named: true, showcase: 'README.md#3', content: 'export {};', documentation: 'README.md', line: 12 },
+        { path: 'unused.css', named: true, content: 'p {}', documentation: 'CONTRIBUTE.md', line: 9 },
       ];
       const result = await adapter.build(request(_showcase('code-block', 'README.showcase-1.html'), files));
       expect(result).toEqual({
@@ -130,31 +132,41 @@ describe('adapters/showcase/html', () => {
         files: [
           { path: 'index.html', content: wrapHtmlFragment('<script src="./demo.js"></script>') },
           { path: 'demo.js', content: 'run();' },
+          { path: 'lib.ts', content: 'export {};' },
           { path: 'unused.css', content: 'p {}' },
         ],
         reads: ['README.md', 'CONTRIBUTE.md'],
       });
     });
 
-    it('Puts the resources next to a linked page too, under their names', async () => {
-      const result = await adapter.build(request(_showcase('link', 'demos/page.html'), [virtual('demos/page.css', 'p {}', 'resource')]));
+    it('Puts the named virtual files next to a linked page too, under their names', async () => {
+      const result = await adapter.build(request(_showcase('link', 'demos/page.html'), [virtual('demos/page.css', 'p {}', true)]));
       expect(result.files?.map((file) => file.path)).toEqual(['index.html', 'page.css']);
       expect(result.reads).toEqual(['demos/page.html', 'README.md']);
     });
 
-    it('Fails on a resource that would replace the page, ignoring case', async () => {
-      const files = [virtual('README.showcase-1.html', '<p>Hi</p>'), virtual('INDEX.html', '<p>Mine</p>', 'resource')];
+    it('Fails on a named virtual file that would replace the page, ignoring case', async () => {
+      const files = [virtual('README.showcase-1.html', '<p>Hi</p>'), virtual('INDEX.html', '<p>Mine</p>', true)];
       expect(await adapter.build(request(_showcase('code-block', 'README.showcase-1.html'), files))).toEqual({
         reads: ['README.md'],
-        errors: [{ message: 'The resource "INDEX.html" would replace the showcase frame\'s page', path: 'INDEX.html' }],
+        errors: [{ message: 'The virtual file "INDEX.html" would replace the showcase frame\'s page', path: 'INDEX.html' }],
+      });
+    });
+
+    it('Fails on a named html showcase called index.html, its own build too', async () => {
+      // See PLAN-P15.1 D551: no exception for the showcase's own entry point
+      const page = { path: 'index.html', named: true, showcase: 'README.md#1', content: '<p>Hi</p>', documentation: 'README.md', line: 3 };
+      expect(await adapter.build(request(_showcase('code-block', 'index.html'), [page]))).toEqual({
+        reads: ['README.md'],
+        errors: [{ message: 'The virtual file "index.html" would replace the showcase frame\'s page', path: 'index.html' }],
       });
     });
 
     it('Puts the included files next to the page, as they sit next to the entry point', async () => {
-      // A real file, read as bytes; another documentation file's virtual file; a resource of the folder, copied once
-      const theme = { path: 'demos/theme.css', kind: 'resource' as const, content: 'b {}', documentation: 'demos/README.md', line: 4 };
+      // A real file, read as bytes; another documentation file's virtual file; a named virtual file of the folder, copied once
+      const theme = { path: 'demos/theme.css', named: true, content: 'b {}', documentation: 'demos/README.md', line: 4 };
       const showcase = _showcase('link', 'demos/page.html', { include: ['demos/page.css', 'demos/theme.css', 'demos/widget.txt'] });
-      const result = await adapter.build({ ...request(showcase, [virtual('demos/widget.txt', 'w', 'resource')]), hostVirtualFiles: [theme] });
+      const result = await adapter.build({ ...request(showcase, [virtual('demos/widget.txt', 'w', true)]), hostVirtualFiles: [theme] });
       expect(result.errors).toBeUndefined();
       expect(result.files?.map(({ path, content }) => ({ path, content: typeof content === 'string' ? content : Buffer.from(content).toString() }))).toEqual([
         { path: 'index.html', content: expect.stringContaining('<link rel="stylesheet" href="./page.css" />') },
@@ -166,13 +178,13 @@ describe('adapters/showcase/html', () => {
       expect(result.reads).toEqual(['demos/page.html', 'README.md', 'demos/page.css', 'demos/README.md']);
     });
 
-    it('Fails on an included file landing where a resource does, and on one it cannot read', async () => {
-      // A linked page in another folder: README.md's resource page.css lands by its name, where the included demos/page.css would
+    it('Fails on an included file landing where a named virtual file does, and on one it cannot read', async () => {
+      // A linked page in another folder: README.md's named virtual file page.css lands by its name, where the included demos/page.css would
       const showcase = _showcase('link', 'demos/page.html', { include: ['demos/page.css', 'demos/missing.css'] });
-      const result = await adapter.build(request(showcase, [virtual('page.css', 'p {}', 'resource')]));
+      const result = await adapter.build(request(showcase, [virtual('page.css', 'p {}', true)]));
       expect(result.files).toBeUndefined();
       expect(result.errors).toEqual([
-        { message: 'The included file "demos/page.css" would land where the resource "page.css" does ("page.css")', path: 'demos/page.css' },
+        { message: 'The included file "demos/page.css" would land where the virtual file "page.css" does ("page.css")', path: 'demos/page.css' },
         { message: expect.stringMatching(/^The included file can't be read: ENOENT/), path: 'demos/missing.css' },
       ]);
       expect(result.reads).toEqual(['demos/page.html', 'README.md', 'demos/missing.css']);

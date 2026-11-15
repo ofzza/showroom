@@ -60,7 +60,7 @@ describe('host', () => {
           include: [],
         },
       ],
-      virtualFiles: [{ path: 'README.showcase-1.html', kind: 'entry', content: '<p>Hi</p>', documentation: 'README.md', line: 3 }],
+      virtualFiles: [{ path: 'README.showcase-1.html', named: false, showcase: 'README.md#1', content: '<p>Hi</p>', documentation: 'README.md', line: 3 }],
       linkedFiles: [{ path: 'src/index.ts', size: 12, text: true }],
     };
     expect(JSON.parse(JSON.stringify(host))).toEqual(host);

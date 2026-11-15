@@ -1,1 +1,1 @@
-A real file a resource's name collides with.
+A real file a virtual file's name collides with.

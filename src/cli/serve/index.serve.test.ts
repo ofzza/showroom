@@ -114,7 +114,7 @@ describe('cli/serve (serve)', () => {
     const source = await fetchHostModule(url);
     expect(source).toContain('\nexport const issues = [];');
     const urls = getShowcaseUrls(source);
-    expect(Object.keys(urls)).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'docs/my notes #1.md#1']);
+    expect(Object.keys(urls)).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'README.md#4', 'docs/my notes #1.md#1']);
     expect(urls['docs/my notes #1.md#1']).toMatch(/^showcases\/docs\/my%20notes%20%231\.md\/1\/index\.html\?hash=[0-9a-f]{8}$/);
 
     // Each showcase frame, with the frame script
@@ -127,10 +127,10 @@ describe('cli/serve (serve)', () => {
     }
     expect(await (await fetch(new URL('showcases/README.md/2/index.html', url))).text()).toContain('A fragment');
 
-    // Their files: an html showcase frame's resource, a custom showcase adapter's assets
-    const resource = await fetch(new URL('showcases/README.md/2/fragment.js', url));
-    expect(resource.headers.get('content-type')).toBe('text/javascript; charset=utf-8');
-    expect(await resource.text()).toContain("textContent += ', with a resource'");
+    // Their files: an html showcase frame's named virtual file, a custom showcase adapter's assets
+    const named = await fetch(new URL('showcases/README.md/2/fragment.js', url));
+    expect(named.headers.get('content-type')).toBe('text/javascript; charset=utf-8');
+    expect(await named.text()).toContain("textContent += ', with a virtual file'");
     const gif = await fetch(new URL('showcases/docs/my%20notes%20%231.md/1/assets/pixel.gif', url));
     expect(gif.headers.get('content-type')).toBe('image/gif');
     expect(
@@ -181,7 +181,7 @@ describe('cli/serve (serve)', () => {
     const { url, stderr } = await start('showcase-ts');
     expect(stderr()).toBe('');
     const urls = getShowcaseUrls(await fetchHostModule(url));
-    expect(Object.keys(urls)).toEqual(['README.md#1', 'README.md#2', 'README.md#3']);
+    expect(Object.keys(urls)).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'docs/guide.md#1']);
     const page = await (await fetch(new URL(urls['README.md#1'], url))).text();
     expect(page).toContain('<div id="root"></div><div id="showroom-console" hidden></div>');
 

@@ -1,6 +1,6 @@
 # Keys host
 
-```html showcase include=./theme.css
+```html showcase include=./theme.css,./greeting.html
 <p class="hello">Hello</p>
 ```
 
@@ -12,4 +12,8 @@ A [linked demo](./demos/demo.html "showcase inline include=./demos/demo.css,demo
 
 - [A block](./demos/demo.html 'showcase block include=demos/demo.css')
 
-> [Another block](demos/widget.js 'showcase=demo block include=docs/guide.md,README.showcase-1.html,docs/guide.showcase-1.js')
+> [Another block](demos/widget.js 'showcase=demo block include=docs/guide.md,README.showcase-1.html,docs/guide.showcase-1.js,docs/helper.js')
+
+```html showcase=html file=greeting.html
+<p>A named showcase</p>
+```

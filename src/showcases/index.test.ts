@@ -240,7 +240,7 @@ describe('showcases', () => {
       entry: 'docs/guide.showcase-2.js',
       include: [],
     };
-    const virtualFiles: VirtualFile[] = [{ path: 'docs/style.css', kind: 'resource', content: '', documentation: 'docs/other.md', line: 20 }];
+    const virtualFiles: VirtualFile[] = [{ path: 'docs/style.css', named: true, content: '', documentation: 'docs/other.md', line: 20 }];
     const message = 'Showcase docs/guide.md#2 (docs/guide.md:10): Broke';
 
     it('Places an error in a virtual file in its documentation file, below the fence', () => {

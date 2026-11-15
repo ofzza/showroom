@@ -12,7 +12,7 @@ A page of its own, linked as a showcase shown as a block, beside its code. It ne
 
 ## The stylesheet
 
-`numerals` is a single stylesheet. Here it is as a showcase resource, which every `html` showcase in this folder can link as `./numerals.css`. The `html` showcase adapter copies only resources next to a showcase's page, never real files, so a library meant for `html` showcases lives in its documentation as a resource.
+`numerals` is a single stylesheet. Here it is as a virtual file, `showcase file=numerals.css`, which every `html` showcase in this folder can link as `./numerals.css`. The `html` showcase adapter copies only the virtual files named by `file=` next to a showcase's page, never real files, so a library meant for `html` showcases lives in its documentation as a virtual file.
 
 ```css showcase file=numerals.css
 .tabular {

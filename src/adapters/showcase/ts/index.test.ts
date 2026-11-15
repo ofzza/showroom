@@ -65,7 +65,7 @@ function _showcase(kind: Showcase['kind'], entry: string, extra: Partial<Showcas
  * @returns The virtual file
  */
 function _virtual(path: string, content = '', documentation = 'README.md'): VirtualFile {
-  return { path, kind: 'resource', content, documentation, line: 10 };
+  return { path, named: true, content, documentation, line: 10 };
 }
 
 /**

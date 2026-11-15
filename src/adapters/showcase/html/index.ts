@@ -1,6 +1,6 @@
 /**
  * The `html` showcase adapter: its entry point is an HTML page or fragment, built without following its relative references (they are neither
- * resolved nor copied), next to the resources of its documentation file's folder and its included files; it takes no options and needs nothing
+ * resolved nor copied), next to the named virtual files of its documentation file's folder and its included files; it takes no options and needs nothing
  * from the host repository. Internal, never re-exported.
  */
 
@@ -44,14 +44,14 @@ export class HtmlShowcaseAdapter implements ShowcaseAdapter {
   }
 
   /**
-   * Builds a showcase's showcase frame: its entry point as the page, a fragment wrapped into a complete page, every resource of its documentation
-   * file's folder next to it, under its name, whether the page uses it or not, and its included files, at their paths relative to the entry point's
-   * folder (a virtual file from memory, any other read from disk as it is); a code block showcase's entry point comes from its virtual file, a
-   * linked one is read from disk as UTF-8. A resource named like the page, an included file landing where a resource does (unless it is that
-   * resource), and an included file that can't be read fail the build. Its reads are the files read from disk, and the documentation files holding
-   * the virtual files it uses.
+   * Builds a showcase's showcase frame: its entry point as the page, a fragment wrapped into a complete page, every virtual file of its
+   * documentation file's folder named by `file=` (named showcases included) next to it, under its name, whether the page uses it or not, and its
+   * included files, at their paths relative to the entry point's folder (a virtual file from memory, any other read from disk as it is); a code
+   * block showcase's entry point comes from its virtual file, a linked one is read from disk as UTF-8. A named virtual file called like the page,
+   * an included file landing where a named virtual file does (unless it is that file), and an included file that can't be read fail the build.
+   * Its reads are the files read from disk, and the documentation files holding the virtual files it uses.
    * @param request What to build
-   * @returns The showcase frame's page and resources, or the build errors
+   * @returns The showcase frame's page and files, or the build errors
    */
   public async build({ root, showcase, virtualFiles, hostVirtualFiles }: ShowcaseBuildRequest): Promise<ShowcaseBuildResult> {
     let content: string;
@@ -71,28 +71,28 @@ export class HtmlShowcaseAdapter implements ShowcaseAdapter {
         return { reads, errors: [{ message: `The entry point can't be read: ${(err as Error).message}`, path: showcase.entry }] };
       }
     }
-    const resources = virtualFiles.filter((file) => file.kind === 'resource');
-    reads = [...new Set([...reads, ...resources.map((file) => file.documentation)])];
-    const clashing = resources.filter((file) => _getName(file.path).toLowerCase() === HTML_PAGE);
+    const named = virtualFiles.filter((file) => file.named);
+    reads = [...new Set([...reads, ...named.map((file) => file.documentation)])];
+    const clashing = named.filter((file) => _getName(file.path).toLowerCase() === HTML_PAGE);
     if (clashing.length) {
       return {
         reads,
-        errors: clashing.map((file) => ({ message: `The resource "${_getName(file.path)}" would replace the showcase frame's page`, path: file.path })),
+        errors: clashing.map((file) => ({ message: `The virtual file "${_getName(file.path)}" would replace the showcase frame's page`, path: file.path })),
       };
     }
 
     // The included files, next to the page as they sit next to the entry point
     const files: ShowcaseBuildFile[] = [
       { path: HTML_PAGE, content: isHtmlPage(content) ? content : wrapHtmlFragment(content) },
-      ...resources.map((file) => ({ path: _getName(file.path), content: file.content })),
+      ...named.map((file) => ({ path: _getName(file.path), content: file.content })),
     ];
     const errors: ShowcaseBuildError[] = [];
     for (const path of showcase.include) {
       const placed = _getPlacedPath(showcase, path) ?? path;
-      const resource = resources.find((file) => _getName(file.path).toLowerCase() === placed.toLowerCase());
-      if (resource?.path === path) continue; // The resource itself, copied already
-      if (resource) {
-        errors.push({ message: `The included file "${path}" would land where the resource "${resource.path}" does ("${placed}")`, path });
+      const copied = named.find((file) => _getName(file.path).toLowerCase() === placed.toLowerCase());
+      if (copied?.path === path) continue; // The named virtual file itself, copied already
+      if (copied) {
+        errors.push({ message: `The included file "${path}" would land where the virtual file "${copied.path}" does ("${placed}")`, path });
         continue;
       }
       const virtual = hostVirtualFiles.find((file) => file.path === path);

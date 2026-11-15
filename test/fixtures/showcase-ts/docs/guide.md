@@ -1,8 +1,8 @@
 # Guide
 
-Virtual files in another folder:
+Virtual files in another folder, a named showcase among them:
 
-```ts showcase file=shared.ts
+```ts showcase=ts file=shared.ts
 export const shared: string = 'shared';
 ```
 

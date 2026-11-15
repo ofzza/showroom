@@ -1,6 +1,6 @@
 # _`P15.1`_ Named virtual files
 
-approved 2026-11-15 (option chosen: "Approve and commit (Rec.)"), without a zero-context review
+implemented 2026-11-15 (option chosen: "Approve and commit (Rec.)"), after the user's and the agent's browser checks; approved 2026-11-15 (option chosen: "Approve and commit (Rec.)"), without a zero-context review
 
 ## Goals
 

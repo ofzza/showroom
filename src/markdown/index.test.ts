@@ -220,8 +220,8 @@ describe('markdown', () => {
         },
       ]);
       expect(scan.virtualFiles).toEqual([
-        { path: 'docs/guide.showcase-1.html', kind: 'entry', content: '<p>Hi</p>', documentation: 'docs/guide.md', line: 3 },
-        { path: 'docs/guide.showcase-2.ts', kind: 'entry', content: 'log(1);', documentation: 'docs/guide.md', line: 7 },
+        { path: 'docs/guide.showcase-1.html', named: false, showcase: 'docs/guide.md#1', content: '<p>Hi</p>', documentation: 'docs/guide.md', line: 3 },
+        { path: 'docs/guide.showcase-2.ts', named: false, showcase: 'docs/guide.md#2', content: 'log(1);', documentation: 'docs/guide.md', line: 7 },
       ]);
     });
 
@@ -230,10 +230,51 @@ describe('markdown', () => {
       expect(scan.virtualFiles.map((file) => file.path)).toEqual(['README.showcase-1.js', 'README.showcase-2.html', 'README.showcase-3.css']);
     });
 
-    it('Finds resources', () => {
+    it('Finds virtual files with no showcase adapter', () => {
       const scan = scanMarkdown('docs/guide.md', ['```css showcase file=styles.css', 'p {}', '```'].join('\n'));
       expect(scan.showcases).toEqual([]);
-      expect(scan.virtualFiles).toEqual([{ path: 'docs/styles.css', kind: 'resource', content: 'p {}', documentation: 'docs/guide.md', line: 1 }]);
+      expect(scan.virtualFiles).toEqual([{ path: 'docs/styles.css', named: true, content: 'p {}', documentation: 'docs/guide.md', line: 1 }]);
+    });
+
+    it('Finds named code block showcases, counted among the showcases', () => {
+      // See SPEC-S12 D533: a named showcase still counts, so the generated name after it is the third, while a virtual file with no adapter doesn't
+      const scan = scanMarkdown(
+        'docs/guide.md',
+        [
+          '```ts showcase=ts file=units.ts include=./styles.css',
+          'export const a = 1;',
+          '```',
+          '```css showcase file=styles.css',
+          '```',
+          '```typescript showcase=ts file=lib.ts',
+          '```',
+          '```ts showcase=ts',
+          "import { a } from './units.js';",
+          '```',
+        ].join('\n'),
+      );
+      expect(scan.errors).toEqual([]);
+      expect(scan.showcases.map(({ id, entry, include }) => ({ id, entry, include }))).toEqual([
+        { id: 'docs/guide.md#1', entry: 'docs/units.ts', include: ['docs/styles.css'] },
+        { id: 'docs/guide.md#2', entry: 'docs/lib.ts', include: [] },
+        { id: 'docs/guide.md#3', entry: 'docs/guide.showcase-3.ts', include: [] },
+      ]);
+      expect(scan.virtualFiles.map(({ path, named, showcase }) => ({ path, named, showcase }))).toEqual([
+        { path: 'docs/units.ts', named: true, showcase: 'docs/guide.md#1' },
+        { path: 'docs/styles.css', named: true, showcase: undefined },
+        { path: 'docs/lib.ts', named: true, showcase: 'docs/guide.md#2' },
+        { path: 'docs/guide.showcase-3.ts', named: false, showcase: 'docs/guide.md#3' },
+      ]);
+    });
+
+    it("Reports a named showcase whose extension isn't its language's", () => {
+      const scan = scanMarkdown('README.md', ['```ts showcase=ts file=lib.txt', '```', '```typescript showcase=ts file=lib.typescript', '```'].join('\n'));
+      expect(scan.errors.map((error) => error.message)).toEqual([
+        'The code block showcase\'s name "lib.txt" must end in ".ts", the extension its language "ts" gives',
+        'The code block showcase\'s name "lib.typescript" must end in ".ts", the extension its language "typescript" gives',
+      ]);
+      expect(scan.showcases).toEqual([]);
+      expect(scan.virtualFiles).toEqual([]);
     });
 
     it('Ignores fences without a marker after the language', () => {
@@ -250,9 +291,9 @@ describe('markdown', () => {
         [
           '```showcase=html', // 1: no language
           '```',
-          '```html showcase=html file=a.html', // 3: file on an entry point
+          '```html showcase=html file=a.htm', // 3: a name without its language's extension
           '```',
-          '```css showcase file=a/b.css', // 5: invalid resource name
+          '```css showcase file=a/b.css', // 5: invalid virtual file name
           '```',
           '```html showcase=Html', // 7: broken marker
           '```',
@@ -266,8 +307,8 @@ describe('markdown', () => {
       );
       expect(scan.errors.map((error) => error.line)).toEqual([1, 3, 5, 7, 9, 11, 13]);
       expect(scan.errors[0].message).toMatch(/must follow the code block's language/);
-      expect(scan.errors[1].message).toMatch(/can't have a "file" key/);
-      expect(scan.errors[2].message).toMatch(/^Invalid resource name "a\/b.css"/);
+      expect(scan.errors[1].message).toMatch(/must end in ".html"/);
+      expect(scan.errors[2].message).toMatch(/^Invalid virtual file name "a\/b.css"/);
       expect(scan.errors[3].message).toMatch(/^Invalid showcase adapter name "Html"/);
       expect(scan.errors[4].message).toMatch(/an image can't hold a showcase marker/);
       expect(scan.errors[5].message).toMatch(/a reference definition can't hold a showcase marker/);
@@ -322,7 +363,9 @@ describe('markdown', () => {
       expect(errors('```html showcase block\n```')).toEqual([expect.stringMatching(/^A code block showcase is always shown as a block/)]);
       expect(errors('```html showcase inline\n```')).toEqual([expect.stringMatching(/^A code block showcase is always shown as a block/)]);
       expect(errors('```css showcase file=a.css block\n```')).toEqual([expect.stringMatching(/^A code block showcase is always shown as a block/)]);
-      expect(errors('```css showcase file=a.css include=b.css\n```')).toEqual([expect.stringMatching(/^A resource can't include files/)]);
+      expect(errors('```css showcase file=a.css include=b.css\n```')).toEqual([
+        expect.stringMatching(/^A virtual file with no showcase adapter can't include files/),
+      ]);
       // A block must be a paragraph's only content, apart from whitespace
       expect(errors('See [c](./c.html "showcase block").')).toEqual(['A linked showcase shown as a block must be alone in its paragraph']);
       expect(errors('[c](./c.html "showcase block") [d](./d.html "showcase")')).toEqual(['A linked showcase shown as a block must be alone in its paragraph']);
@@ -367,7 +410,7 @@ describe('markdown', () => {
         'A linked showcase\'s entry point can\'t have a query or fragment: "./c.html?x=1"',
         'A linked showcase\'s entry point "../../d.html" is outside the host repository',
         'A linked showcase\'s entry point "./" must name a file, not a folder',
-        'A showcase\'s entry point can\'t have a "file" key; a resource\'s marker is "showcase file=<name>", on a code block',
+        'A linked showcase can\'t have a "file" key: its entry point is a real file already; "file=<name>" names a code block\'s virtual file',
         'Unknown key "of" in showcase marker "showcase of buttons"',
         'A linked showcase\'s entry point "%E0%A4%A.html" can\'t be URL-decoded',
       ]);

@@ -42,7 +42,7 @@ function _file(frame: ShowcaseFrame, pattern: RegExp): { path: string; content: 
 
 describe('adapters/showcase/ts (integration)', () => {
   // Builds the showcases of the `showcase-ts` fixture (a code block showcase importing the host's own package by its name through a committed `lib/`
-  // folder, virtual files in its folder and in another one, by a path without an extension, a .js specifier and a folder, a virtual CSS file, JSON,
+  // folder, virtual files in its folder and in another one (a named showcase among them), by a path without an extension, a .js specifier and a folder, a virtual CSS file, JSON,
   // an asset, and a dynamic import with CSS, under a tsconfig turning useDefineForClassFields off; a JavaScript code block showcase; and a linked one
   // importing a virtual file), in each mode, type checked under its tsconfig; the `showcase-ts-errors` fixture's build errors and warning; the
   // `showcase-ts-types` fixture's type errors, and the `showcase-ts-defaults` fixture's, without a tsconfig; the `showcase-ts-many` fixture's 10
@@ -52,7 +52,7 @@ describe('adapters/showcase/ts (integration)', () => {
   it('Builds ts showcases into showcase frames, with the page, the bundle, and the files read', async () => {
     const { frames, errors, warnings, issues, watched } = await _build('showcase-ts');
     expect({ errors: Object.fromEntries(errors), warnings, issues }).toEqual({ errors: {}, warnings: [], issues: [] });
-    expect([...frames.keys()]).toEqual(['README.md#1', 'README.md#2', 'README.md#3']);
+    expect([...frames.keys()]).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'docs/guide.md#1']);
 
     // The page: the frame script, the CSS, the showcase frame root, the console panel and its script, then the module
     const frame = frames.get('README.md#1')!;
@@ -98,6 +98,8 @@ describe('adapters/showcase/ts (integration)', () => {
     const linked = frames.get('README.md#3')!;
     expect(_file(linked, /^assets\/linked-[\w-]+\.js$/).content).toContain('`helper`');
     expect(linked.reads).toEqual(['demos/linked.ts', 'README.md', 'env.d.ts', 'lazy.ts', 'lib/index.d.ts', 'tsconfig.json']);
+    // A named showcase, which README.md#1 imports by its name, built on its own too
+    expect(_file(frames.get('docs/guide.md#1')!, /^assets\/shared-[\w-]+\.js$/).content).toBeDefined();
     expect(watched).toEqual([
       'README.md',
       'data.json',
@@ -165,7 +167,7 @@ describe('adapters/showcase/ts (integration)', () => {
     ];
     const assign = (from: string, to: string) => `TS2322: Type '${from}' is not assignable to type '${to}'.`;
     expect([...errors]).toEqual([
-      // In a code block, in a linked file, and in a virtual resource
+      // In a code block, in a linked file, and in a virtual file with no showcase adapter
       error('README.md#1', 5, assign('string', 'number'), 'README.md', 6),
       error('README.md#2', 10, assign('number', 'string'), 'demos/linked.ts', 2),
       error('README.md#3', 12, assign('string', 'boolean'), 'README.md', 18),

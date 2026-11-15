@@ -363,7 +363,7 @@ export interface MarkdownScan {
    */
   showcases: Showcase[];
   /**
-   * Virtual files (resources and code block showcases' entry points), in document order
+   * Virtual files (code block showcases' entry points, and virtual files with no showcase adapter), in document order
    */
   virtualFiles: VirtualFile[];
   /**
@@ -436,7 +436,7 @@ export function getOpeningTitleOffset(content: string): number | undefined {
 }
 
 /**
- * Checks if a resource's (or a generated entry point's) name is a plain file name: no `/` or `\`, not `.` or `..`, not empty, and no leading or
+ * Checks if a virtual file's name (given by `file=`, or generated) is a plain file name: no `/` or `\`, not `.` or `..`, not empty, and no leading or
  * trailing spaces
  * @param name Name of the virtual file
  * @returns True if the name is valid
@@ -487,7 +487,7 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
   };
 
   _visit(_parse(content), [], (node, ancestors) => {
-    // Fenced code blocks: code block showcases' entry points, and resources
+    // Fenced code blocks: code block showcases' entry points, and virtual files with no showcase adapter
     if (node.type === 'code') {
       const lang = node.lang ?? '';
       if (isShowcaseMarker(lang)) {
@@ -502,30 +502,37 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
       if (marker.display !== undefined) {
         return error(node, `A code block showcase is always shown as a block; the keys "inline" and "block" are for linked showcases only`);
       }
-      // A resource
-      if (marker.file !== undefined) {
-        if (marker.adapter !== undefined) {
-          return error(node, `A showcase's entry point can't have a "file" key; a resource's marker is "showcase file=<name>"`);
-        }
+      if (marker.file !== undefined && !isValidVirtualFileName(marker.file)) {
+        return error(node, `Invalid virtual file name "${marker.file}": use a plain file name, with no "/" or "\\"`);
+      }
+      // A virtual file with no showcase adapter, never built
+      if (marker.file !== undefined && marker.adapter === undefined) {
         if (marker.include !== undefined) {
-          return error(node, `A resource can't include files; only a showcase's marker can have an "include" key`);
+          return error(node, `A virtual file with no showcase adapter can't include files; only a showcase's marker can have an "include" key`);
         }
-        if (!isValidVirtualFileName(marker.file)) {
-          return error(node, `Invalid resource name "${marker.file}": use a plain file name, with no "/" or "\\"`);
-        }
-        scan.virtualFiles.push({ path: virtualPath(marker.file), kind: 'resource', content: node.value ?? '', documentation: path, line: _line(node) });
+        scan.virtualFiles.push({ path: virtualPath(marker.file), named: true, content: node.value ?? '', documentation: path, line: _line(node) });
         return;
       }
-      // A code block showcase's entry point, with a generated name
+      // A code block showcase's entry point: named by the "file" key, with the extension its language gives, or with a generated name
       const extension = _EXTENSIONS[lang.toLowerCase()] ?? lang.toLowerCase();
+      if (marker.file !== undefined && !marker.file.endsWith(`.${extension}`)) {
+        return error(node, `The code block showcase's name "${marker.file}" must end in ".${extension}", the extension its language "${lang}" gives`);
+      }
       addShowcase(node, 'code-block', marker, (index) => {
-        const generated = `${stem}.showcase-${index}.${extension}`;
-        if (!isValidVirtualFileName(generated)) {
+        const name = marker.file ?? `${stem}.showcase-${index}.${extension}`;
+        if (!isValidVirtualFileName(name)) {
           error(node, `The code block's language "${lang}" can't be a file extension`);
           return undefined;
         }
-        scan.virtualFiles.push({ path: virtualPath(generated), kind: 'entry', content: node.value ?? '', documentation: path, line: _line(node) });
-        return virtualPath(generated);
+        scan.virtualFiles.push({
+          path: virtualPath(name),
+          named: marker.file !== undefined,
+          showcase: `${path}#${index}`,
+          content: node.value ?? '',
+          documentation: path,
+          line: _line(node),
+        });
+        return virtualPath(name);
       });
       return;
     }
@@ -542,7 +549,10 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
       const { marker, error: markerError } = parseShowcaseMarker(node.title!);
       if (!marker) return error(node, markerError);
       if (marker.file !== undefined) {
-        return error(node, `A showcase's entry point can't have a "file" key; a resource's marker is "showcase file=<name>", on a code block`);
+        return error(
+          node,
+          `A linked showcase can't have a "file" key: its entry point is a real file already; "file=<name>" names a code block's virtual file`,
+        );
       }
       if (marker.display === 'block') {
         const blockError = _checkBlockPlacement(node, ancestors);

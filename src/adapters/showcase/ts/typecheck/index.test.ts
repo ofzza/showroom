@@ -57,7 +57,7 @@ function _showcase(documentation: string, entry: string, options: unknown = { ty
  * @returns The virtual file
  */
 function _virtual(path: string, content: string): VirtualFile {
-  return { path, kind: 'entry', content, documentation: 'README.md', line: 10 };
+  return { path, named: false, content, documentation: 'README.md', line: 10 };
 }
 
 /**

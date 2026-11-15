@@ -26,8 +26,8 @@ async function _build(name: string) {
 }
 
 describe('showcases (integration)', () => {
-  // Builds the showcases of the `showcase-frames` fixture (html pages, a fragment including its folder's resource, a linked page including its
-  // stylesheet, a resource next to each, and a custom showcase adapter's page with assets) and of the `showcase-build-errors` fixture (a custom
+  // Builds the showcases of the `showcase-frames` fixture (html pages, a fragment including its folder's virtual file, a linked page including its
+  // stylesheet, a named virtual file and a named showcase next to each, and a custom showcase adapter's page with assets) and of the `showcase-build-errors` fixture (a custom
   // showcase adapter failing with errors, one throwing, one returning an invalid result, and a showcase that builds). The fixtures are only read;
   // the build's temporary folder is in the project's own OS temp folder.
 
@@ -35,7 +35,7 @@ describe('showcases (integration)', () => {
     const { frames, errors, issues, watched } = await _build('showcase-frames');
     expect(issues).toEqual([]);
     expect(errors.size).toBe(0);
-    expect([...frames.keys()]).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'docs/my notes #1.md#1']);
+    expect([...frames.keys()]).toEqual(['README.md#1', 'README.md#2', 'README.md#3', 'README.md#4', 'docs/my notes #1.md#1']);
     const script = `<script>${getFrameScript()}</script>`;
 
     // A code block showcase's page, the script after its head
@@ -46,19 +46,22 @@ describe('showcases (integration)', () => {
         path: 'index.html',
         content: `<!doctype html>\n<html><head><meta charset="utf-8">${script}<title>Page</title></head><body><p>A page</p></body></html>`,
       },
-      { path: 'fragment.js', content: "document.querySelector('.fragment').textContent += ', with a resource';" },
+      { path: 'fragment.js', content: "document.querySelector('.fragment').textContent += ', with a virtual file';" },
+      { path: 'extra.html', content: '<p>A named showcase</p>' },
     ]);
 
     // A fragment, wrapped
     expect(frames.get('README.md#2')!.files[0].content).toContain(`<head><meta charset="utf-8">${script}<meta name="viewport"`);
     expect(frames.get('README.md#2')!.files[0].content).toContain('<body><p class="fragment">A fragment</p><script src="./fragment.js"></script></body>');
-    // Including the resource of its own folder copies it once
-    expect(frames.get('README.md#2')!.files.map((file) => file.path)).toEqual(['index.html', 'fragment.js']);
+    // Including the named virtual file of its own folder copies it once
+    expect(frames.get('README.md#2')!.files.map((file) => file.path)).toEqual(['index.html', 'fragment.js', 'extra.html']);
+    // A named showcase's own frame holds it under its name too (D521, .workflow/SPEC-S12-showcase-views.md)
+    expect(frames.get('README.md#4')!.files.map((file) => file.path)).toEqual(['index.html', 'fragment.js', 'extra.html']);
 
     // A linked page, after its own charset, with its included stylesheet next to it, as it sits next to the page on disk
     const linked = frames.get('README.md#3')!;
     expect(linked.reads).toEqual(['demos/page.html', 'README.md', 'demos/page.css']);
-    expect(linked.files.map((file) => file.path)).toEqual(['index.html', 'fragment.js', 'page.css']);
+    expect(linked.files.map((file) => file.path)).toEqual(['index.html', 'fragment.js', 'extra.html', 'page.css']);
     expect(linked.files[0].content).toContain(`<meta charset="utf-8" />${script}`);
 
     // A custom showcase adapter's page given as bytes, with its assets

@@ -74,7 +74,7 @@ describe('app/markdown', () => {
     expect(html).toContain('<code>npm test</code>');
   });
 
-  it("Shows a resource's code block as any other, with no caption", () => {
+  it('Shows the code block of a virtual file with no showcase adapter as any other, with no caption', () => {
     // Included files name the files showcases use, in the code pane (D390, .workflow/SPEC-S10-presentation.md)
     const html = _render('```css showcase file=theme.css\nb { color: red; }\n```');
     expect(html).toMatch(/<pre [^>]*aria-hidden="true"[^>]*>1<\/pre>/);

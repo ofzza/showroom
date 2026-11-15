@@ -6,7 +6,7 @@
 ```html showcase=Html
 ```
 
-```html showcase=html file=a.html
+```html showcase=html file=a.htm
 ```
 
 ```css showcase file=a/b.css
@@ -23,3 +23,5 @@
 [ref]: ./linked.html "showcase"
 
 [a title](./linked.html "showcase of buttons")
+
+[f](./f.html "showcase file=f.html")
