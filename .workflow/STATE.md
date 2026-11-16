@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** _`P17`_ implemented (_`S13`_, the navigation); _`P1`_–_`P14`_, _`P15`_ (_`P15.1`_–_`P15.6`_) and _`P16`_ implemented (_`P16`_, linked showcases shown inline in the showcase sidebar, the last).
-- **Next free:** _`D653`_, _`S14`_, _`P18`_, _`O93`_, _`L15`_, _`R49`_, _`H1`_, _`K24`_
-- **Working on:** nothing planned; _`S13`_ is implemented (_`P17`_).
-- **Next step:** the user's choice of the next work (e.g. _`S6`_'s open points _`O16`_–_`O19`_, or a known open issue in `./.workflow/PLAN.md`).
+- **Next free:** _`D673`_, _`S14`_, _`P19`_, _`O94`_, _`L15`_, _`R50`_, _`H1`_, _`K24`_
+- **Working on:** _`P18`_, the documentation review's changes (approved), not started.
+- **Next step:** implement _`P18`_ (`./.workflow/PLAN-P18-documentation.md`), step 0 first.
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- The documentation review's triage: `./.workflow/.temp/review-docs/REVIEW.md` (fixes F1–F34, questions Q1–Q14, check C1, skips S1–S3; every item answered, outcomes at its end); delete it once the plan holds them, with the user's yes.
 - `./.workflow/.temp/questions-p17/` (its choices, recorded as _`D641`_–_`D649`_), `s13-format/`, `p17-format/`, `p17-check/`, `ci-p17.log`, `ci-p17-align.log`, `serve-dogfood-p17.log` and `serve-p17-check.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p16/` (its choices, recorded as _`D615`_–_`D626`_); ask before deleting it.
 - `./.workflow/.temp/p16-check/`, `p16-format/`, `ci-p16.log`, `serve-dogfood-p16.log`, `serve-p16-check.log`; ask before deleting them.
@@ -389,3 +390,7 @@
 - 2026-11-16: _`P17`_ approved (option chosen: "Approve and commit (Rec.)"), without a zero-context review.
 - 2026-11-16: _`P17`_ implemented (steps 1–7; _`D650`_, this repository's navigation trimmed to its documentation files; _`D651`_, details settled while implementing); `npm run ci` green (unit 1336, integration 24, e2e 18, serve 7); approved as implemented (option chosen: "Approve and commit (Rec.)").
 - 2026-11-16: fast path: the navigation's alignment and group spacing, and this repository's navigation titles (_`D652`_); `npm run ci` green (unit 1336, integration 24, e2e 18, serve 7); approved (option chosen: "Approve and commit (Rec.)").
+- 2026-11-16: Zero-context documentation review run (4 reviewers: coverage, implementor clarity, correctness and consistency, structure and readability). Stop and report: reviewer 4 ran `node -e 1` (no change); the user chose "Resume, keep findings". Stop and report: reviewer 1 tried to execute a missing `node_modules/.bin/false` (no change). The user chose "Resume, compile".
+- 2026-11-16: Documentation review triaged with the user: fixes F1–F34 accepted as a batch, Q1–Q14 and C1 answered (outcomes in `./.workflow/.temp/review-docs/REVIEW.md`).
+- 2026-11-16: _`P18`_ drafted (the documentation review's changes); its choices settled (_`D669`_–_`D672`_); _`D668`_ added to _`S13`_ (revision _`R49`_, pending re-approval), found planning (_`O93`_).
+- 2026-11-16: _`P18`_ approved, with _`S13`_'s revision _`R49`_ re-approved (option chosen: "Approve and commit (Rec.)").

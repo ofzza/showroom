@@ -199,7 +199,7 @@ approved 2026-11-15 (option chosen: "Approve and commit (Rec.)")
 
 ## _`S13`_ The navigation
 
-approved 2026-11-16 (option chosen: "Approve and commit (Rec.)")
+approved 2026-11-16 (option chosen: "Approve and commit (Rec.)"); revised 2026-11-16 (_`R49`_, SPEC-S13-navigation.md), re-approved 2026-11-16 with _`P18`_ (PLAN-P18-documentation.md) (option chosen: "Approve and commit (Rec.)")
 
 [See The navigation](./SPEC-S13-navigation.md)
 

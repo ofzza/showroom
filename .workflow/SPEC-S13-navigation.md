@@ -1,6 +1,8 @@
 # _`S13`_ The navigation
 
-implemented 2026-11-16 (_`P17`_); approved 2026-11-16 (option chosen: "Approve and commit (Rec.)"); the Glossary term "Navigation" accepted ("Add as proposed (Rec.)"), added with the implementation
+implemented 2026-11-16 (_`P17`_); approved 2026-11-16 (option chosen: "Approve and commit (Rec.)"); the Glossary term "Navigation" accepted ("Add as proposed (Rec.)"), added with the implementation; revised 2026-11-16 (_`R49`_), re-approved 2026-11-16 with _`P18`_ (option chosen: "Approve and commit (Rec.)")
+
+- _`R49`_ 2026-11-16: a documentation file listed again under another anchor is no longer warned about, and the item whose anchor the route names is the current one, caused by _`D668`_.
 
 Customizing the showroom's navigation from `showroom.json`: titles, grouping, order, and which documentation files it lists. From the user's proposal of 2026-11-16 (a `menu` property of `{ title, path?, subs? }` items: "If not present, will render the menu exactly as it is now"), discussed as a critique (Q1–Q13). Picks up _`L13`_ (PLAN.md).
 
@@ -21,7 +23,8 @@ Customizing the showroom's navigation from `showroom.json`: titles, grouping, or
 ### What the navigation leaves out, and `check`
 
 - _`D636`_ (`live`; Q3, option chosen: "Hidden, warned"; rejected: a placeable "rest" entry (the agent's recommendation), always appending them, and hiding them silently): **A documentation file the navigation doesn't list is hidden from it**, and never added to it; its page still opens when a link (from another documentation file) or its URL leads to it, with no item of the navigation highlighted (the user, on the draft: "Page opens, never listed"); `check` warns about each one.
-- _`D637`_ (`live`; Q8, option chosen: "Error / warnings (Rec.)"; rejected: all warnings, all errors): **`check` judges the navigation**: a `path` (with or without an anchor) leading to no documentation file is an error; a glob matching no documentation file (or only ones listed explicitly, _`D634`_), a documentation file listed twice (allowed: the first is highlighted as the current page), and an anchor leading to no heading of its file are warnings.
+- _`D637`_ (`live`, changed by _`D668`_; Q8, option chosen: "Error / warnings (Rec.)"; rejected: all warnings, all errors): **`check` judges the navigation**: a `path` (with or without an anchor) leading to no documentation file is an error; a glob matching no documentation file (or only ones listed explicitly, _`D634`_), a documentation file listed twice (allowed: the first is highlighted as the current page), and an anchor leading to no heading of its file are warnings.
+- _`D668`_ (`live`; changes _`D637`_; found planning _`P18`_ (PLAN-P18-documentation.md), _`O93`_ there, option chosen: "Change D637"; rejected: a URL item only, an anchor item in place of a page; and, for the current item, option chosen: "Matching anchor (Rec.)"; rejected: the first item staying current): **A documentation file may be listed again under another anchor**: `check` warns only about a page listed twice with the same anchor (or twice without one); the showroom highlights as current the item whose anchor the route names, else the page's first item without an anchor, else its first item.
 
 ### In the showroom
 
