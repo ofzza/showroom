@@ -1,18 +1,20 @@
 # `ticker`
 
 > A made-up React component library, and the `react` showcase adapter's example: this is how a host repository could document its React components with `showroom`. See [`README.md` › `react` showcases](../../README.md#react-showcases) for what a `react` showcase can do.
+>
+> This example is part of this repository's own showroom: see its showcases running in [the published showroom](https://ofzza.github.io/showroom/#/examples/react/README.md), or preview it from a clone of this repository with `npm ci`, then `npm start -- serve`, at its root. Read anywhere else (e.g. on GitHub), each showcase is only its code block or its link.
 
-`ticker` counts and times: a stopwatch, counters stepping between bounds, and a hook following the theme. Its files are real ones, in [`src/`](./src/Stopwatch.tsx), type checked with this folder's own [`tsconfig.json`](./tsconfig.json), the nearest one to this documentation file. It is rendered with this repository's own React.
+`ticker` counts and times: a stopwatch, counters stepping between bounds, and a hook following the theme. Its files are real ones, in `src/` (e.g. [`Stopwatch.tsx`](./src/Stopwatch.tsx)), type checked with this folder's own [`tsconfig.json`](./tsconfig.json), the nearest one to this documentation file. It is rendered with this repository's own React.
 
 ## A stopwatch
 
-A linked showcase, shown as a block beside its code: [`demo/Stopwatch.tsx`](./demo/Stopwatch.tsx) imports the library like any module would, and its default export is the component the showcase frame renders.
+A linked showcase, shown as a block, its code a click away: [`demo/Stopwatch.tsx`](./demo/Stopwatch.tsx) imports the library like any module would, and its default export is the component the showcase frame renders.
 
 [A stopwatch](./demo/Stopwatch.tsx 'showcase=react block include=markdown')
 
 ## Counters
 
-A code block showcase, importing the library by relative paths from this documentation file's folder. Its props set each counter's start, step and bounds; what it logs fades in at the bottom of its showcase frame, and the counter in its corner opens the console panel.
+A code block showcase, importing the library by relative paths from this documentation file's folder. Its props set each counter's start, step and bounds; what it logs fades in at the bottom of its showcase frame, and the console panel's counter, in the showcase frame's bottom-right corner, opens it.
 
 ```tsx showcase=react include=markdown
 import { Counter } from './src/Counter.js';

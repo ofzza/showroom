@@ -28,6 +28,10 @@ export type ShownNavigationItem =
        */
       route: string;
       /**
+       * The heading id the item leads to, if any, to tell which of a page's items is the current one
+       */
+      anchor?: string;
+      /**
        * POSIX-style path of the item's documentation file (the root `README`'s for the home page, if there is one), shown as its tooltip
        */
       path?: string;
@@ -84,6 +88,7 @@ export function getNavigationItems(documentation: DocumentationFile[], navigatio
     label,
     href: formatRoute(undefined, anchor),
     route: formatRoute(),
+    ...(anchor !== undefined ? { anchor } : {}),
     ...(rootReadme ? { path: rootReadme.path } : {}),
   });
   const page = (label: string, path: string, anchor?: string): ShownNavigationItem => ({
@@ -91,6 +96,7 @@ export function getNavigationItems(documentation: DocumentationFile[], navigatio
     label,
     href: formatRoute(path, anchor),
     route: formatRoute(path),
+    ...(anchor !== undefined ? { anchor } : {}),
     path,
   });
   if (navigation) {
@@ -117,26 +123,41 @@ export function getNavigationItems(documentation: DocumentationFile[], navigatio
 }
 
 /**
- * Checks if a navigation item is, or holds, the current page's item
- * @param item A navigation item
+ * Gets the current item of the navigation: of the page shown's items, the one whose anchor the route names, else the first without an anchor, else
+ * the first
+ * @param items The navigation items
  * @param current URL hash of the page shown, without its anchor, or undefined if no item is
- * @returns True if the item is the current page's, or a group holding it
+ * @param anchor The route's anchor, if it has one
+ * @returns URL hash the current item leads to, or undefined if no item is the page shown's
+ */
+export function getCurrentItemHref(items: ShownNavigationItem[], current: string | undefined, anchor?: string): string | undefined {
+  if (current === undefined) return undefined;
+  const flatten = (list: ShownNavigationItem[]): Extract<ShownNavigationItem, { kind: 'page' }>[] =>
+    list.flatMap((item) => (item.kind === 'group' ? flatten(item.items) : item.kind === 'page' && item.route === current ? [item] : []));
+  const pages = flatten(items);
+  const item = (anchor !== undefined ? pages.find((page) => page.anchor === anchor) : undefined) ?? pages.find((page) => page.anchor === undefined) ?? pages[0];
+  return item?.href;
+}
+
+/**
+ * Checks if a navigation item is, or holds, the current item
+ * @param item A navigation item
+ * @param current URL hash the current item leads to (getCurrentItemHref()), or undefined if no item is
+ * @returns True if the item is the current one, or a group holding it
  */
 export function holdsCurrentItem(item: ShownNavigationItem, current: string | undefined): boolean {
   if (current === undefined) return false;
   if (item.kind === 'group') return item.items.some((child) => holdsCurrentItem(child, current));
-  return item.kind === 'page' && item.route === current;
+  return item.kind === 'page' && item.href === current;
 }
 
 /**
- * Checks if a navigation group is expanded: it is, unless it was collapsed, and expands again once the page shown changes to one of its items
+ * Checks if a navigation group is expanded: it is, unless it was collapsed, and expands again once the current item changes to one of its items
  * @param group The group
- * @param collapsedOn URL hash of the page shown when the group was collapsed (in an object, as it can be undefined), or null if it wasn't
- * @param current URL hash of the page shown, without its anchor, or undefined if no item is
+ * @param collapsedOn URL hash the current item led to when the group was collapsed (in an object, as it can be undefined), or null if it wasn't
+ * @param current URL hash the current item leads to (getCurrentItemHref()), or undefined if no item is
  * @returns True if the group is expanded
  */
 export function isNavigationGroupExpanded(group: ShownNavigationItem, collapsedOn: { page?: string } | null, current: string | undefined): boolean {
   return collapsedOn === null || (holdsCurrentItem(group, current) && collapsedOn.page !== current);
 }
-
-// #endregion

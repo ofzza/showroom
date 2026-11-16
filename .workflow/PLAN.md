@@ -298,7 +298,7 @@ None (_`D61`_).
 
 ## Documentation
 
-- _`P18`_ The documentation review's changes (approved 2026-11-16): the outcomes of the 2026-11-16 documentation review (README.md, CONTRIBUTE.md, PUBLISH.md, the examples, a new CHANGELOG.md), and _`D668`_ (SPEC-S13-navigation.md), a documentation file listed again under another anchor. [See The documentation review's changes](./PLAN-P18-documentation.md)
+- _`P18`_ The documentation review's changes (implemented 2026-11-16; approved 2026-11-16): the outcomes of the 2026-11-16 documentation review (README.md, CONTRIBUTE.md, PUBLISH.md, the examples, a new CHANGELOG.md), and _`D668`_ (SPEC-S13-navigation.md), a documentation file listed again under another anchor. [See The documentation review's changes](./PLAN-P18-documentation.md)
 
 ## Known open issues
 

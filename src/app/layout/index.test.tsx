@@ -40,13 +40,14 @@ const _GROUPED: ShownNavigationItem[] = [
  * @param current URL hash of the page shown
  * @param theme Name of the theme in use
  * @param navigation Navigation items
+ * @param anchor The route's anchor
  * @returns The rendered HTML, without the empty comments React puts between adjacent text nodes
  */
-function _render(project: ProjectInformation, current?: string, theme: ThemeName = 'light', navigation = _NAVIGATION): string {
+function _render(project: ProjectInformation, current?: string, theme: ThemeName = 'light', navigation = _NAVIGATION, anchor?: string): string {
   return renderToString(
     <SSRProvider>
       <FluentProvider theme={webLightTheme}>
-        <Layout project={project} navigation={navigation} current={current} theme={theme} onThemeChange={() => undefined}>
+        <Layout project={project} navigation={navigation} current={current} anchor={anchor} theme={theme} onThemeChange={() => undefined}>
           <p>The page</p>
         </Layout>
       </FluentProvider>
@@ -92,6 +93,18 @@ describe('app/layout', () => {
   it("Marks a page by its route, whatever its item's anchor", () => {
     const html = _render({ name: 'p' }, '#/docs/guide.md', 'light', _GROUPED);
     expect(html).toMatch(/<a [^>]*aria-current="page"[^>]*>Install<\/a>/);
+  });
+
+  it("Marks only the item whose anchor the route names, of a page's items", () => {
+    // See D668 (SPEC-S13-navigation.md)
+    const navigation: ShownNavigationItem[] = [
+      { kind: 'page', label: 'Overview', href: '#/', route: '#/' },
+      { kind: 'page', label: 'Usage', href: '#/#usage', route: '#/', anchor: 'usage' },
+    ];
+    const html = _render({ name: 'p' }, '#/', 'light', navigation, 'usage');
+    expect(html).toMatch(/<a [^>]*aria-current="page"[^>]*>Usage<\/a>/);
+    expect(html.match(/aria-current/g)).toHaveLength(1);
+    expect(_render({ name: 'p' }, '#/', 'light', navigation)).toMatch(/<a [^>]*aria-current="page"[^>]*>Overview<\/a>/);
   });
 
   it('Opens a URL in a new tab', () => {

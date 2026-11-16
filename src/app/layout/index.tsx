@@ -20,7 +20,7 @@ import {
 } from '@fluentui/react-components';
 import { ChevronDown16Regular, ChevronRight16Regular, Dismiss24Regular, Navigation24Regular } from '@fluentui/react-icons';
 import type { ProjectInformation } from '../../host/index.js';
-import { isNavigationGroupExpanded, type ShownNavigationItem } from '../navigation/index.js';
+import { getCurrentItemHref, isNavigationGroupExpanded, type ShownNavigationItem } from '../navigation/index.js';
 import { formatRoute } from '../routing/index.js';
 import type { ThemeName } from '../theme/index.js';
 
@@ -140,7 +140,7 @@ interface _NavigationProps {
    */
   navigation: ShownNavigationItem[];
   /**
-   * URL hash of the page shown, or undefined if no item is
+   * URL hash the current item leads to (getCurrentItemHref()), or undefined if no item is
    */
   current?: string;
   /**
@@ -183,8 +183,8 @@ function _NavigationList({ navigation, current, onNavigate, className }: _Naviga
             <Link
               href={item.href}
               title={item.path}
-              className={mergeClasses(styles.item, item.route === current && styles.current)}
-              aria-current={item.route === current ? 'page' : undefined}
+              className={mergeClasses(styles.item, item.href === current && styles.current)}
+              aria-current={item.href === current ? 'page' : undefined}
               onClick={onNavigate}
             >
               {item.label}
@@ -205,7 +205,7 @@ export interface NavigationGroupProps {
    */
   group: Extract<ShownNavigationItem, { kind: 'group' }>;
   /**
-   * URL hash of the page shown, or undefined if no item is
+   * URL hash the current item leads to (getCurrentItemHref()), or undefined if no item is
    */
   current?: string;
   /**
@@ -216,13 +216,13 @@ export interface NavigationGroupProps {
 
 /**
  * Renders a navigation group: its caption, a button collapsing and expanding it, and its items, indented. It starts expanded, and expands again
- * whenever the page shown changes to one of its items; collapsing it keeps it collapsed until then
+ * whenever the current item changes to one of its items; collapsing it keeps it collapsed until then
  * @param props Properties of the component
  * @returns The rendered group
  */
 export function NavigationGroup({ group, current, onNavigate }: NavigationGroupProps): ReactNode {
   const styles = _useStyles();
-  // The page shown when the group was collapsed, or null while it is expanded (no effect needed: it is derived on rendering)
+  // The current item when the group was collapsed, or null while it is expanded (no effect needed: it is derived on rendering)
   const [collapsedOn, setCollapsedOn] = useState<{ page?: string } | null>(null);
   const expanded = isNavigationGroupExpanded(group, collapsedOn, current);
   return (
@@ -262,6 +262,10 @@ export interface LayoutProps {
    */
   current?: string;
   /**
+   * The route's anchor, if it has one, to tell which of the page's navigation items is the current one
+   */
+  anchor?: string;
+  /**
    * Name of the theme in use
    */
   theme: ThemeName;
@@ -280,8 +284,9 @@ export interface LayoutProps {
  * @param props Properties of the component
  * @returns The rendered layout
  */
-export function Layout({ project, navigation, current, theme, onThemeChange, children }: LayoutProps): ReactNode {
+export function Layout({ project, navigation, current, anchor, theme, onThemeChange, children }: LayoutProps): ReactNode {
   const styles = _useStyles();
+  const currentItem = getCurrentItemHref(navigation, current, anchor);
   // The overlay navigation is open on the page it was opened on: showing another page, however it was reached, closes it
   const [openOn, setOpenOn] = useState<{ page?: string } | undefined>(undefined);
   const menuOpen = openOn !== undefined && openOn.page === current;
@@ -317,7 +322,7 @@ export function Layout({ project, navigation, current, theme, onThemeChange, chi
       <div className={styles.body}>
         <InlineDrawer open separator size="small" className={styles.drawer}>
           <DrawerBody>
-            <_Navigation navigation={navigation} current={current} />
+            <_Navigation navigation={navigation} current={currentItem} />
           </DrawerBody>
         </InlineDrawer>
         <OverlayDrawer open={menuOpen} onOpenChange={(_event, data) => setMenuOpen(data.open)}>
@@ -329,7 +334,7 @@ export function Layout({ project, navigation, current, theme, onThemeChange, chi
             </DrawerHeaderTitle>
           </DrawerHeader>
           <DrawerBody>
-            <_Navigation navigation={navigation} current={current} onNavigate={() => setMenuOpen(false)} />
+            <_Navigation navigation={navigation} current={currentItem} onNavigate={() => setMenuOpen(false)} />
           </DrawerBody>
         </OverlayDrawer>
         <main className={styles.main}>{children}</main>

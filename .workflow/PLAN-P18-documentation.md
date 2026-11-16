@@ -1,6 +1,6 @@
 # _`P18`_ The documentation review's changes
 
-approved 2026-11-16 (option chosen: "Approve and commit (Rec.)"), with _`S13`_'s revision _`R49`_
+implemented 2026-11-16 (option chosen: "Approve and commit (Rec.)"); approved 2026-11-16 (option chosen: "Approve and commit (Rec.)"), with _`S13`_'s revision _`R49`_
 
 Applies the outcomes of the zero-context documentation review of 2026-11-16 (four reviewers: coverage, implementor clarity, correctness and consistency, structure and readability) to `README.md`, `CONTRIBUTE.md`, `PUBLISH.md`, `examples/*/README.md` and their files, a new `CHANGELOG.md`, and this repository's `showroom.json`; and implements _`D668`_ (SPEC-S13-navigation.md), the one behaviour change, found planning it (_`O93`_). One segment (_`D669`_). The review's record, with every finding (`F1`–`F34`, `Q1`–`Q14`), is `./.workflow/.temp/review-docs/REVIEW.md` until this segment holds its outcomes.
 
@@ -26,6 +26,10 @@ Applies the outcomes of the zero-context documentation review of 2026-11-16 (fou
 - _`D670`_ (`live`; refines _`D658`_; option chosen: "Documentation file (Rec.)"; rejected: a linked file only): **`CHANGELOG.md` is a documentation file of this repository** (`showroom.json`'s `documentation` lists it) and a navigation item, "Changelog", before "License"; it isn't added to `package.json`'s `files`.
 - _`D671`_ (`live`; refines _`D662`_; option chosen: "Usage group"; rejected: flat anchor items, the agent's recommendation): **This repository's navigation**: a group "Usage" holding "Overview" (`/`), "Quick start" (`/#quick-start`), "Showcases" (`/#showcases`) and "Troubleshooting" (`/#troubleshooting`); the group "Examples" as it is; "Contributing", "Changelog", "License"; and "npm" (`https://www.npmjs.com/package/@ofzza/showroom`).
 - _`D672`_ (`live`; refines _`D655`_; option chosen: "This outline (Rec.)"; rejected: the configuration's sections after the showcases'): **`README.md`'s outline**: the title, pitch and published showroom's link; `# Get showroom` (with the Node versions); `# Quick start`; `# Usage`: How it works, Configuration, Patterns, Documentation files, Navigation, Stack adapters, Showcases (`### Cheat-sheet`, then its sections as now), Custom showcase adapters (and Developing one), Linked files (`### The showcase sidebar`), The showroom, `showroom check`, `showroom serve`, `showroom build`, Publishing to GitHub Pages, Troubleshooting, API; `# Development`; `# Contributing`.
+
+- _`D673`_ (`live`; refines _`D658`_; at the checkpoint, option chosen: "Keep all (Rec.)"; rejected: only `build()`'s change): **`CHANGELOG.md`'s Unreleased entry lists every break since `0.1.0-alpha.1`** (`build()`'s result, `VirtualFile`'s `kind`, `exposeShowcaseMarkdownSyntax`, linked showcases shown inline) and the additions since.
+- _`D674`_ (`live`; at the checkpoint, option chosen: "Add the row (Rec.)"; rejected: updating it at publish time only): **`AGENTS.md`'s triggers**: a user-visible change adds an entry under `CHANGELOG.md`'s `## Unreleased`.
+- _`D675`_ (`live`; refines F20; at the checkpoint, option chosen: "Keep it (Rec.)"; rejected: a bullet only, the sample identical to this repository's workflow): **The GitHub Pages example builds the host first** (`npm run build --if-present`); this repository's workflow doesn't need it (`npm ci`'s `prepare` builds), which `README.md` and `AGENTS.md` say.
 
 ## Open points
 

@@ -8,6 +8,7 @@
     { "path": "docs/a.md" },
     { "path": "guides/*.md" },
     { "title": "Empty", "items": [{ "path": "docs/a*.md" }] },
-    { "path": "/#usage" }
+    { "path": "/#usage" },
+    { "path": "docs/a.md" }
   ]
 }

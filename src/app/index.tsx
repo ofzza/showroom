@@ -121,7 +121,7 @@ export function App({ data, issues = _NO_ISSUES, route, theme: initialTheme }: A
   return (
     <FluentProvider theme={getTheme(theme)}>
       <ThemeContext.Provider value={theme}>
-        <Layout project={data.project} navigation={navigation} current={current} theme={theme} onThemeChange={onThemeChange}>
+        <Layout project={data.project} navigation={navigation} current={current} anchor={anchor} theme={theme} onThemeChange={onThemeChange}>
           <IssuesBar issues={issues} />
           {page}
         </Layout>

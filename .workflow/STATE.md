@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** _`P17`_ implemented (_`S13`_, the navigation); _`P1`_–_`P14`_, _`P15`_ (_`P15.1`_–_`P15.6`_) and _`P16`_ implemented (_`P16`_, linked showcases shown inline in the showcase sidebar, the last).
-- **Next free:** _`D673`_, _`S14`_, _`P19`_, _`O94`_, _`L15`_, _`R50`_, _`H1`_, _`K24`_
-- **Working on:** _`P18`_, the documentation review's changes (approved), not started.
-- **Next step:** implement _`P18`_ (`./.workflow/PLAN-P18-documentation.md`), step 0 first.
+- **Stage:** _`P18`_ implemented (the documentation review's changes, and _`D668`_ (SPEC-S13-navigation.md)); _`P1`_–_`P17`_ implemented before it.
+- **Next free:** _`D676`_, _`S14`_, _`P19`_, _`O94`_, _`L15`_, _`R50`_, _`H1`_, _`K24`_
+- **Working on:** nothing planned; _`P18`_ is implemented.
+- **Next step:** the user's choice of the next work (e.g. _`S6`_'s open points _`O16`_–_`O19`_, or a known open issue in `./.workflow/PLAN.md`).
 
 ## Open questions
 
@@ -13,7 +13,7 @@
 
 ## Waiting on me
 
-- The documentation review's triage: `./.workflow/.temp/review-docs/REVIEW.md` (fixes F1–F34, questions Q1–Q14, check C1, skips S1–S3; every item answered, outcomes at its end); delete it once the plan holds them, with the user's yes.
+- `./.workflow/.temp/review-docs/` (the review's record, its outcomes now in _`P18`_), `p18-drafts/` (the subagents' drafts, applied), `p18-readme-ts/`, `ci-p18.log` and `serve-dogfood-p18.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p17/` (its choices, recorded as _`D641`_–_`D649`_), `s13-format/`, `p17-format/`, `p17-check/`, `ci-p17.log`, `ci-p17-align.log`, `serve-dogfood-p17.log` and `serve-p17-check.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p16/` (its choices, recorded as _`D615`_–_`D626`_); ask before deleting it.
 - `./.workflow/.temp/p16-check/`, `p16-format/`, `ci-p16.log`, `serve-dogfood-p16.log`, `serve-p16-check.log`; ask before deleting them.
@@ -394,3 +394,7 @@
 - 2026-11-16: Documentation review triaged with the user: fixes F1–F34 accepted as a batch, Q1–Q14 and C1 answered (outcomes in `./.workflow/.temp/review-docs/REVIEW.md`).
 - 2026-11-16: _`P18`_ drafted (the documentation review's changes); its choices settled (_`D669`_–_`D672`_); _`D668`_ added to _`S13`_ (revision _`R49`_, pending re-approval), found planning (_`O93`_).
 - 2026-11-16: _`P18`_ approved, with _`S13`_'s revision _`R49`_ re-approved (option chosen: "Approve and commit (Rec.)").
+- 2026-11-16: Stop and report: _`P18`_ drafting subagent C ran `git status`, outside its command allowlist (no change); the user chose "Resume, keep C's drafts".
+- 2026-11-16: Stop and report: _`P18`_ drafting subagent A ran `md5sum`, outside its command allowlist (no change); the user chose "Resume, use A's draft".
+- 2026-11-16: _`P18`_ implemented: `npm run ci` green (unit 1344, integration 24, e2e 18, serve 7); checkpoint approved (option chosen: "Approve and commit (Rec.)"), with _`D673`_–_`D675`_.
+- 2026-11-16: Stop and report: stopping _`P18`_'s dogfooding `serve` with a `pkill` pattern also stopped an earlier dogfooding `serve` of this session (no file changed); the user chose "Resume, commit".

@@ -1,11 +1,20 @@
 {
   "stack": "typescript",
   "ignore": [".workflow/*", "test/*"],
+  "documentation": ["CHANGELOG.md"],
   "customShowcaseAdapters": {
     "number-table": "./examples/number-table/number-table.js"
   },
   "navigation": [
-    { "title": "Usage", "path": "/" },
+    {
+      "title": "Usage",
+      "items": [
+        { "title": "Overview", "path": "/" },
+        { "title": "Quick start", "path": "/#quick-start" },
+        { "title": "Showcases", "path": "/#showcases" },
+        { "title": "Troubleshooting", "path": "/#troubleshooting" }
+      ]
+    },
     {
       "title": "Examples",
       "items": [
@@ -17,6 +26,8 @@
       ]
     },
     { "title": "Contributing", "path": "CONTRIBUTE.md" },
-    { "title": "License", "path": "LICENSE.md" }
+    { "title": "Changelog", "path": "CHANGELOG.md" },
+    { "title": "License", "path": "LICENSE.md" },
+    { "title": "npm", "path": "https://www.npmjs.com/package/@ofzza/showroom" }
   ]
 }

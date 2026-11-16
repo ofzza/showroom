@@ -1,18 +1,20 @@
 # `numerals`
 
 > A made-up CSS library, and the `html` showcase adapter's example: this is how a host repository could document its HTML and CSS with `showroom`. See [`README.md` › Showcases](../../README.md#showcases) for how showcases are written.
+>
+> This example is part of this repository's own showroom: see its showcases running in [the published showroom](https://ofzza.github.io/showroom/#/examples/html/README.md), or preview it from a clone of this repository with `npm ci`, then `npm start -- serve`, at its root. Read anywhere else (e.g. on GitHub), each showcase is only its code block or its link.
 
 `numerals` makes numbers people enjoy reading: aligned in tables, grouped into thousands, playful, or glowing like an old clock radio.
 
 ## A 7-segment clock
 
-A page of its own, linked as a showcase shown as a block, beside its code. It needs nothing else: its styles and script are inline, as an `html` showcase follows no files.
+A page of its own, linked as a showcase shown as a block, its code a click away. It needs nothing else: its styles and script are inline, as an `html` showcase follows none of its page's references.
 
 [A 7-segment clock](./clock.html 'showcase block include=markdown')
 
 ## The stylesheet
 
-`numerals` is a single stylesheet. Here it is as a virtual file, `showcase file=numerals.css`, which every `html` showcase in this folder can link as `./numerals.css`. The `html` showcase adapter copies only the virtual files named by `file=` next to a showcase's page, never real files, so a library meant for `html` showcases lives in its documentation as a virtual file.
+`numerals` is a single stylesheet. Here it is as a virtual file, `showcase file=numerals.css`, which every `html` showcase in this folder can link as `./numerals.css`. The `html` showcase adapter copies next to a showcase's page every virtual file of its documentation file's folder named by `file=`, and the showcase's included files (`include=`), but never follows what the page links, so a library meant for `html` showcases lives in its documentation as a virtual file, or as a real file every showcase using it includes.
 
 ```css showcase file=numerals.css
 .tabular {
@@ -122,3 +124,11 @@ Proportional figures (the default in most fonts) give each digit its own width, 
 <p><span class="big tabular">42</span> answers</p>
 <p><span class="lcd tabular">3.1415926</span></p>
 ```
+
+## A digit as an image
+
+Not every picture needs a showcase. [`seven.svg`](./seven.svg), a seven-segment 7 drawn by hand, is an ordinary image in this documentation file, by a relative path:
+
+![A seven-segment 7](./seven.svg)
+
+A relative image is a [linked file](../../README.md#linked-files): the showroom shows it from the file itself, which `showroom serve` serves and `showroom build` copies into the output folder, as every linked file; there is no showcase frame and no code pane, and GitHub shows it the same way.

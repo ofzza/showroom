@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 104" width="64" height="104" role="img" aria-labelledby="title">
+  <title id="title">A seven-segment 7</title>
+  <rect width="64" height="104" rx="8" fill="#1f2328" />
+  <g fill="#ff5c5c">
+    <!-- Off: f, g, e, d -->
+    <g opacity="0.12">
+      <rect x="10" y="17" width="8" height="32" rx="3" />
+      <rect x="16" y="48" width="32" height="8" rx="3" />
+      <rect x="10" y="55" width="8" height="32" rx="3" />
+      <rect x="16" y="86" width="32" height="8" rx="3" />
+    </g>
+    <!-- On: a, b, c -->
+    <rect x="16" y="10" width="32" height="8" rx="3" />
+    <rect x="46" y="17" width="8" height="32" rx="3" />
+    <rect x="46" y="55" width="8" height="32" rx="3" />
+  </g>
+</svg>

@@ -652,10 +652,10 @@ describe('cli/check', () => {
       expect(issues).toEqual([
         { severity: 'error', message: '"navigation" item 1: "docs/missing.md" is not a documentation file', path: 'showroom.json' },
         { severity: 'warning', message: '"navigation" item 2: "docs/a.md" has no heading "#nowhere"', path: 'showroom.json' },
-        { severity: 'warning', message: '"navigation" item 3: "docs/a.md" is listed more than once', path: 'showroom.json' },
         { severity: 'warning', message: `"navigation" item 4: "guides/*.md" ${unmatched}`, path: 'showroom.json' },
         { severity: 'warning', message: `"navigation" item 5.1: "docs/a*.md" ${unmatched}`, path: 'showroom.json' },
         { severity: 'warning', message: '"navigation" item 6: "/" has no heading "#usage"', path: 'showroom.json' },
+        { severity: 'warning', message: '"navigation" item 7: "docs/a.md" is listed more than once', path: 'showroom.json' },
         { severity: 'warning', message: left, path: 'LICENSE' },
         { severity: 'warning', message: left, path: 'docs/b.md' },
       ]);

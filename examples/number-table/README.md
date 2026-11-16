@@ -1,6 +1,8 @@
 # `number-table`
 
 > A custom showcase adapter, and the custom showcase adapter example: this is how a host repository can bring its own showcase adapter to `showroom`. See [`README.md` › Custom showcase adapters](../../README.md#custom-showcase-adapters-experimental) for the interface it implements, which is experimental.
+>
+> This example is part of this repository's own showroom: see its showcases running in [the published showroom](https://ofzza.github.io/showroom/#/examples/number-table/README.md), or preview it from a clone of this repository with `npm ci`, then `npm start -- serve`, at its root. Read anywhere else (e.g. on GitHub), each showcase is only its code block or its link.
 
 `number-table` shows a JSON array of rows as a table, its numbers right-aligned, with tabular figures, and formatted for a language. It is a single JavaScript module, [`number-table.js`](./number-table.js), with no dependencies, which this repository lists in its own `showroom.json`:
 
@@ -14,7 +16,7 @@ Every `showroom check` of this repository loads it, and its showcases name it in
 
 ## Planets
 
-A linked showcase, shown as a block beside its code: [`planets.json`](./planets.json), a real file, with a caption.
+A linked showcase, shown as a block, its code a click away: [`planets.json`](./planets.json), a real file, with a caption.
 
 [The planets](./planets.json 'showcase=number-table({ caption: "The planets" }) block include=markdown')
 
@@ -41,9 +43,12 @@ A linked showcase, shown as a block beside its code: [`planets.json`](./planets.
 
 `build()` returns issues: errors, failing the showcase, and warnings, failing nothing. An error of the build itself means there are no files; a showcase adapter running checks of its own (e.g. a type check) lists them in `checks`, and names the check of each of their issues, whose errors leave the files usable. `number-table` runs none. They can't be shown live here, as this repository's own check must pass without any. This block, with an unquoted property name:
 
+<!-- prettier-ignore -->
 ````md
 ```json showcase=number-table
-[{ "planet": "Mercury", "moons": 0 }]
+[
+  { planet: "Mercury", "moons": 0 }
+]
 ```
 ````
 

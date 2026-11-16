@@ -1,18 +1,20 @@
 # `tock`
 
 > A made-up Angular component library, and the `angular` showcase adapter's example: this is how a host repository could document its Angular components with `showroom`. See [`README.md` › `angular` showcases](../../README.md#angular-showcases) for what an `angular` showcase can do.
+>
+> This example is part of this repository's own showroom: see its showcases running in [the published showroom](https://ofzza.github.io/showroom/#/examples/angular/README.md), or preview it from a clone of this repository with `npm ci`, then `npm start -- serve`, at its root. Read anywhere else (e.g. on GitHub), each showcase is only its code block or its link.
 
-`tock` counts and times, as the [`react` example](../react/README.md)'s `ticker` does, the Angular way: a stopwatch, counters stepping between bounds, and a service following the theme, all standalone components and signals. Its files are real ones, in [`src/`](./src/stopwatch.component.ts), type checked with this folder's own [`tsconfig.json`](./tsconfig.json), the nearest one to this documentation file, whose `angularCompilerOptions` check templates strictly (`strictTemplates`). It is compiled with this repository's own Angular, and runs zoneless, as Angular does by default.
+`tock` counts and times, as the [`react` example](../react/README.md)'s `ticker` does, the Angular way: a stopwatch, counters stepping between bounds, and a service following the theme, all standalone components and signals. Its files are real ones, in `src/` (e.g. [`stopwatch.component.ts`](./src/stopwatch.component.ts)), type checked with this folder's own [`tsconfig.json`](./tsconfig.json), the nearest one to this documentation file, whose `angularCompilerOptions` check templates strictly (`strictTemplates`). It is compiled with this repository's own Angular, and runs zoneless, as Angular does by default.
 
 ## A stopwatch
 
-A linked showcase, shown as a block beside its code: [`demo/stopwatch.ts`](./demo/stopwatch.ts) imports the library like any module would, and its default export is the standalone component the showcase frame creates. The stopwatch keeps its template and styles in files of their own, [`stopwatch.component.html`](./src/stopwatch.component.html) and [`stopwatch.component.css`](./src/stopwatch.component.css), which Angular's compiler reads.
+A linked showcase, shown as a block, its code a click away: [`demo/stopwatch.ts`](./demo/stopwatch.ts) imports the library like any module would, and its default export is the standalone component the showcase frame creates. The stopwatch keeps its template and styles in files of their own, [`stopwatch.component.html`](./src/stopwatch.component.html) and [`stopwatch.component.css`](./src/stopwatch.component.css), which Angular's compiler reads. Its marker includes both (`include=markdown,./src/stopwatch.component.html,./src/stopwatch.component.css`), so its code pane shows them as tabs of their own, after its Markdown and its entry point's code.
 
-[A stopwatch](./demo/stopwatch.ts 'showcase=angular block include=markdown')
+[A stopwatch](./demo/stopwatch.ts 'showcase=angular block include=markdown,./src/stopwatch.component.html,./src/stopwatch.component.css')
 
 ## Counters
 
-A code block showcase, importing the library by relative paths from this documentation file's folder. Its signal inputs set each counter's start, step and bounds, and its `changed` output logs to the console: what it logs fades in at the bottom of its showcase frame, and the counter in its corner opens the console panel.
+A code block showcase, importing the library by relative paths from this documentation file's folder. Its signal inputs set each counter's start, step and bounds, and its `changed` output logs to the console: what it logs fades in at the bottom of its showcase frame, and the console panel's counter, in the showcase frame's bottom-right corner, opens it.
 
 ```ts showcase=angular include=markdown
 import { Component } from '@angular/core';

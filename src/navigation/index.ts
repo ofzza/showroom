@@ -135,11 +135,18 @@ export function resolveNavigation(entries: readonly NavigationEntry[], host: Nav
 
   // The items, in order
   const listed = new Set<string>();
+  const listings = new Set<string>();
   const page = (file: DocumentationFile | 'home', at: string, title?: string, anchor?: string): NavigationItem => {
     const key = keyOf(file);
     const target = file === 'home' ? rootReadme : file;
     const name = file === 'home' ? NAVIGATION_HOME_PATH : file.path;
-    if (listed.has(key)) issues.push({ severity: 'warning', message: `"navigation" item ${at}: "${name}" is listed more than once` });
+    // A page listed again under another anchor is no duplicate; the same page and anchor twice (or twice without one) is
+    const listing = `${key}#${anchor ?? ''}`;
+    if (listings.has(listing)) {
+      const shown = anchor !== undefined ? `${name}#${anchor}` : name;
+      issues.push({ severity: 'warning', message: `"navigation" item ${at}: "${shown}" is listed more than once` });
+    }
+    listings.add(listing);
     listed.add(key);
     if (anchor !== undefined && !(target && headingIds.get(target.path)?.includes(anchor))) {
       issues.push({ severity: 'warning', message: `"navigation" item ${at}: "${name}" has no heading "#${anchor}"` });

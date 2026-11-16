@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import type { DocumentationFile, NavigationItem } from '../../host/index.js';
-import { getNavigationItems, holdsCurrentItem, isNavigationGroupExpanded, type ShownNavigationItem } from './index.js';
+import { getCurrentItemHref, getNavigationItems, holdsCurrentItem, isNavigationGroupExpanded, type ShownNavigationItem } from './index.js';
 
 /**
  * Creates a documentation file with empty content
@@ -78,7 +78,7 @@ describe('app/navigation', () => {
         { kind: 'url', label: 'npm', url: 'https://npmjs.com' },
       ];
       expect(getNavigationItems([_file('README.md', 'readme')], navigation)).toEqual([
-        { kind: 'page', label: 'Home', href: '#/#usage', route: '#/', path: 'README.md' },
+        { kind: 'page', label: 'Home', href: '#/#usage', route: '#/', anchor: 'usage', path: 'README.md' },
         {
           kind: 'group',
           label: 'Docs',
@@ -104,20 +104,37 @@ describe('app/navigation', () => {
       items: [{ kind: 'group', label: 'Deeper', items: [{ kind: 'page', label: 'Guide', href: '#/a.md#x', route: '#/a.md', path: 'a.md' }] }],
     };
 
-    it('Finds the current item in nested groups, by route', () => {
-      expect(holdsCurrentItem(group, '#/a.md')).toBe(true);
+    it('Finds the current item in nested groups, by the URL hash it leads to', () => {
+      expect(holdsCurrentItem(group, '#/a.md#x')).toBe(true);
+      expect(holdsCurrentItem(group, '#/a.md')).toBe(false);
       expect(holdsCurrentItem(group, '#/b.md')).toBe(false);
       expect(holdsCurrentItem(group, undefined)).toBe(false);
     });
 
-    it('Expands a group until it is collapsed, and again once the page shown changes to one of its items', () => {
+    it("Picks the current item among a page's items by the route's anchor", () => {
+      // See D668 (SPEC-S13-navigation.md): the item with the route's anchor, else the page's first without an anchor, else its first
+      const items: ShownNavigationItem[] = [
+        { kind: 'page', label: 'Install', href: '#/a.md#install', route: '#/a.md', anchor: 'install' },
+        { kind: 'group', label: 'Docs', items: [{ kind: 'page', label: 'A', href: '#/a.md', route: '#/a.md' }] },
+        { kind: 'page', label: 'Usage', href: '#/a.md#usage', route: '#/a.md', anchor: 'usage' },
+        { kind: 'page', label: 'B', href: '#/b.md#x', route: '#/b.md', anchor: 'x' },
+      ];
+      expect(getCurrentItemHref(items, '#/a.md', 'usage')).toBe('#/a.md#usage');
+      expect(getCurrentItemHref(items, '#/a.md')).toBe('#/a.md');
+      expect(getCurrentItemHref(items, '#/a.md', 'elsewhere')).toBe('#/a.md');
+      expect(getCurrentItemHref(items, '#/b.md')).toBe('#/b.md#x');
+      expect(getCurrentItemHref(items, '#/c.md')).toBeUndefined();
+      expect(getCurrentItemHref(items, undefined, 'usage')).toBeUndefined();
+    });
+
+    it('Expands a group until it is collapsed, and again once the current item changes to one of its items', () => {
       expect(isNavigationGroupExpanded(group, null, '#/b.md')).toBe(true);
-      // Collapsed on another page: stays collapsed there, and on a page outside it
+      // Collapsed on another item: stays collapsed there, and on an item outside it
       expect(isNavigationGroupExpanded(group, { page: '#/b.md' }, '#/b.md')).toBe(false);
       expect(isNavigationGroupExpanded(group, { page: '#/b.md' }, '#/c.md')).toBe(false);
-      // Showing one of its pages expands it again; collapsing it there keeps it collapsed until the page shown changes
-      expect(isNavigationGroupExpanded(group, { page: '#/b.md' }, '#/a.md')).toBe(true);
-      expect(isNavigationGroupExpanded(group, { page: '#/a.md' }, '#/a.md')).toBe(false);
+      // Its item becoming current expands it again; collapsing it there keeps it collapsed until the current item changes
+      expect(isNavigationGroupExpanded(group, { page: '#/b.md' }, '#/a.md#x')).toBe(true);
+      expect(isNavigationGroupExpanded(group, { page: '#/a.md#x' }, '#/a.md#x')).toBe(false);
     });
   });
 });

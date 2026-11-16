@@ -135,6 +135,25 @@ describe('navigation', () => {
       ]);
     });
 
+    it('Lists a documentation file again under another anchor without a warning', () => {
+      // See D668 (SPEC-S13-navigation.md): a page may be listed once per anchor, and once without one
+      const entries = [{ path: '/' }, { title: 'Usage', path: '/#usage' }, { title: 'Host', path: 'README.md#host' }];
+      const { items, issues } = resolveNavigation([...entries, { path: 'docs/guide.md' }, { title: 'Install', path: 'docs/guide.md#install' }], _HOST);
+      expect(items).toHaveLength(5);
+      expect(issues.filter((issue) => issue.message.includes('more than once'))).toEqual([]);
+    });
+
+    it('Warns about a documentation file listed twice under the same anchor', () => {
+      const { issues } = resolveNavigation(
+        [
+          { title: 'Usage', path: '/#usage' },
+          { title: 'Again', path: 'README.md#usage' },
+        ],
+        _HOST,
+      );
+      expect(issues).toContainEqual({ severity: 'warning', message: '"navigation" item 2: "/#usage" is listed more than once' });
+    });
+
     it('Warns about a documentation file listed more than once, keeping both', () => {
       const { items, issues } = resolveNavigation([{ path: '/' }, { title: 'Again', path: 'README.md' }], _HOST);
       expect(items).toHaveLength(2);
