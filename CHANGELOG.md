@@ -4,6 +4,8 @@ All notable changes to `@ofzza/showroom`, by version as published to npm. This p
 
 ## Unreleased
 
+## 0.1.0-alpha.2 (2026-11-16)
+
 ### Breaking changes
 
 - **`ShowcaseAdapter.build()` returns `issues` and `checks`** instead of `errors` and `warnings` (since `0.1.0-alpha.1`): `issues` is one list of `ShowcaseBuildIssue`s (replacing `ShowcaseBuildError`), each with its `severity` (`error` or `warning`) and, for an issue of a check, the `check` it belongs to, one of the result's `checks` (e.g. `type check`). An error naming no check means there are no files; a check's errors leave them usable.
