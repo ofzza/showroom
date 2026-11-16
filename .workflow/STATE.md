@@ -3,7 +3,7 @@
 ## Next session: start here
 
 - **Stage:** _`P18`_ implemented (the documentation review's changes, and _`D668`_ (SPEC-S13-navigation.md)); _`P1`_–_`P17`_ implemented before it.
-- **Next free:** _`D676`_, _`S14`_, _`P19`_, _`O94`_, _`L15`_, _`R50`_, _`H1`_, _`K24`_
+- **Next free:** _`D677`_, _`S14`_, _`P19`_, _`O94`_, _`L15`_, _`R50`_, _`H1`_, _`K24`_
 - **Working on:** nothing planned; _`P18`_ is implemented.
 - **Next step:** the user's choice of the next work (e.g. _`S6`_'s open points _`O16`_–_`O19`_, or a known open issue in `./.workflow/PLAN.md`).
 
@@ -398,3 +398,4 @@
 - 2026-11-16: Stop and report: _`P18`_ drafting subagent A ran `md5sum`, outside its command allowlist (no change); the user chose "Resume, use A's draft".
 - 2026-11-16: _`P18`_ implemented: `npm run ci` green (unit 1344, integration 24, e2e 18, serve 7); checkpoint approved (option chosen: "Approve and commit (Rec.)"), with _`D673`_–_`D675`_.
 - 2026-11-16: Stop and report: stopping _`P18`_'s dogfooding `serve` with a `pkill` pattern also stopped an earlier dogfooding `serve` of this session (no file changed); the user chose "Resume, commit".
+- 2026-11-16: fast path: the "npm" item dropped from this repository's navigation (_`D676`_); `npm run ci` green; approved (option chosen: "Approve and commit (Rec.)").

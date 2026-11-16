@@ -27,7 +27,6 @@
     },
     { "title": "Contributing", "path": "CONTRIBUTE.md" },
     { "title": "Changelog", "path": "CHANGELOG.md" },
-    { "title": "License", "path": "LICENSE.md" },
-    { "title": "npm", "path": "https://www.npmjs.com/package/@ofzza/showroom" }
+    { "title": "License", "path": "LICENSE.md" }
   ]
 }
