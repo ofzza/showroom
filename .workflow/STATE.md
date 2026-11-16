@@ -13,7 +13,6 @@
 
 ## Waiting on me
 
-- `./.workflow/.temp/review-docs/` (the review's record, its outcomes now in _`P18`_), `p18-drafts/` (the subagents' drafts, applied), `p18-readme-ts/`, `ci-p18.log` and `serve-dogfood-p18.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p17/` (its choices, recorded as _`D641`_–_`D649`_), `s13-format/`, `p17-format/`, `p17-check/`, `ci-p17.log`, `ci-p17-align.log`, `serve-dogfood-p17.log` and `serve-p17-check.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p16/` (its choices, recorded as _`D615`_–_`D626`_); ask before deleting it.
 - `./.workflow/.temp/p16-check/`, `p16-format/`, `ci-p16.log`, `serve-dogfood-p16.log`, `serve-p16-check.log`; ask before deleting them.
@@ -399,3 +398,4 @@
 - 2026-11-16: _`P18`_ implemented: `npm run ci` green (unit 1344, integration 24, e2e 18, serve 7); checkpoint approved (option chosen: "Approve and commit (Rec.)"), with _`D673`_–_`D675`_.
 - 2026-11-16: Stop and report: stopping _`P18`_'s dogfooding `serve` with a `pkill` pattern also stopped an earlier dogfooding `serve` of this session (no file changed); the user chose "Resume, commit".
 - 2026-11-16: fast path: the "npm" item dropped from this repository's navigation (_`D676`_); `npm run ci` green; approved (option chosen: "Approve and commit (Rec.)").
+- 2026-11-16: `./.workflow/.temp/review-docs/`, `p18-drafts/`, `p18-readme-ts/`, `ci-p18.log`, `ci-p18-npm.log` and `serve-dogfood-p18.log` deleted with the user's yes.
