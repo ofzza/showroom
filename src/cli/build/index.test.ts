@@ -105,10 +105,11 @@ describe('cli/build', () => {
       expect(configuration.build).toMatchObject({ outDir: '/host/showroom', emptyOutDir: true, chunkSizeWarningLimit: CHUNK_SIZE_WARNING_LIMIT });
     });
 
-    it("Leaves out the 'use client' directive warnings, passing on every other warning", () => {
+    it("Leaves out the 'use client' directive warnings and the plugin timings, passing on every other warning", () => {
       const onwarn = configuration.build?.rolldownOptions?.onwarn as (warning: { code?: string; message: string }, warn: (warning: unknown) => void) => void;
       const passed: unknown[] = [];
       onwarn({ code: 'MODULE_LEVEL_DIRECTIVE', message: 'use client' }, (warning) => passed.push(warning));
+      onwarn({ code: 'PLUGIN_TIMINGS', message: 'JavaScript callbacks ran for 3.3s of this 3.8s build (87%).' }, (warning) => passed.push(warning));
       onwarn({ code: 'CIRCULAR_DEPENDENCY', message: 'circular' }, (warning) => passed.push(warning));
       onwarn({ message: 'no code' }, (warning) => passed.push(warning));
       expect(passed).toEqual([{ code: 'CIRCULAR_DEPENDENCY', message: 'circular' }, { message: 'no code' }]);

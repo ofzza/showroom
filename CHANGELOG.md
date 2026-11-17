@@ -33,6 +33,7 @@ All notable changes to `@ofzza/showroom`, by version as published to npm. This p
 ### Fixed
 
 - **A project name holding `$&` or `$'`** no longer garbles the showroom page's title.
+- **The bundler's plugin timings** ("JavaScript callbacks ran for 3.3s of this 3.8s build") are no longer reported as a showcase's build warning: they say nothing the host repository can act on, and came and went with the machine's speed.
 
 ## 0.1.0-alpha.2 (2026-11-16)
 

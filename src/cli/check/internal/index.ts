@@ -183,8 +183,9 @@ export async function getCustomShowcaseAdapterModules(root: string, listed: Reco
 
 /**
  * Codes of the bundler warnings left out of the output of `build`, and of the `ts` showcase adapter's build warnings: FluentUI's and Griffel's
- * `'use client'` directives (and any other package's), which only matter to server-side React frameworks, and are warned about once per file
+ * `'use client'` directives (and any other package's), which only matter to server-side React frameworks, and are warned about once per file; and
+ * the bundler's plugin timings, which say that the build's plugins (`showroom`'s own) took most of its time, and come and go with the machine's speed
  */
-export const SILENCED_WARNINGS: readonly string[] = ['MODULE_LEVEL_DIRECTIVE'];
+export const SILENCED_WARNINGS: readonly string[] = ['MODULE_LEVEL_DIRECTIVE', 'PLUGIN_TIMINGS'];
 
 // #endregion

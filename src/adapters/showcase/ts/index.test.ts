@@ -482,6 +482,9 @@ describe('adapters/showcase/ts', () => {
       });
       expect(await getBuildWarning(_ROOT, virtualFiles, { message: 'A warning of Vite' })).toEqual({ message: 'A warning of Vite' });
       expect(await getBuildWarning(_ROOT, virtualFiles, { code: 'MODULE_LEVEL_DIRECTIVE', message: "'use client'" })).toBeUndefined();
+      // A slow machine's plugin timings, which made a serve test flaky on a CI runner (GitHub Actions run 44110251121)
+      const timings = { code: 'PLUGIN_TIMINGS', message: 'JavaScript callbacks ran for 3.3s of this 3.8s build (87%).' };
+      expect(await getBuildWarning(_ROOT, virtualFiles, timings)).toBeUndefined();
     });
   });
 
