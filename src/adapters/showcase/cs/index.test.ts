@@ -2,7 +2,7 @@
  * Tests of the cs showcase adapter, without running dotnet
  */
 
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -14,6 +14,7 @@ import {
   CS_DOTNET_ENVIRONMENT,
   CsShowcaseAdapter,
   escapeMsBuild,
+  findCsProgram,
   getCsBuildIssues,
   getDefaultItemExcludes,
   getHostSdkPaths,
@@ -111,7 +112,8 @@ describe('adapters/showcase/cs', () => {
   });
 
   describe('Build helpers', () => {
-    // Tests the helpers on hand-written values, and the #:project directives on the showcase-cs fixture
+    // Tests the helpers on hand-written values, the #:project directives on the showcase-cs fixture, and finding the program in artifacts folders
+    // written into a scratch folder
 
     it('Escapes paths for MSBuild, and excludes every .cs virtual file by its path in the host copy', () => {
       // See PLAN-P20 D790 C8: MSBuild resolves excludes from each project's folder, so they are absolute; the spike's glob missed named files
@@ -185,6 +187,28 @@ describe('adapters/showcase/cs', () => {
         { severity: 'warning', message: 'CS0219: own warning', path: 'hello.cs', line: 1 },
         { severity: 'error', message: 'NU1101: no path' },
       ]);
+    });
+
+    it("Finds the program in the .NET SDK 10's and 11's output layouts, only beside its runtime configuration", async () => {
+      // The .NET SDK 11 names the project in the folder (bin/<file>.cs/debug/), the .NET SDK 10 doesn't (bin/debug/): CI's runner image has both
+      const scratch = await createScratchFolder('cs-program-');
+      try {
+        const write = async (folder: string, files: string[]) => {
+          await mkdir(join(scratch.path, folder), { recursive: true });
+          for (const file of files) await writeFile(join(scratch.path, folder, file), '');
+        };
+        await write('ten/bin/debug', ['hello.dll', 'hello.runtimeconfig.json']);
+        await write('eleven/bin/hello.cs/debug', ['hello.dll', 'hello.runtimeconfig.json']);
+        await write('eleven/obj/hello.cs/debug', ['hello.dll']);
+        await write('library/bin/debug', ['hello.dll']);
+        expect(await findCsProgram(join(scratch.path, 'ten'), 'hello.cs')).toBe(join(scratch.path, 'ten/bin/debug/hello.dll'));
+        expect(await findCsProgram(join(scratch.path, 'eleven'), 'hello.cs')).toBe(join(scratch.path, 'eleven/bin/hello.cs/debug/hello.dll'));
+        expect(await findCsProgram(join(scratch.path, 'eleven'), 'other.cs')).toBeUndefined();
+        expect(await findCsProgram(join(scratch.path, 'library'), 'hello.cs')).toBeUndefined();
+        expect(await findCsProgram(join(scratch.path, 'missing'), 'hello.cs')).toBeUndefined();
+      } finally {
+        await scratch.remove();
+      }
     });
   });
 

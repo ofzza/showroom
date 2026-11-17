@@ -210,6 +210,45 @@ export function getCsBuildIssues(diagnostics: readonly CsDiagnostic[], entry: st
 }
 
 /**
+ * Finds a file-based app's program in its build's artifacts folder: `<name>.dll`, beside its `<name>.runtimeconfig.json`, in `bin/debug/` (the .NET
+ * SDK 10's layout) or in a folder of `bin/` (`bin/<file>.cs/debug/`, the .NET SDK 11's, which names the project), in that order
+ * @param artifacts Absolute path of the artifacts folder
+ * @param file File name of the showcase's `.cs` file
+ * @returns The program's absolute path, or undefined when no folder holds it
+ */
+export async function findCsProgram(artifacts: string, file: string): Promise<string | undefined> {
+  const stem = file.replace(/\.cs$/i, '');
+  const bin = join(artifacts, 'bin');
+  let folders: string[];
+  try {
+    folders = (await readdir(bin, { withFileTypes: true }))
+      .filter((entry) => entry.isDirectory() && entry.name !== 'debug')
+      .map((entry) => entry.name)
+      .sort();
+  } catch {
+    return undefined;
+  }
+  for (const folder of [join(bin, 'debug'), ...folders.map((name) => join(bin, name, 'debug'))]) {
+    const program = join(folder, `${stem}.dll`);
+    if ((await _isFile(program)) && (await _isFile(join(folder, `${stem}.runtimeconfig.json`)))) return program;
+  }
+  return undefined;
+}
+
+/**
+ * Checks if a path is a file
+ * @param path The path
+ * @returns True if it is one
+ */
+async function _isFile(path: string): Promise<boolean> {
+  try {
+    return (await stat(path)).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Reads the installed SDKs' versions from `dotnet --list-sdks`' output (`<version> [<folder>]` per line)
  * @param output The output
  * @returns The versions, as written
@@ -466,7 +505,11 @@ export class CsShowcaseAdapter implements ShowcaseAdapter {
     }
 
     // The run, recorded
-    const dll = join(artifacts, 'bin', 'debug', `${name.replace(/\.cs$/i, '')}.dll`);
+    const dll = await findCsProgram(artifacts, name);
+    if (dll === undefined) {
+      issues.unshift({ severity: 'error', message: `The build succeeded, but its program (${name.replace(/\.cs$/i, '')}.dll) isn't in its output` });
+      return { reads, issues };
+    }
     const run = await hostCopy.run('dotnet', [dll], { phase: 'run', env: { ...CS_DOTNET_ENVIRONMENT } });
     return { reads, recording: run.recording, ...(issues.length ? { issues } : {}) };
   }

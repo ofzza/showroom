@@ -252,7 +252,7 @@ describe('showcases (integration)', () => {
         { level: 'log', text: 'before' },
         { level: 'error', text: 'oops' },
       ]);
-      expect(runtime('errors/failing.md#1')).toEqual(['The recording failed: it wrote 1 line to standard error']);
+      expect(runtime('errors/failing.md#1')).toEqual(['The recording failed: it wrote 1 line to standard error: "oops"']);
       expect(runtime('errors/failing.md#2')).toEqual(['The recording failed: it exited with code 3']);
       expect(recording('errors/failing.md#3').exitCode).toBe(1);
       // The stack trace names the showcase by its root-relative path, never the host copy's

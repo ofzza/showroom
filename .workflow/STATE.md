@@ -4,8 +4,8 @@
 
 - **Stage:** implementation: _`P20`_ recorded showcases (_`S15`_) and the `cs` showcase adapter (_`S16`_) ([PLAN-P20-recorded.md](./PLAN-P20-recorded.md)): _`P20.1`_ (the shared recording) implemented; _`P20.2`_ (the `cs` showcase adapter) implemented; _`P20`_ implemented.
 - **Next free:** _`D803`_, _`S17`_, _`P21`_, _`O124`_, _`L16`_, _`R58`_, _`H1`_, _`K29`_
-- **Working on:** nothing: _`P20`_ is implemented and committed.
-- **Next step:** ask the user what to work on next; `dotnet-showcase-adapter` is pushed, and the user merges it into `develop` by hand.
+- **Working on:** nothing: the fast-path fix of the `cs` showcase adapter for the .NET SDK 11 is committed to `develop`, merged into `master`, and both are pushed.
+- **Next step:** discuss the next showcase adapters (`py`, `go`, JSON Schema as a Mermaid graph; estimates given 2026-11-17), as a specification segment (`S17`).
 
 ## Open questions
 
@@ -13,7 +13,8 @@
 
 ## Waiting on me
 
-- The first GitHub Actions runs with `actions/setup-dotnet@v5` (`ci.yml`, `showroom.yml`; the version wasn't verified): check they pass once `dotnet-showcase-adapter` is merged into `develop` (the user merges by hand, no pull request); if the action's version is wrong, bump it in both workflows.
+- Check that GitHub Actions passes on `develop` and `master` after the fast-path fix for the .NET SDK 11 (the runner image `ubuntu-26.04` has SDKs 10 and 11, and `dotnet build` picks 11). The SDKs 10.0.404 and 11.0.100 used to reproduce it were in the session scratch folder, outside the repository.
+- `./.workflow/.temp/ci-cs-failure/` (the reproduction: `dotnet-install.sh`, an empty home and cache folder, a copy of `countdown.cs`, the `AGENTS.md` formatting backup, `ci.log`); ask before deleting it.
 - `./.workflow/.temp/p20.2-plan-format/` (formatting backups), `p20.2-check/` (fixture copies and a cache folder checked by hand), `ci-p20.2.log`, `ci-p20.2-rest.log`, `serve-dogfood-p20.2.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p20.1/` (_`P20.1`_'s implementation choices, recorded as _`D791`_–_`D798`_), `p20.1-format/` (formatting backups), `p20.1-readme-ts/` (`README.md`'s samples, type checked), `p20.1-check/` (the fixture copy served at the checkpoint), `ci-p20.1.log`, `serve-dogfood-p20.1.log`, `serve-p20.1-check.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p20/` (_`P20`_'s choices, recorded as _`D768`_–_`D781`_, and formatting backups); ask before deleting it.
@@ -441,3 +442,4 @@
 - 2026-11-17: _`P20.2`_ (the `cs` showcase adapter) implemented, pending its checkpoint: `src/adapters/showcase/cs/`, registered (`PLANNED_SHOWCASE_ADAPTER_NAMES` empty), its trust executables and `DOTNET_ROOT`; the `showcase-cs`, `showcase-cs-errors` and `showcase-cs-many` fixtures in every tier; `examples/cs/`; `actions/setup-dotnet` in both workflows; the documentation; _`K28`_ and _`O105`_ resolved.
 - 2026-11-17: _`P20.2`_'s checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"), with its deviations (no time limit case in the `cs` fixtures, `useOwnCacheFolder()`, `actions/setup-dotnet@v5`); _`P20`_ implemented.
 - 2026-11-17: The user looked at _`P20.2`_ in the served showroom ("Looks great! Please, commit and push ..."); `dotnet-showcase-adapter` pushed.
+- 2026-11-17: Fast-path change: CI failed on `master` and `develop`, as the runner's .NET SDK 11 puts a file-based app's program in `bin/<file>.cs/debug/`; the `cs` showcase adapter now finds it in either SDK's layout (`findCsProgram()`), and a failed recording's `runtime` error quotes its first standard error line (options chosen: "Local SDK 10.0.404 (Rec.)", "Find the .dll (Rec.)", "Yes, include it (Rec.)"). The user: "Please commit the fix to `develop`, merge `develop` to `master` and push both.", with b0448f6 included (option chosen: "Include b0448f6 (Rec.)").

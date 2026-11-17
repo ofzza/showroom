@@ -176,7 +176,7 @@ describe('cli (end to end)', () => {
       const failed = await _run(['check', '--trust', '--showcases', '--quiet', '--root', root]);
       expect(failed.code).toBe(1);
       expect(failed.stderr).toContain(
-        'error: errors/failing.md:7: Showcase errors/failing.md#1 (errors/failing.md:7): runtime: The recording failed: it wrote 1 line to standard error\n',
+        'error: errors/failing.md:7: Showcase errors/failing.md#1 (errors/failing.md:7): runtime: The recording failed: it wrote 1 line to standard error: "oops"\n',
       );
       await rm(join(root, 'errors'), { recursive: true });
       const passed = await _run(['check', '--trust', '--showcases', '--quiet', '--root', root]);

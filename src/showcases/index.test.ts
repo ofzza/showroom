@@ -20,6 +20,7 @@ import {
   getShowcaseFrameUrl,
   getShownIssue,
   insertFrameScript,
+  RECORDING_FAILURE_QUOTE_LENGTH,
   isValidBuildPath,
 } from './index.js';
 
@@ -264,8 +265,25 @@ describe('showcases', () => {
       expect(getRecordingFailure(recording({ exitCode: 134 }))).toBe('exited with code 134');
       expect(getRecordingFailure(recording({ signal: 'SIGABRT' }))).toBe('ended by signal SIGABRT');
       expect(getRecordingFailure(recording({ timedOut: true, timeLimit: 2000 }))).toBe('stopped after the 2 s time limit');
-      expect(getRecordingFailure(recording({ exitCode: 0 }, [{ level: 'error', text: 'x' }], 2))).toBe('wrote 3 lines to standard error');
-      expect(getRecordingFailure(recording({ exitCode: 1 }, [{ level: 'error', text: 'x' }]))).toBe('exited with code 1, and wrote 1 line to standard error');
+      expect(getRecordingFailure(recording({ exitCode: 0 }, [{ level: 'error', text: 'x' }], 2))).toBe('wrote 3 lines to standard error, the first kept: "x"');
+      expect(getRecordingFailure(recording({ exitCode: 1 }, [{ level: 'error', text: 'x' }]))).toBe(
+        'exited with code 1, and wrote 1 line to standard error: "x"',
+      );
+      expect(
+        getRecordingFailure(
+          recording({ exitCode: 0 }, [
+            { level: 'log', text: 'out' },
+            { level: 'error', text: ' a ' },
+            { level: 'error', text: 'b' },
+          ]),
+        ),
+      ).toBe('wrote 2 lines to standard error, the first: "a"');
+      // Every error line dropped: nothing to quote
+      expect(getRecordingFailure(recording({ exitCode: 0 }, [], 1))).toBe('wrote 1 line to standard error');
+      const long = 'y'.repeat(RECORDING_FAILURE_QUOTE_LENGTH + 1);
+      expect(getRecordingFailure(recording({ exitCode: 0 }, [{ level: 'error', text: long }]))).toBe(
+        `wrote 1 line to standard error: "${long.slice(0, RECORDING_FAILURE_QUOTE_LENGTH)}…"`,
+      );
     });
 
     it('Rejects invalid results', () => {

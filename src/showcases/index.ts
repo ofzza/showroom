@@ -229,6 +229,11 @@ export const RUNTIME_CHECK = 'runtime';
 const _RECORDING_LEVELS: readonly unknown[] = ['log', 'info', 'warn', 'error', 'debug'];
 
 /**
+ * Most characters of a standard error line a failed recording's reasons quote, before an ellipsis
+ */
+export const RECORDING_FAILURE_QUOTE_LENGTH = 160;
+
+/**
  * Checks if a value is a count: a whole number from 0
  * @param value The value
  * @returns True if it is one
@@ -272,7 +277,7 @@ export function checkRecording(value: unknown): string | undefined {
 
 /**
  * Gets why a recording failed: a non-zero exit code, a signal, the time limit, or anything written to standard error (its `error` lines, dropped
- * ones included)
+ * ones included, quoting the first one kept (the only one, the first, or the first kept), cut at RECORDING_FAILURE_QUOTE_LENGTH characters)
  * @param recording The recording
  * @returns The reasons, joined, or undefined if it didn't fail
  */
@@ -286,7 +291,12 @@ export function getRecordingFailure(recording: ShowcaseRecording): string | unde
     reasons.push(`exited with code ${recording.exitCode}`);
   }
   const errors = recording.lines.filter((line) => line.level === 'error').length + (recording.droppedErrors ?? 0);
-  if (errors) reasons.push(`wrote ${errors} ${errors === 1 ? 'line' : 'lines'} to standard error`);
+  if (errors) {
+    const first = recording.lines.find((line) => line.level === 'error')?.text.trim();
+    const quote = first ? (first.length > RECORDING_FAILURE_QUOTE_LENGTH ? `${first.slice(0, RECORDING_FAILURE_QUOTE_LENGTH)}…` : first) : undefined;
+    const which = errors === 1 ? ':' : recording.droppedErrors ? ', the first kept:' : ', the first:';
+    reasons.push(`wrote ${errors} ${errors === 1 ? 'line' : 'lines'} to standard error${quote ? `${which} "${quote}"` : ''}`);
+  }
   return reasons.length ? reasons.join(', and ') : undefined;
 }
 
