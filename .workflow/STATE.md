@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P20`_ recorded showcases (_`S15`_) and the `cs` showcase adapter (_`S16`_) ([PLAN-P20-recorded.md](./PLAN-P20-recorded.md)): _`P20.1`_ (the shared recording) implemented; _`P20.2`_ (the `cs` showcase adapter) implemented; _`P20`_ implemented.
-- **Next free:** _`D803`_, _`S17`_, _`P21`_, _`O124`_, _`L16`_, _`R58`_, _`H1`_, _`K29`_
-- **Working on:** nothing: the fast-path fix of the `cs` showcase adapter for the .NET SDK 11 is committed to `develop`, merged into `master`, and both are pushed.
-- **Next step:** discuss the next showcase adapters (`py`, `go`, JSON Schema as a Mermaid graph; estimates given 2026-11-17), as a specification segment (`S17`).
+- **Stage:** planning: _`S17`_ the JSON Schema showcase adapter ([SPEC-S17-json-schema.md](./SPEC-S17-json-schema.md)) is approved; its plan segment (_`P21`_) is not drafted yet.
+- **Next free:** _`D831`_, _`S18`_, _`P21`_, _`O140`_, _`L20`_, _`R58`_, _`H1`_, _`K32`_
+- **Working on:** nothing yet: _`S17`_ approved and committed.
+- **Next step:** plan _`S17`_ as _`P21`_, starting with its open points (_`O130`_–_`O139`_) and _`O130`_'s spike (needs the user's go-ahead).
 
 ## Open questions
 
@@ -13,7 +13,8 @@
 
 ## Waiting on me
 
-- Check that GitHub Actions passes on `develop` and `master` after the fast-path fix for the .NET SDK 11 (the runner image `ubuntu-26.04` has SDKs 10 and 11, and `dotnet build` picks 11). The SDKs 10.0.404 and 11.0.100 used to reproduce it were in the session scratch folder, outside the repository.
+- `./.workflow/.temp/questions-s17/` (_`S17`_'s choices); ask before deleting it.
+- `./.workflow/.temp/review-s17/` (the review's record, `REVIEW.md`, its snapshots and formatting backups); ask before deleting it.
 - `./.workflow/.temp/ci-cs-failure/` (the reproduction: `dotnet-install.sh`, an empty home and cache folder, a copy of `countdown.cs`, the `AGENTS.md` formatting backup, `ci.log`); ask before deleting it.
 - `./.workflow/.temp/p20.2-plan-format/` (formatting backups), `p20.2-check/` (fixture copies and a cache folder checked by hand), `ci-p20.2.log`, `ci-p20.2-rest.log`, `serve-dogfood-p20.2.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p20.1/` (_`P20.1`_'s implementation choices, recorded as _`D791`_–_`D798`_), `p20.1-format/` (formatting backups), `p20.1-readme-ts/` (`README.md`'s samples, type checked), `p20.1-check/` (the fixture copy served at the checkpoint), `ci-p20.1.log`, `serve-dogfood-p20.1.log`, `serve-p20.1-check.log`; ask before deleting them.
@@ -444,3 +445,10 @@
 - 2026-11-17: The user looked at _`P20.2`_ in the served showroom ("Looks great! Please, commit and push ..."); `dotnet-showcase-adapter` pushed.
 - 2026-11-17: Fast-path change: CI failed on `master` and `develop`, as the runner's .NET SDK 11 puts a file-based app's program in `bin/<file>.cs/debug/`; the `cs` showcase adapter now finds it in either SDK's layout (`findCsProgram()`), and a failed recording's `runtime` error quotes its first standard error line (options chosen: "Local SDK 10.0.404 (Rec.)", "Find the .dll (Rec.)", "Yes, include it (Rec.)"). The user: "Please commit the fix to `develop`, merge `develop` to `master` and push both.", with b0448f6 included (option chosen: "Include b0448f6 (Rec.)").
 - 2026-11-17: Fast-path change: CI run 44166838933 failed on `master`'s Node 22 job, as `src/cli/check/index.integration.test.ts`' check of this repository (its `cs` example built cold with `dotnet`, beside the tier's other builds) ran past the tier's 60 s; that test now has 300 s (the user: "Yes, fast path, but let's raise the limit to 300s, not 180s as you propose."), made in a worktree of `develop` in the session scratch folder, apart from another agent's work on `adapters-extra`. The user: "Please, commit to `develop`, merge `master` then push both to `origin` ...".
+- 2026-11-17: GitHub Actions passed on `develop` and `master` after the fast-path fix and the user's `0dde097` (the live showcases' check given 300 s); `adapters-extra` rebased onto `develop`.
+- 2026-11-17: Specification stage: _`S17`_ (the JSON Schema showcase adapter) drafted, on `@ofzza/tsschema` as it is (the user: "For now, let's use it as it is and accept all of its limitations"): _`D803`_–_`D805`_, _`L16`_–_`L18`_, _`K29`_–_`K31`_.
+- 2026-11-17: _`S17`_'s choices settled as _`D806`_–_`D819`_ (Q3, option chosen: "Both showroom's own (Rec.)"; the rest: "Q1: I prefer `jsonschema` [...] Q9: Only make root a node if it is a model [...] Agreed with recomendation on rest"); _`O124`_–_`O129`_ resolved; _`O130`_–_`O132`_ for planning.
+- 2026-11-17: Stop and report: _`S17`_'s consistency reviewer ran `cut` (outside its brief's command allowlist; read-only, no change found by the stray-write check). The user resumed (option chosen: "Lift stop, use its report (Rec.)").
+- 2026-11-17: _`S17`_'s zero-context review run: 2 reviewers (consistency; feasibility and security), 38 findings, no stray writes; triage in `./.workflow/.temp/review-s17/REVIEW.md`.
+- 2026-11-17: _`S17`_'s review triaged and applied (option chosen: "Accept all (Rec.)"): _`D820`_–_`D830`_, _`L19`_, _`O133`_–_`O139`_, wording fixes noted in its approval line; the Glossary's "Showcase adapter" names a JSON Schema (_`D827`_).
+- 2026-11-17: _`S17`_ approved (option chosen: "Approve and commit (Rec.)").

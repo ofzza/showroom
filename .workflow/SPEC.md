@@ -222,6 +222,12 @@ approved 2026-11-17 (option chosen: "Approve and commit (Rec.)")
 
 [See The C# showcase adapter](./SPEC-S16-csharp.md)
 
+## _`S17`_ The JSON Schema showcase adapter
+
+approved 2026-11-17 (option chosen: "Approve and commit (Rec.)")
+
+[See The JSON Schema showcase adapter](./SPEC-S17-json-schema.md)
+
 ## Pitfalls
 
 [See Pitfalls](./SPEC-pitfalls.md)
@@ -229,3 +235,10 @@ approved 2026-11-17 (option chosen: "Approve and commit (Rec.)")
 ## Open points
 
 - None yet.
+
+## Known open issues
+
+- _`L16`_ (`open`; from _`D805`_ (SPEC-S17-json-schema.md)) **The JSON Schema showcase adapter shows no definitions of a draft-04/07 schema**: `tsschema` reads only `$defs`, not `definitions`. Deferred until `tsschema` reads `definitions` (the user: "Once `tsschema` has been upgraded we will follow along."); picked up by a future segment bumping `@ofzza/tsschema`.
+- _`L17`_ (`open`; from _`D805`_ (SPEC-S17-json-schema.md)) **The JSON Schema showcase adapter resolves no `$ref` into another file**: `tsschema` reads one schema, and resolves only `#/$defs/<name>`. Deferred until `tsschema` resolves references into other files (and `$id`, `$anchor`, JSON Pointers); picked up by a future segment bumping `@ofzza/tsschema`.
+- _`L18`_ (`open`; from _`D805`_ (SPEC-S17-json-schema.md)) **The JSON Schema showcase adapter shows `additionalProperties` and tuples as `unknown`**, so a map of a definition (`additionalProperties: { $ref }`) gives no edge. Deferred until `tsschema` describes them (on its "Coming next" list); picked up by a future segment bumping `@ofzza/tsschema`.
+- _`L19`_ (`open`; from _`D822`_ (SPEC-S17-json-schema.md)) **The JSON Schema showcase adapter shows no properties of a fragment with `properties` but no `type: "object"`**: `tsschema` describes only `type: "object"` with `properties` as a model, and such fragments (common in `allOf` members) as `unknown`; warned of. Deferred until `tsschema` reads them; picked up by a future segment bumping `@ofzza/tsschema`.
