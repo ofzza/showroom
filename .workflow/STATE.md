@@ -439,3 +439,4 @@
 - 2026-11-17: _`P20.2`_ approved (option chosen: "Approve and commit (Rec.)").
 - 2026-11-17: _`P20.2`_ (the `cs` showcase adapter) implemented, pending its checkpoint: `src/adapters/showcase/cs/`, registered (`PLANNED_SHOWCASE_ADAPTER_NAMES` empty), its trust executables and `DOTNET_ROOT`; the `showcase-cs`, `showcase-cs-errors` and `showcase-cs-many` fixtures in every tier; `examples/cs/`; `actions/setup-dotnet` in both workflows; the documentation; _`K28`_ and _`O105`_ resolved.
 - 2026-11-17: _`P20.2`_'s checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"), with its deviations (no time limit case in the `cs` fixtures, `useOwnCacheFolder()`, `actions/setup-dotnet@v5`); _`P20`_ implemented.
+- 2026-11-17: The user looked at _`P20.2`_ in the served showroom ("Looks great! Please, commit and push ..."); `dotnet-showcase-adapter` pushed.
