@@ -66,6 +66,7 @@ describe('cli/check (integration)', () => {
     // Guards this repository's own showroom (dogfooding): an edit that breaks one of README.md's live examples, or a showcase adapter example,
     // fails here. See AGENTS.md › Markers in this repository's own documentation files are live.
     // Its cs example's run folder is in a cache folder of its own, apart from the other test files' recorded showcases
+    // It builds every showcase, the cs example's cold with dotnet, while the tier's other test files build theirs, so the tier's 60 s ran out on CI
     const cache = await useOwnCacheFolder();
     const result = await check(_ROOT, { showcases: true, trust: true }).finally(() => cache.restore());
     expect(result.issues).toEqual([]);
@@ -84,7 +85,7 @@ describe('cli/check (integration)', () => {
         'examples/number-table/README.md number-table',
       ]),
     );
-  });
+  }, 300_000);
 
   it('Links README.md only to headings the showcase adapter examples have, both relatively and in the published showroom', async () => {
     // Guards README.md's links into particular showcases of the examples (D317 in .workflow/PLAN-P8-examples.md): check warns about a link to a
