@@ -308,6 +308,10 @@ None (_`D61`_).
 
 - _`P20`_ Recorded showcases and the `cs` showcase adapter (approved 2026-11-17, for its split and _`P20.1`_): _`S15`_ (SPEC-S15-recorded-showcases.md) and _`S16`_ (SPEC-S16-csharp.md), in two child segments, _`P20.1`_ the shared recording, and _`P20.2`_ the `cs` showcase adapter. [See Recorded showcases and the `cs` showcase adapter](./PLAN-P20-recorded.md)
 
+## The `jsonschema` showcase adapter
+
+- _`P21`_ The `jsonschema` showcase adapter (draft): _`S17`_ (SPEC-S17-json-schema.md). [See The `jsonschema` showcase adapter](./PLAN-P21-jsonschema.md)
+
 ## Known open issues
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: _`P9`_. Status: picked up by _`P9`_; resolved by _`D323`_ (SPEC.md), implemented by _`P9`_ 2026-11-13.

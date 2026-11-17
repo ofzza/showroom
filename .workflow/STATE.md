@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning: _`S17`_ the JSON Schema showcase adapter ([SPEC-S17-json-schema.md](./SPEC-S17-json-schema.md)) is approved; its plan segment (_`P21`_) is not drafted yet.
-- **Next free:** _`D831`_, _`S18`_, _`P21`_, _`O140`_, _`L20`_, _`R58`_, _`H1`_, _`K32`_
-- **Working on:** nothing yet: _`S17`_ approved and committed.
-- **Next step:** plan _`S17`_ as _`P21`_, starting with its open points (_`O130`_–_`O139`_) and _`O130`_'s spike (needs the user's go-ahead).
+- **Stage:** planning: _`P21`_ the `jsonschema` showcase adapter ([PLAN-P21-jsonschema.md](./PLAN-P21-jsonschema.md)), draft; _`S17`_ re-approved for _`R58`_ (_`D831`_).
+- **Next free:** _`D832`_, _`S18`_, _`P22`_, _`O141`_, _`L20`_, _`R59`_, _`H1`_, _`K32`_
+- **Working on:** _`P21`_'s draft: _`O130`_'s spike is done (its evidence in _`P21`_), the user checked its diagram.
+- **Next step:** _`P21`_'s open points (_`O131`_, _`O132`_, _`O134`_, _`O135`_, _`O137`_–_`O140`_) and its segmenting.
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/spike-jsonschema/` (_`O130`_'s spike: its install, mapper, pages, bundles and `NOTES.md`; its conclusions are in _`P21`_'s evidence) and `p21-format/` (formatting backups); ask before deleting them.
 - `./.workflow/.temp/questions-s17/` (_`S17`_'s choices); ask before deleting it.
 - `./.workflow/.temp/review-s17/` (the review's record, `REVIEW.md`, its snapshots and formatting backups); ask before deleting it.
 - `./.workflow/.temp/ci-cs-failure/` (the reproduction: `dotnet-install.sh`, an empty home and cache folder, a copy of `countdown.cs`, the `AGENTS.md` formatting backup, `ci.log`); ask before deleting it.
@@ -452,3 +453,5 @@
 - 2026-11-17: _`S17`_'s zero-context review run: 2 reviewers (consistency; feasibility and security), 38 findings, no stray writes; triage in `./.workflow/.temp/review-s17/REVIEW.md`.
 - 2026-11-17: _`S17`_'s review triaged and applied (option chosen: "Accept all (Rec.)"): _`D820`_–_`D830`_, _`L19`_, _`O133`_–_`O139`_, wording fixes noted in its approval line; the Glossary's "Showcase adapter" names a JSON Schema (_`D827`_).
 - 2026-11-17: _`S17`_ approved (option chosen: "Approve and commit (Rec.)").
+- 2026-11-17: _`O130`_'s spike run (go-ahead: "Go ahead (Rec.)"); the user checked its diagram (option chosen: "Readable, needs tweaks", then: "I hate the light theme colors. [...]", "Fit to frame width", "v2 + base theme"): _`D831`_, _`S17`_ revised (_`R58`_), pending re-approval; _`P21`_ drafted with the spike's evidence, _`O140`_.
+- 2026-11-17: _`S17`_ re-approved for _`R58`_ (option chosen: "Re-approve now, commit (Rec.)").
