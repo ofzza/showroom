@@ -310,7 +310,7 @@ None (_`D61`_).
 
 ## The `jsonschema` showcase adapter
 
-- _`P21`_ The `jsonschema` showcase adapter (draft): _`S17`_ (SPEC-S17-json-schema.md). [See The `jsonschema` showcase adapter](./PLAN-P21-jsonschema.md)
+- _`P21`_ The `jsonschema` showcase adapter (approved 2026-11-18, for its split and _`P21.1`_): _`S17`_ (SPEC-S17-json-schema.md), in two child segments, _`P21.1`_ the shared Mermaid bundle, and _`P21.2`_ the `jsonschema` showcase adapter. [See The `jsonschema` showcase adapter](./PLAN-P21-jsonschema.md)
 
 ## Known open issues
 

@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning: _`P21`_ the `jsonschema` showcase adapter ([PLAN-P21-jsonschema.md](./PLAN-P21-jsonschema.md)), draft; _`S17`_ re-approved for _`R58`_ (_`D831`_).
-- **Next free:** _`D832`_, _`S18`_, _`P22`_, _`O141`_, _`L20`_, _`R59`_, _`H1`_, _`K32`_
-- **Working on:** _`P21`_'s draft: _`O130`_'s spike is done (its evidence in _`P21`_), the user checked its diagram.
-- **Next step:** _`P21`_'s open points (_`O131`_, _`O132`_, _`O134`_, _`O135`_, _`O137`_–_`O140`_) and its segmenting.
+- **Stage:** planning: _`P21`_ the `jsonschema` showcase adapter ([PLAN-P21-jsonschema.md](./PLAN-P21-jsonschema.md)), approved for its split and _`P21.1`_; _`S17`_ re-approved for _`R59`_.
+- **Next free:** _`D855`_, _`S18`_, _`P22`_, _`O144`_, _`L20`_, _`R60`_, _`H1`_, _`K32`_
+- **Working on:** _`P21`_'s draft, its review applied (_`D847`_–_`D854`_): split into _`P21.1`_ (the shared Mermaid bundle, approved) and _`P21.2`_ (the adapter, draft).
+- **Next step:** implementing _`P21.1`_ (the shared Mermaid bundle); _`P21.2`_ is approved after _`P21.1`_'s checkpoint.
 
 ## Open questions
 
@@ -13,6 +13,8 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/review-p21/` (the review's record, `REVIEW.md`, and its snapshots); ask before deleting it.
+- `./.workflow/.temp/questions-p21/` (_`P21`_'s choices, recorded as _`D832`_–_`D839`_) and `p21-format/` (formatting backups); ask before deleting them.
 - `./.workflow/.temp/spike-jsonschema/` (_`O130`_'s spike: its install, mapper, pages, bundles and `NOTES.md`; its conclusions are in _`P21`_'s evidence) and `p21-format/` (formatting backups); ask before deleting them.
 - `./.workflow/.temp/questions-s17/` (_`S17`_'s choices); ask before deleting it.
 - `./.workflow/.temp/review-s17/` (the review's record, `REVIEW.md`, its snapshots and formatting backups); ask before deleting it.
@@ -455,3 +457,8 @@
 - 2026-11-17: _`S17`_ approved (option chosen: "Approve and commit (Rec.)").
 - 2026-11-17: _`O130`_'s spike run (go-ahead: "Go ahead (Rec.)"); the user checked its diagram (option chosen: "Readable, needs tweaks", then: "I hate the light theme colors. [...]", "Fit to frame width", "v2 + base theme"): _`D831`_, _`S17`_ revised (_`R58`_), pending re-approval; _`P21`_ drafted with the spike's evidence, _`O140`_.
 - 2026-11-17: _`S17`_ re-approved for _`R58`_ (option chosen: "Re-approve now, commit (Rec.)").
+- 2026-11-17: _`P21`_'s choices settled as _`D832`_–_`D839`_ (option chosen: "Accept all", the user adding: "For Q3, feel free to use the example JSON schema from `tsschema` repository"), and _`D840`_–_`D843`_ without a choice; _`O131`_–_`O139`_, _`O140`_ resolved; _`P21`_ split into _`P21.1`_ and _`P21.2`_ (drafts); _`O141`_–_`O143`_ raised.
+- 2026-11-17: _`O141`_–_`O143`_ resolved as _`D844`_–_`D846`_ (options chosen: "Keep the theme", "devDependency (Rec.)", "Generated notices file (Rec.)"); _`S17`_ revised (_`R59`_), pending re-approval. Go-ahead for _`P21`_'s zero-context review (option chosen: "2 reviewers (Rec.)").
+- 2026-11-17: _`P21`_'s zero-context review run: 2 reviewers (consistency; feasibility), 27 findings (1 blocker), no stray writes; triage in `./.workflow/.temp/review-p21/REVIEW.md`.
+- 2026-11-18: _`P21`_'s review triaged and applied: R1 (the user: "Is this something that's should be handled by `tsschema`? An issue or roadmap item?", then option chosen: "Own keywords + tsschema item"), R2, R3 and R4–R23 (options chosen: "build/mermaid/, checked (Rec.)", "Match build (Rec.)", "Apply all (Rec.)"): _`D847`_–_`D854`_; _`L18`_, _`L19`_ narrowed; _`K29`_–_`K31`_ taken by _`P21.1`_, _`P21.2`_.
+- 2026-11-18: _`P21`_'s split and _`P21.1`_ approved, and _`S17`_ re-approved for _`R59`_ (option chosen: "Split + P21.1, S17, commit (Rec.)").
