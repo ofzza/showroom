@@ -304,6 +304,10 @@ None (_`D61`_).
 
 - _`P19`_ Trust (approved 2026-11-17, for its split and _`P19.1`_): _`S14`_ (SPEC-S14-trust.md), in two child segments, _`P19.1`_ the gate and the flags, and _`P19.2`_ the prompt. [See Trust](./PLAN-P19-trust.md)
 
+## Recorded showcases
+
+- _`P20`_ Recorded showcases and the `cs` showcase adapter (approved 2026-11-17, for its split and _`P20.1`_): _`S15`_ (SPEC-S15-recorded-showcases.md) and _`S16`_ (SPEC-S16-csharp.md), in two child segments, _`P20.1`_ the shared recording, and _`P20.2`_ the `cs` showcase adapter. [See Recorded showcases and the `cs` showcase adapter](./PLAN-P20-recorded.md)
+
 ## Known open issues
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: _`P9`_. Status: picked up by _`P9`_; resolved by _`D323`_ (SPEC.md), implemented by _`P9`_ 2026-11-13.
@@ -320,3 +324,4 @@ None (_`D61`_).
 - _`L12`_ Type checking on TypeScript 7 (_`K16`_ (SPEC-pitfalls.md); _`D273`_, _`D274`_ (PLAN-P7.1-ts.md)): TypeScript 7 has no classic compiler API, and its unstable API changed between 7.0 and 7.1; type checking is skipped there with a warning. Deferred: until TypeScript 7's API is stable (the user: "Let's not support TS7 for now"). Segment: not yet assigned. Status: `open`.
 - _`L13`_ Customizing the showroom's navigation menu (the user, 2026-11-13, after checking it with several showcase adapter examples (_`D310`_, SPEC.md): "Fine as is for now. We'll need to address the ability to customize the menu at some later point ..."): e.g. titles, grouping and order of documentation files. Deferred: the navigation works as it is. Segment: _`S13`_ (SPEC-S13-navigation.md), then its plan segment. Status: picked up by _`S13`_ (SPEC-S13-navigation.md), implemented by _`P17`_.
 - _`L14`_ The console panel keeps every line (review 2026-11-14 #19, of _`P10.5`_'s draft): a showcase logging in a loop grows the panel's shadow DOM without bound, as before _`P10.5`_; a cap on the lines kept (the count kept whole) would bound it. Deferred: not part of _`D369`_, and unchanged from today. Segment: not yet assigned. Status: picked up by _`D438`_ (PLAN-P10.5-console.md), a fast-path change 2026-11-14.
+- _`L15`_ On macOS and Windows, `XDG_DATA_HOME` may not move .NET's file-based apps' runfile cache out of the user's folders (_`D778`_ (PLAN-P20-recorded.md); the _`O110`_ spike ran on Linux only). Deferred: CI runs Linux; to be checked on those systems. Segment: not yet assigned. Status: `open`.

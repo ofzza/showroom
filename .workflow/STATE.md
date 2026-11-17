@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P19`_ (trust, _`S14`_) approved and implemented: _`P19.1`_ (the gate and the flags) and _`P19.2`_ (the prompt) ([PLAN-P19-trust.md](./PLAN-P19-trust.md)).
-- **Next free:** _`D767`_, _`S17`_, _`P20`_, _`O123`_, _`L15`_, _`R57`_, _`H1`_, _`K29`_
-- **Working on:** nothing: _`P19`_ (trust) is done.
-- **Next step:** pick the next segment with the user (_`S15`_ recorded showcases and _`S16`_ the C# showcase adapter are specified, not yet planned).
+- **Stage:** implementation: _`P20`_ recorded showcases (_`S15`_) and the `cs` showcase adapter (_`S16`_) ([PLAN-P20-recorded.md](./PLAN-P20-recorded.md)): its split and _`P20.1`_ (the shared recording) approved; _`P20.2`_ (the `cs` showcase adapter) still a draft.
+- **Next free:** _`D791`_, _`S17`_, _`P21`_, _`O124`_, _`L16`_, _`R58`_, _`H1`_, _`K29`_
+- **Working on:** nothing yet: _`P20.1`_ is approved, not started.
+- **Next step:** implement _`P20.1`_.
 
 ## Open questions
 
@@ -13,8 +13,9 @@
 
 ## Waiting on me
 
-- `./.workflow/.temp/questions-p19.2/` (_`P19.2`_'s choices, recorded as _`D761`_–_`D766`_, and formatting backups); ask before deleting it.
-- `./.workflow/.temp/p19.2-format/`, `ci-p19.2.log` and `scratch/readme-ts/` (the README sample's type check); ask before deleting them.
+- `./.workflow/.temp/questions-p20/` (_`P20`_'s choices, recorded as _`D768`_–_`D781`_, and formatting backups); ask before deleting it.
+- `./.workflow/.temp/review-p20/` (the review's record, `REVIEW.md`, its snapshots and formatting backups); ask before deleting it.
+- `./.workflow/.temp/spike-cs/`: its conclusions are now in _`D778`_'s evidence (PLAN-P20-recorded.md); ask before deleting it.
 - `./.workflow/.temp/p19.1-format/` (formatting backups); ask before deleting it.
 - `./.workflow/.temp/review-p19/` (the review's record, `REVIEW.md`, its snapshots and formatting backups); ask before deleting it.
 - `./.workflow/.temp/questions-p19/` (_`P19`_'s choices, recorded as _`D740`_–_`D751`_, and formatting backups); ask before deleting it.
@@ -421,3 +422,11 @@
 - 2026-11-17: _`P19.2`_'s choices settled as _`D761`_–_`D766`_ (option chosen: "Accept all (Rec.)"); _`O121`_ resolved by _`D766`_.
 - 2026-11-17: _`P19.2`_ approved (option chosen: "Approve and commit (Rec.)").
 - 2026-11-17: _`P19.2`_'s checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"), with the Glossary's "Trust" naming the prompt; _`O120`_ resolved by _`D761`_; _`P19`_ implemented.
+- 2026-11-17: _`P19.2`_'s working files deleted (`questions-p19.2/`, `p19.2-format/`, `ci-p19.2.log`, `serve-dogfood-p19.2.log`, `scratch/readme-ts/`), on the user's go-ahead.
+- 2026-11-17: Planning stage entered for _`S15`_ and _`S16`_ (the user: "Please continue onto S16"), as one plan segment _`P20`_ with two child segments (option chosen: "One P20, two children (Rec.)"); go-ahead for _`O110`_'s spike before drafting (option chosen: "Run the spike first (Rec.)").
+- 2026-11-17: Stop and report: _`O110`_'s spike's `dotnet build` wrote a file-based app's build output to `~/.local/share/dotnet/runfile/` (a new folder) and left `VBCSCompiler` running; removed and stopped, and the spike resumed with its output redirected (option chosen: "Remove both, then resume (Rec.)").
+- 2026-11-17: _`O110`_'s spike run (`./.workflow/.temp/spike-cs/FINDINGS.md`): file-based apps build and run in a host copy with all output redirected (`--artifacts-path`, `XDG_DATA_HOME`, `TMPDIR`) and no build servers; _`K28`_ confirmed (CS9298 for every showcase of the project) and avoided by `DefaultItemExcludes` in the environment; parallel builds don't collide; ~4.5 s cold, ~1 s cached.
+- 2026-11-17: Stop and report: `questions-p20/QUESTIONS.md` formatted with Prettier without the agent-facing steps (backup, `--embedded-language-formatting=off`, comparison); the user: "Unless formating broke anything, just continue" (checked intact).
+- 2026-11-17: _`P20`_'s choices settled as _`D768`_–_`D781`_ (option chosen: "Accept all (Rec.)"); _`O102`_–_`O104`_, _`O110`_, _`O115`_–_`O119`_ resolved; _`P20`_ drafted.
+- 2026-11-17: Zero-context review of the _`P20`_ draft (consistency, security; `./.workflow/.temp/review-p20/REVIEW.md`), go-ahead "Run both (Rec.)"; stray-write check clean; QB settled on its own (option chosen: "Build steps only (Rec.)"), the rest (option chosen: "Accept all (Rec.)") as _`D782`_–_`D790`_, _`O123`_ added; _`S15`_ revised (_`R57`_), pending re-approval.
+- 2026-11-17: _`P20`_ approved, for its split and _`P20.1`_, with _`S15`_ re-approved for _`R57`_ (option chosen: "Approve and commit (Rec.)").

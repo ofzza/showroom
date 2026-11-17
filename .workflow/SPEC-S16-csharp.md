@@ -33,8 +33,8 @@ A built-in showcase adapter building and recording C# showcases (_`S15`_ (SPEC.m
 
 From the zero-context review of 2026-11-17:
 
-- [ ] _`O117`_ From review 2026-11-17 #11 (security), #13 (consistency), _`K27`_ (SPEC-pitfalls.md). Turning off what outlives a build: MSBuild's node reuse and server, the compiler and Razor servers (`-nodeReuse:false`, `MSBUILDDISABLENODEREUSE=1`, `DOTNET_CLI_USE_MSBUILD_SERVER=0`, `UseSharedCompilation=false`, `dotnet build-server`), and file-based apps' build output kept outside the host copy (where, how it grows, cleaning it; `TMPDIR` through the cleaned environment, so the tests stay inside this repository). For planning, with _`O110`_'s spike.
-- [ ] _`O118`_ From review 2026-11-17 #25 (consistency). Reserving `cs` in `PLANNED_SHOWCASE_ADAPTER_NAMES` (`src/adapters/showcase/registry/index.ts`) from the first release that ships _`S14`_ or _`S15`_, so a host's custom showcase adapter named `cs` gets a warning first; and which fence languages give `.cs` (`cs`, `csharp`, `c#`) for a named showcase (_`D532`_ (SPEC-S12-showcase-views.md)). For planning.
+- [x] _`O117`_ (resolved by _`D778`_ (PLAN-P20-recorded.md)) From review 2026-11-17 #11 (security), #13 (consistency), _`K27`_ (SPEC-pitfalls.md). Turning off what outlives a build: MSBuild's node reuse and server, the compiler and Razor servers (`-nodeReuse:false`, `MSBUILDDISABLENODEREUSE=1`, `DOTNET_CLI_USE_MSBUILD_SERVER=0`, `UseSharedCompilation=false`, `dotnet build-server`), and file-based apps' build output kept outside the host copy (where, how it grows, cleaning it; `TMPDIR` through the cleaned environment, so the tests stay inside this repository). For planning, with _`O110`_'s spike.
+- [x] _`O118`_ (resolved by _`D781`_ (PLAN-P20-recorded.md)) From review 2026-11-17 #25 (consistency). Reserving `cs` in `PLANNED_SHOWCASE_ADAPTER_NAMES` (`src/adapters/showcase/registry/index.ts`) from the first release that ships _`S14`_ or _`S15`_, so a host's custom showcase adapter named `cs` gets a warning first; and which fence languages give `.cs` (`cs`, `csharp`, `c#`) for a named showcase (_`D532`_ (SPEC-S12-showcase-views.md)). For planning.
 
 For the specification (the draft's choices):
 
@@ -45,4 +45,4 @@ For the specification (the draft's choices):
 
 For planning:
 
-- [ ] _`O110`_ From _`D691`_, _`K27`_ (SPEC-pitfalls.md). A spike: a C# showcase built and recorded in a host copy of `../dotnetschema` (or a fixture), with a `#:project` reference to the host's own project, a showcase in a folder under a `.csproj` (_`K28`_ (SPEC-pitfalls.md)), a compiler error and a run-time exception; the diagnostics' format, where `dotnet` keeps its build output, and the timings, cold and cached.
+- [x] _`O110`_ (resolved by the spike of 2026-11-17, its evidence under _`D778`_ (PLAN-P20-recorded.md)) From _`D691`_, _`K27`_ (SPEC-pitfalls.md). A spike: a C# showcase built and recorded in a host copy of `../dotnetschema` (or a fixture), with a `#:project` reference to the host's own project, a showcase in a folder under a `.csproj` (_`K28`_ (SPEC-pitfalls.md)), a compiler error and a run-time exception; the diagnostics' format, where `dotnet` keeps its build output, and the timings, cold and cached.
