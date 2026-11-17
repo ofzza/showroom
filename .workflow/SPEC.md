@@ -71,7 +71,7 @@ approved 2026-11-09
 
 ## _`S6`_ Showcases
 
-approved 2026-11-11; revised 2026-11-12 (_`R3`_); re-approved 2026-11-12
+approved 2026-11-11; revised 2026-11-12 (_`R3`_); re-approved 2026-11-12; revised 2026-11-17 (_`R53`_, SPEC-S6-showcases.md), re-approved 2026-11-17 with _`S14`_–_`S16`_ (option chosen: "Approve and commit (Rec.)")
 
 [See Showcases](./SPEC-S6-showcases.md)
 
@@ -89,11 +89,12 @@ Keeping the documentation itself from drifting, alongside its showcases (_`D102`
 
 ## _`S8`_ Showcase adapter examples
 
-approved 2026-11-13, re-approved 2026-11-13 (_`R18`_, _`R19`_); revised 2026-11-14 (_`R36`_), re-approved 2026-11-14 (recorded 2026-11-13 from the user's proposal, to be implemented before _`P7.2`_)
+approved 2026-11-13, re-approved 2026-11-13 (_`R18`_, _`R19`_); revised 2026-11-14 (_`R36`_), re-approved 2026-11-14 (recorded 2026-11-13 from the user's proposal, to be implemented before _`P7.2`_); revised 2026-11-17 (_`R51`_), re-approved 2026-11-17 with _`S14`_–_`S16`_ (option chosen: "Approve and commit (Rec.)")
 
 - _`R18`_ 2026-11-13: what the examples are (one theme, mock projects) and how `README.md` uses them, caused by _`D312`_–_`D315`_.
 - _`R19`_ 2026-11-13: the `html` example's library stylesheet is a resource, not a real file, as the `html` showcase adapter follows none, caused by _`D320`_ (PLAN-P8-examples.md).
 - _`R36`_ 2026-11-14: the `angular` example mirrors the `react` example's `ticker` (a stopwatch, counters, the theme) instead of number pickers, caused by _`D469`_ (PLAN-P11.2-angular-example.md).
+- _`R51`_ 2026-11-17: the `cs` showcase adapter example needs the .NET SDK, beyond this repository's own npm dependencies, caused by _`D718`_ (SPEC-S16-csharp.md).
 
 Demonstrating and documenting each showcase adapter through an example of its own, shown live in this repository's own showroom.
 
@@ -103,7 +104,7 @@ Demonstrating and documenting each showcase adapter through an example of its ow
 
 - _`D305`_ (`live`, refined by _`D314`_; refines _`D303`_, resolves _`O46`_; option chosen: "Keep, shortened (Rec.)"): **`README.md` keeps each showcase adapter's reference, shortened**: its options, what a showcase can import, type checking's rules and the interface stay, without in-depth demonstrations, as npm and GitHub show `README.md` without showcases; the showcase adapter example shows the rules rather than restating them. Rejected: keeping the reference as it is (`README.md` stays long), and moving it into the examples (one click away on npm, and the examples doing two jobs).
 - _`D306`_ (`live`; refines _`D303`_, resolves _`O47`_; option chosen: "Both (Rec.)"): **`README.md` links each example twice**: relative (`./examples/<adapter>/README.md`, working in the showroom, on GitHub and offline) and live, in the published GitHub Pages showroom.
-- _`D307`_ (`live`, refined by _`D451`_ (PLAN-P11-angular.md), within what it allows; resolves _`O48`_; option chosen: "Repo deps + own tsconfig (Rec.)"): **An example depends only on this repository's own dependencies** (devDependencies included), with no install of its own, and has a `tsconfig.json` of its own where its showcases are type checked. A future showcase adapter needing another toolchain (e.g. Angular) adds it as a devDependency, decided in its own segment. Rejected: self-contained example projects (an install of their own, _`K12`_).
+- _`D307`_ (`live`, refined by _`D451`_ (PLAN-P11-angular.md), within what it allows, changed by _`D718`_ (SPEC-S16-csharp.md); resolves _`O48`_; option chosen: "Repo deps + own tsconfig (Rec.)"): **An example depends only on this repository's own dependencies** (devDependencies included), with no install of its own, and has a `tsconfig.json` of its own where its showcases are type checked. A future showcase adapter needing another toolchain (e.g. Angular) adds it as a devDependency, decided in its own segment. Rejected: self-contained example projects (an install of their own, _`K12`_).
 - _`D308`_ (`live`; resolves _`O49`_; option chosen: "Accept it (Rec.)"): **The custom showcase adapter's example is live**: its small, dependency-free module is listed under `customShowcaseAdapters` in this repository's `showroom.json`, so every `check` on this repository loads it.
 - _`D309`_ (`live`, refined by _`D314`_, _`D315`_; refines _`D303`_, resolves _`O50`_; the user: "Move to `examples/html/` if it is also being used by the `examples/html/README.md`. Ideally, let's make all the adapter specific links in the root README.md link to particular example showcases from the broader example README.md files ..."): **`README.md`'s showcase adapter specific links point at particular showcases in the examples** (their headings, e.g. `./examples/ts/README.md#<heading id>`; the showroom's routes take a heading id), rather than only at an example as a whole. `examples/button.html` moves to `examples/html/` if `examples/html/README.md` uses it too (settled when planning), with `README.md`'s link and `AGENTS.md`'s gotcha "Markers in this repository's own documentation files are live" updated.
 - _`D310`_ (`live`; resolves _`O51`_; option chosen: "You check a served copy (Rec.)"): **The navigation with several examples is checked by the user when planning**: the agent serves a copy of this repository, in a working-files folder, with placeholder `examples/html/`, `ts/` and `custom/` `README.md` files, and the user checks the showroom's navigation in a browser; any change it needs goes into the plan.
@@ -189,11 +190,11 @@ A stack adapter for .NET host repositories (e.g. `../dotnetschema`), which _`K3`
 
 ### Ideas and later
 
-- A showcase adapter running .NET code (e.g. C# through Blazor WebAssembly). Until then, a .NET host's documentation can use `html` showcases, which need nothing from the host.
+- A showcase adapter running .NET code (e.g. C# through Blazor WebAssembly). Until then, a .NET host's documentation can use `html` showcases, which need nothing from the host. Taken by _`S16`_, as a recorded showcase (_`S15`_), built and recorded on the machine running `showroom`, rather than run in the browser.
 
 ## _`S12`_ Showcase views
 
-approved 2026-11-15 (option chosen: "Approve and commit (Rec.)")
+approved 2026-11-15 (option chosen: "Approve and commit (Rec.)"); revised 2026-11-17 (_`R50`_, _`R52`_, SPEC-S12-showcase-views.md), re-approved 2026-11-17 with _`S14`_–_`S16`_ (option chosen: "Approve and commit (Rec.)")
 
 [See Showcase views](./SPEC-S12-showcase-views.md)
 
@@ -202,6 +203,24 @@ approved 2026-11-15 (option chosen: "Approve and commit (Rec.)")
 approved 2026-11-16 (option chosen: "Approve and commit (Rec.)"); revised 2026-11-16 (_`R49`_, SPEC-S13-navigation.md), re-approved 2026-11-16 with _`P18`_ (PLAN-P18-documentation.md) (option chosen: "Approve and commit (Rec.)")
 
 [See The navigation](./SPEC-S13-navigation.md)
+
+## _`S14`_ Trust
+
+approved 2026-11-17 (option chosen: "Approve and commit (Rec.)")
+
+[See Trust](./SPEC-S14-trust.md)
+
+## _`S15`_ Recorded showcases
+
+approved 2026-11-17 (option chosen: "Approve and commit (Rec.)")
+
+[See Recorded showcases](./SPEC-S15-recorded-showcases.md)
+
+## _`S16`_ The C# showcase adapter
+
+approved 2026-11-17 (option chosen: "Approve and commit (Rec.)")
+
+[See The C# showcase adapter](./SPEC-S16-csharp.md)
 
 ## Pitfalls
 

@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** _`P18`_ implemented (the documentation review's changes, and _`D668`_ (SPEC-S13-navigation.md)); _`P1`_–_`P17`_ implemented before it.
-- **Next free:** _`D677`_, _`S14`_, _`P19`_, _`O94`_, _`L15`_, _`R50`_, _`H1`_, _`K24`_
-- **Working on:** nothing planned; _`P18`_ is implemented.
-- **Next step:** the user's choice of the next work (e.g. _`S6`_'s open points _`O16`_–_`O19`_, or a known open issue in `./.workflow/PLAN.md`).
+- **Stage:** specification: _`S14`_ (trust), _`S15`_ (recorded showcases) and _`S16`_ (the C# showcase adapter) approved; _`P1`_–_`P18`_ implemented before them.
+- **Next free:** _`D740`_, _`S17`_, _`P19`_, _`O119`_, _`L15`_, _`R54`_, _`H1`_, _`K29`_
+- **Working on:** nothing planned yet.
+- **Next step:** planning _`S14`_ (trust) first (_`D703`_), as _`P19`_, starting with its open points (_`O112`_–_`O114`_); or the user's other choice.
 
 ## Open questions
 
@@ -13,6 +13,8 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/review-s14-s16/` (the review's record, `REVIEW.md`, its snapshots and formatting backups); ask before deleting it.
+- `./.workflow/.temp/questions-s14-s16/` (the drafts' choices, recorded as _`D693`_–_`D719`_); ask before deleting it.
 - `./.workflow/.temp/questions-p17/` (its choices, recorded as _`D641`_–_`D649`_), `s13-format/`, `p17-format/`, `p17-check/`, `ci-p17.log`, `ci-p17-align.log`, `serve-dogfood-p17.log` and `serve-p17-check.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p16/` (its choices, recorded as _`D615`_–_`D626`_); ask before deleting it.
 - `./.workflow/.temp/p16-check/`, `p16-format/`, `ci-p16.log`, `serve-dogfood-p16.log`, `serve-p16-check.log`; ask before deleting them.
@@ -399,3 +401,9 @@
 - 2026-11-16: Stop and report: stopping _`P18`_'s dogfooding `serve` with a `pkill` pattern also stopped an earlier dogfooding `serve` of this session (no file changed); the user chose "Resume, commit".
 - 2026-11-16: fast path: the "npm" item dropped from this repository's navigation (_`D676`_); `npm run ci` green; approved (option chosen: "Approve and commit (Rec.)").
 - 2026-11-16: `./.workflow/.temp/review-docs/`, `p18-drafts/`, `p18-readme-ts/`, `ci-p18.log`, `ci-p18-npm.log` and `serve-dogfood-p18.log` deleted with the user's yes.
+- 2026-11-17: Specification stage entered from a discussion of building and recording C# examples; _`S14`_ (trust), _`S15`_ (recorded showcases) and _`S16`_ (the C# showcase adapter) drafted at the user's request (option chosen: "Draft both specs"), with _`D677`_–_`D692`_ settled in the discussion, pitfalls _`K24`_–_`K27`_, and choices Q1–Q24 open.
+- 2026-11-17: _`S14`_–_`S16`_'s choices Q1–Q21, Q23, Q24 answered (the user: "Agreed with all your points!"), recorded as _`D693`_–_`D717`_, with _`D710`_ (the shared recording, from the user's point on _`S16`_) raising Q25; _`S12`_ revised (_`R50`_, caused by _`D715`_), pending re-approval.
+- 2026-11-17: Q22 answered (option chosen: "Required everywhere (Rec.)"), recorded as _`D718`_ (_`S8`_ revised, _`R51`_, pending re-approval); Q25 answered (option chosen: "Custom too (Rec.)"), recorded as _`D719`_.
+- 2026-11-17: Go-ahead for a zero-context review of the _`S14`_–_`S16`_ drafts (option chosen: "Both agents (Rec.)"): 2 agents, consistency and security, started.
+- 2026-11-17: Zero-context review of _`S14`_–_`S16`_ run (2 agents, consistency and security; 46 findings, 1 blocker; stray-write check clean): T1–T6 answered (options chosen: "Outside only (Rec.)", "No frames untrusted (Rec.)", stderr fails a recording as `console.error` does, "Same limits (Rec.)", "User's global cache (Rec.)", "Copy on requst", every adapter saying what is copied), fixes F1–F15 and skip S1 applied (option chosen: "Apply all (Rec.)"), recorded as _`D720`_–_`D739`_, _`O112`_–_`O118`_, _`K28`_; _`S6`_ (_`R53`_) and _`S12`_ (_`R52`_) revised, pending re-approval.
+- 2026-11-17: _`S14`_, _`S15`_ and _`S16`_ approved, with _`S6`_ (_`R53`_), _`S8`_ (_`R51`_) and _`S12`_ (_`R50`_, _`R52`_) re-approved (option chosen: "Approve and commit (Rec.)").
