@@ -5,7 +5,7 @@
 - **Stage:** implementation: _`P20`_ recorded showcases (_`S15`_) and the `cs` showcase adapter (_`S16`_) ([PLAN-P20-recorded.md](./PLAN-P20-recorded.md)): _`P20.1`_ (the shared recording) implemented; _`P20.2`_ (the `cs` showcase adapter) implemented; _`P20`_ implemented.
 - **Next free:** _`D803`_, _`S17`_, _`P21`_, _`O124`_, _`L16`_, _`R58`_, _`H1`_, _`K29`_
 - **Working on:** nothing: _`P20`_ is implemented and committed.
-- **Next step:** ask the user what to work on next (e.g. pushing `dotnet-showcase-adapter`, or the next specification segment).
+- **Next step:** ask the user what to work on next; `dotnet-showcase-adapter` is pushed, and the user merges it into `develop` by hand.
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- The first GitHub Actions runs with `actions/setup-dotnet@v5` (`ci.yml`, `showroom.yml`; the version wasn't verified): check they pass once `dotnet-showcase-adapter` is merged into `develop` (the user merges by hand, no pull request); if the action's version is wrong, bump it in both workflows.
 - `./.workflow/.temp/p20.2-plan-format/` (formatting backups), `p20.2-check/` (fixture copies and a cache folder checked by hand), `ci-p20.2.log`, `ci-p20.2-rest.log`, `serve-dogfood-p20.2.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p20.1/` (_`P20.1`_'s implementation choices, recorded as _`D791`_–_`D798`_), `p20.1-format/` (formatting backups), `p20.1-readme-ts/` (`README.md`'s samples, type checked), `p20.1-check/` (the fixture copy served at the checkpoint), `ci-p20.1.log`, `serve-dogfood-p20.1.log`, `serve-p20.1-check.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p20/` (_`P20`_'s choices, recorded as _`D768`_–_`D781`_, and formatting backups); ask before deleting it.
