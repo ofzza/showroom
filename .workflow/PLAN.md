@@ -300,6 +300,10 @@ None (_`D61`_).
 
 - _`P18`_ The documentation review's changes (implemented 2026-11-16; approved 2026-11-16): the outcomes of the 2026-11-16 documentation review (README.md, CONTRIBUTE.md, PUBLISH.md, the examples, a new CHANGELOG.md), and _`D668`_ (SPEC-S13-navigation.md), a documentation file listed again under another anchor. [See The documentation review's changes](./PLAN-P18-documentation.md)
 
+## Trust
+
+- _`P19`_ Trust (approved 2026-11-17, for its split and _`P19.1`_): _`S14`_ (SPEC-S14-trust.md), in two child segments, _`P19.1`_ the gate and the flags, and _`P19.2`_ the prompt. [See Trust](./PLAN-P19-trust.md)
+
 ## Known open issues
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: _`P9`_. Status: picked up by _`P9`_; resolved by _`D323`_ (SPEC.md), implemented by _`P9`_ 2026-11-13.

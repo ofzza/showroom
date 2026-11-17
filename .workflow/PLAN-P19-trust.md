@@ -1,0 +1,76 @@
+# _`P19`_ Trust
+
+approved 2026-11-17, for its split and _`P19.1`_ (option chosen: "Approve and commit (Rec.)")
+
+_`S14`_ (SPEC-S14-trust.md): running the host repository's code only when the person running `showroom` allows it, with `--trust` or by answering a prompt. Two child segments (_`D744`_): _`P19.1`_ the gate and the flags, then _`P19.2`_ the prompt. Its choices were settled planning it on 2026-11-17 (`./.workflow/.temp/questions-p19/QUESTIONS.md`), where the user's simplification (_`D740`_–_`D743`_ (SPEC-S14-trust.md)) revised _`S14`_ (_`R54`_); its zero-context review of 2026-11-17 (consistency and security; `./.workflow/.temp/review-p19/REVIEW.md`) as _`D752`_–_`D756`_ (SPEC-S14-trust.md) (_`R55`_) and _`D757`_–_`D759`_.
+
+Found in the code while planning: `showroom` starts no process today (no `child_process`) and reads nothing from standard input; the built-in showcase adapters' host checks (`ts`, `react`, `angular`) only resolve packages and read their `package.json` files, while their builds load the host's TypeScript and Angular; custom showcase adapters are loaded by every `check` (`_checkShowcases()`, `src/cli/check/`) and by `buildShowcases()` (`src/showcases/`).
+
+## Decisions
+
+- _`D744`_ (`live`; changes _`D678`_, _`D695`_ (SPEC-S14-trust.md) until _`P19.2`_; Q1, option chosen: "Two children (Rec.)"; rejected: one segment, three child segments): **Two child segments**, each green: _`P19.1`_ the gate with `--trust` and `--no-trust`, and everything shown without trust; _`P19.2`_ the prompt. Without the prompt, a run without `--trust` is a run without trust, with a warning (as with no terminal, _`D695`_ (SPEC-S14-trust.md)). The gate and the flags go together, as `ci:showroom` without `--trust` would otherwise pass while checking no showcase (_`D742`_ (SPEC-S14-trust.md)); wording fixed 2026-11-17 (review C11).
+- _`D745`_ (`live`; refines _`D723`_ (SPEC-S14-trust.md); resolves _`O112`_ (SPEC-S14-trust.md); Q2, option chosen: "Gate only, name them (Rec.)"; rejected: pinning them to `showroom`'s own copies (dependencies of every install, and the host's own version ignored), refusing them (a `.scss` import failing even with trust)): **The CSS preprocessors are neither pinned nor refused**: nothing is bundled without trust (_`D740`_ (SPEC-S14-trust.md)), and with trust the host's code is trusted. The prompt names each one (`sass`, `sass-embedded`, `less`, `stylus`) resolvable from the host repository, by its absolute path, when a showcase would be bundled (_`D723`_ (SPEC-S14-trust.md)).
+- _`D746`_ (`live`; resolves _`O113`_ (SPEC-S14-trust.md); Q3, option chosen: "All three + audit (Rec.)"; rejected: `css.postcss` only): **The showroom's own Vite configuration** (`getViteConfiguration()`, `src/vite/`) sets `css: { postcss: {} }`, `envDir: false` and `publicDir: false`, each tested; Vite's other searches from its `root` are audited in the implementation, and the findings recorded as evidence under this decision.
+- _`D747`_ (`live`; Q5, the user: "Internal list of whitelisted adapters that don't need trust", emptied by Q8 (the user: "`html` showcases always require trust, the `html` showcase adapter is not whitelisted"), then settled by _`D740`_ (SPEC-S14-trust.md); rejected: a `ShowcaseAdapter.needsTrust` member, an empty allowlist): **No list of showcase adapters exempt from the gate**: every showcase needs trust. A future showcase adapter that runs nothing would add one in its own segment.
+- _`D748`_ (`live`, refined by _`D753`_ (SPEC-S14-trust.md), _`D759`_; refines _`D698`_ (SPEC-S14-trust.md); Q6, option chosen: "Boolean or callback (Rec.)"; rejected: a boolean, with an internal pre-scan the command line runs first (scanning twice)): **`check()`'s `trust` option is `boolean | ((request: TrustRequest) => Promise<boolean>)`**, `false` by default. After reading `showroom.json` and scanning the documentation files (_`D722`_ (SPEC-S14-trust.md)), `check()` calls a function once, only when there is something to trust (_`D740`_ (SPEC-S14-trust.md)), with a `TrustRequest`: the custom showcase adapter modules, by path; the tools a build would load, by absolute path (the host's TypeScript, Angular's compiler, the CSS preprocessors, _`D745`_); the number of showcases. `TrustRequest` is a new export. `buildShowcases()` takes the decided boolean. `serve` keeps its first answer for the session (_`D697`_ (SPEC-S14-trust.md)).
+- _`D749`_ (`live`, refined by _`D759`_; refines _`D700`_, _`D726`_ (SPEC-S14-trust.md); Q7, option chosen: "By command (Rec.)", its errors made warnings by _`D742`_ (SPEC-S14-trust.md)): **The issues of a run without trust are summary warnings**, never one per showcase (each showcase's block shows its own notice, _`D741`_ (SPEC-S14-trust.md)): plain `check` warns once per showcase adapter that would need trust (a custom one not loaded, a built-in one's host check not run), naming its number of showcases; `check --showcases`, `build` and `serve` warn once that the showcases were not built and are shown as their source, naming their number, and once about the custom showcase adapters not loaded; `serve` shows them in the terminal and in the issues bar.
+- _`D750`_ (`live`; refines _`D722`_ (SPEC-S14-trust.md); Q9, option chosen: "S15's plan (Rec.)"; rejected: a resolver in _`P19`_, unused until _`S15`_): **Resolving executables from the `PATH`, leaving out the host repository and the host copy** (_`D722`_ (SPEC-S14-trust.md)), is left to _`S15`_'s plan segment, the first to start a process: _`O119`_ (SPEC-S15-recorded-showcases.md).
+- _`D751`_ (`live`; Q10, option chosen: "Usage error (Rec.)"; rejected: the last flag winning): **`--trust` with `--no-trust` is a usage error**, printed with the usage, as `--showcases` on `serve` is.
+
+### The zero-context review of 2026-11-17
+
+- _`D757`_ (`live`; review R6, option chosen: "Keep in P19.2"; rejected: moving the escaping into _`P19.1`_ (the agent's recommendation)): **Escaping control characters stays in _`P19.2`_** (_`D724`_ (SPEC-S14-trust.md)): _`P19.1`_ is never published on its own; _`P19.2`_ follows it before any publish.
+- _`D758`_ (`live`; changes _`D632`_ (SPEC-S13-navigation.md); review R7, options chosen: all three): **_`P19.1`_ also fixes three findings outside trust**: `build` refuses an output folder that is a symbolic link, or whose real path leads outside the host repository's real root (`resolveOutputFolder()`, `readOutputFolderState()`), as a source-only `build` of a repository you don't trust is now supported (_`D742`_ (SPEC-S14-trust.md)); a navigation item's absolute URL must be `http:`, `https:` or `mailto:` (or protocol-relative), an error otherwise; the page title's replacement uses a function, so `$` patterns in a project's name stay text.
+- _`D759`_ (`live`; refines _`D748`_, _`D749`_; review fixes, option chosen: "Apply all (Rec.)"): **The review's fixes**:
+  - the request's tools come from an internal hook of the built-in showcase adapters, run after validation and before the decision (the host's TypeScript per documentation file's folder, none with `typeCheck: false`; Angular's compiler and its TypeScript; the CSS preprocessors resolvable from each documentation file's folder); modules and tools are named by their real paths, and the list says "including", as Vite and plugins may load more;
+  - the warnings of a run without trust come from `check()` alone, never again from `buildShowcases()`, so `build` and `serve` print each once;
+  - _`P19.1`_'s command line passes `check()` a function returning `false` that records that it was called, and warns how to allow it only then; `--no-trust` is an option of its own (not `parseArgs`' `allowNegative`, which would let the last flag win, against _`D751`_);
+  - every existing `main()` test injects an input with no terminal (a test helper), so none can wait on a prompt;
+  - the prompt is shown only when standard input and standard error are both terminals;
+  - `README.md` › `# Usage` documents `CheckOptions.trust`, `TrustRequest`, `CliInput` and `main()`'s input, its samples checked with `tsc`; _`K24`_ (SPEC-pitfalls.md) is ticked off as resolved;
+  - the tests: a canary scratch host (a custom showcase adapter module, a stub `sass` package and a `postcss.config.js`, each recording that it ran, one above a scratch copy of the showroom's folder) run through `check()` (with and without `showcases`), `build()` and `serve()` without trust, nothing recorded, and nothing recorded yet when the function is called (_`D722`_'s order); the function called at most once per command, and a rejection meaning no trust; no showcase with a `url` without trust, and no `showcases/` folder in `build`'s output; the linked files' headers in the `serve` tier; the Vite settings, and a parent PostCSS configuration that throws never loaded; the navigation's schemes; the output folder's symbolic link; the flags on all three commands.
+
+## Child segments
+
+### _`P19.1`_ The gate and the flags
+
+approved 2026-11-17 (option chosen: "Approve and commit (Rec.)")
+
+#### Goals
+
+_`D677`_, _`D679`_–_`D682`_, _`D699`_–_`D701`_, _`D720`_, _`D721`_, _`D722`_ (except its executables, _`D750`_), _`D723`_, _`D726`_, _`D727`_, _`D740`_–_`D743`_ and _`D752`_–_`D756`_ (SPEC-S14-trust.md), _`D758`_, without the prompt: `--trust` lets the host repository's code run; without it, nothing of the host's runs, and every showcase shows its source.
+
+#### Steps
+
+1. **`check()`** (`src/cli/check/`): the `trust` option (_`D748`_), the `TrustRequest` type, the internal tools hook (_`D759`_) and `CheckResult.trusted` (_`D753`_ (SPEC-S14-trust.md)); the order of _`D722`_ (SPEC-S14-trust.md); something to trust whenever there is a showcase or a custom showcase adapter (_`D756`_ (SPEC-S14-trust.md)); without trust, no custom showcase adapter loaded (its showcases' views still resolved, _`D754`_ (SPEC-S14-trust.md)), no host check run, the built-in showcase adapters' validation still run (plain parsing), and _`D749`_'s warnings, from `check()` alone.
+2. **`buildShowcases()`** (`src/showcases/`): a `trust` option (the decided boolean); without trust, it builds and loads nothing, and warns about nothing.
+3. **The shown host information** (`src/vite/`, `src/app/host/`): a top-level `trusted` flag (_`D754`_ (SPEC-S14-trust.md)); without trust, every showcase's views are `source`, with `markdown` where it has one (`view=none` kept, a linked showcase shown inline kept as a link), with no status marks and no `url` (_`D741`_ (SPEC-S14-trust.md)).
+4. **The showroom** (`src/app/code-pane/`, `src/app/showcase-sidebar/`): the header bar's notice in place of the status marks, with an (i) icon and its tooltip; a linked showcase shown inline's sidebar showing its tabs.
+5. **`serve` and `build`** (`src/cli/serve/`, `src/cli/build/`): trust decided once, by the first check, then passed on as a boolean (_`D753`_ (SPEC-S14-trust.md)); without it, `serve` builds no showcase frame (_`D721`_ (SPEC-S14-trust.md)) and sends linked files of active types as text (_`D752`_ (SPEC-S14-trust.md)), and `build` publishes the showcases' sources, with the warning (_`D742`_ (SPEC-S14-trust.md)); `X-Content-Type-Options: nosniff` on every linked file; `build`'s output folder never a symbolic link nor outside the real root (_`D758`_).
+6. **The command line** (`src/cli/`): `--trust` and `--no-trust`, two options (_`D699`_ (SPEC-S14-trust.md), _`D751`_, _`D759`_), `USAGE`; without either, a run without trust, through a function recording its call, warning how to allow it only when it was called (_`D744`_, _`D759`_).
+7. **Outside trust** (_`D758`_): the navigation's URL schemes (`src/configuration/`, `src/navigation/`), the page title's replacement (`src/vite/`).
+8. **The showroom's Vite configuration** (`src/vite/`): _`D746`_, and its audit.
+9. **This repository's own uses** (_`D682`_, _`D727`_, _`D755`_ (SPEC-S14-trust.md)): `ci:showroom` and `.github/workflows/showroom.yml` pass `--trust`; `showroom.yml` split into a build job (`contents: read`, `persist-credentials: false`, the artifact uploaded) and a deploy job (`pages`, `id-token`); `ci.yml`'s `actions/checkout` sets `persist-credentials: false`.
+10. **Tests**: every existing test that builds showcases or loads custom showcase adapters passes `trust: true` (or `--trust`), and every `main()` test injects an input with no terminal (_`D759`_); _`D759`_'s tests; new tests of each step without trust: `check()` (the request given to the function, called once and only when there is something to trust, the order, the warnings), `buildShowcases()`, the shown host information, the header bar's notice rendered on the server, `serve` and `build` in their tiers, the flags and their usage error, the Vite configuration.
+11. **Documentation**: `README.md` (a Trust section: what trusting a host repository means, `--trust`, `--no-trust`, what is shown without trust; reading a repository you don't trust, _`D720`_; running a trusted `showroom` in CI, _`D727`_; a showroom on GitHub Pages sharing its origin, and linked HTML published as is, _`D721`_, _`D752`_ (SPEC-S14-trust.md); the GitHub Pages example's `--trust` and its two jobs, _`D755`_ (SPEC-S14-trust.md); `# Usage`'s new exports, _`D759`_; the navigation's URL schemes; `showroom check`, `serve` and `build`'s flags; a Troubleshooting entry: every showcase shows its source), `CHANGELOG.md` (the breaking change, _`D682`_), `CONTRIBUTE.md` (the Glossary term "Trust", _`D743`_; the architecture), `AGENTS.md` (Exports, Testing, a gotcha on passing trust in tests, `ServeOptions`' and `BuildOptions`' `trust`); _`K24`_ (SPEC-pitfalls.md) ticked off.
+
+### _`P19.2`_ The prompt
+
+draft
+
+#### Goals
+
+_`D678`_, _`D693`_–_`D695`_, _`D697`_, _`D698`_, _`D724`_ and _`D725`_ (SPEC-S14-trust.md): the person at the terminal allows the host repository's code to run by answering a prompt naming what would run.
+
+#### Steps
+
+1. **The input** (`src/cli/`): an injectable `CliInput`, as `CliOutput` is (_`D698`_ (SPEC-S14-trust.md)); with none injected, the terminal on standard input only, never a pipe (_`D724`_ (SPEC-S14-trust.md)), and no environment variable.
+2. **The prompt**: shown only when standard input and standard error are both terminals (_`D759`_), written to standard error, `[y/N]` (_`D694`_ (SPEC-S14-trust.md)), naming what the `TrustRequest` holds (_`D693`_, _`D722`_, _`D723`_ (SPEC-S14-trust.md), _`D745`_) and what trusting means; with no terminal and neither flag, no prompt (_`D695`_ (SPEC-S14-trust.md)).
+3. **Escaping** (_`D757`_): every string from the host repository written to the terminal (in the prompt, its notices and the issues) has its control characters shown visibly (_`D724`_ (SPEC-S14-trust.md)).
+4. **`serve`**: one answer for the session (_`D697`_ (SPEC-S14-trust.md)); a notice whenever host code first runs under it, e.g. a custom showcase adapter module, by its path (_`D725`_ (SPEC-S14-trust.md)).
+5. **Tests**: `main()` with an injected input (yes, no, the default, Ctrl-C, no terminal, the flags skipping it), the prompt's text, the escaping, `serve`'s single answer and its notices.
+6. **Documentation**: `README.md` (the prompt), `CHANGELOG.md`, `AGENTS.md` (`CliInput`, the Testing section).
+
+## Open points
+
+- None yet.

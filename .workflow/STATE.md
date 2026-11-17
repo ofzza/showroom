@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** specification: _`S14`_ (trust), _`S15`_ (recorded showcases) and _`S16`_ (the C# showcase adapter) approved; _`P1`_–_`P18`_ implemented before them.
-- **Next free:** _`D740`_, _`S17`_, _`P19`_, _`O119`_, _`L15`_, _`R54`_, _`H1`_, _`K29`_
-- **Working on:** nothing planned yet.
-- **Next step:** planning _`S14`_ (trust) first (_`D703`_), as _`P19`_, starting with its open points (_`O112`_–_`O114`_); or the user's other choice.
+- **Stage:** implementation: _`P19`_ (trust, _`S14`_) approved, for its split and _`P19.1`_ ([PLAN-P19-trust.md](./PLAN-P19-trust.md)); _`P19.2`_ (the prompt) still a draft, approved when reached.
+- **Next free:** _`D760`_, _`S17`_, _`P20`_, _`O120`_, _`L15`_, _`R57`_, _`H1`_, _`K29`_
+- **Working on:** nothing started yet.
+- **Next step:** implement _`P19.1`_ (the gate and the flags), step by step, then its checkpoint.
 
 ## Open questions
 
@@ -13,6 +13,8 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/review-p19/` (the review's record, `REVIEW.md`, its snapshots and formatting backups); ask before deleting it.
+- `./.workflow/.temp/questions-p19/` (_`P19`_'s choices, recorded as _`D740`_–_`D751`_, and formatting backups); ask before deleting it.
 - `./.workflow/.temp/review-s14-s16/` (the review's record, `REVIEW.md`, its snapshots and formatting backups); ask before deleting it.
 - `./.workflow/.temp/questions-s14-s16/` (the drafts' choices, recorded as _`D693`_–_`D719`_); ask before deleting it.
 - `./.workflow/.temp/questions-p17/` (its choices, recorded as _`D641`_–_`D649`_), `s13-format/`, `p17-format/`, `p17-check/`, `ci-p17.log`, `ci-p17-align.log`, `serve-dogfood-p17.log` and `serve-p17-check.log`; ask before deleting them.
@@ -407,3 +409,7 @@
 - 2026-11-17: Go-ahead for a zero-context review of the _`S14`_–_`S16`_ drafts (option chosen: "Both agents (Rec.)"): 2 agents, consistency and security, started.
 - 2026-11-17: Zero-context review of _`S14`_–_`S16`_ run (2 agents, consistency and security; 46 findings, 1 blocker; stray-write check clean): T1–T6 answered (options chosen: "Outside only (Rec.)", "No frames untrusted (Rec.)", stderr fails a recording as `console.error` does, "Same limits (Rec.)", "User's global cache (Rec.)", "Copy on requst", every adapter saying what is copied), fixes F1–F15 and skip S1 applied (option chosen: "Apply all (Rec.)"), recorded as _`D720`_–_`D739`_, _`O112`_–_`O118`_, _`K28`_; _`S6`_ (_`R53`_) and _`S12`_ (_`R52`_) revised, pending re-approval.
 - 2026-11-17: _`S14`_, _`S15`_ and _`S16`_ approved, with _`S6`_ (_`R53`_), _`S8`_ (_`R51`_) and _`S12`_ (_`R50`_, _`R52`_) re-approved (option chosen: "Approve and commit (Rec.)").
+- 2026-11-17: Planning stage entered for _`P19`_ (trust, _`S14`_) (option chosen: "Start P19 (Rec.)"); its choices Q1–Q10 answered: two child segments, the CSS preprocessors gated and named, the showroom's Vite hardened, a callback `trust` option, issues by command, the `PATH` left to _`S15`_ (_`O119`_), the flags' usage error; the user's simplification (the user: "Would it be simpler to just say that all showcases require trust. [...] maybe we shouldn't even gegt started with that whole arms race ...", option chosen: "Adopt it (Rec.)"; and "Source-only showroom" for `build` without trust), recorded as _`D740`_–_`D751`_; _`S14`_ revised (_`R54`_), pending re-approval.
+- 2026-11-17: Go-ahead for a zero-context review of the _`P19`_ draft (option chosen: "Review first (Rec.)"): 2 agents, consistency and security.
+- 2026-11-17: Zero-context review of the _`P19`_ draft run (2 agents; 25 findings, 1 blocker: linked `.html` and `.svg` files run without trust; stray-write check clean): R1–R7 answered (options chosen: "Serve as text", "Any showcase, always", "Once, else no (Rec.)", "Shown only; keep md (Rec.)", "Split jobs (Rec.)", "Keep in P19.2", all three extras), fixes applied (option chosen: "Apply all (Rec.)"), recorded as _`D752`_–_`D759`_; _`S14`_ (_`R55`_) and _`S13`_ (_`R56`_) revised, pending re-approval.
+- 2026-11-17: _`P19`_ approved, for its split and _`P19.1`_, with _`S14`_ (_`R54`_, _`R55`_) and _`S13`_ (_`R56`_) re-approved (option chosen: "Approve and commit (Rec.)").

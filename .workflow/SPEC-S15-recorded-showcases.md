@@ -52,6 +52,7 @@ From the zero-context review of 2026-11-17:
 
 - [ ] _`O115`_ From review 2026-11-17 #15 (consistency). Concurrency in the host copy: several showcases building one `#:project` at once (its `obj/` folder), and `serve` updating the host copy while a build reads it. For planning.
 - [ ] _`O116`_ From review 2026-11-17 #26 (consistency). _`S15`_ ships no built-in showcase adapter that records: its `integration`, `e2e` and `serve` tests rest on a fixture's custom showcase adapter that records (_`D719`_), so they don't wait for _`S16`_. For planning.
+- [ ] _`O119`_ From _`D750`_ (PLAN-P19-trust.md), _`D722`_ (SPEC-S14-trust.md). Every executable `showroom` starts (the first: the .NET SDK) is resolved to an absolute path from the `PATH`, leaving out the host repository and the host copy; nothing starts a process before _`S15`_. For planning.
 
 For the specification (the draft's choices):
 

@@ -1,7 +1,8 @@
 # _`S13`_ The navigation
 
-implemented 2026-11-16 (_`P17`_); approved 2026-11-16 (option chosen: "Approve and commit (Rec.)"); the Glossary term "Navigation" accepted ("Add as proposed (Rec.)"), added with the implementation; revised 2026-11-16 (_`R49`_), re-approved 2026-11-16 with _`P18`_ (option chosen: "Approve and commit (Rec.)")
+implemented 2026-11-16 (_`P17`_); approved 2026-11-16 (option chosen: "Approve and commit (Rec.)"); the Glossary term "Navigation" accepted ("Add as proposed (Rec.)"), added with the implementation; revised 2026-11-16 (_`R49`_), re-approved 2026-11-16 with _`P18`_ (option chosen: "Approve and commit (Rec.)"); revised 2026-11-17 (_`R56`_), re-approved 2026-11-17 with _`P19`_ (option chosen: "Approve and commit (Rec.)")
 
+- _`R56`_ 2026-11-17: an absolute URL item's scheme must be `http:`, `https:` or `mailto:`, caused by _`D758`_ (PLAN-P19-trust.md).
 - _`R49`_ 2026-11-16: a documentation file listed again under another anchor is no longer warned about, and the item whose anchor the route names is the current one, caused by _`D668`_.
 
 Customizing the showroom's navigation from `showroom.json`: titles, grouping, order, and which documentation files it lists. From the user's proposal of 2026-11-16 (a `menu` property of `{ title, path?, subs? }` items: "If not present, will render the menu exactly as it is now"), discussed as a critique (Q1–Q13). Picks up _`L13`_ (PLAN.md).
@@ -12,7 +13,7 @@ Customizing the showroom's navigation from `showroom.json`: titles, grouping, or
 
 - _`D630`_ (`live`; Q1, option chosen: "navigation (Recommended)"; rejected: `menu`, the user's proposal, and `nav`; the code and documentation already call it the navigation (_`D42`_, PLAN.md)): **`showroom.json`'s optional `navigation`** configures the showroom's navigation: a list of items, shown in their order. Without it, the showroom shows the default navigation (_`D639`_).
 - _`D631`_ (`live`; Q2, option chosen: "Page or group (Recommended)"; rejected: a group whose caption is also a page, and the draft's single root object with optional `path` and `subs`): **An item is a page or a group**: a page has a `path` (and an optional `title`, _`D633`_); a group has a `title` and `items`, a non-empty list of items. An item with both `path` and `items`, with neither, or with an empty `items`, is invalid (`validateConfiguration()`).
-- _`D632`_ (`live`; Q4, options chosen: "Heading anchors", "Absolute URLs", "Glob patterns"): **A page's `path`** is one of:
+- _`D632`_ (`live`, changed by _`D758`_ (PLAN-P19-trust.md) (an absolute URL's scheme is `http:`, `https:` or `mailto:`, or protocol-relative); Q4, options chosen: "Heading anchors", "Absolute URLs", "Glob patterns"): **A page's `path`** is one of:
   - a documentation file's path, relative to the host repository's root, optionally followed by `#<heading id>` (opening the page at that heading);
   - an absolute URL (e.g. the package's npm page), opened in a new tab, and never checked;
   - a glob pattern (e.g. `examples/*/README.md`), standing for one page per documentation file it matches, in path order (_`D634`_).
