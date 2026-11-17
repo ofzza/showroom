@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning: _`P20`_ recorded showcases (_`S15`_) and the `cs` showcase adapter (_`S16`_) ([PLAN-P20-recorded.md](./PLAN-P20-recorded.md)): _`P20.1`_ (the shared recording) implemented; _`P20.2`_ (the `cs` showcase adapter) still a draft.
-- **Next free:** _`D799`_, _`S17`_, _`P21`_, _`O124`_, _`L16`_, _`R58`_, _`H1`_, _`K29`_
-- **Working on:** nothing: _`P20.1`_ is implemented and committed.
-- **Next step:** plan _`P20.2`_ (the `cs` showcase adapter), starting with its open point _`O123`_.
+- **Stage:** implementation: _`P20`_ recorded showcases (_`S15`_) and the `cs` showcase adapter (_`S16`_) ([PLAN-P20-recorded.md](./PLAN-P20-recorded.md)): _`P20.1`_ (the shared recording) implemented; _`P20.2`_ (the `cs` showcase adapter) approved.
+- **Next free:** _`D803`_, _`S17`_, _`P21`_, _`O124`_, _`L16`_, _`R58`_, _`H1`_, _`K29`_
+- **Working on:** nothing yet: _`P20.2`_ is approved and committed.
+- **Next step:** implement _`P20.2`_ (the `cs` showcase adapter).
 
 ## Open questions
 
@@ -434,3 +434,5 @@
 - 2026-11-17: _`P20.1`_ (the shared recording) implemented, pending its checkpoint: the interface (`recorded`, `hostCopy`, the request's `project`, `stack`, `hostCopy` and `showcaseFolder`, the result's `recording`, the host check's context), `src/processes/`, `src/host-copy/` (the host copy and the run session), recordings and the `runtime` check in `buildShowcases()`, `check()`'s errors, the showroom's recorded `console` view and `runtime` status mark, `--pass-env`, `TrustRequest.executables` and `recorded`; the `showcase-recorded` fixture in every tier; the documentation, and the Glossary's wording from _`P20.1`_.
 - 2026-11-17: _`P20.1`_'s checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"), with the Glossary's wording from _`P20.1`_; its implementation choices recorded as _`D791`_–_`D798`_ (option chosen: "Accept all (Rec.)").
 - 2026-11-17: Fast path: the bundler's `PLUGIN_TIMINGS` warning silenced (`SILENCED_WARNINGS`), as it failed GitHub Actions run 44110251121's `serve` tier on Node 22 on a slow runner (options chosen: "Fast path (Rec.)", "Current branch (Rec.)"); checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)").
+- 2026-11-17: _`P20.2`_ planned: its choices settled as _`D799`_–_`D802`_ (options chosen: "Showcase + #:project files (Rec.)", "Installed ≥10, pin checked (Rec.)", "Errors all, warnings own (Rec.)", "Standalone file-based apps"); _`O123`_ resolved by _`D799`_.
+- 2026-11-17: _`P20.2`_ approved (option chosen: "Approve and commit (Rec.)").

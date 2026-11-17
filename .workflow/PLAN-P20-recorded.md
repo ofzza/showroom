@@ -77,6 +77,15 @@ Choices made while implementing _`P20.1`_, settled at its checkpoint (`./.workfl
 - _`D797`_ (`live`; refines _`D782`_; Q7): **The tiers' `XDG_CACHE_HOME` is `tmp-<tier>/cache/`**, inside their temporary folder, removed with it. Rejected: beside it, with a setup of its own.
 - _`D798`_ (`live`; refines _`D790`_ C7; Q8): **When `serve` listens to the signal too, the command line's clean-up only kills the process groups**, and `serve` stops by itself; on `SIGHUP`, which `serve` doesn't listen to, the command line cleans up and exits with 129 at once, leaving that session's Vite cache folder behind. Rejected: `serve` stopping gracefully on `SIGHUP` too, for now.
 
+### Planning _`P20.2`_
+
+Choices settled planning _`P20.2`_ on 2026-11-17, in a dialog:
+
+- _`D799`_ (`live`; resolves _`O123`_; Q1, option chosen: "Showcase + #:project files (Rec.)"; rejected: also every file under the `#:project` folders (walked every build, still missing transitive references and `Directory.Build.*`); the showcase's file only): **A `cs` build's `reads` are the showcase's own file** (the documentation file for a code block, the `.cs` file for a linked showcase) **and each `#:project`'s project file** (a folder resolved to the project file in it). `reads` only matter to `serve` for ignored files; an ignored source file of a referenced project (e.g. a generated one) isn't watched, which `README.md` says.
+- _`D800`_ (`live`; refines _`D717`_, _`D737`_ (SPEC-S16-csharp.md); Q2, option chosen: "Installed ≥10, pin checked (Rec.)"; rejected: the installed SDKs only; emulating `dotnet`'s whole `rollForward` resolution): **The `cs` host check judges the SDK** as an error when `dotnet --list-sdks` lists no SDK of .NET 10 or later, or when the host's `global.json` pins `sdk.version` below 10 with a `rollForward` that can't reach a major of 10 or later (only `latestMajor` can), naming `global.json`; anything finer is left to the build, whose own error is its issue.
+- _`D801`_ (`live`; refines _`D691`_ (SPEC-S16-csharp.md), _`D779`_; Q3, option chosen: "Errors all, warnings own (Rec.)"; rejected: every diagnostic; the showcase's own file only): **A `cs` build's issues are every compiler error**, wherever it is (a host file's at its root-relative path and line), **and the warnings in the showcase's own file only**, so a host project's warnings don't repeat on every showcase referencing it.
+- _`D802`_ (`live`; refines _`D718`_ (SPEC-S16-csharp.md), _`D304`_, _`D315`_ (SPEC.md); Q4, option chosen: "Standalone file-based apps"; rejected: a mock `.csproj` of its own, used through `#:project`): **The `cs` showcase adapter example's showcases are standalone file-based apps**, with no project of its own; `#:project` is demonstrated by the fixtures (`showcase-cs`) and described in `README.md`.
+
 ## Child segments
 
 ### _`P20.1`_ The shared recording
@@ -113,21 +122,21 @@ _`S15`_ (SPEC-S15-recorded-showcases.md) whole: _`D683`_–_`D690`_, _`D705`_–
 
 ### _`P20.2`_ The `cs` showcase adapter
 
-draft
+approved 2026-11-17 (option chosen: "Approve and commit (Rec.)")
 
 #### Goals
 
-_`S16`_ (SPEC-S16-csharp.md) whole: _`D691`_, _`D692`_, _`D712`_–_`D718`_, _`D737`_–_`D739`_; with _`D778`_, _`D781`_.
+_`S16`_ (SPEC-S16-csharp.md) whole: _`D691`_, _`D692`_, _`D712`_–_`D718`_, _`D737`_–_`D739`_; with _`D778`_, _`D781`_, _`D799`_–_`D802`_.
 
 #### Steps
 
-1. **The `cs` showcase adapter** (new internal `src/adapters/showcase/cs/`): `recorded: true`, `defaultViews` `source,console` (_`D715`_), `hostCopy` (_`D774`_); validation (one `.cs` file, _`D716`_); the host check (_`D717`_, _`D737`_): `dotnet` resolved from the `PATH`, `dotnet --list-sdks` run in a folder of its own, the host's `global.json` read statically (its `sdk.paths` inside the host repository noted, never run), an error when missing or older than .NET 10; the tools hook naming `dotnet`; the build and the recording (_`D778`_); its diagnostics mapped (_`D779`_); moved from `PLANNED_SHOWCASE_ADAPTER_NAMES` into the registry.
+1. **The `cs` showcase adapter** (new internal `src/adapters/showcase/cs/`): `recorded: true`, `defaultViews` `source,console` (_`D715`_), `hostCopy` (_`D774`_); validation (one `.cs` file, _`D716`_); the host check (_`D717`_, _`D737`_): `dotnet` resolved from the `PATH`, `dotnet --list-sdks` run in a folder of its own, the host's `global.json` read statically (its `sdk.paths` inside the host repository noted, never run), an error when missing or older than .NET 10; the tools hook naming `dotnet`; the build and the recording (_`D778`_), its `reads` (_`D799`_); its diagnostics mapped (_`D779`_, _`D801`_); the SDK judged (_`D800`_); moved from `PLANNED_SHOWCASE_ADAPTER_NAMES` into the registry.
 2. **Fixtures**: `showcase-cs` (a project and its showcases: a code block and a linked showcase with `#:project`, a named one, one in the project's folder (_`K28`_), a warning), `showcase-cs-errors` (a compiler error, an exception, standard error output, a non-zero exit, the time limit), `showcase-cs-many` (_`D781`_).
 3. **Tests**: unit (validation, the host check with injected runners and scratch `global.json` files, the diagnostics' parsing and mapping, the environment); `integration` on the fixtures, and _`O105`_'s measurement; `e2e` (`build()` on a copy of `showcase-cs`); the `serve` tier (`serve()` on it).
 4. **The review's decisions**: _`D790`_'s C8 (`DefaultItemExcludes`), C22 (no MSBuild node left), C23 (the C# token-class sample) and S11 (the host check through `src/processes/`); _`D789`_'s `cs` tools hook (`dotnet`, `global.json`'s `sdk.paths`).
-5. **This repository** (_`D718`_): `actions/setup-dotnet` (SDK 10) in `ci.yml` and `showroom.yml`; the `cs` showcase adapter example `examples/cs/` (a mock project on the examples' shared theme, its first showcase a linked showcase of a real file, shown in `README.md` too, _`D304`_, _`D315`_ (SPEC.md)).
+5. **This repository** (_`D718`_): `actions/setup-dotnet` (SDK 10) in `ci.yml` and `showroom.yml`; the `cs` showcase adapter example `examples/cs/` (standalone file-based apps, _`D802`_, a mock project on the examples' shared theme, its first showcase a linked showcase of a real file, shown in `README.md` too, _`D304`_, _`D315`_ (SPEC.md)).
 6. **Documentation**: `README.md` (the `cs` showcase adapter: file-based apps, `#:project` (_`D714`_, _`D739`_), the .NET SDK 10 needed, packages restored into the user's NuGet cache (_`D738`_), _`L15`_), `CHANGELOG.md`, `CONTRIBUTE.md` (the .NET SDK for contributors), `AGENTS.md` (Layout, Testing, a gotcha on the `dotnet` settings through the environment and MSBuild switches); _`K27`_, _`K28`_ (SPEC-pitfalls.md) updated.
 
 ## Open points
 
-- [ ] _`O123`_ From review 2026-11-17 C21: what a `cs` build returns as `reads` (the showcase file and its `#:project` folders?), so that `serve` watches a change to them; for _`P20.2`_.
+- [x] _`O123`_ (resolved by _`D799`_) From review 2026-11-17 C21: what a `cs` build returns as `reads` (the showcase file and its `#:project` folders?), so that `serve` watches a change to them; for _`P20.2`_.
