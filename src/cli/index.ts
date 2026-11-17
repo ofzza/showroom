@@ -5,8 +5,9 @@
 import { resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { parseArgs } from 'node:util';
-import { check, type CheckOptions, type TrustRequest } from './check/index.js';
-import { escapeControlCharacters, formatIssues } from './check/internal/index.js';
+import { check, type CheckOptions } from './check/index.js';
+import { escapeControlCharacters, formatIssues, formatTrustPrompt } from './check/internal/index.js';
+import { isValidEnvironmentName } from '../processes/index.js';
 
 export { BUILT_IN_DOCUMENTATION, check } from './check/index.js';
 export type { CheckIssue, CheckIssueSeverity, CheckOptions, CheckResult, TrustRequest } from './check/index.js';
@@ -39,6 +40,10 @@ Options:
                    terminal, and otherwise none of it runs, and every showcase is
                    shown as its source
   --no-trust       Runs without trust, without asking or warning about it
+  --pass-env <name>
+                   Passes the environment variable of that name on to recorded
+                   showcases' build steps (e.g. a private package feed's
+                   credentials), never to their recorded run; repeatable
   --help           Shows this help
 `;
 
@@ -131,6 +136,12 @@ export async function main(args: string[], output: CliOutput = _processOutput(),
     output.stderr(`--trust and --no-trust can't be given together\n\n${USAGE}`);
     return 1;
   }
+  const passEnv = values['pass-env'] ?? [];
+  const invalid = passEnv.find((name) => !isValidEnvironmentName(name));
+  if (invalid !== undefined) {
+    output.stderr(`Invalid --pass-env name: ${escapeControlCharacters(JSON.stringify(invalid), false)}\n\n${USAGE}`);
+    return 1;
+  }
   // Without either flag, and only when there is something to trust, ask in a terminal, or else run without trust, warning how to allow it; Ctrl-C
   // ends the command, leaving the check waiting on an answer that never comes
   let interrupt = () => {};
@@ -144,7 +155,7 @@ export async function main(args: string[], output: CliOutput = _processOutput(),
             output.stderr(_UNTRUSTED_WARNING);
             return false;
           }
-          const answer = await input.ask(_formatTrustPrompt(request, root));
+          const answer = await input.ask(formatTrustPrompt(request, root));
           if (answer === null) {
             output.stderr('\n');
             interrupt();
@@ -152,7 +163,7 @@ export async function main(args: string[], output: CliOutput = _processOutput(),
           }
           return /^y(es)?$/i.test(answer.trim());
         };
-  return Promise.race([_run(command, values, root, outDir, output, trust), interrupted]);
+  return Promise.race([_run(command, values, root, outDir, output, trust, passEnv), interrupted]);
 }
 
 /**
@@ -163,6 +174,7 @@ export async function main(args: string[], output: CliOutput = _processOutput(),
  * @param outDir Absolute path of the output folder given, if any
  * @param output Output streams to write to
  * @param trust Whether the host repository's code may run, or the function deciding it
+ * @param passEnv Names of the environment variables passed on to recorded showcases' build steps
  * @returns Exit code
  */
 async function _run(
@@ -172,6 +184,7 @@ async function _run(
   outDir: string | undefined,
   output: CliOutput,
   trust: NonNullable<CheckOptions['trust']>,
+  passEnv: string[],
 ): Promise<number> {
   // Serve the showroom; Vite is only loaded here
   if (command === 'serve') {
@@ -181,7 +194,7 @@ async function _run(
       return 1;
     }
     const { serve } = await import('./serve/index.js');
-    return serve({ root, port, outDir, output, trust });
+    return serve({ root, port, outDir, output, trust, passEnv });
   }
   if (values.port !== undefined) {
     output.stderr(`--port only applies to serve\n\n${USAGE}`);
@@ -191,31 +204,14 @@ async function _run(
   // Build the showroom; Vite is only loaded here
   if (command === 'build') {
     const { build } = await import('./build/index.js');
-    return build({ root, outDir, output, trust });
+    return build({ root, outDir, output, trust, passEnv });
   }
 
   // Run the check
-  const result = await check(root, { outDir, trust, ...(values.showcases ? { showcases: true } : {}) });
+  const result = await check(root, { outDir, trust, passEnv, ...(values.showcases ? { showcases: true } : {}) });
   output.stderr(formatIssues(result.issues));
   if (result.host && !values.quiet) output.stdout(`${JSON.stringify(result.host, null, 2)}\n`);
   return result.passed ? 0 : 1;
-}
-
-/**
- * Formats the prompt asking whether to trust the host repository, naming what would run (each string from the host repository escaped)
- * @param request What would run
- * @param root Absolute path of the host repository's root
- * @returns The prompt, ending where the answer is typed
- */
-function _formatTrustPrompt(request: TrustRequest, root: string): string {
-  const escape = (text: string) => escapeControlCharacters(text, false);
-  const named = (items: { name: string; path: string }[]) => items.map(({ name, path }) => `${escape(name)} (${escape(path)})`).join(', ');
-  const lines = ["showroom would run the host repository's code on this machine, with your rights:"];
-  if (request.customShowcaseAdapters.length) lines.push(`  custom showcase adapters: ${named(request.customShowcaseAdapters)}`);
-  if (request.tools.length) lines.push(`  tools, including: ${named(request.tools)}`);
-  if (request.showcases) lines.push(`  ${request.showcases} ${request.showcases === 1 ? 'showcase' : 'showcases'}, built and run`);
-  lines.push('Only trust a repository whose code you would run yourself.', `Trust ${escape(root)} and run its code? [y/N] `);
-  return lines.join('\n');
 }
 
 /**
@@ -245,6 +241,7 @@ function _parse(args: string[]) {
       quiet: { type: 'boolean' },
       trust: { type: 'boolean' },
       'no-trust': { type: 'boolean' },
+      'pass-env': { type: 'string', multiple: true },
       help: { type: 'boolean' },
     },
   });

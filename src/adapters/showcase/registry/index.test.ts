@@ -15,10 +15,12 @@ import { ReactShowcaseAdapter } from '../react/index.js';
 import { TsShowcaseAdapter } from '../ts/index.js';
 import {
   checkHostCheckResult,
+  checkRecordedDeclarations,
   createShowcaseAdapter,
   DEFAULT_SHOWCASE_VIEWS,
   getDefaultViews,
   getShowcaseAdapterNames,
+  getTrustExecutables,
   getTrustTools,
   loadCustomShowcaseAdapters,
   PLANNED_SHOWCASE_ADAPTER_NAMES,
@@ -53,15 +55,16 @@ describe('adapters/showcase/registry', () => {
     expect(getDefaultViews({ validate: () => ({ errors: [] }), build: async () => ({ reads: [] }) })).toEqual(['demo']);
   });
 
-  it('Reserves no planned built-in name, now that angular is built in', () => {
-    expect(PLANNED_SHOWCASE_ADAPTER_NAMES).toEqual([]);
+  it('Reserves the planned built-in name "cs"', () => {
+    // See PLAN-P20 D781: cs is reserved until P20.2 builds it in
+    expect(PLANNED_SHOWCASE_ADAPTER_NAMES).toEqual(['cs']);
   });
 
   it('Loads custom showcase adapters', async () => {
     const { adapters, errors } = await loadCustomShowcaseAdapters(_ROOT, { good: './adapters/good.js', 'good-mjs': 'adapters/good.mjs' });
     expect(errors).toEqual([]);
     expect([...adapters.keys()]).toEqual(['good', 'good-mjs']);
-    expect(await adapters.get('good')!.check!(_ROOT, [])).toEqual({ errors: ['good needs nothing, but says so'], warnings: [] });
+    expect(await adapters.get('good')!.check!(_ROOT, [], { stack: 'typescript' })).toEqual({ errors: ['good needs nothing, but says so'], warnings: [] });
   });
 
   it('Loads the default views a custom showcase adapter declares', async () => {
@@ -85,13 +88,16 @@ describe('adapters/showcase/registry', () => {
     try {
       const listed = { good: './adapters/good.js' };
       const first = await loadCustomShowcaseAdapters(scratch.path, listed);
-      expect(await first.adapters.get('good')!.check!(scratch.path, [])).toEqual({ errors: ['good needs nothing, but says so'], warnings: [] });
+      expect(await first.adapters.get('good')!.check!(scratch.path, [], { stack: 'typescript' })).toEqual({
+        errors: ['good needs nothing, but says so'],
+        warnings: [],
+      });
       await writeFile(
         join(scratch.path, 'adapters', 'good.js'),
         "export default () => ({ validate: (s) => ({ options: s.options, errors: [] }), check: () => ({ errors: ['edited'], warnings: [] }), build: async () => ({ errors: [{ message: 'x' }] }) });\n",
       );
       const second = await loadCustomShowcaseAdapters(scratch.path, listed);
-      expect(await second.adapters.get('good')!.check!(scratch.path, [])).toEqual({ errors: ['edited'], warnings: [] });
+      expect(await second.adapters.get('good')!.check!(scratch.path, [], { stack: 'typescript' })).toEqual({ errors: ['edited'], warnings: [] });
     } finally {
       await scratch.remove();
     }
@@ -201,5 +207,24 @@ describe('adapters/showcase/registry', () => {
       const [typescript] = getTrustTools('ts', process.cwd(), [showcase('README.md')]).filter(({ name }) => name === 'typescript');
       expect(typescript.path).toBe(realpathSync(join(process.cwd(), 'node_modules', 'typescript')));
     });
+  });
+
+  it('Checks the declarations about recording and the host copy', () => {
+    // PLAN-P20 D769, D774, D790 C3: a custom showcase adapter's are checked when it loads
+    expect(checkRecordedDeclarations({})).toBeUndefined();
+    expect(checkRecordedDeclarations({ recorded: true, defaultViews: ['source', 'console'], hostCopy: { exclude: ['bin/'], git: false } })).toBeUndefined();
+    expect(checkRecordedDeclarations({ recorded: 'yes' })).toBe('has invalid "recorded": it must be a boolean');
+    for (const defaultViews of [undefined, ['demo', 'console']]) {
+      expect(checkRecordedDeclarations({ recorded: true, defaultViews })).toBe(
+        'records its showcases, so it must declare "defaultViews", without "demo" (its showcases have no showcase frame)',
+      );
+    }
+    for (const hostCopy of [true, { exclude: 'bin/', git: false }, { exclude: [], git: 'no' }]) {
+      expect(checkRecordedDeclarations({ hostCopy })).toBe('has invalid "hostCopy": it must be { exclude, git }, a list of patterns and a boolean');
+    }
+  });
+
+  it('Names no executable for the built-in showcase adapters there are', () => {
+    expect(getTrustExecutables('ts', _ROOT, [])).toEqual([]);
   });
 });

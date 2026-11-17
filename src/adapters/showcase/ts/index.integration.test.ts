@@ -287,6 +287,7 @@ describe('adapters/showcase/ts (integration)', () => {
             hostVirtualFiles: host.virtualFiles,
             mode: 'development',
             scratchFolder: scratch.path,
+            stack: 'typescript',
           },
           plugins,
           compiled: new Set(compiled.keys()),

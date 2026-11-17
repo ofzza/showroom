@@ -1,7 +1,7 @@
 /**
  * Internals of the check shared with `showroom serve`, `showroom build` and the `ts` showcase adapter, and so not re-exported: the output folder,
  * the ignore matcher (which files of a host repository are ignored), the formatting of check issues as output, escaping control characters written
- * to the terminal, the custom showcase adapter modules, and the bundler warnings left out
+ * to the terminal, the trust prompt, the custom showcase adapter modules, and the bundler warnings left out
  */
 
 import ignore, { type Ignore } from 'ignore';
@@ -9,7 +9,7 @@ import { realpath } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { getStackAdapter, type StackAdapter } from '../../../adapters/stack/index.js';
 import { DEFAULT_OUT_DIR, readConfiguration, type Configuration } from '../../../configuration/index.js';
-import type { CheckIssue } from '../index.js';
+import type { CheckIssue, TrustRequest } from '../index.js';
 
 // #region Output folder
 
@@ -130,6 +130,31 @@ export function escapeControlCharacters(text: string, keepLineBreaks: boolean): 
     }
   }
   return escaped;
+}
+
+// #endregion
+
+// #region Trust prompt
+
+/**
+ * Formats the prompt asking whether to trust the host repository, naming what would run (each string from the host repository escaped)
+ * @param request What would run
+ * @param root Absolute path of the host repository's root
+ * @returns The prompt, ending where the answer is typed
+ */
+export function formatTrustPrompt(request: TrustRequest, root: string): string {
+  const escape = (text: string) => escapeControlCharacters(text, false);
+  const named = (items: { name: string; path: string }[]) => items.map(({ name, path }) => `${escape(name)} (${escape(path)})`).join(', ');
+  const lines = ["showroom would run the host repository's code on this machine, with your rights:"];
+  if (request.customShowcaseAdapters.length) lines.push(`  custom showcase adapters: ${named(request.customShowcaseAdapters)}`);
+  if (request.tools.length) lines.push(`  tools, including: ${named(request.tools)}`);
+  if (request.executables.length) lines.push(`  programs: ${named(request.executables)}`);
+  if (request.showcases) lines.push(`  ${request.showcases} ${request.showcases === 1 ? 'showcase' : 'showcases'}, built and run`);
+  if (request.recorded) {
+    lines.push(`  of which ${request.recorded} recorded: built and run as programs on this machine, their output published with the showroom`);
+  }
+  lines.push('Only trust a repository whose code you would run yourself.', `Trust ${escape(root)} and run its code? [y/N] `);
+  return lines.join('\n');
 }
 
 // #endregion

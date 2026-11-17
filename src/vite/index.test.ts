@@ -221,6 +221,19 @@ describe('vite', () => {
     ]);
   });
 
+  it("Carries a recorded showcase's recording, whatever its views, with no showcase frame, and only with trust", () => {
+    // PLAN-P20 D784: a recording is text, with nothing to load, so it ships even without a console view
+    const recording = { lines: [{ level: 'log' as const, text: 'hi' }], dropped: 0, exitCode: 0 };
+    const recordings = new Map([['my docs/a #1.md#2', recording]]);
+    const shown = getShownHostInformation(_HOST, { frames: new Map(), recordings, checks: new Map([['my docs/a #1.md#2', ['runtime']]]), trusted: true });
+    expect(shown.showcases.map(({ url, recording: shownRecording, checks }) => ({ url, recording: shownRecording, checks }))).toEqual([
+      { url: undefined, recording: undefined, checks: [] },
+      { url: undefined, recording, checks: ['runtime'] },
+    ]);
+    expect('recording' in shown.showcases[0]).toBe(false);
+    expect(getShownHostInformation(_HOST, { frames: new Map(), recordings }).showcases[1].recording).toBeUndefined();
+  });
+
   it('Shows every showcase as its source without trust, with nothing built', () => {
     const issue = { severity: 'error' as const, message: 'Broke', path: 'a.html' };
     const shown = getShownHostInformation(_HOST, {

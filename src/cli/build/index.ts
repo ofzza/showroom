@@ -11,6 +11,7 @@ import { checkHost, type CheckOptions } from '../check/index.js';
 import { escapeControlCharacters, formatIssues, resolveOutputFolder, SILENCED_WARNINGS } from '../check/internal/index.js';
 import type { CliOutput } from '../index.js';
 import { readConfiguration } from '../../configuration/index.js';
+import { createRunSession } from '../../host-copy/index.js';
 import { buildShowcases, getBuildShowcasesIssues } from '../../showcases/index.js';
 import {
   getAppDir,
@@ -153,6 +154,10 @@ export interface BuildOptions {
    * given: the showroom is built with every showcase shown as its source
    */
   trust?: CheckOptions['trust'];
+  /**
+   * Names of the environment variables passed on to recorded showcases' build steps (see CheckOptions' `passEnv`)
+   */
+  passEnv?: string[];
 }
 
 /**
@@ -162,7 +167,7 @@ export interface BuildOptions {
  * @param options Options of the command
  * @returns Exit code: 0 once built, 1 if the check fails, the output folder can't be emptied, a showcase doesn't build, or the build fails
  */
-export async function build({ root, outDir, output, appDir = getAppDir(), trust = false }: BuildOptions): Promise<number> {
+export async function build({ root, outDir, output, appDir = getAppDir(), trust = false, passEnv = [] }: BuildOptions): Promise<number> {
   // Check the host repository first, deciding trust
   const result = await checkHost(root, { outDir, trust }, 'build');
   output.stderr(formatIssues(result.issues));
@@ -194,7 +199,13 @@ export async function build({ root, outDir, output, appDir = getAppDir(), trust 
   }
 
   // Build every showcase, leaving the output folder untouched if any fails; build warnings are written, and fail nothing
-  const showcases = await buildShowcases({ root, host: result.host, configuration, trust: result.trusted });
+  const session = createRunSession({ passEnv });
+  let showcases: Awaited<ReturnType<typeof buildShowcases>>;
+  try {
+    showcases = await buildShowcases({ root, host: result.host, configuration, trust: result.trusted, session, outDir });
+  } finally {
+    await session.dispose();
+  }
   const issues = getBuildShowcasesIssues(showcases);
   output.stderr(formatIssues(issues));
   if (issues.some((issue) => issue.severity === 'error')) {

@@ -245,7 +245,7 @@ describe('app/code-pane', () => {
     it('Makes buttons of the marks that do something, labelled by what they do', () => {
       const [build, check, runtime] = getStatusMarks(_ISSUES, _ready());
       const passed = getStatusMarks(_SHOWCASE, _ready())[0];
-      expect([passed, build, check, runtime].map(isStatusMarkButton)).toEqual([false, true, true, true]);
+      expect([passed, build, check, runtime].map((mark) => isStatusMarkButton(mark))).toEqual([false, true, true, true]);
       expect(getStatusMarkLabel(passed, true, false)).toBe('build: passed');
       expect(getStatusMarkLabel(check, true, false)).toBe('type check: 2 errors. Hide the issues');
       expect(getStatusMarkLabel(build, false, false)).toBe('build: 1 warning. Show the issues');
@@ -476,6 +476,38 @@ describe('app/code-pane', () => {
       const html = render({ ...inline, url: undefined });
       expect(html).not.toContain('<iframe');
       expect(html).toContain(`data-not-built="">${NOT_BUILT_TEXT}<`);
+    });
+  });
+
+  describe('Recorded showcases', () => {
+    // A recorded showcase's block, rendered on the server with its recording: its console view, its runtime status mark, no showcase frame.
+
+    const recording = { lines: [{ level: 'log' as const, text: 'hello' }], dropped: 0, exitCode: 0 };
+    const recorded: ShownShowcase = { ..._SHOWCASE, views: ['source', 'console'], url: undefined, checks: ['compile', 'runtime'], recording };
+
+    it('Shows its recording in its console view, with no showcase frame and nothing pending', () => {
+      const html = _render(recorded);
+      expect(html).not.toContain('<iframe');
+      expect(html).not.toContain(NOT_BUILT_TEXT);
+      expect(html).toMatch(
+        /data-showcase-view="console"><div [^>]*role="log" aria-label="Recorded output"[^>]*><div [^>]*>Recorded output<\/div><div [^>]*>hello<\/div><div [^>]*>Exited with code 0<\/div>/,
+      );
+    });
+
+    it('Has one runtime status mark, from the recording, saying it was recorded when built', () => {
+      const marks = getStatusMarks(recorded, INITIAL_CONSOLE_STATE);
+      expect(marks.map(getStatusMarkText)).toEqual(['build ✓', 'compile ✓', 'runtime ✓']);
+      const failed = getStatusMarks({ ...recorded, recording: { ...recording, exitCode: 2 } }, INITIAL_CONSOLE_STATE).at(-1)!;
+      expect(getStatusMarkText(failed)).toBe('runtime ✗ 1');
+      expect(getStatusMarkLabel(failed, false, true)).toBe('runtime: 1 error, recorded when built. Show the first error in the console');
+      // Without a console view, it is plain text (PLAN-P20 D784)
+      expect(isStatusMarkButton(failed, false)).toBe(false);
+      expect(getStatusMarkLabel(failed, false, false)).toBe('runtime: 1 error, recorded when built');
+      expect(_render({ ...recorded, views: ['source'] })).toMatch(/role="img" data-status-mark="passed">runtime/);
+    });
+
+    it('Shows "Not built" in its console view when it has no recording', () => {
+      expect(_render({ ...recorded, recording: undefined, checks: [] })).toContain(NOT_BUILT_TEXT);
     });
   });
 });

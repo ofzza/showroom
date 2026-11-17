@@ -32,7 +32,7 @@ const _SHOWCASE_ADAPTERS: Record<string, () => ShowcaseAdapter> = {
 /**
  * Names of the showcase adapters planned as built-in ones, which custom showcase adapters can't take either
  */
-export const PLANNED_SHOWCASE_ADAPTER_NAMES: readonly string[] = [];
+export const PLANNED_SHOWCASE_ADAPTER_NAMES: readonly string[] = ['cs'];
 
 /**
  * Default showcase views of a showcase adapter that declares none (see ShowcaseAdapter's `defaultViews`)
@@ -173,7 +173,30 @@ async function _load(root: string, name: string, path: string): Promise<{ adapte
     const problem = Array.isArray(views) ? checkShowcaseViews(views) : 'it must be a list of views';
     if (problem) return { error: `"${path}"'s showcase adapter has invalid "defaultViews": ${problem}` };
   }
+  const problem = checkRecordedDeclarations(adapter);
+  if (problem) return { error: `"${path}"'s showcase adapter ${problem}` };
   return { adapter: adapter as unknown as ShowcaseAdapter };
+}
+
+/**
+ * Checks a showcase adapter's declarations about recording and the host copy: `recorded`, a boolean, which needs `defaultViews` without `demo`;
+ * `hostCopy`, `{ exclude, git }`, a list of patterns and a boolean
+ * @param adapter The showcase adapter
+ * @returns The problem with them, if any, as the end of a sentence about the showcase adapter
+ */
+export function checkRecordedDeclarations(adapter: Record<string, unknown>): string | undefined {
+  const { recorded, hostCopy, defaultViews } = adapter;
+  if (recorded !== undefined && typeof recorded !== 'boolean') return 'has invalid "recorded": it must be a boolean';
+  if (recorded === true && (!Array.isArray(defaultViews) || defaultViews.includes('demo'))) {
+    return 'records its showcases, so it must declare "defaultViews", without "demo" (its showcases have no showcase frame)';
+  }
+  if (hostCopy !== undefined) {
+    const { exclude, git } = (typeof hostCopy === 'object' && hostCopy !== null ? hostCopy : {}) as Record<string, unknown>;
+    if (!Array.isArray(exclude) || !exclude.every((pattern) => typeof pattern === 'string') || typeof git !== 'boolean') {
+      return 'has invalid "hostCopy": it must be { exclude, git }, a list of patterns and a boolean';
+    }
+  }
+  return undefined;
 }
 
 // #endregion
@@ -256,6 +279,18 @@ export function getTrustTools(
     for (const preprocessor of CSS_PREPROCESSORS) add(preprocessor, resolver(folder, preprocessor));
   }
   return [...tools.values()].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+}
+
+/**
+ * Gets the executables a built-in showcase adapter's host check and builds would start, resolved from the `PATH` without starting anything: none for
+ * the built-in showcase adapters there are. Internal: the trust request's hook, never part of the showcase adapter interface.
+ * @param _name Name of the built-in showcase adapter
+ * @param _root Absolute path of the host repository's root
+ * @param _showcases Its showcases whose validation passed
+ * @returns The executables, by name and real path
+ */
+export function getTrustExecutables(_name: string, _root: string, _showcases: readonly Showcase[]): TrustTool[] {
+  return [];
 }
 
 /**

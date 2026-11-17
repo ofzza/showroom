@@ -1,20 +1,23 @@
 /**
- * Showcase builds: building every showcase of a host repository into its showcase frame, in memory, with its showcase adapter, and adding the frame
- * script to each showcase frame page; checking what showcase adapters return, and placing their errors in the documentation. Used by `check
- * --showcases` and `build`. Node code, internal, never re-exported.
+ * Showcase builds: building every showcase of a host repository into its showcase frame, in memory, or its recording, with its showcase adapter, and
+ * adding the frame script to each showcase frame page; the host copy, synced before any build when a showcase adapter uses it; checking what showcase
+ * adapters return, a recording's `runtime` check, and placing their errors in the documentation. Used by `check --showcases`, `serve` and `build`.
+ * Node code, internal, never re-exported.
  */
 
 import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
-import type { ShowcaseAdapter, ShowcaseBuildFile, ShowcaseBuildIssue } from '../adapters/showcase/index.js';
+import type { ShowcaseAdapter, ShowcaseBuildFile, ShowcaseBuildIssue, ShowcaseConsoleLine, ShowcaseRecording } from '../adapters/showcase/index.js';
 import { createShowcaseAdapter, loadCustomShowcaseAdapters } from '../adapters/showcase/registry/index.js';
 import type { ShownIssue } from '../app/host/index.js';
 import type { CheckIssue } from '../cli/check/index.js';
+import { resolveOutputFolder } from '../cli/check/internal/index.js';
 import { CONFIGURATION_FILE_NAME, type Configuration } from '../configuration/index.js';
 import { getFrameScript } from '../frame/index.js';
 import type { HostInformation, Showcase, VirtualFile } from '../host/index.js';
+import { createRunSession, type HostCopy, type RunSession } from '../host-copy/index.js';
 import { getFolder } from '../markdown/index.js';
 
 // #region Showcase frames
@@ -199,11 +202,93 @@ function _isLine(line: unknown): line is number {
 }
 
 /**
- * Represents a showcase adapter's build result, once checked: its checks and issues (empty when it has none), with its page and files unless an
- * error of the build itself (one naming no check) prevented building it
+ * Represents a showcase adapter's build result, once checked: its checks and issues (empty when it has none), with its page and files, or its
+ * recording, unless an error of the build itself (one naming no check) prevented building it; and warnings about what was left out of it
  */
 type _CheckedResult =
-  { page?: string; files?: ShowcaseBuildFile[]; reads: string[]; checks: string[]; issues: ShowcaseBuildIssue[]; problem?: undefined } | { problem: string };
+  | {
+      page?: string;
+      files?: ShowcaseBuildFile[];
+      recording?: ShowcaseRecording;
+      reads: string[];
+      checks: string[];
+      issues: ShowcaseBuildIssue[];
+      warnings: string[];
+      problem?: undefined;
+    }
+  | { problem: string };
+
+/**
+ * Name of the check of a recording, which `showroom` adds, and a showcase adapter can't list
+ */
+export const RUNTIME_CHECK = 'runtime';
+
+/**
+ * Levels of a recording's lines
+ */
+const _RECORDING_LEVELS: readonly unknown[] = ['log', 'info', 'warn', 'error', 'debug'];
+
+/**
+ * Checks if a value is a count: a whole number from 0
+ * @param value The value
+ * @returns True if it is one
+ */
+function _isCount(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+/**
+ * Checks a recording's shape: its lines (each with a level and a text), its dropped counts, and how it ended (an exit code, a signal or the time
+ * limit, exactly one)
+ * @param value The recording
+ * @returns The problem with it, if any
+ */
+export function checkRecording(value: unknown): string | undefined {
+  if (typeof value !== 'object' || value === null) return '"recording" must be an object';
+  const { lines, dropped, droppedWarnings, droppedErrors, cut, exitCode, signal, timedOut, timeLimit } = value as Record<string, unknown>;
+  const isLine = (line: unknown) =>
+    typeof line === 'object' &&
+    line !== null &&
+    _RECORDING_LEVELS.includes((line as ShowcaseConsoleLine).level) &&
+    typeof (line as ShowcaseConsoleLine).text === 'string';
+  if (!Array.isArray(lines) || !lines.every(isLine)) return '"recording.lines" must be a list of lines, each with a level and a text';
+  if (!_isCount(dropped)) return '"recording.dropped" must be a whole number from 0';
+  for (const [name, count] of [
+    ['droppedWarnings', droppedWarnings],
+    ['droppedErrors', droppedErrors],
+  ] as const) {
+    if (count !== undefined && !_isCount(count)) return `"recording.${name}" must be a whole number from 0`;
+  }
+  if (cut !== undefined && typeof cut !== 'boolean') return '"recording.cut" must be a boolean';
+  if (exitCode !== undefined && !(typeof exitCode === 'number' && Number.isInteger(exitCode))) return '"recording.exitCode" must be a whole number';
+  if (signal !== undefined && typeof signal !== 'string') return '"recording.signal" must be a string';
+  if (timedOut !== undefined && timedOut !== true) return '"recording.timedOut" must be true, if given';
+  if (timeLimit !== undefined && !(typeof timeLimit === 'number' && timeLimit > 0)) return '"recording.timeLimit" must be a positive number';
+  if ([exitCode, signal, timedOut].filter((end) => end !== undefined).length !== 1) {
+    return 'a recording must end in exactly one of "exitCode", "signal" and "timedOut"';
+  }
+  return undefined;
+}
+
+/**
+ * Gets why a recording failed: a non-zero exit code, a signal, the time limit, or anything written to standard error (its `error` lines, dropped
+ * ones included)
+ * @param recording The recording
+ * @returns The reasons, joined, or undefined if it didn't fail
+ */
+export function getRecordingFailure(recording: ShowcaseRecording): string | undefined {
+  const reasons: string[] = [];
+  if (recording.timedOut) {
+    reasons.push(recording.timeLimit === undefined ? 'stopped by the time limit' : `stopped after the ${recording.timeLimit / 1000} s time limit`);
+  } else if (recording.signal !== undefined) {
+    reasons.push(`ended by signal ${recording.signal}`);
+  } else if (recording.exitCode !== 0) {
+    reasons.push(`exited with code ${recording.exitCode}`);
+  }
+  const errors = recording.lines.filter((line) => line.level === 'error').length + (recording.droppedErrors ?? 0);
+  if (errors) reasons.push(`wrote ${errors} ${errors === 1 ? 'line' : 'lines'} to standard error`);
+  return reasons.length ? reasons.join(', and ') : undefined;
+}
 
 /**
  * Checks if a value is a list of distinct, non-empty strings
@@ -226,26 +311,40 @@ function _isBuildIssue(value: unknown): value is ShowcaseBuildIssue {
 }
 
 /**
- * Checks a showcase adapter's build result: its checks, distinct non-empty names; its issues, each with a severity, a message, and a check among
- * the checks, if it names one; and its files, left out exactly when an error names no check, otherwise with valid, unique (case-insensitively)
- * paths, string or byte content, and a page among them that is an `.html` or `.htm` file
+ * Checks a showcase adapter's build result: its checks, distinct non-empty names, never `runtime`; its issues, each with a severity, a message, and
+ * a check among the checks, if it names one; its files, or its recording from a recorded showcase adapter, left out exactly when an error names no
+ * check. Files have valid, unique (case-insensitively) paths, string or byte content, and a page among them that is an `.html` or `.htm` file; a
+ * recording has its shape (see checkRecording()). A recorded showcase adapter's files, and another's recording, are left out, with a warning.
  * @param result The build result, as the showcase adapter returned it
+ * @param recorded True if the showcase adapter declares `recorded`
  * @returns The result, its page's content decoded as UTF-8 when given as bytes; or the problem with it
  */
-export function checkBuildResult(result: unknown): _CheckedResult {
+export function checkBuildResult(result: unknown, recorded = false): _CheckedResult {
   if (typeof result !== 'object' || result === null) return { problem: 'it is not an object' };
-  const { page, files, reads = [], checks = [], issues = [] } = result as Record<string, unknown>;
+  const { page, files, recording, reads = [], checks = [], issues = [] } = result as Record<string, unknown>;
   if (!Array.isArray(reads) || !reads.every((path) => typeof path === 'string')) return { problem: '"reads" must be a list of paths' };
   if (!_isNameList(checks)) return { problem: '"checks" must be a list of distinct, non-empty names' };
+  if (checks.includes(RUNTIME_CHECK)) return { problem: `"checks" can't list "${RUNTIME_CHECK}", which showroom adds for a recording` };
   if (!Array.isArray(issues) || !issues.every(_isBuildIssue)) {
     return { problem: '"issues" must be a list of build issues, each with a severity ("error" or "warning") and a message' };
   }
   const unlisted = issues.find((issue) => issue.check !== undefined && !checks.includes(issue.check));
   if (unlisted) return { problem: `an issue names the check "${unlisted.check}", which "checks" doesn't list` };
+  if (recording !== undefined) {
+    const problem = checkRecording(recording);
+    if (problem) return { problem };
+  }
   if (issues.some((issue) => issue.severity === 'error' && issue.check === undefined)) {
     if (files !== undefined || page !== undefined) return { problem: 'an error naming no check means there are no files: leave out "page" and "files"' };
-    return { reads, checks, issues };
+    if (recording !== undefined) return { problem: 'an error naming no check means there is no recording: leave out "recording"' };
+    return { reads, checks, issues, warnings: [] };
   }
+  if (recorded) {
+    if (recording === undefined) return { problem: 'a recorded showcase adapter must return a "recording", unless an error names no check' };
+    const warnings = files !== undefined || page !== undefined ? ['a recorded showcase adapter\'s "page" and "files" are left out'] : [];
+    return { recording: recording as ShowcaseRecording, reads, checks, issues, warnings };
+  }
+  const warnings = recording === undefined ? [] : ['the "recording" of a showcase adapter that isn\'t recorded is left out'];
   if (!Array.isArray(files)) return { problem: '"files" must be a list of files, unless an error names no check' };
   const seen = new Set<string>();
   for (const file of files as Record<string, unknown>[]) {
@@ -263,7 +362,7 @@ export function checkBuildResult(result: unknown): _CheckedResult {
   const decoded = (files as ShowcaseBuildFile[]).map((file) =>
     file.path === page && typeof file.content !== 'string' ? { path: file.path, content: new TextDecoder().decode(file.content) } : file,
   );
-  return { page, files: decoded, reads, checks, issues };
+  return { page, files: decoded, reads, checks, issues, warnings };
 }
 
 // #endregion
@@ -337,6 +436,15 @@ export interface BuildShowcasesOptions {
    * custom showcase adapter loaded, and nothing is reported, as the check warned already
    */
   trust?: boolean;
+  /**
+   * The run session holding the host copy and the showcases' own folders, kept across `serve`'s runs; one of its own, removed at the end, if not
+   * given
+   */
+  session?: RunSession;
+  /**
+   * Output folder given on the command line, overriding the configuration's, which the host copy leaves out
+   */
+  outDir?: string;
 }
 
 /**
@@ -361,9 +469,13 @@ export interface BuildShowcasesResult {
    */
   shownIssues: Map<string, ShownIssue[]>;
   /**
-   * The checks each showcase's build ran to completion, by showcase id (empty for a showcase whose build ran none)
+   * The checks each showcase's build ran to completion, by showcase id (empty for a showcase whose build ran none); `runtime` for a recording
    */
   checks: Map<string, string[]>;
+  /**
+   * The recordings of the recorded showcases that built, by showcase id
+   */
+  recordings: Map<string, ShowcaseRecording>;
   /**
    * The issues of the run that belong to no single showcase: a custom showcase adapter that doesn't load, one failing to close
    */
@@ -400,25 +512,36 @@ function _getModulePath(root: string, path: string): string | undefined {
 /**
  * Builds every showcase of a host repository with its showcase adapter, one at a time, each with a scratch folder of its own inside one temporary
  * folder per run (removed afterwards), and adds the frame script to each showcase frame page. Custom showcase adapters are loaded again, so the
- * run gets fresh showcase adapter objects, each closed at its end. A showcase that doesn't build never stops the others. The files to watch are the
- * custom showcase adapter modules, every showcase's included files (an included virtual file's documentation file), and the files each build read.
- * Without trust, it builds nothing and loads nothing: every showcase has no checks and no issues, and the files to watch are the custom showcase
- * adapter modules and the included files.
+ * run gets fresh showcase adapter objects, each closed at its end. When a showcase adapter with showcases to build uses the host copy, the host copy
+ * is synced first, before any build. A recording's failure is an error of its `runtime` check. A showcase that doesn't build never stops the others.
+ * The files to watch are the custom showcase adapter modules, every showcase's included files (an included virtual file's documentation file), and
+ * the files each build read. Without trust, it builds nothing and loads nothing: every showcase has no checks and no issues, and the files to watch
+ * are the custom showcase adapter modules and the included files.
  * @param options What to build
- * @returns The showcase frames of the showcases that built, the errors and warnings of each (placed, and as shown), the checks each ran, and the
- * run's own issues
+ * @returns The showcase frames and recordings of the showcases that built, the errors and warnings of each (placed, and as shown), the checks each
+ * ran, and the run's own issues
  */
-export async function buildShowcases({ root, host, configuration, mode = 'production', trust = false }: BuildShowcasesOptions): Promise<BuildShowcasesResult> {
+export async function buildShowcases({
+  root,
+  host,
+  configuration,
+  mode = 'production',
+  trust = false,
+  session,
+  outDir,
+}: BuildShowcasesOptions): Promise<BuildShowcasesResult> {
   const issues: CheckIssue[] = [];
   const errors = new Map<string, CheckIssue[]>();
   const warnings: CheckIssue[] = [];
   const checks = new Map<string, string[]>();
   const shownIssues = new Map<string, ShownIssue[]>();
   const frames = new Map<string, ShowcaseFrame>();
+  const recordings = new Map<string, ShowcaseRecording>();
   const absoluteRoot = resolve(root);
   const script = getFrameScript();
   const listed = configuration.customShowcaseAdapters ?? {};
   const watched = new Set(Object.values(listed).flatMap((path) => _getModulePath(absoluteRoot, path) ?? []));
+  const done = (): BuildShowcasesResult => ({ frames, recordings, errors, warnings, shownIssues, checks, issues, watched: [...watched].sort() });
 
   // Without trust, nothing is built or loaded
   if (!trust) {
@@ -427,16 +550,38 @@ export async function buildShowcases({ root, host, configuration, mode = 'produc
       shownIssues.set(showcase.id, []);
       for (const path of showcase.include) watched.add(host.virtualFiles.find((file) => file.path === path)?.documentation ?? path);
     }
-    return { frames, errors, warnings, shownIssues, checks, issues, watched: [...watched].sort() };
+    return done();
   }
 
-  // Load the custom showcase adapters
+  // Load the custom showcase adapters, and create the built-in ones in use
   const custom = await loadCustomShowcaseAdapters(root, listed);
   issues.push(...custom.errors.map((message) => ({ severity: 'error' as const, message, path: CONFIGURATION_FILE_NAME })));
   const adapters = new Map<string, ShowcaseAdapter>(custom.adapters);
+  for (const showcase of host.showcases) {
+    if (adapters.has(showcase.adapter)) continue;
+    const adapter = createShowcaseAdapter(showcase.adapter);
+    if (adapter) adapters.set(showcase.adapter, adapter);
+  }
 
+  const owned = session === undefined;
+  const runSession = session ?? createRunSession();
   const scratch = await mkdtemp(join(tmpdir(), 'showroom-showcases-'));
   try {
+    // The host copy, synced before any build, when a showcase adapter with showcases to build uses it
+    const contents = [...new Set(host.showcases.flatMap((showcase) => adapters.get(showcase.adapter)?.hostCopy ?? []))];
+    let hostCopy: HostCopy | undefined;
+    let hostCopyError: string | undefined;
+    if (contents.length) {
+      try {
+        const outputFolder = resolveOutputFolder(absoluteRoot, configuration, outDir);
+        hostCopy = await runSession.getHostCopy(absoluteRoot);
+        await hostCopy.sync(contents, host.virtualFiles, 'error' in outputFolder ? undefined : outputFolder.relativePath);
+      } catch (err) {
+        hostCopy = undefined;
+        hostCopyError = (err as Error).message;
+      }
+    }
+
     for (const [index, showcase] of host.showcases.entries()) {
       const add = (issue: ShowcaseBuildIssue) => {
         const placed = getBuildIssue(showcase, host.virtualFiles, issue);
@@ -453,14 +598,14 @@ export async function buildShowcases({ root, host, configuration, mode = 'produc
         watched.add(host.virtualFiles.find((file) => file.path === path)?.documentation ?? path);
       }
 
-      // Its showcase adapter
-      if (!adapters.has(showcase.adapter)) {
-        const adapter = createShowcaseAdapter(showcase.adapter);
-        if (adapter) adapters.set(showcase.adapter, adapter);
-      }
+      // Its showcase adapter, and the host copy where it uses one
       const adapter = adapters.get(showcase.adapter);
       if (!adapter) {
         fail(`Showcase adapter "${showcase.adapter}" is not available`);
+        continue;
+      }
+      if (adapter.hostCopy && !hostCopy) {
+        fail(`The host copy could not be made: ${hostCopyError ?? 'unknown error'}`);
         continue;
       }
 
@@ -478,21 +623,32 @@ export async function buildShowcases({ root, host, configuration, mode = 'produc
           hostVirtualFiles: [...host.virtualFiles],
           mode,
           scratchFolder,
+          ...(configuration.project === undefined ? {} : { project: configuration.project }),
+          stack: configuration.stack,
+          ...(adapter.hostCopy && hostCopy ? { hostCopy: runSession.createShowcaseHostCopy(hostCopy, { root: absoluteRoot, folder }) } : {}),
+          ...(adapter.hostCopy || adapter.recorded ? { showcaseFolder: await runSession.getShowcaseFolder(showcase.id) } : {}),
         });
       } catch (err) {
         fail(`Showcase adapter "${showcase.adapter}" failed to build the showcase: ${(err as Error).message}`);
         continue;
       }
-      const checked = checkBuildResult(result);
+      const checked = checkBuildResult(result, adapter.recorded === true);
       if (checked.problem !== undefined) {
         fail(`Showcase adapter "${showcase.adapter}" returned an invalid build result: ${checked.problem}`);
         continue;
       }
       checked.reads.forEach((path) => watched.add(path));
       checks.set(showcase.id, checked.checks);
+      checked.warnings.forEach((message) => add({ severity: 'warning', message: `Showcase adapter "${showcase.adapter}": ${message}` }));
       checked.issues.forEach(add);
-      const { page, files } = checked;
-      if (page !== undefined && files !== undefined) {
+      const { page, files, recording } = checked;
+      if (recording !== undefined) {
+        // The recording ran to its end: its runtime check fails when it did
+        recordings.set(showcase.id, recording);
+        checks.set(showcase.id, [...checked.checks, RUNTIME_CHECK]);
+        const failure = getRecordingFailure(recording);
+        if (failure) add({ severity: 'error', message: `The recording failed: it ${failure}`, check: RUNTIME_CHECK });
+      } else if (page !== undefined && files !== undefined) {
         const scripted = files.map((file) => (file.path === page ? { path: file.path, content: insertFrameScript(file.content as string, script) } : file));
         frames.set(showcase.id, { folder: getShowcaseFrameFolder(showcase), page, files: scripted, reads: checked.reads });
       }
@@ -507,8 +663,9 @@ export async function buildShowcases({ root, host, configuration, mode = 'produc
       }
     }
     await rm(scratch, { recursive: true, force: true });
+    if (owned) await runSession.dispose();
   }
-  return { frames, errors, warnings, shownIssues, checks, issues, watched: [...watched].sort() };
+  return done();
 }
 
 // #endregion

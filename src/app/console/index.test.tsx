@@ -28,6 +28,10 @@ import {
   getNextFadeTime,
   isScrolledToBottom,
   NO_OUTPUT_TEXT,
+  RECORDED_OUTPUT_TITLE,
+  RECORDING_CUT_TEXT,
+  getRecordingConsole,
+  getRecordingEndLine,
   updateConsole,
   type ConsoleAction,
   type ConsoleState,
@@ -325,6 +329,53 @@ describe('app/console', () => {
       expect(html).toMatch(/<iframe [^>]*tabindex="-1"/i);
       expect(html).not.toMatch(/<iframe [^>]*loading="lazy"/);
       expect(html).toContain(NO_OUTPUT_TEXT);
+    });
+  });
+
+  describe('Recording', () => {
+    // Tests a recorded showcase's console state (getRecordingConsole(), the `recording` action) and its `console` view, rendered on the server.
+
+    const recording = {
+      lines: [
+        { level: 'log' as const, text: 'hi' },
+        { level: 'error' as const, text: 'oops' },
+      ],
+      dropped: 2,
+      droppedErrors: 1,
+      exitCode: 0,
+    };
+
+    it('Ends with its end line, an error line when its exit failed it', () => {
+      expect(getRecordingEndLine({ lines: [], dropped: 0, exitCode: 0 })).toEqual({ level: 'info', text: 'Exited with code 0' });
+      expect(getRecordingEndLine({ lines: [], dropped: 0, exitCode: 134 })).toEqual({ level: 'error', text: 'Exited with code 134' });
+      expect(getRecordingEndLine({ lines: [], dropped: 0, timedOut: true, timeLimit: 30000 })).toEqual({
+        level: 'error',
+        text: 'Stopped after the 30 s time limit',
+      });
+      expect(getRecordingEndLine({ lines: [], dropped: 0, signal: 'SIGABRT' })).toEqual({ level: 'error', text: 'Ended by signal SIGABRT' });
+    });
+
+    it('Holds its lines, loaded, closed, with its warnings and errors counted, none unseen and none fading', () => {
+      const state = getRecordingConsole({ ...recording, cut: true });
+      expect(state.lines.map(({ level, text }) => ({ level, text }))).toEqual([
+        { level: 'log', text: 'hi' },
+        { level: 'error', text: 'oops' },
+        { level: 'info', text: RECORDING_CUT_TEXT },
+        { level: 'info', text: 'Exited with code 0' },
+      ]);
+      expect(state).toMatchObject({ dropped: 2, count: 6, errorCount: 2, warningCount: 0, errors: 0, ready: true, open: false, recorded: true });
+      expect(getFadingLines(state)).toEqual([]);
+      // A non-zero exit with nothing on standard error still counts an error, for the runtime status mark (PLAN-P20 D790 C2)
+      expect(getRecordingConsole({ lines: [], dropped: 0, exitCode: 1 }).errorCount).toBe(1);
+      // The recording action replaces whatever the state held
+      expect(updateConsole(_apply([_lines(['x'])]), { type: 'recording', recording })).toEqual(getRecordingConsole(recording));
+    });
+
+    it('Shows it under its title, "Recorded output", in the console view', () => {
+      const html = _render(<ConsoleView state={getRecordingConsole(recording)} />);
+      expect(html).toContain(`role="log" aria-label="${RECORDED_OUTPUT_TITLE}"`);
+      expect(html).toMatch(new RegExp(`>${RECORDED_OUTPUT_TITLE}</div><div [^>]*>… 2 earlier lines dropped</div><div [^>]*>hi</div>`));
+      expect(html).toContain('>Exited with code 0</div>');
     });
   });
 });

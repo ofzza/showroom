@@ -17,7 +17,15 @@ import type {
   ShowcaseAdapter,
   ShowcaseBuildRequest,
   ShowcaseBuildResult,
+  ShowcaseCheckContext,
+  ShowcaseConsoleLine,
+  ShowcaseHostCopy,
+  ShowcaseHostCopyContent,
+  ShowcaseRecording,
+  ShowcaseRun,
+  ShowcaseRunOptions,
   ShowcaseValidation,
+  TrustRequest,
   StackAdapter,
   VirtualFile,
 } from './index.js';
@@ -68,5 +76,15 @@ describe('index', () => {
     expectTypeOf<ReturnType<ShowcaseAdapter['validate']>>().toEqualTypeOf<ShowcaseValidation | Promise<ShowcaseValidation>>();
     expectTypeOf<Parameters<ShowcaseAdapter['build']>[0]>().toEqualTypeOf<ShowcaseBuildRequest>();
     expectTypeOf<Awaited<ReturnType<ShowcaseAdapter['build']>>>().toEqualTypeOf<ShowcaseBuildResult>();
+    // Recorded showcases (PLAN-P20 D768)
+    expectTypeOf<ShowcaseBuildResult['recording']>().toEqualTypeOf<ShowcaseRecording | undefined>();
+    expectTypeOf<ShowcaseRecording['lines']>().toEqualTypeOf<ShowcaseConsoleLine[]>();
+    expectTypeOf<ShowcaseBuildRequest['hostCopy']>().toEqualTypeOf<ShowcaseHostCopy | undefined>();
+    expectTypeOf<Awaited<ReturnType<ShowcaseHostCopy['run']>>>().toEqualTypeOf<ShowcaseRun>();
+    expectTypeOf<Parameters<ShowcaseHostCopy['run']>[2]>().toEqualTypeOf<ShowcaseRunOptions>();
+    expectTypeOf<ShowcaseAdapter['hostCopy']>().toEqualTypeOf<ShowcaseHostCopyContent | undefined>();
+    expectTypeOf<Parameters<NonNullable<ShowcaseAdapter['check']>>[2]>().toEqualTypeOf<ShowcaseCheckContext>();
+    expectTypeOf<CheckOptions['passEnv']>().toEqualTypeOf<string[] | undefined>();
+    expectTypeOf<TrustRequest['recorded']>().toEqualTypeOf<number>();
   });
 });

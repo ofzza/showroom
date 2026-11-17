@@ -167,6 +167,7 @@ describe('adapters/showcase/angular', () => {
         hostVirtualFiles: [],
         mode: 'production',
         scratchFolder: scratch.path,
+        stack: 'typescript',
       });
       expect(result).toEqual({
         reads: ['README.md'],

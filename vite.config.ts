@@ -19,13 +19,14 @@ const _TIERS = ['integration', 'e2e', 'serve'] as const;
 const _OTHER_TIERS = _TIERS.map((tier) => `src/**/*.${tier}.test.{js,jsx,ts,tsx}`);
 
 /**
- * Gets the environment variables pointing a test project's OS temp folder into this repository
+ * Gets the environment variables pointing a test project's OS temp folder, and the user's cache folder recorded showcases' run folders go in, into
+ * this repository
  * @param tier Name of the test project
- * @returns `TMPDIR`, `TMP` and `TEMP`, all set to `node_modules/.cache/showroom-tests/tmp-<tier>/`
+ * @returns `TMPDIR`, `TMP` and `TEMP`, all set to `node_modules/.cache/showroom-tests/tmp-<tier>/`, and `XDG_CACHE_HOME`, set to its `cache/`
  */
 function _getTemporaryFolderEnv(tier: string): Record<string, string> {
   const folder = join(_ROOT, 'node_modules', '.cache', 'showroom-tests', `tmp-${tier}`);
-  return { TMPDIR: folder, TMP: folder, TEMP: folder };
+  return { TMPDIR: folder, TMP: folder, TEMP: folder, XDG_CACHE_HOME: join(folder, 'cache') };
 }
 
 export default defineConfig({

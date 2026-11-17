@@ -10,6 +10,7 @@ import {
   createIgnoreMatcher,
   escapeControlCharacters,
   formatIssues,
+  formatTrustPrompt,
   getCustomShowcaseAdapterModules,
   readIgnoreMatcher,
   resolveOutputFolder,
@@ -118,5 +119,28 @@ describe('cli/check/internal', () => {
       { name: 'needy', path: join(root, 'adapters', 'needy.js') },
       { name: 'throwing', path: join(root, 'adapters', 'throwing.js') },
     ]);
+  });
+
+  describe('Trust prompt', () => {
+    // formatTrustPrompt() on hand-written trust requests; src/cli/'s tests ask it through main()
+
+    it('Names the programs, and the recorded showcases, whose output the showroom publishes', () => {
+      const request = {
+        customShowcaseAdapters: [],
+        tools: [],
+        executables: [{ name: 'dotnet', path: '/usr/lib/dotnet/dotnet' }],
+        showcases: 3,
+        recorded: 2,
+      };
+      expect(formatTrustPrompt(request, '/host').split('\n')).toEqual([
+        "showroom would run the host repository's code on this machine, with your rights:",
+        '  programs: dotnet (/usr/lib/dotnet/dotnet)',
+        '  3 showcases, built and run',
+        '  of which 2 recorded: built and run as programs on this machine, their output published with the showroom',
+        'Only trust a repository whose code you would run yourself.',
+        'Trust /host and run its code? [y/N] ',
+      ]);
+      expect(formatTrustPrompt({ ...request, executables: [], recorded: 0 }, '/host')).not.toMatch(/programs|recorded/);
+    });
   });
 });

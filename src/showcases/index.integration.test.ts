@@ -5,12 +5,15 @@
 import { readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import type { ShowcaseRecording } from '../adapters/showcase/index.js';
 import { check } from '../cli/check/index.js';
 import { readConfiguration } from '../configuration/index.js';
 import { getFrameScript } from '../frame/index.js';
 import { createScratchFolder, FIXTURES, SCRATCH_ROOT } from '../testing/index.js';
-import { buildShowcases } from './index.js';
+import { createRunSession } from '../host-copy/index.js';
+import { getCacheFolder } from '../processes/index.js';
+import { buildShowcases, type BuildShowcasesResult } from './index.js';
 
 /**
  * Checks a fixture, then builds its showcases
@@ -178,5 +181,128 @@ describe('showcases (integration)', () => {
       }
       await scratch.remove();
     }
+  });
+
+  describe('Recorded showcases', () => {
+    // Builds the `showcase-recorded` fixture, whose custom showcase adapter `node-run` records .mjs showcases with Node.js in the host copy (PLAN-P20
+    // D770): passing ones in README.md (the environment and the host copy, closed standard input, a linked showcase, a child outliving its parent, the
+    // output caps), failing ones in errors/failing.md (standard error, an exit code, an uncaught exception, the time limit). Built once, with
+    // a secret in showroom's own environment that never reaches a recording.
+
+    let built: BuildShowcasesResult;
+    const recording = (id: string): ShowcaseRecording => built.recordings.get(id)!;
+    const texts = (id: string) => recording(id).lines.map((line) => line.text);
+
+    beforeAll(async () => {
+      process.env.SHOWROOM_TEST_SECRET = 'secret';
+      try {
+        built = await _build('showcase-recorded');
+      } finally {
+        delete process.env.SHOWROOM_TEST_SECRET;
+      }
+    });
+
+    it('Records each showcase in the host copy, with its cleaned environment, its paths made relative', () => {
+      expect(built.issues).toEqual([]);
+      expect(built.frames.size).toBe(0);
+      expect(texts('README.md#1')).toEqual([
+        'hello',
+        'cwd .',
+        'tmp <run>/tmp',
+        'data <run>/data',
+        'own own',
+        'secret none',
+        'home set',
+        'ignored false',
+        'virtual true',
+      ]);
+      expect(recording('README.md#1')).toMatchObject({ dropped: 0, exitCode: 0 });
+      expect(built.checks.get('README.md#1')).toEqual(['syntax', 'runtime']);
+      expect(built.shownIssues.get('README.md#1')).toEqual([]);
+      expect(texts('README.md#2')).toEqual(['stdin closed']);
+      expect(texts('README.md#3')).toEqual(['linked scripts/linked.mjs']);
+      expect(built.watched).toEqual(expect.arrayContaining(['README.md', 'adapters/node-run.js', 'errors/failing.md', 'scripts/linked.mjs']));
+    });
+
+    it('Kills a child outliving its showcase', async () => {
+      const pid = Number(texts('README.md#4')[0].replace('child ', ''));
+      expect(pid).toBeGreaterThan(0);
+      expect(() => process.kill(pid, 0)).toThrow();
+    });
+
+    it('Keeps the newest lines, cutting a long one, and leaves out what passes the output cap', () => {
+      expect(recording('README.md#5')).toMatchObject({ dropped: 173, exitCode: 0 });
+      expect(texts('README.md#5')[0]).toBe('line 174');
+      expect(texts('README.md#5').at(-1)).toBe(`${'x'.repeat(10000)}… (10000 more characters)`);
+      expect(texts('README.md#5')).toHaveLength(128);
+      expect(recording('README.md#6')).toMatchObject({
+        cut: true,
+        exitCode: 0,
+        lines: [{ level: 'log', text: expect.stringMatching(/^y{10000}… \(\d+ more characters\)$/) }],
+      });
+    });
+
+    it('Fails a recording with a runtime error: standard error, an exit code, an uncaught exception, the time limit', () => {
+      const runtime = (id: string) =>
+        built.shownIssues
+          .get(id)!
+          .filter((issue) => issue.check === 'runtime')
+          .map((issue) => issue.message);
+      expect(recording('errors/failing.md#1').lines).toEqual([
+        { level: 'log', text: 'before' },
+        { level: 'error', text: 'oops' },
+      ]);
+      expect(runtime('errors/failing.md#1')).toEqual(['The recording failed: it wrote 1 line to standard error']);
+      expect(runtime('errors/failing.md#2')).toEqual(['The recording failed: it exited with code 3']);
+      expect(recording('errors/failing.md#3').exitCode).toBe(1);
+      // The stack trace names the showcase by its root-relative path, never the host copy's
+      expect(texts('errors/failing.md#3').some((text) => text.includes('errors/failing.showcase-3.mjs:1'))).toBe(true);
+      expect(texts('errors/failing.md#3').some((text) => text.includes('/copy/') || text.includes(SCRATCH_ROOT))).toBe(false);
+      expect(recording('errors/failing.md#4')).toMatchObject({ timedOut: true, timeLimit: 2000, lines: [{ level: 'log', text: 'waiting' }] });
+      expect(runtime('errors/failing.md#4')).toEqual(['The recording failed: it stopped after the 2 s time limit']);
+      expect(built.errors.get('errors/failing.md#4')).toEqual([expect.objectContaining({ severity: 'error', path: 'errors/failing.md', check: 'runtime' })]);
+      for (const id of ['errors/failing.md#1', 'errors/failing.md#4']) expect(built.checks.get(id)).toEqual(['syntax', 'runtime']);
+      // A build step's failure: an error of the build itself, with no recording
+      expect(built.recordings.has('errors/failing.md#5')).toBe(false);
+      expect(built.checks.get('errors/failing.md#5')).toEqual([]);
+      expect(built.shownIssues.get('errors/failing.md#5')).toEqual([
+        { severity: 'error', message: expect.stringContaining('SyntaxError'), path: 'errors/failing.showcase-5.mjs' },
+      ]);
+    });
+
+    it('Removes its own run session, and keeps a given one across runs', async () => {
+      // A build without a session made one of its own, in the user's cache folder (here the project's), and removed it
+      expect(await readdir(getCacheFolder()).catch(() => [])).toEqual([]);
+      const root = join(FIXTURES, 'showcase-recorded');
+      const { host } = await check(root, { trust: true });
+      const { configuration } = await readConfiguration(root);
+      const session = createRunSession();
+      try {
+        const first = await buildShowcases({
+          root,
+          host: { ...host!, showcases: host!.showcases.slice(0, 1) },
+          configuration: configuration!,
+          trust: true,
+          session,
+        });
+        expect(first.recordings.size).toBe(1);
+        const folder = await session.getFolder();
+        expect(await readdir(join(folder, 'copy'))).toEqual(expect.arrayContaining(['README.md', 'README.showcase-1.mjs', 'adapters', 'scripts']));
+        expect(await readdir(join(folder, 'copy'))).not.toContain('ignored');
+        const second = await buildShowcases({
+          root,
+          host: { ...host!, showcases: host!.showcases.slice(0, 1) },
+          configuration: configuration!,
+          trust: true,
+          session,
+        });
+        expect(second.recordings.size).toBe(1);
+        expect(await session.getFolder()).toBe(folder);
+        expect(await readdir(join(folder, 'showcases'))).toHaveLength(1);
+      } finally {
+        await session.dispose();
+      }
+      expect(await readdir(getCacheFolder())).toEqual([]);
+    });
   });
 });

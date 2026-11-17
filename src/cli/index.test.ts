@@ -101,6 +101,16 @@ describe('cli', () => {
       expect(stderr).toBe(`No command given\n\n${USAGE}`);
     });
 
+    it('Fails on an invalid --pass-env name, on every command, before it starts', async () => {
+      for (const command of ['check', 'serve', 'build']) {
+        const { code, stdout, stderr } = await _run([command, '--pass-env', 'A=B', '--root', _fixture('minimal')]);
+        expect(code).toBe(1);
+        expect(stdout).toBe('');
+        expect(stderr).toBe(`Invalid --pass-env name: "A=B"\n\n${USAGE}`);
+      }
+      expect((await _run(['check', '--quiet', '--pass-env', 'A', '--pass-env', 'B', '--root', _fixture('minimal')])).code).toBe(0);
+    });
+
     it('Fails on an unknown command', async () => {
       const { code, stderr } = await _run(['deploy']);
       expect(code).toBe(1);
@@ -120,6 +130,7 @@ describe('cli', () => {
       expect(USAGE).toMatch(/^ {2}--port <port> /m);
       expect(USAGE).toMatch(/^ {2}--showcases {6}/m);
       expect(USAGE).toMatch(/^ {2}--quiet {10}/m);
+      expect(USAGE).toMatch(/^ {2}--pass-env <name>$/m);
       expect(USAGE).toMatch(/^ {2}--trust {10}/m);
       expect(USAGE).toMatch(/^ {2}--no-trust {7}/m);
     });

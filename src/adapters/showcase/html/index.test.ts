@@ -90,6 +90,7 @@ describe('adapters/showcase/html', () => {
       hostVirtualFiles: virtualFiles,
       mode: 'production',
       scratchFolder: _ROOT,
+      stack: 'typescript',
     });
     const virtual = (path: string, content: string, named = false): VirtualFile => ({
       path,

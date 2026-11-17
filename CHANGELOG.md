@@ -14,9 +14,16 @@ All notable changes to `@ofzza/showroom`, by version as published to npm. This p
 - **The trust prompt**: without either flag, and when the host repository has something to trust, `showroom` asks in a terminal whether to trust it, naming what would run (`[y/N]`); with no terminal, it runs without trust, and warns. Ctrl-C at the prompt ends the command with exit code `130`. A trusted `serve` writes a notice whenever it loads a custom showcase adapter module it hadn't loaded yet.
 - **`main()`'s third parameter, `input`** (`CliInput`, the new type): what the prompt asks through; the terminal on standard input by default, never a pipe.
 - **`CheckOptions.trust`** (`false` by default, `true`, or a function given a `TrustRequest`, the new type naming what would run), and **`CheckResult.trusted`**.
+- **Recorded showcases** (experimental, for custom showcase adapters for now): a showcase adapter can build and run its showcases as programs on the machine running `showroom`, in a copy of the host repository in the user's cache folder, and record what they print and how they ended. The showroom shows the recording in the `console` view, titled "Recorded output", ending in how the run ended, with a `runtime` status mark "recorded when built"; a failed recording (a non-zero exit code, the time limit, a signal, or anything on standard error) is an error of `check --showcases` and `build`. Programs run with a cleaned environment, their input closed, a time limit (30 s, 300 s for a build step) and their output capped (1 MB); see README.md › Recorded showcases.
+- **`--pass-env <name>`** on every command (and `CheckOptions.passEnv`): passes an environment variable on to recorded showcases' build steps, never to their recorded run.
+- **The showcase adapter interface** (experimental): `ShowcaseAdapter.recorded` and `hostCopy`; `ShowcaseBuildRequest`'s `project`, `stack`, `hostCopy` (with `run()`) and `showcaseFolder`; `ShowcaseBuildResult.recording`; and the types `ShowcaseCheckContext`, `ShowcaseHostCopyContent`, `ShowcaseHostCopy`, `ShowcaseRunOptions`, `ShowcaseRun`, `ShowcaseRecording` and `ShowcaseConsoleLine`.
+- **`TrustRequest.executables` and `recorded`**: the programs the built-in showcase adapters would start, and how many showcases would be recorded; the prompt names them.
 
 ### Changed
 
+- **A host check gets a third argument**, `context` (`ShowcaseCheckContext`: the configured `project` and `stack`); and a showcase adapter's `checks` can't list `runtime`, which `showroom` adds for a recording.
+- **`cs` is reserved** for the built-in C# showcase adapter to come: a custom showcase adapter can't take the name.
+- **The fence languages `csharp` and `c#` give a code block showcase's entry point the `.cs` extension**, as `cs` does.
 - **Control characters from the host repository are shown escaped** (e.g. `\x1b`) in everything `showroom` writes to the terminal: the issues, the prompt and its notices.
 - **`serve` sends linked files with `X-Content-Type-Options: nosniff`**, and without trust, linked `.html`, `.htm`, `.svg`, `.xml` and `.xhtml` files as plain text.
 - **A navigation item's URL must be `http:`, `https:`, `mailto:` or protocol-relative**: any other scheme (e.g. `javascript:`) is an error.

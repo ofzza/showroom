@@ -166,4 +166,47 @@ describe('cli (end to end)', () => {
       );
     });
   });
+
+  describe('Recorded showcases', () => {
+    // `showroom check --showcases` on copies of the `showcase-recorded` fixture (PLAN-P20 D770), its failing showcases removed, or one of their errors
+    // checked.
+
+    it('Records every showcase, and fails on a failed recording, naming its runtime check', async () => {
+      const root = await copy('showcase-recorded');
+      const failed = await _run(['check', '--trust', '--showcases', '--quiet', '--root', root]);
+      expect(failed.code).toBe(1);
+      expect(failed.stderr).toContain(
+        'error: errors/failing.md:7: Showcase errors/failing.md#1 (errors/failing.md:7): runtime: The recording failed: it wrote 1 line to standard error\n',
+      );
+      await rm(join(root, 'errors'), { recursive: true });
+      const passed = await _run(['check', '--trust', '--showcases', '--quiet', '--root', root]);
+      expect(passed).toEqual({ code: 0, stdout: '', stderr: 'warning: Showcase adapter "node-run": 6 showcases, stack typescript, project none\n' });
+    });
+
+    it("Passes --pass-env's names on to build steps, never to a recorded run", async () => {
+      // The copy's node-run reports what its build step and its run see, as warnings
+      const root = await copy('showcase-recorded');
+      await rm(join(root, 'errors'), { recursive: true });
+      const adapter = join(root, 'adapters', 'node-run.js');
+      const script = "process.stdout.write(process.env.SHOWROOM_TEST_PASSED ?? 'none')";
+      await writeFile(
+        adapter,
+        (await readFile(adapter, 'utf8')).replace(
+          "return { reads, checks: ['syntax'], recording: run.recording };",
+          `const seen = await hostCopy.run('node', ['-e', ${JSON.stringify(script)}], { phase: 'build' });
+           const ran = await hostCopy.run('node', ['-e', ${JSON.stringify(script)}], { phase: 'run' });
+           return { reads, checks: ['syntax'], recording: run.recording, issues: [{ severity: 'warning', message: seen.stdout + ' ' + ran.stdout }] };`,
+        ),
+      );
+      process.env.SHOWROOM_TEST_PASSED = 'passed';
+      try {
+        const { code, stderr } = await _run(['check', '--trust', '--showcases', '--quiet', '--pass-env', 'SHOWROOM_TEST_PASSED', '--root', root]);
+        expect(code).toBe(0);
+        expect(stderr.match(/: passed none$/gm)).toHaveLength(6);
+        expect((await _run(['check', '--trust', '--showcases', '--quiet', '--root', root])).stderr.match(/: none none$/gm)).toHaveLength(6);
+      } finally {
+        delete process.env.SHOWROOM_TEST_PASSED;
+      }
+    });
+  });
 });

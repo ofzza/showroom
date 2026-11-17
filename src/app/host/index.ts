@@ -2,6 +2,7 @@
  * The shown host information: the part of the host information the showroom presents, and helpers for finding its documentation files
  */
 
+import type { ShowcaseRecording } from '../../adapters/showcase/index.js';
 import type { DocumentationFile, HostInformation, ShowcaseDisplay, ShowcaseView } from '../../host/index.js';
 import { getFolder, isMarkdownPath } from '../../markdown/index.js';
 
@@ -161,6 +162,10 @@ export interface ShownShowcase {
    * True if it shows a `build` status mark: every showcase does, but an `html` one without issues of its build, as nothing builds it
    */
   buildMark: boolean;
+  /**
+   * A recorded showcase's recording, where it built: what its `console` view shows, and its `runtime` status mark is of (it has no showcase frame)
+   */
+  recording?: ShowcaseRecording;
 }
 
 /**
@@ -175,6 +180,15 @@ export type LoadedShowcase = ShownShowcase & { url: string };
  */
 export function isLoadedShowcase(showcase: ShownShowcase): showcase is LoadedShowcase {
   return showcase.url !== undefined;
+}
+
+/**
+ * Checks if a shown showcase built, as far as its views show it: its showcase frame is loaded (see isLoadedShowcase()), or it has a recording
+ * @param showcase The shown showcase
+ * @returns True if it did
+ */
+export function isBuiltShowcase(showcase: ShownShowcase): boolean {
+  return isLoadedShowcase(showcase) || showcase.recording !== undefined;
 }
 
 /**
@@ -226,13 +240,13 @@ export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentat
 
 /**
  * Represents what `serve` updates on a shown showcase without reloading the page: its showcase frame's URL, its tabs' URLs, its checks and issues,
- * and its `build` status mark
+ * its `build` status mark, and its recording
  */
-export type ShownShowcaseUpdate = Pick<ShownShowcase, 'id' | 'url' | 'tabs' | 'checks' | 'issues' | 'buildMark'>;
+export type ShownShowcaseUpdate = Pick<ShownShowcase, 'id' | 'url' | 'tabs' | 'checks' | 'issues' | 'buildMark' | 'recording'>;
 
 /**
- * Applies the updates `serve` sends to the shown showcases, by id: the new URLs of showcase frames and of their tabs, the checks and issues, and the
- * `build` status mark
+ * Applies the updates `serve` sends to the shown showcases, by id: the new URLs of showcase frames and of their tabs, the checks and issues, the
+ * `build` status mark, and the recording
  * @param showcases The shown showcases
  * @param next The shown showcases with their updates, every one of them
  * @returns The shown showcases updated (a showcase whose update changes nothing is kept as it was); the same list if nothing changed
@@ -242,9 +256,10 @@ export function applyShowcaseUpdates(showcases: ShownShowcase[], next: readonly 
   const applied = showcases.map((showcase) => {
     const update = updates.get(showcase.id);
     if (!update) return showcase;
-    const { url, tabs, checks, issues, buildMark } = update;
-    const changed = { url, tabs, checks, issues, buildMark };
-    const current = { url: showcase.url, tabs: showcase.tabs, checks: showcase.checks, issues: showcase.issues, buildMark: showcase.buildMark };
+    const { url, tabs, checks, issues, buildMark, recording } = update;
+    const changed = { url, tabs, checks, issues, buildMark, recording };
+    const { url: currentUrl, tabs: currentTabs, checks: currentChecks, issues: currentIssues, buildMark: currentMark, recording: currentRecording } = showcase;
+    const current = { url: currentUrl, tabs: currentTabs, checks: currentChecks, issues: currentIssues, buildMark: currentMark, recording: currentRecording };
     return JSON.stringify(changed) === JSON.stringify(current) ? showcase : { ...showcase, ...changed };
   });
   return applied.some((showcase, index) => showcase !== showcases[index]) ? applied : showcases;

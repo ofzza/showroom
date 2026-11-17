@@ -329,6 +329,9 @@ describe('markdown', () => {
     it('Maps fence languages to entry point extensions', () => {
       const scan = scanMarkdown('README.md', ['```javascript showcase=x', '```', '~~~htm showcase', '~~~', '```CSS showcase=y', '```'].join('\n'));
       expect(scan.virtualFiles.map((file) => file.path)).toEqual(['README.showcase-1.js', 'README.showcase-2.html', 'README.showcase-3.css']);
+      // C#'s three fence languages (PLAN-P20 D781)
+      const cs = scanMarkdown('README.md', ['```cs showcase=x', '```', '```csharp showcase=x', '```', '```C# showcase=x', '```'].join('\n'));
+      expect(cs.virtualFiles.map((file) => file.path)).toEqual(['README.showcase-1.cs', 'README.showcase-2.cs', 'README.showcase-3.cs']);
     });
 
     it('Finds virtual files with no showcase adapter', () => {

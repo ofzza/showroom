@@ -11,8 +11,10 @@ import { createCanaryHost } from '../testing/index.js';
 import {
   buildShowcases,
   checkBuildResult,
+  checkRecording,
   getBuildIssue,
   getBuildShowcasesIssues,
+  getRecordingFailure,
   getShowcaseFrameFolder,
   getShowcaseFrameHash,
   getShowcaseFrameUrl,
@@ -168,6 +170,7 @@ describe('showcases', () => {
         reads: ['x'],
         checks: [],
         issues: [],
+        warnings: [],
       });
       expect(checkBuildResult({ page: 'p.htm', files: [{ path: 'p.htm', content: new TextEncoder().encode('✓') }] })).toEqual({
         page: 'p.htm',
@@ -175,6 +178,7 @@ describe('showcases', () => {
         reads: [],
         checks: [],
         issues: [],
+        warnings: [],
       });
     });
 
@@ -183,7 +187,8 @@ describe('showcases', () => {
         { severity: 'error', message: 'x', path: 'a.js', line: 2 },
         { severity: 'warning', message: 'w' },
       ];
-      expect(checkBuildResult({ issues, reads: [] })).toEqual({ reads: [], checks: [], issues });
+      expect(checkBuildResult({ issues, reads: [] })).toEqual({ reads: [], checks: [], issues, warnings: [] });
+      expect(checkBuildResult({ issues, reads: [] }, true)).toEqual({ reads: [], checks: [], issues, warnings: [] });
     });
 
     it("Accepts files beside a check's errors and warnings, and the build's warnings", () => {
@@ -199,7 +204,68 @@ describe('showcases', () => {
         reads: [],
         checks: ['type check', 'lint'],
         issues,
+        warnings: [],
       });
+    });
+
+    it("Accepts a recorded showcase adapter's recording without files, leaving out its files with a warning", () => {
+      // See PLAN-P20 D790 C12, C24
+      const recording = { lines: [{ level: 'log', text: 'hi' }], dropped: 0, exitCode: 0 };
+      expect(checkBuildResult({ recording, checks: ['compile'] }, true)).toEqual({ recording, reads: [], checks: ['compile'], issues: [], warnings: [] });
+      expect(checkBuildResult({ recording, page: 'index.html', files: [page] }, true)).toEqual({
+        recording,
+        reads: [],
+        checks: [],
+        issues: [],
+        warnings: ['a recorded showcase adapter\'s "page" and "files" are left out'],
+      });
+      expect(checkBuildResult({ page: 'index.html', files: [page], recording })).toMatchObject({
+        page: 'index.html',
+        warnings: ['the "recording" of a showcase adapter that isn\'t recorded is left out'],
+      });
+      expect((checkBuildResult({ page: 'index.html', files: [page], recording }) as { recording?: unknown }).recording).toBeUndefined();
+    });
+
+    it('Rejects invalid recordings, a missing one, and a "runtime" check', () => {
+      const problem = (result: unknown, recorded = true) => (checkBuildResult(result, recorded) as { problem?: string }).problem;
+      expect(problem({})).toBe('a recorded showcase adapter must return a "recording", unless an error names no check');
+      expect(problem({ recording: { lines: [], dropped: 0, exitCode: 0 }, issues: [{ severity: 'error', message: 'x' }] })).toBe(
+        'an error naming no check means there is no recording: leave out "recording"',
+      );
+      expect(problem({ recording: { lines: [], dropped: 0, exitCode: 0 }, checks: ['runtime'] })).toBe(
+        '"checks" can\'t list "runtime", which showroom adds for a recording',
+      );
+      expect(problem({ page: 'index.html', files: [page], checks: ['runtime'] }, false)).toBe(
+        '"checks" can\'t list "runtime", which showroom adds for a recording',
+      );
+      expect(checkRecording('x')).toBe('"recording" must be an object');
+      expect(checkRecording({ lines: [{ level: 'trace', text: 'x' }], dropped: 0, exitCode: 0 })).toBe(
+        '"recording.lines" must be a list of lines, each with a level and a text',
+      );
+      expect(checkRecording({ lines: [], dropped: -1, exitCode: 0 })).toBe('"recording.dropped" must be a whole number from 0');
+      expect(checkRecording({ lines: [], dropped: 0, droppedErrors: 1.5, exitCode: 0 })).toBe('"recording.droppedErrors" must be a whole number from 0');
+      expect(checkRecording({ lines: [], dropped: 0, exitCode: 1.5 })).toBe('"recording.exitCode" must be a whole number');
+      expect(checkRecording({ lines: [], dropped: 0 })).toBe('a recording must end in exactly one of "exitCode", "signal" and "timedOut"');
+      expect(checkRecording({ lines: [], dropped: 0, exitCode: 0, signal: 'SIGKILL' })).toBe(
+        'a recording must end in exactly one of "exitCode", "signal" and "timedOut"',
+      );
+      expect(checkRecording({ lines: [], dropped: 0, timedOut: true, timeLimit: 30000 })).toBeUndefined();
+    });
+
+    it('Says why a recording failed: its exit, and anything written to standard error', () => {
+      // See SPEC-S15 D728: any line on standard error fails a recording, as a console.error fails a showcase frame's runtime
+      const recording = (end: object, lines: { level: 'log' | 'error'; text: string }[] = [], droppedErrors?: number) => ({
+        lines,
+        dropped: 0,
+        ...(droppedErrors ? { droppedErrors } : {}),
+        ...end,
+      });
+      expect(getRecordingFailure(recording({ exitCode: 0 }, [{ level: 'log', text: 'x' }]))).toBeUndefined();
+      expect(getRecordingFailure(recording({ exitCode: 134 }))).toBe('exited with code 134');
+      expect(getRecordingFailure(recording({ signal: 'SIGABRT' }))).toBe('ended by signal SIGABRT');
+      expect(getRecordingFailure(recording({ timedOut: true, timeLimit: 2000 }))).toBe('stopped after the 2 s time limit');
+      expect(getRecordingFailure(recording({ exitCode: 0 }, [{ level: 'error', text: 'x' }], 2))).toBe('wrote 3 lines to standard error');
+      expect(getRecordingFailure(recording({ exitCode: 1 }, [{ level: 'error', text: 'x' }]))).toBe('exited with code 1, and wrote 1 line to standard error');
     });
 
     it('Rejects invalid results', () => {

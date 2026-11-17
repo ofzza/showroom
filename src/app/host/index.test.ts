@@ -12,6 +12,7 @@ import {
   findFolderReadme,
   getFolder,
   getRootReadme,
+  isBuiltShowcase,
   isMarkdown,
   isRootReadme,
 } from './index.js';
@@ -125,6 +126,27 @@ describe('app/host', () => {
     expect(applyShowcaseUpdates(showcases, [{ ..._update, id: 'README.md#1', url: 'a?hash=1', tabs: [_tab('a.html', 'files/a.html?hash=1')] }])).toBe(
       showcases,
     );
+  });
+
+  it('Applies a new recording, and tells a recorded showcase from one that built nothing', () => {
+    const showcase: ShownShowcase = {
+      ..._update,
+      id: 'README.md#1',
+      documentation: 'README.md',
+      offset: 0,
+      display: 'block',
+      views: ['console'],
+      markdown: '',
+      entryTab: 0,
+      tabs: [],
+    };
+    const recording = { lines: [{ level: 'log' as const, text: 'hi' }], dropped: 0, exitCode: 0 };
+    const applied = applyShowcaseUpdates([showcase], [{ ..._update, id: 'README.md#1', tabs: [], recording }]);
+    expect(applied[0].recording).toEqual(recording);
+    expect(applyShowcaseUpdates(applied, [{ ..._update, id: 'README.md#1', tabs: [], recording }])).toBe(applied);
+    expect(isBuiltShowcase(showcase)).toBe(false);
+    expect(isBuiltShowcase(applied[0])).toBe(true);
+    expect(isBuiltShowcase({ ...showcase, url: 'a?hash=1' })).toBe(true);
   });
 
   it("Applies a tab's new URL alone, keeping its showcase frame's", () => {

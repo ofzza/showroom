@@ -1,0 +1,6 @@
+{
+  "stack": "typescript",
+  "sourceRoot": ".",
+  "documentation": ["errors/*.md"],
+  "customShowcaseAdapters": { "node-run": "./adapters/node-run.js" }
+}

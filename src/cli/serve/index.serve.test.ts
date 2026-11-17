@@ -4,11 +4,12 @@
 
 import { afterEach, describe, expect, inject, it } from 'vitest';
 import { copyFixture, createCanaryHost, type ScratchFolder } from '../../testing/index.js';
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ShownShowcase } from '../../app/host/index.js';
 import type { CheckOptions } from '../check/index.js';
+import { getCacheFolder } from '../../processes/index.js';
 import { serve } from './index.js';
 
 /**
@@ -218,6 +219,25 @@ describe('cli/serve (serve)', () => {
     expect(source).toContain('"message":"Showcase README.md#2 (README.md:12): Showcase adapter \\"throwing\\" failed to build the showcase: build broke"');
     expect(served.stderr()).toContain('error: src/widget.js:2: Showcase README.md#1 (README.md:5): Widget broke\n');
     expect(await served.stop()).toBe(0);
+  });
+
+  it('Ships recorded showcases with their recordings and runtime checks, with no showcase frame, and removes its run folder', async () => {
+    // PLAN-P20 D770: the showcase-recorded fixture's custom showcase adapter records with Node.js in the host copy, kept for the session
+    const served = await start('showcase-recorded');
+    const source = await fetchHostModule(served.url);
+    const host = JSON.parse(/export default ([\s\S]*?);\s*export const issues/.exec(source)![1]) as { showcases: ShownShowcase[] };
+    const first = host.showcases.find(({ id }) => id === 'README.md#1')!;
+    expect(first).toMatchObject({ checks: ['syntax', 'runtime'], issues: [], views: ['source', 'console'] });
+    expect(first.url).toBeUndefined();
+    expect(first.recording!.lines.map(({ text }) => text)).toContain('tmp <run>/tmp');
+    const failing = host.showcases.find(({ id }) => id === 'errors/failing.md#2')!;
+    expect(failing.recording).toMatchObject({ exitCode: 3 });
+    expect(failing.issues).toEqual([
+      { severity: 'error', message: 'The recording failed: it exited with code 3', check: 'runtime', path: 'errors/failing.showcase-2.mjs' },
+    ]);
+    expect(await readdir(getCacheFolder())).toHaveLength(1);
+    expect(await served.stop()).toBe(0);
+    expect(await readdir(getCacheFolder())).toEqual([]);
   });
 
   it('Serves ts showcase frames, built in development mode, with their files', async () => {

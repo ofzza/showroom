@@ -11,6 +11,7 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Alias, InlineConfig, Plugin } from 'vite';
+import type { ShowcaseRecording } from '../adapters/showcase/index.js';
 import type { CheckIssue } from '../cli/check/index.js';
 import type { HostInformation, LinkedFile, Showcase, ShowcaseView } from '../host/index.js';
 import { LINKED_FILES_FOLDER, getLanguage, getLinkedFileUrl } from '../linked-files/index.js';
@@ -55,6 +56,10 @@ export interface ShownBuild {
    * The issues of each showcase, as shown, by showcase id; none if not given
    */
   shownIssues?: ReadonlyMap<string, ShownIssue[]>;
+  /**
+   * The recordings of the recorded showcases that built, by showcase id; none if not given
+   */
+  recordings?: ReadonlyMap<string, ShowcaseRecording>;
   /**
    * True if the host repository's code was allowed to run (see CheckResult's `trusted`); false if not given
    */
@@ -118,6 +123,8 @@ export function getShownHostInformation(
     const checks = (trusted && built.checks?.get(id)) || [];
     const issues = (trusted && built.shownIssues?.get(id)) || [];
     const url = frame && loadsShowcaseFrame(views) ? { url: getShowcaseFrameUrl(frame) } : {};
+    // A recording is text, with nothing to load, so it is shipped whatever the views
+    const recording = trusted ? built.recordings?.get(id) : undefined;
     return {
       id,
       documentation,
@@ -131,6 +138,7 @@ export function getShownHostInformation(
       checks,
       issues,
       buildMark: trusted && hasBuildMark(showcase, issues),
+      ...(recording ? { recording } : {}),
     };
   });
   const virtualFiles = host.virtualFiles.flatMap(({ path, documentation, offset, views }) =>

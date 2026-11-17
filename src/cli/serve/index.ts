@@ -14,6 +14,7 @@ import { escapeControlCharacters, formatIssues, getCustomShowcaseAdapterModules,
 import type { CliOutput } from '../index.js';
 import type { ShownHostInformation, ShownShowcase } from '../../app/host/index.js';
 import { readConfiguration } from '../../configuration/index.js';
+import { createRunSession, type RunSession } from '../../host-copy/index.js';
 import type { HostInformation } from '../../host/index.js';
 import { buildShowcases, getBuildShowcasesIssues, type BuildShowcasesResult, type ShowcaseFrame } from '../../showcases/index.js';
 import { RESOLVED_HOST_MODULE_ID, getAppDir, getShownHostInformation, getTabFileHashes, getViteConfiguration, type ShownBuild } from '../../vite/index.js';
@@ -111,7 +112,7 @@ export function getShownChange(previous: ShownHostInformation, next: ShownHostIn
   const withoutUpdates = (shown: ShownHostInformation) =>
     JSON.stringify({
       ...shown,
-      showcases: shown.showcases.map(({ url: _url, checks: _checks, issues: _issues, buildMark: _buildMark, tabs, ...rest }) => ({
+      showcases: shown.showcases.map(({ url: _url, checks: _checks, issues: _issues, buildMark: _buildMark, recording: _recording, tabs, ...rest }) => ({
         ...rest,
         tabs: tabs.map((tab) => (tab.source.kind === 'file' ? { ...tab, source: { ...tab.source, url: tab.source.url.split('?')[0] } } : tab)),
       })),
@@ -299,7 +300,12 @@ export async function runBuild(
   try {
     const built = await build(host);
     const watched = merge(built.errors.size ? previousWatched : [], built.watched, linked);
-    return { frames: built.frames, shown: { checks: built.checks, shownIssues: built.shownIssues }, issues: getBuildShowcasesIssues(built), watched };
+    return {
+      frames: built.frames,
+      shown: { checks: built.checks, shownIssues: built.shownIssues, recordings: built.recordings },
+      issues: getBuildShowcasesIssues(built),
+      watched,
+    };
   } catch (err) {
     return {
       frames: previous,
@@ -455,6 +461,10 @@ export interface ServeOptions {
    * decision holds for the whole session; not trusted if not given
    */
   trust?: CheckOptions['trust'];
+  /**
+   * Names of the environment variables passed on to recorded showcases' build steps (see CheckOptions' `passEnv`)
+   */
+  passEnv?: string[];
 }
 
 /**
@@ -526,10 +536,10 @@ async function _getLoadedModules(root: string): Promise<{ name: string; path: st
  * @param trust True if the host repository is trusted
  * @returns The outcome of building them; throws if the configuration can't be read
  */
-async function _buildShowcases(root: string, host: HostInformation, trust: boolean): Promise<BuildShowcasesResult> {
+async function _buildShowcases(root: string, host: HostInformation, trust: boolean, session: RunSession, outDir?: string): Promise<BuildShowcasesResult> {
   const { configuration, errors } = await readConfiguration(root);
   if (!configuration) throw new Error(errors?.join('; ') ?? 'The configuration could not be read');
-  return buildShowcases({ root, host, configuration, mode: 'development', trust });
+  return buildShowcases({ root, host, configuration, mode: 'development', trust, session, outDir });
 }
 
 /**
@@ -549,6 +559,7 @@ export async function serve({
   signal,
   onListening,
   trust = false,
+  passEnv = [],
 }: ServeOptions): Promise<number> {
   // Check the host repository first, deciding trust for the session, then build its showcases
   let asked = typeof trust !== 'function';
@@ -573,8 +584,16 @@ export async function serve({
     if (trusted) output.stderr(getTrustNotices(loaded, await _getLoadedModules(root)));
     return asked ? result : { ...result, issues: [...result.issues, ...getRestartWarnings(result)] };
   };
-  const build = (host: HostInformation) => _buildShowcases(root, host, trusted);
-  const built = await runBuild(first.host, build, new Map());
+  // One run session for the whole session, keeping the host copy and the showcases' own folders across runs
+  const session = createRunSession({ passEnv });
+  const build = (host: HostInformation) => _buildShowcases(root, host, trusted, session, outDir);
+  let built: Awaited<ReturnType<typeof runBuild>>;
+  try {
+    built = await runBuild(first.host, build, new Map());
+  } catch (err) {
+    await session.dispose();
+    throw err;
+  }
   const initial: ServedState = {
     host: getShownHostInformation(first.host, { frames: built.frames, ...built.shown, trusted }, await getTabFileHashes(root, first.host)),
     frames: built.frames,
@@ -666,6 +685,7 @@ export async function serve({
     await watcher?.close();
     await server?.close();
     await rm(cacheDir, { recursive: true, force: true });
+    await session.dispose();
   }
 }
 

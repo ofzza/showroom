@@ -1,13 +1,15 @@
 /**
  * The console panel: what a showcase frame writes to its console, its uncaught errors and its rejected promises, as the frame script posts them,
- * shown by the showroom over the showcase frame, or as a showcase's `console` view. Its state is a pure function of the showcase frame's messages
- * and the user's actions; the overlay shows the newest lines briefly at the bottom of the showcase frame, then fades them, beside a counter (red
- * while errors are unseen) that opens the whole console panel over the showcase; the `console` view shows every line, always.
+ * shown by the showroom over the showcase frame, or as a showcase's `console` view; or a recorded showcase's recording, shown as its `console` view.
+ * Its state is a pure function of the showcase frame's messages (or the recording) and the user's actions; the overlay shows the newest lines
+ * briefly at the bottom of the showcase frame, then fades them, beside a counter (red while errors are unseen) that opens the whole console panel
+ * over the showcase; the `console` view shows every line, always.
  */
 
 import { useEffect, useLayoutEffect, useReducer, useRef, type Dispatch, type KeyboardEvent, type ReactNode } from 'react';
 import { Button, makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
 import { Dismiss16Regular } from '@fluentui/react-icons';
+import type { ShowcaseRecording } from '../../adapters/showcase/index.js';
 import { CONSOLE_MAX_LINES, type ConsoleLine } from '../../frame/index.js';
 
 // #region State
@@ -127,6 +129,10 @@ export interface ConsoleState {
    * Time of the latest update, in milliseconds since the epoch, which the fading lines are judged by
    */
   now: number;
+  /**
+   * True if it holds a recording, recorded when the showcase was built, rather than a showcase frame's console
+   */
+  recorded: boolean;
 }
 
 /**
@@ -140,7 +146,8 @@ export type ConsoleAction =
   | { type: 'lines'; lines: ConsoleLine[]; dropped: number; droppedWarnings?: number; droppedErrors?: number; now: number }
   | { type: 'open' }
   | { type: 'close' }
-  | { type: 'tick'; now: number };
+  | { type: 'tick'; now: number }
+  | { type: 'recording'; recording: ShowcaseRecording };
 
 /**
  * The state of a console panel before anything is logged, and after every load
@@ -158,7 +165,52 @@ export const INITIAL_CONSOLE_STATE: ConsoleState = {
   fadeFrom: 0,
   next: 0,
   now: 0,
+  recorded: false,
 };
+
+/**
+ * The text of the line saying that a recording's output went past its cap, before its end line
+ */
+export const RECORDING_CUT_TEXT = '… output past 1 MB left out';
+
+/**
+ * Gets a recording's end line, the showroom's own: how its run ended (e.g. `Exited with code 0`, `Stopped after the 30 s time limit`, `Ended by
+ * signal SIGABRT`); an `error` line when its exit failed it (a non-zero exit code, the time limit, a signal), an `info` line otherwise
+ * @param recording The recording
+ * @returns The line
+ */
+export function getRecordingEndLine(recording: ShowcaseRecording): ConsoleLine {
+  if (recording.timedOut) {
+    const limit = recording.timeLimit === undefined ? 'its' : `the ${recording.timeLimit / 1000} s`;
+    return { level: 'error', text: `Stopped after ${limit} time limit` };
+  }
+  if (recording.signal !== undefined) return { level: 'error', text: `Ended by signal ${recording.signal}` };
+  const code = recording.exitCode ?? 0;
+  return { level: code === 0 ? 'info' : 'error', text: `Exited with code ${code}` };
+}
+
+/**
+ * Gets the console state of a recording: its lines, the line saying its output was cut (if it was) and its end line, loaded, closed, with its
+ * warnings and errors counted (dropped ones included), none of them unseen
+ * @param recording The recording
+ * @returns The state
+ */
+export function getRecordingConsole(recording: ShowcaseRecording): ConsoleState {
+  const lines: ConsoleLine[] = [
+    ...recording.lines.map(({ level, text }) => ({ level, text })),
+    ...(recording.cut ? [{ level: 'info' as const, text: RECORDING_CUT_TEXT }] : []),
+    getRecordingEndLine(recording),
+  ];
+  const state = updateConsole(INITIAL_CONSOLE_STATE, {
+    type: 'lines',
+    lines,
+    dropped: recording.dropped,
+    droppedWarnings: recording.droppedWarnings,
+    droppedErrors: recording.droppedErrors,
+    now: 0,
+  });
+  return { ...state, lines: state.lines.map((entry) => ({ ...entry, quiet: true })), errors: 0, ready: true, recorded: true };
+}
 
 /**
  * Opens a console panel: its unseen errors are seen, and the lines so far never fade in later
@@ -190,6 +242,8 @@ export function updateConsole(state: ConsoleState, action: ConsoleAction): Conso
       return state.open ? { ...state, open: false } : state;
     case 'tick':
       return { ...state, now: action.now };
+    case 'recording':
+      return getRecordingConsole(action.recording);
     case 'lines': {
       if (!action.lines.length && !action.dropped) return { ...state, now: action.now };
       const added = action.lines.map((line, index) => ({ ...line, id: state.next + index, time: action.now, quiet: state.open }));
@@ -349,6 +403,11 @@ export function getConsoleTitle(state: ConsoleState): string {
 export const NO_OUTPUT_TEXT = 'No output';
 
 /**
+ * The title of a recorded showcase's `console` view, its first line
+ */
+export const RECORDED_OUTPUT_TITLE = 'Recorded output';
+
+/**
  * Gets the console panel's first line, saying how many earlier lines were dropped
  * @param dropped The number of lines dropped
  * @returns The line
@@ -421,6 +480,7 @@ const _useStyles = makeStyles({
   // The console view: the log alone, always CONSOLE_PANEL_LINES lines high
   view: { color: tokens.colorNeutralForeground1, backgroundColor: tokens.colorNeutralBackground3, flex: 'none' },
   placeholder: { padding: `0 ${tokens.spacingHorizontalS}`, color: tokens.colorNeutralForegroundDisabled, fontStyle: 'italic' },
+  title: { color: tokens.colorNeutralForeground3, fontWeight: tokens.fontWeightSemibold },
   info: { color: tokens.colorPaletteBlueForeground2 },
   debug: { opacity: 0.7 },
   warn: { color: tokens.colorPaletteMarigoldForeground2, backgroundColor: tokens.colorPaletteYellowBackground1 },
@@ -578,7 +638,7 @@ function _ConsoleLines({ state }: { state: ConsoleState }): ReactNode {
 
 /**
  * Renders a showcase's `console` view: the console's lines alone, always shown, CONSOLE_PANEL_LINES lines high and scrolling beyond them, following
- * the newest line unless the reader has scrolled up; a greyed placeholder while nothing is logged
+ * the newest line unless the reader has scrolled up; a greyed placeholder while nothing is logged; a recording under its title, "Recorded output"
  * @param props Properties of the component: the console's state
  * @returns The console view
  */
@@ -595,13 +655,14 @@ export function ConsoleView({ state }: { state: ConsoleState }): ReactNode {
       ref={log}
       className={mergeClasses(styles.view, styles.log, styles.text)}
       role="log"
-      aria-label="Console"
+      aria-label={state.recorded ? RECORDED_OUTPUT_TITLE : 'Console'}
       tabIndex={0}
       onScroll={(event) => {
         const element = event.currentTarget;
         following.current = isScrolledToBottom(element.scrollTop, element.clientHeight, element.scrollHeight);
       }}
     >
+      {state.recorded && <div className={mergeClasses(styles.line, styles.title)}>{RECORDED_OUTPUT_TITLE}</div>}
       {state.count || state.dropped ? <_ConsoleLines state={state} /> : <div className={styles.placeholder}>{NO_OUTPUT_TEXT}</div>}
     </div>
   );

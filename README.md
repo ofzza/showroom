@@ -129,7 +129,7 @@ host information
 - **Showcase adapter**: an implementation of the common interface for building showcase frames for one kind of code (HTML, TypeScript, React, Angular, or the host repository's own), chosen per showcase by its marker.
 - **Showcase frame**: the page that renders one showcase, in isolation, embedded in the showroom with an iframe.
 
-The command line is `showroom <command> [options]`, with three commands, [`check`](#showroom-check), [`serve`](#showroom-serve) and [`build`](#showroom-build). `showroom --help` writes its usage to `stdout`. A missing or unknown command, an unknown option, an option the command doesn't take (e.g. `--port` with `check`), a `--port` that isn't a whole number from 1 to 65535, or `--trust` with `--no-trust` writes what is wrong, and the usage, to `stderr`, and exits with `1`. Ctrl-C at the [trust](#trust) prompt ends the command, with `130`.
+The command line is `showroom <command> [options]`, with three commands, [`check`](#showroom-check), [`serve`](#showroom-serve) and [`build`](#showroom-build). `showroom --help` writes its usage to `stdout`. A missing or unknown command, an unknown option, an option the command doesn't take (e.g. `--port` with `check`), a `--port` that isn't a whole number from 1 to 65535, a `--pass-env` name that is empty or holds `=`, or `--trust` with `--no-trust` writes what is wrong, and the usage, to `stderr`, and exits with `1`. Ctrl-C at the [trust](#trust) prompt ends the command, with `130`.
 
 ## Trust
 
@@ -137,7 +137,8 @@ A host repository's showcases, its custom showcase adapters and the tools its sh
 
 - loads the [custom showcase adapters](#custom-showcase-adapters-experimental) `showroom.json` lists, which every command does;
 - runs the showcase adapters' host checks, and loads the host's own tools from the host repository: its TypeScript, to type check `ts` and `react` showcases; Angular's compiler (with its Linker and Babel) and its TypeScript, for `angular` showcases; and a CSS preprocessor (`sass`, `sass-embedded`, `less`, `stylus`), when a showcase imports a stylesheet of its kind;
-- builds every showcase, `html` included, into its showcase frame, whose code runs in the browser, on the showroom's origin.
+- builds every showcase, `html` included, into its showcase frame, whose code runs in the browser, on the showroom's origin;
+- builds and runs [recorded showcases](#recorded-showcases) as programs on your machine, in a copy of the host repository, and publishes what they print.
 
 Without trust (neither flag, or `--no-trust`), none of it runs. `showroom` reads `showroom.json` and the documentation files, checks the links, the linked files, and the showcases' markers and the built-in showcase adapters' options, and builds no showcase:
 
@@ -156,7 +157,7 @@ Only trust a repository whose code you would run yourself.
 Trust /home/me/host and run its code? [y/N]
 ```
 
-Only `y` or `yes` (in any case) trusts it; anything else, or just Enter, doesn't, and Ctrl-C ends the command. The tools are named "including", as the bundler and its plugins may load more. `showroom` only asks when both its standard input and its standard error are a terminal: the answer is never read from a pipe (`yes | showroom …` answers nothing). With no terminal (e.g. in CI), it runs without trust, and warns so, and how to allow it; `--no-trust` runs without trust, without asking or warning (e.g. in scripts). Trust is decided once per command: `serve` keeps it for its whole session, and one that started with nothing to trust warns to restart it with `--trust` once a showcase appears. Nothing in the host repository can trust itself: no setting in `showroom.json`, and no environment variable. A trusted `serve` writes a notice to `stderr` whenever it loads a custom showcase adapter module that wasn't loaded yet in its session (e.g. one added to `showroom.json` while it runs). Every string from the host repository that `showroom` writes to the terminal (in the prompt, its notices and the issues) has its control characters shown escaped (e.g. `\x1b`), so none can rewrite what you read.
+Only `y` or `yes` (in any case) trusts it; anything else, or just Enter, doesn't, and Ctrl-C ends the command. The tools are named "including", as the bundler and its plugins may load more. A built-in showcase adapter that starts programs names them too (`programs: …`, by their real paths), and the prompt says how many showcases would be [recorded](#recorded-showcases); a custom showcase adapter's programs and recorded showcases can't be named before it is loaded, which trust decides. `showroom` only asks when both its standard input and its standard error are a terminal: the answer is never read from a pipe (`yes | showroom …` answers nothing). With no terminal (e.g. in CI), it runs without trust, and warns so, and how to allow it; `--no-trust` runs without trust, without asking or warning (e.g. in scripts). Trust is decided once per command: `serve` keeps it for its whole session, and one that started with nothing to trust warns to restart it with `--trust` once a showcase appears. Nothing in the host repository can trust itself: no setting in `showroom.json`, and no environment variable. A trusted `serve` writes a notice to `stderr` whenever it loads a custom showcase adapter module that wasn't loaded yet in its session (e.g. one added to `showroom.json` while it runs). Every string from the host repository that `showroom` writes to the terminal (in the prompt, its notices and the issues) has its control characters shown escaped (e.g. `\x1b`), so none can rewrite what you read.
 
 ### Reading a repository you don't trust
 
@@ -660,6 +661,16 @@ Each new line shows briefly at the bottom of the showcase frame, then fades, and
 
 Only the showcase frame's own page is captured: an iframe inside it, or a window it opens, keeps its console to itself. In a showcase frame taller than the screen, the counter and the console panel sit at its bottom, possibly out of view.
 
+### Recorded showcases
+
+Some code can't run in a browser. A showcase adapter can instead **record** its showcases: build and run each one as a program on the machine running `showroom`, when the showcase is built, and record what it prints and how it ended. The showroom then shows the recording in place of a showcase frame's console: no showcase adapter shipped with `showroom` records yet, but a [custom showcase adapter](#custom-showcase-adapters-experimental) can.
+
+- **How it shows.** A recorded showcase has no showcase frame, so it can't have a `demo` view (`view=demo` on one, or `showroom.json`'s `showcaseViews` giving its showcase adapter `demo`, is an error of `check`). Its `console` view shows the recording under the title "Recorded output": standard output's lines as `log` lines, standard error's as `error` lines, in the order they came (across the two, roughly), then the showroom's own last line, how the run ended ("Exited with code 0", "Exited with code 134", "Stopped after the 30 s time limit", "Ended by signal SIGABRT"). It has the `console` view's limits: the newest 128 lines, each cut at 10,000 characters. Its `runtime` [status mark](#status-marks-and-issues) is the recording's, whatever its views, labelled "recorded when built". A recording is made once, when the showcase is built (by `build`, `check --showcases`, and each of `serve`'s runs): times, random values and anything the machine decides are frozen in it.
+- **When it fails.** A recording fails when its exit code isn't 0, the time limit or a signal ended it, or it wrote anything to standard error, as a `console.error` makes a showcase frame's `runtime` ✗. That is an error of its `runtime` check, failing `check --showcases` and `build`, unlike a showcase frame's run-time errors, which only a reader's browser sees.
+- **The host copy.** Recorded showcases are built and run in the **host copy**, `showroom`'s own copy of the host repository, with each showcase's virtual files written beside its documentation file, so everything around them resolves as in the host repository itself; the host repository is never written to by `showroom`. It is made only with [trust](#trust), and only when a showcase adapter that uses it has showcases to build, in a run folder of your cache folder (`$XDG_CACHE_HOME/showroom/`, else `~/.cache/showroom/` on Linux, `~/Library/Caches/showroom/` on macOS, `%LOCALAPPDATA%\showroom\` on Windows), removed when the command ends, on Ctrl-C too; a crash can leave one behind there. Each showcase adapter that uses it says what it leaves out; the output folder is always left out. It holds everything else, files your `.gitignore` ignores included (secrets in a local `.env`, say), so keep those out with the showcase adapter's `exclude`. Symbolic links are kept, an absolute one into the host repository made relative, and one leading outside the host repository left out. `serve` keeps the host copy in step at the start of each run, copying what changed on either side and removing what the host repository no longer has; a change of the same size within your file system's time resolution can be missed. Recorded showcases only work in **self-contained** host repositories: a file reaching outside the host repository (e.g. a `Directory.Build.props` importing `../../shared.props`) doesn't resolve in the host copy.
+- **Its limits.** Each program runs in a session of its own (with no terminal: its standard input closed), with a time limit (30 s for a run, 300 s for a build step, such as restoring packages or compiling), after which its whole process group is killed, as is anything it leaves running when it exits; and its output is capped at 1 MB, the rest left out. Its environment is cleaned: only `PATH`, `HOME`, `LANG`, `LC_ALL` and `TZ` (and on Windows the system's own variables) are passed on, with `TMPDIR` and `XDG_DATA_HOME` pointing into the run folder, shared by the command's showcases. `--pass-env <name>`, repeatable, on `check`, `serve` and `build`, passes another variable on (e.g. a private package feed's credentials), but only to build steps, never to a recorded run, whose output the showroom publishes. Paths into the host copy are shown relative to the host repository's root, the run folder's as `<run>`, and your home folder as `~`; terminal escape sequences are removed.
+- **It isn't a sandbox.** These limits are best effort: a program can leave its process group, and Windows has no process group to kill (its process tree is killed at the time limit only). The cleaned environment only reaches the programs `showroom` starts: a custom showcase adapter, or a compiler running inside `showroom`'s process, sees all of it, and every program can read whatever files you can (e.g. `~/.npmrc`) and write to your terminal device. A recording publishes whatever the program prints. Tools keep caches of their own in your home folder too (e.g. packages restored from the host repository's feeds), shared with your other projects.
+
 ### The code pane
 
 A showcase block shows its **code pane**: its files' code, a tab per file, in the order `include=` lists them, with its `source` and `markdown` tabs where it lists those:
@@ -732,23 +743,52 @@ export default (): ShowcaseAdapter => ({
 });
 ```
 
+A showcase adapter that [records](#recorded-showcases) its showcases runs them in the host copy instead, e.g. Python scripts:
+
+```ts
+import type { ShowcaseAdapter } from '@ofzza/showroom';
+
+export default (): ShowcaseAdapter => ({
+  // Its showcases have no showcase frame: no demo view
+  recorded: true,
+  defaultViews: ['source', 'console'],
+  // It runs them in the host copy, which leaves out these paths and .git
+  hostCopy: { exclude: ['.venv/', '__pycache__/'], git: false },
+  validate: (showcase) => (showcase.entry.endsWith('.py') ? { errors: [] } : { errors: ['python needs a .py entry point'] }),
+  build: async ({ showcase, hostCopy }) => {
+    // Runs it from its documentation file's folder (the default cwd), by its path relative to the root
+    const run = await hostCopy!.run('python3', ['-X', 'utf8', `${'../'.repeat(showcase.documentation.split('/').length - 1)}${showcase.entry}`], {
+      phase: 'run',
+    });
+    return { reads: [showcase.entry], recording: run.recording };
+  },
+});
+```
+
 - Every method gets the `Showcase` with its `display` (`inline` or `block`), its `include`d files (paths relative to the root), which a custom showcase adapter may use as it sees fit (e.g. to copy them, as the `html` showcase adapter does), and its `views` (its [showcase views](#showcase-views), after the defaults).
 - `defaultViews?` declares the adapter's default showcase views, e.g. `defaultViews: ['source', 'console']`: at least one view, none repeated, `none` alone; `['demo']` if left out. `showroom.json`'s `showcaseViews` overrides it, and a marker's `view=` overrides both. An invalid one fails loading the adapter.
+- `recorded?: true` says that the adapter [records](#recorded-showcases) its showcases: its results carry a `recording` in place of `page` and `files`, its `defaultViews` must be given, without `demo`, and `view=demo` is an error on its showcases.
+- `hostCopy?: { exclude, git }` says that the adapter uses the [host copy](#recorded-showcases): what it leaves out (`exclude`, patterns in `.gitignore` syntax matched against paths relative to the root, e.g. `['bin/', 'obj/']`), and whether it copies `.git` (`git`). A file is copied when any adapter using the host copy copies it. `recorded` and `hostCopy` are independent: an adapter may build a showcase frame in the host copy, or record without it. Either one invalid fails loading the adapter.
 - `validate(showcase)` gets the `Showcase` with its options as the marker gives them, and returns, or resolves to, `{ options, errors: [] }` (the options as the adapter will use them) or `{ errors: [...] }`.
-- `check?(root, showcases)`, its **host check**, checks the host repository for what the adapter needs (e.g. a package installed), once per run when some showcase uses the adapter. It gets the `showcases` using the adapter whose validation passed, with their validated options, and returns, or resolves to, a `ShowcaseHostCheck`: `{ errors, warnings }`, two lists of messages, either of them empty. Errors (the host requirements that are missing) fail the check, warnings don't; `showroom` prefixes both with the adapter's name. Any other result, or a `check?()` that throws, is an error of the adapter.
+- `check?(root, showcases, context)`, its **host check**, checks the host repository for what the adapter needs (e.g. a package installed), once per run when some showcase uses the adapter. It gets the `showcases` using the adapter whose validation passed, with their validated options, and the `context` (`ShowcaseCheckContext`: the `project` and the `stack` `showroom.json` configures, the `project` as written there, if any), and returns, or resolves to, a `ShowcaseHostCheck`: `{ errors, warnings }`, two lists of messages, either of them empty. Errors (the host requirements that are missing) fail the check, warnings don't; `showroom` prefixes both with the adapter's name. Any other result, or a `check?()` that throws, is an error of the adapter.
 - `build(request)` builds one showcase, called by `showroom build`, `showroom serve` and `showroom check --showcases`, one showcase at a time. It gets a `ShowcaseBuildRequest`:
   - `root`: the host repository's absolute path;
   - `showcase`, and its validated `options`;
   - `virtualFiles`: the virtual files of its documentation file's folder, each saying whether `file=` named it (`named`) and whose entry point it is (`showcase`, a showcase's `id`; left out for a virtual file with no showcase adapter). They are in memory, not on disk, so put them before your tooling yourself;
   - `hostVirtualFiles`: every virtual file of the host repository, for imports reaching other folders;
   - `mode`: the mode to build in, `development` in `serve`, `production` in `build` and `check --showcases`;
-  - `scratchFolder`: an empty folder for tools that must write to disk, removed after the build.
+  - `scratchFolder`: an empty folder for tools that must write to disk, removed after the build;
+  - `project` and `stack`: what `showroom.json` configures, as the host check's `context` has them;
+  - `hostCopy`, for an adapter declaring `hostCopy` (a `ShowcaseHostCopy`): its `root`, the host copy's absolute path, and `run(command, args, options)`, which runs a command there under the [limits](#recorded-showcases) and resolves to a `ShowcaseRun`: its `recording`, and its `stdout` and `stderr` as text (within the output's cap, paths into the host copy made relative to the root), for a build step's diagnostics. `command` is a name, resolved from the `PATH` outside the host repository and the host copy (never a path; `node` is the Node.js running `showroom`); not found, it rejects. `options` (`ShowcaseRunOptions`): `phase`, `build` (a build step: its time limit 300 s, and `--pass-env`'s variables) or `run` (the recorded run: 30 s); `cwd`, relative to the host copy's root, never outside it (the documentation file's folder by default); `timeLimit`, in milliseconds, no longer than its phase's; and `env`, variables of the adapter's own, under the ones `showroom` sets;
+  - `showcaseFolder`, for an adapter declaring `hostCopy` or `recorded`: a folder of the showcase's own, kept across `serve`'s runs (e.g. for its build's output).
 
   It returns a `ShowcaseBuildResult`:
   - `reads`: the files it read (paths relative to the root);
-  - `checks`: the checks it ran to completion, if any (distinct names, e.g. `type check`);
+  - `checks`: the checks it ran to completion, if any (distinct names, e.g. `type check`; never `runtime`, which `showroom` adds for a recording);
   - `issues`, if any, each a `ShowcaseBuildIssue`: a `severity`, `error` (failing `showroom build` and `check --showcases`) or `warning` (failing nothing), a `message`, the `path` (relative to the root) and `line` it concerns, if any, and the `check` it belongs to, if any, one of `checks` (`showroom` checks that). An issue in a virtual file is reported in its documentation file, at its code block's line plus the issue's; one without a path, at the showcase's entry point. An error naming no check is the build's own: the result then has no `page` or `files`. Errors that all name a check (e.g. a type check's) leave the showcase frame usable, so the result has its files too;
   - `files` and `page`: the showcase frame, unless an error of the build itself prevented building it. Each file has a `path` relative to the showcase frame's folder (POSIX-style, with no `.`, `..` or empty segments, unique ignoring case) and its `content` (a string, or bytes as a `Uint8Array`); the `page` is one of them (an `.html` or `.htm` file, UTF-8 if given as bytes). `showroom` adds its frame script to the page (which also captures its [console](#the-console-panel)), and writes the files into the showcase frame's folder (`showcases/<documentation file's path>/<n>/` in the output folder), so relative references between them work.
+
+  - `recording`, from a `recorded` adapter, in place of `files` and `page` (left out, with a warning, when it returns them too), unless an error of the build itself prevented building it: a `ShowcaseRecording`, as `run()` resolves to it, or of the adapter's own making: its `lines` (each a `ShowcaseConsoleLine`: a `level`, `log` or `error` for standard output and error, and a `text`), the number of earlier lines `dropped` (and how many of those were `droppedWarnings` and `droppedErrors`), whether the output was `cut` at its cap, and how it ended, exactly one of `exitCode`, `signal` and `timedOut` (with its `timeLimit`). `showroom` adds the `runtime` check, failing it as [Recorded showcases](#recorded-showcases) says. Another adapter's `recording` is left out, with a warning.
 
   A `build()` that throws, or returns anything else, fails the showcase too.
 
@@ -775,7 +815,8 @@ See the rest in the example:
   - `"<path>" must have a default export: a function returning an object implementing the showcase adapter interface`;
   - `"<path>" failed to create its showcase adapter: <the error>`, when the default export throws (or its promise rejects);
   - `"<path>"'s default export must return an object implementing the showcase adapter interface`, followed by `; check "validate", "build"` naming the methods missing, or `check` and `close` when they aren't functions;
-  - `"<path>"'s showcase adapter has invalid "defaultViews": <problem>`.
+  - `"<path>"'s showcase adapter has invalid "defaultViews": <problem>`;
+  - `"<path>"'s showcase adapter records its showcases, so it must declare "defaultViews", without "demo" (its showcases have no showcase frame)`, or `has invalid "recorded"` or `has invalid "hostCopy"` and what they must be.
 - **Once loaded**, its own failures name it: `Showcase adapter "<name>" failed to validate the showcase: <the error>` (at the showcase), `… returned an invalid host check: <problem>`, `… failed to check the host repository: <the error>`, `… failed to close: <the error>`, and, for a showcase, `… failed to build the showcase: <the error>` or `… returned an invalid build result: <problem>`.
 
 ## Linked files
@@ -827,7 +868,7 @@ The showroom is the same in `showroom serve` and in what `showroom build` builds
 Checks the host repository in the current directory (or the one `--root` names):
 
 ```sh
-$ npx showroom check [--root <dir>] [--out-dir <dir>] [--showcases] [--quiet] [--trust | --no-trust]
+$ npx showroom check [--root <dir>] [--out-dir <dir>] [--showcases] [--quiet] [--trust | --no-trust] [--pass-env <name>]...
 ```
 
 - Every issue found goes to `stderr`, one per line, as `error: <path>: <message>` or `warning: <path>: <message>`, with the line (`<path>:<line>:`) when the issue concerns one, or as `error: <message>` when it concerns no file.
@@ -838,6 +879,8 @@ $ npx showroom check [--root <dir>] [--out-dir <dir>] [--showcases] [--quiet] [-
 
 `--trust` lets the host repository's code run, and `--no-trust` runs without it, without asking or warning about it; with neither, `check` asks in a terminal (see [Trust](#trust)): without trust, `check` loads no custom showcase adapter, runs no host check, and builds no showcase, even with `--showcases`.
 
+`--pass-env <name>`, repeatable, passes the environment variable of that name on to [recorded showcases](#recorded-showcases)' build steps, never to their recorded run; `serve` and `build` take it too.
+
 `--showcases` also builds every showcase, as `showroom build` does, and throws the result away, once the rest of the check finds no errors. A showcase that doesn't build, or whose checks find errors, is an error, naming the showcase and its entry point, then the check, if it belongs to one (e.g. `error: README.md:16: Showcase README.md#2 (README.md:14): type check: <message>`), placed where the issue is. A build's warnings are reported the same way, as warnings. Without it, `check` builds nothing, so it stays fast; under trust, it still runs each showcase adapter's host check (e.g. that React is installed for `react` showcases), so the packages the showcases need must be installed for it to pass. Run `check --showcases --trust` in CI to catch showcases that no longer build.
 
 Errors are:
@@ -846,7 +889,7 @@ Errors are:
 - project information that can't be read, or a `project` outside the host repository;
 - a source root that doesn't exist or is outside the host repository, and an output folder that is the host repository's root or outside it;
 - a [navigation](#navigation) path that leads to no documentation file;
-- a [broken showcase](#status-marks-and-issues), an [included file](#showcases) that doesn't exist or isn't copied (in the output folder, or outside the host repository through a symbolic link), and a showcase adapter's missing host requirements;
+- a [broken showcase](#status-marks-and-issues), a failed [recording](#recorded-showcases) (with `--showcases`), `view=demo` on a recorded showcase (or `showcaseViews` giving its showcase adapter `demo`), an [included file](#showcases) that doesn't exist or isn't copied (in the output folder, or outside the host repository through a symbolic link), and a showcase adapter's missing host requirements;
 - a [custom showcase adapter](#custom-showcase-adapters-experimental) that doesn't load.
 
 Warnings are:
@@ -913,7 +956,7 @@ Paths are POSIX-style and relative to the host repository's root. Documentation 
 Serves the showroom of the host repository in the current directory (or the one `--root` names), for previewing it while writing its documentation:
 
 ```sh
-$ npx showroom serve [--root <dir>] [--port <port>] [--out-dir <dir>] [--trust | --no-trust]
+$ npx showroom serve [--root <dir>] [--port <port>] [--out-dir <dir>] [--trust | --no-trust] [--pass-env <name>]...
 ```
 
 - It checks the host repository first, as `showroom check` does, deciding [trust](#trust) for its whole session. If the check fails, it writes the issues to `stderr` and exits with `1` without serving. Without trust, it builds no showcase, and serves every showcase's source.
@@ -941,7 +984,7 @@ Each run keeps Vite's cache in a fresh folder in the system's temporary folder, 
 Builds the showroom of the host repository in the current directory (or the one `--root` names) into its output folder, as static files:
 
 ```sh
-$ npx showroom build [--root <dir>] [--out-dir <dir>] [--trust | --no-trust]
+$ npx showroom build [--root <dir>] [--out-dir <dir>] [--trust | --no-trust] [--pass-env <name>]...
 ```
 
 - It checks the host repository first, as `showroom check` does, writing the issues to `stderr`. If the check fails, it exits with `1` without building. Without [trust](#trust), it builds no showcase, and the showroom it publishes shows every showcase's source.
@@ -1039,10 +1082,12 @@ const result: CheckResult = await check('./path/to/host');
 // The output folder can be overridden, as with --out-dir; showcases: true also builds every showcase, as with --showcases; trust: true lets the
 // host repository's code run, as with --trust
 await check('./path/to/host', { outDir: './path/to/host/site', showcases: true, trust: true });
+// passEnv passes environment variables on to recorded showcases' build steps, as with --pass-env
+await check('./path/to/host', { showcases: true, trust: true, passEnv: ['NUGET_AUTH_TOKEN'] });
 // Or decide it once the check knows what would run
 const decided = await check('./path/to/host', {
   trust: async (request: TrustRequest) => {
-    console.log(request.customShowcaseAdapters, request.tools, request.showcases);
+    console.log(request.customShowcaseAdapters, request.tools, request.executables, request.showcases, request.recorded);
     return false;
   },
 });
@@ -1074,13 +1119,13 @@ const code = await main(
 console.log(code);
 ```
 
-- `check(root, options?)`: checks a host repository and collects its host information; resolves to a `CheckResult` (`passed`, `host` when it passed, `issues`, each with its `severity`, `message`, the `path` and `line` it concerns, if any, and the `check` a showcase's issue belongs to, if any, e.g. `type check`, and `trusted`, whether the host repository's code was allowed to run). `options` (`CheckOptions`) overrides the configuration: `outDir`, absolute or relative to the current directory; `showcases: true` also builds every showcase, failing the check on any that doesn't build, or whose checks find errors; and `trust` decides whether the host repository's code runs (see [Trust](#trust)): `false` by default, `true`, or a function called at most once, only when the host repository has something to trust, after `showroom.json` is read and the documentation files scanned and before any of its code runs, with a `TrustRequest` (the custom showcase adapter modules, by name and real path; the tools a build would load, by package name and real path, including TypeScript, Angular's compiler and the CSS preprocessors resolvable from the host repository, as the bundler and its plugins may load more; and the number of showcases), resolving to the decision (a rejection means no trust).
+- `check(root, options?)`: checks a host repository and collects its host information; resolves to a `CheckResult` (`passed`, `host` when it passed, `issues`, each with its `severity`, `message`, the `path` and `line` it concerns, if any, and the `check` a showcase's issue belongs to, if any, e.g. `type check`, and `trusted`, whether the host repository's code was allowed to run). `options` (`CheckOptions`) overrides the configuration: `outDir`, absolute or relative to the current directory; `showcases: true` also builds every showcase, failing the check on any that doesn't build, or whose checks find errors; `trust` decides whether the host repository's code runs (see [Trust](#trust)): `false` by default, `true`, or a function called at most once, only when the host repository has something to trust, after `showroom.json` is read and the documentation files scanned and before any of its code runs, with a `TrustRequest` (the custom showcase adapter modules, by name and real path; the tools a build would load, by package name and real path, including TypeScript, Angular's compiler and the CSS preprocessors resolvable from the host repository, as the bundler and its plugins may load more; the `executables` the built-in showcase adapters would start, by name and real path; the number of showcases; and how many of them would be `recorded` by a built-in showcase adapter), resolving to the decision (a rejection means no trust); and `passEnv` names environment variables passed on to [recorded showcases](#recorded-showcases)' build steps, as `--pass-env` does.
 - `readConfiguration(root)` / `validateConfiguration(value)`: read and validate a `showroom.json`, resolving to either a `configuration` or `errors`.
 - `getStackAdapter(name)` / `getStackAdapterNames()`: look up the built-in stack adapters, which implement the `StackAdapter` interface; `TypeScriptStackAdapter` is the `typescript` one, and `DotNetStackAdapter` the `dotnet` one. `readProject(root, project?)` reads the project information, from the file `project` names (relative to `root`) or the stack adapter's default.
 - `main(args, output?, input?)`: runs the command line with the given arguments, resolving to its exit code; `USAGE` is its help text. `output` (`CliOutput`: `stdout` and `stderr` functions) defaults to the process's streams. `input` (`CliInput`) is what the [trust](#trust) prompt asks through: `isTerminal`, whether it may ask at all, and `ask(question)`, resolving to the line typed, `''` at the end of the input, or `null` on Ctrl-C (which ends the command with `130`); it defaults to the terminal on the process's standard input, never a pipe.
 - Constants: `CONFIGURATION_FILE_NAME` (`showroom.json`), `DEFAULT_OUT_DIR` (`./showroom`), and `BUILT_IN_DOCUMENTATION` (the built-in documentation patterns).
 - Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase` (with its `views` and `tabs`), `ShowcaseTab` (`source`, `markdown`, or an included `file`), `ShowcaseKind`, `ShowcaseDisplay`, `ShowcaseView` (`markdown`, `source`, `demo`, `console` or `none`), `VirtualFile` (with its fence's `offset`, and its `views` when it has no showcase adapter), `LinkedFile`, `NavigationItem` (the resolved navigation, `HostInformation.navigation`), `Configuration`, `NavigationEntry` (an item of its `navigation`), `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity`, `TrustRequest`, `CliOutput` and `CliInput`.
-- Experimental types, for [custom showcase adapters](#custom-showcase-adapters-experimental): `ShowcaseAdapter`, `ShowcaseValidation`, `ShowcaseHostCheck`, `ShowcaseBuildRequest`, `ShowcaseBuildResult`, `ShowcaseBuildFile` and `ShowcaseBuildIssue`.
+- Experimental types, for [custom showcase adapters](#custom-showcase-adapters-experimental): `ShowcaseAdapter`, `ShowcaseValidation`, `ShowcaseHostCheck`, `ShowcaseCheckContext`, `ShowcaseBuildRequest`, `ShowcaseBuildResult`, `ShowcaseBuildFile`, `ShowcaseBuildIssue`, and for [recorded showcases](#recorded-showcases) `ShowcaseHostCopyContent`, `ShowcaseHostCopy`, `ShowcaseRunOptions`, `ShowcaseRun`, `ShowcaseRecording` and `ShowcaseConsoleLine`.
 
 # Development
 

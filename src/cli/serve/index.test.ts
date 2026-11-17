@@ -92,7 +92,7 @@ function _build(page: string, failing: string[] = [], watched: string[] = [], ty
         frames.set(showcase.id, { folder: getShowcaseFrameFolder(showcase), page: 'index.html', files: [{ path: 'index.html', content: page }], reads: [] });
       }
     }
-    return { frames, errors, warnings: [], shownIssues, checks, issues: [], watched };
+    return { frames, recordings: new Map(), errors, warnings: [], shownIssues, checks, issues: [], watched };
   };
 }
 
@@ -295,6 +295,8 @@ describe('cli/serve', () => {
       expect(getShownChange(shown('a', ['u1']), update({ checks: ['type check'] }))).toBe('showcases');
       expect(getShownChange(shown('a', ['u1']), update({ issues: [issue] }))).toBe('showcases');
       expect(getShownChange(shown('a', ['u1']), update({ url: undefined, issues: [issue], buildMark: false }))).toBe('showcases');
+      // A new recording too (PLAN-P20 D790 C1)
+      expect(getShownChange(shown('a', ['u1']), update({ url: undefined, recording: { lines: [], dropped: 0, exitCode: 0 } }))).toBe('showcases');
     });
 
     it('Needs a full reload when anything else changed', () => {

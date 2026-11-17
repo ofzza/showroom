@@ -6,7 +6,7 @@
  * showcase shown inline, shown as a block in the showcase sidebar, its code pane always shown: below its views, or filling it while they are collapsed.
  */
 
-import { createContext, useContext, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Button, makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
 import {
   CheckmarkCircle16Filled,
@@ -35,12 +35,13 @@ import {
   getTabMarks,
   useLinkedFileContent,
 } from '../showcase-sidebar/index.js';
-import { isLoadedShowcase, type ShownIssue, type ShownShowcase } from '../host/index.js';
+import { isBuiltShowcase, isLoadedShowcase, type ShownIssue, type ShownShowcase } from '../host/index.js';
 import {
   CONSOLE_LINE_ATTRIBUTE,
   CONSOLE_VIEW_HEIGHT,
   ConsoleView,
   getFirstIssueLine,
+  getRecordingConsole,
   useConsole,
   type ConsoleAction,
   type ConsoleState,
@@ -234,6 +235,10 @@ export interface StatusMark {
    * Number of errors, with the `error` status; of warnings, with the `warning` status; 0 otherwise
    */
   count: number;
+  /**
+   * True on a `runtime` status mark of a recording, recorded when the showcase was built
+   */
+  recorded?: true;
 }
 
 /**
@@ -269,8 +274,9 @@ function _getIssuesStatus(issues: readonly ShownIssue[]): Pick<StatusMark, 'stat
 
 /**
  * Gets a showcase's status marks, in order: `build`, where it shows one (see ShownShowcase's `buildMark`), from the issues naming no check; one per
- * check its build ran, from that check's issues; and `runtime`, where its page runs (it builds, and a `demo` or `console` view loads it), from its
- * console's warnings and errors since the page's load, pending until the page has loaded
+ * check its build ran, from that check's issues, but `runtime`; and `runtime`, where its page runs (it builds, and a `demo` or `console` view loads
+ * it), from its console's warnings and errors since the page's load, pending until the page has loaded; or where it has a recording, from the
+ * recording, whatever its views
  * @param showcase The shown showcase
  * @param console The state of its console
  * @returns The status marks
@@ -280,7 +286,13 @@ export function getStatusMarks(showcase: ShownShowcase, console: ConsoleState): 
   if (showcase.buildMark)
     marks.push({ kind: 'build', name: BUILD_MARK_NAME, ..._getIssuesStatus(showcase.issues.filter((issue) => issue.check === undefined)) });
   for (const check of showcase.checks) {
+    if (check === RUNTIME_MARK_NAME) continue;
     marks.push({ kind: 'check', name: check, ..._getIssuesStatus(showcase.issues.filter((issue) => issue.check === check)) });
+  }
+  if (showcase.recording !== undefined) {
+    const recorded = console.recorded ? console : getRecordingConsole(showcase.recording);
+    marks.push({ kind: 'runtime', name: RUNTIME_MARK_NAME, ..._getStatus(recorded.errorCount, recorded.warningCount), recorded: true });
+    return marks;
   }
   if (isLoadedShowcase(showcase)) {
     const status = console.ready ? _getStatus(console.errorCount, console.warningCount) : ({ status: 'pending', count: 0 } as const);
@@ -314,12 +326,15 @@ function _plural(amount: number, word: string): string {
 }
 
 /**
- * Checks if a status mark does something when clicked: a ✗ or ⚠ of the build or a check toggles the issue list; `runtime` opens the console
+ * Checks if a status mark does something when clicked: a ✗ or ⚠ of the build or a check toggles the issue list; `runtime` opens the console, or
+ * shows the `console` view's first issue line; a recording's `runtime` only where the showcase has a `console` view
  * @param mark The status mark
+ * @param consoleView True if the showcase has a `console` view
  * @returns True if it is a button
  */
-export function isStatusMarkButton(mark: StatusMark): boolean {
-  return mark.kind === 'runtime' || mark.status === 'error' || mark.status === 'warning';
+export function isStatusMarkButton(mark: StatusMark, consoleView = true): boolean {
+  if (mark.kind === 'runtime') return !mark.recorded || consoleView;
+  return mark.status === 'error' || mark.status === 'warning';
 }
 
 /**
@@ -334,7 +349,9 @@ export function getStatusMarkLabel(mark: StatusMark, expanded: boolean, consoleV
     mark.status === 'pending' ? 'loading' : mark.status === 'passed' ? 'passed' : _plural(mark.count, mark.status === 'error' ? 'error' : 'warning');
   if (mark.kind === 'runtime') {
     const issue = mark.status === 'error' ? 'error' : mark.status === 'warning' ? 'warning' : undefined;
-    return `${mark.name}: ${status}. ${consoleView ? (issue ? `Show the first ${issue} in the console` : 'Show the console') : 'Open the console'}`;
+    const recorded = mark.recorded ? ', recorded when built' : '';
+    if (mark.recorded && !consoleView) return `${mark.name}: ${status}${recorded}`;
+    return `${mark.name}: ${status}${recorded}. ${consoleView ? (issue ? `Show the first ${issue} in the console` : 'Show the console') : 'Open the console'}`;
   }
   return `${mark.name}: ${status}${isStatusMarkButton(mark) ? `. ${expanded ? 'Hide' : 'Show'} the issues` : ''}`;
 }
@@ -446,7 +463,7 @@ function _StatusMarks({ showcase, console, expanded, listId, onToggle, onRuntime
         );
         const key = `${mark.kind}:${mark.name}`;
         const className = mergeClasses(styles.mark, mark.status === 'pending' && styles.pending);
-        if (!isStatusMarkButton(mark)) {
+        if (!isStatusMarkButton(mark, consoleView)) {
           return (
             <span key={key} className={className} title={label} aria-label={label} role="img" data-status-mark={mark.status}>
               {content}
@@ -822,7 +839,16 @@ export function ShowcaseBlock({ showcase, documentation, initialState, initialCo
   // In the showcase sidebar, the code pane fills it in the sidebar state
   const fill = sidebar && state === 'sidebar';
   const [selected, setSelected] = useState(0);
-  const shared = useConsole(initialConsole);
+  const recording = showcase.recording;
+  const shared = useConsole(initialConsole ?? (recording ? getRecordingConsole(recording) : undefined));
+  // A new recording (from serve) replaces the one shown; a showcase that stops building has none
+  const [, dispatchConsole] = shared;
+  const shownRecording = useRef(recording);
+  useEffect(() => {
+    if (shownRecording.current === recording) return;
+    shownRecording.current = recording;
+    dispatchConsole(recording ? { type: 'recording', recording } : { type: 'start' });
+  }, [recording, dispatchConsole]);
   const [lastHeight, setLastHeight] = useState<number>();
   const consoleView = useRef<HTMLDivElement>(null);
   const tabs = showcase.tabs;
@@ -866,9 +892,9 @@ export function ShowcaseBlock({ showcase, documentation, initialState, initialCo
       case 'demo':
         return loaded ? frame(false) : <_NotBuilt height={getPlaceholderHeight('demo', lastHeight)} />;
       case 'console':
-        return loaded ? (
+        return isBuiltShowcase(showcase) ? (
           <>
-            {frameView === 'console' && frame(true)}
+            {loaded && frameView === 'console' && frame(true)}
             <ConsoleView state={shared[0]} />
           </>
         ) : (

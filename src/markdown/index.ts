@@ -482,7 +482,7 @@ interface _Node {
 /**
  * Extensions of code block showcases' entry points, by fence language (lower-cased), where they differ from the language
  */
-const _EXTENSIONS: Record<string, string> = { typescript: 'ts', javascript: 'js', htm: 'html' };
+const _EXTENSIONS: Record<string, string> = { typescript: 'ts', javascript: 'js', htm: 'html', csharp: 'cs', 'c#': 'cs' };
 
 /**
  * Parses Markdown into its syntax tree, as the showroom does (CommonMark, with GitHub's extensions)

@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P20`_ recorded showcases (_`S15`_) and the `cs` showcase adapter (_`S16`_) ([PLAN-P20-recorded.md](./PLAN-P20-recorded.md)): its split and _`P20.1`_ (the shared recording) approved; _`P20.2`_ (the `cs` showcase adapter) still a draft.
-- **Next free:** _`D791`_, _`S17`_, _`P21`_, _`O124`_, _`L16`_, _`R58`_, _`H1`_, _`K29`_
-- **Working on:** nothing yet: _`P20.1`_ is approved, not started.
-- **Next step:** implement _`P20.1`_.
+- **Stage:** planning: _`P20`_ recorded showcases (_`S15`_) and the `cs` showcase adapter (_`S16`_) ([PLAN-P20-recorded.md](./PLAN-P20-recorded.md)): _`P20.1`_ (the shared recording) implemented; _`P20.2`_ (the `cs` showcase adapter) still a draft.
+- **Next free:** _`D799`_, _`S17`_, _`P21`_, _`O124`_, _`L16`_, _`R58`_, _`H1`_, _`K29`_
+- **Working on:** nothing: _`P20.1`_ is implemented and committed.
+- **Next step:** plan _`P20.2`_ (the `cs` showcase adapter), starting with its open point _`O123`_.
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/questions-p20.1/` (_`P20.1`_'s implementation choices, recorded as _`D791`_–_`D798`_), `p20.1-format/` (formatting backups), `p20.1-readme-ts/` (`README.md`'s samples, type checked), `p20.1-check/` (the fixture copy served at the checkpoint), `ci-p20.1.log`, `serve-dogfood-p20.1.log`, `serve-p20.1-check.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p20/` (_`P20`_'s choices, recorded as _`D768`_–_`D781`_, and formatting backups); ask before deleting it.
 - `./.workflow/.temp/review-p20/` (the review's record, `REVIEW.md`, its snapshots and formatting backups); ask before deleting it.
 - `./.workflow/.temp/spike-cs/`: its conclusions are now in _`D778`_'s evidence (PLAN-P20-recorded.md); ask before deleting it.
@@ -430,3 +431,5 @@
 - 2026-11-17: _`P20`_'s choices settled as _`D768`_–_`D781`_ (option chosen: "Accept all (Rec.)"); _`O102`_–_`O104`_, _`O110`_, _`O115`_–_`O119`_ resolved; _`P20`_ drafted.
 - 2026-11-17: Zero-context review of the _`P20`_ draft (consistency, security; `./.workflow/.temp/review-p20/REVIEW.md`), go-ahead "Run both (Rec.)"; stray-write check clean; QB settled on its own (option chosen: "Build steps only (Rec.)"), the rest (option chosen: "Accept all (Rec.)") as _`D782`_–_`D790`_, _`O123`_ added; _`S15`_ revised (_`R57`_), pending re-approval.
 - 2026-11-17: _`P20`_ approved, for its split and _`P20.1`_, with _`S15`_ re-approved for _`R57`_ (option chosen: "Approve and commit (Rec.)").
+- 2026-11-17: _`P20.1`_ (the shared recording) implemented, pending its checkpoint: the interface (`recorded`, `hostCopy`, the request's `project`, `stack`, `hostCopy` and `showcaseFolder`, the result's `recording`, the host check's context), `src/processes/`, `src/host-copy/` (the host copy and the run session), recordings and the `runtime` check in `buildShowcases()`, `check()`'s errors, the showroom's recorded `console` view and `runtime` status mark, `--pass-env`, `TrustRequest.executables` and `recorded`; the `showcase-recorded` fixture in every tier; the documentation, and the Glossary's wording from _`P20.1`_.
+- 2026-11-17: _`P20.1`_'s checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"), with the Glossary's wording from _`P20.1`_; its implementation choices recorded as _`D791`_–_`D798`_ (option chosen: "Accept all (Rec.)").

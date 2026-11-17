@@ -3,7 +3,7 @@
  */
 
 import { existsSync } from 'node:fs';
-import { cp, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, sep } from 'node:path';
 import { afterEach, describe, expect, inject, it } from 'vitest';
 import { getFrameScript } from '../../frame/index.js';
@@ -245,6 +245,26 @@ describe('cli/build (end to end)', () => {
     expect(stdout).toBe('');
     expect(stderr).toContain("error: README.md:6: Showcase README.md#1 (README.md:5): type check: TS7006: Parameter 'value' implicitly has an 'any' type.\n");
     expect(await readdir(root)).not.toContain('showroom');
+  });
+
+  it('Builds recorded showcases into the shown host information, with no showcase frame, and fails on a failed recording', async () => {
+    // PLAN-P20 D770: the showcase-recorded fixture's custom showcase adapter records with Node.js in the host copy
+    const root = await copy('showcase-recorded');
+    const failed = await run(root);
+    expect(failed.code).toBe(1);
+    expect(failed.stderr).toContain('runtime: The recording failed: it exited with code 3\n');
+    expect(existsSync(join(root, 'showroom'))).toBe(false);
+    await rm(join(root, 'errors'), { recursive: true });
+    const { code, stderr } = await run(root);
+    expect(stderr).toBe('warning: Showcase adapter "node-run": 6 showcases, stack typescript, project none\n');
+    expect(code).toBe(0);
+    const out = join(root, 'showroom');
+    expect(existsSync(join(out, 'showcases'))).toBe(false);
+    const bundle = (await Promise.all((await readdir(join(out, 'assets'))).map((name) => readFile(join(out, 'assets', name), 'utf8')))).join('\n');
+    expect(bundle).toContain('tmp <run>/tmp');
+    expect(bundle).toContain('linked scripts/linked.mjs');
+    // The host repository itself is never written to: nothing but the output folder is new
+    expect((await readdir(root)).sort()).toEqual(['README.md', 'adapters', 'ignored', 'package.json', 'scripts', 'showroom', 'showroom.json']);
   });
 
   it('Leaves the output folder untouched when a showcase does not build', async () => {

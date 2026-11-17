@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { realpath, symlink, writeFile } from 'node:fs/promises';
+import { readFile, realpath, symlink, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LINKED_FILE_SIDEBAR_LIMIT } from '../../linked-files/index.js';
@@ -541,7 +541,9 @@ describe('cli/check', () => {
         expect(requests[0]).toEqual({
           customShowcaseAdapters: [{ name: 'canary', path: join(real, 'canary.js') }],
           tools: expect.arrayContaining([{ name: 'sass', path: join(real, 'node_modules', 'sass') }]),
+          executables: [],
           showcases: 3,
+          recorded: 0,
         });
         expect(requests[0].tools.map(({ name }) => name)).toEqual(['sass', 'typescript']);
       } finally {
@@ -760,6 +762,62 @@ describe('cli/check', () => {
         { severity: 'warning', message: left, path: 'LICENSE' },
         { severity: 'warning', message: left, path: 'docs/b.md' },
       ]);
+    });
+  });
+
+  describe('Recorded showcases', () => {
+    // Checks scratch copies of the `showcase-recorded` fixture, whose custom showcase adapter `node-run` records its showcases (PLAN-P20 D769,
+    // D790 C3, C20), trusted, so it loads; without building them.
+
+    it('Passes the fixture, giving the host check the configured project and stack', async () => {
+      const result = await check(fileURLToPath(new URL('../../../test/fixtures/showcase-recorded', import.meta.url)), { trust: true });
+      expect(result.passed).toBe(true);
+      expect(result.issues).toEqual([{ severity: 'warning', message: 'Showcase adapter "node-run": 11 showcases, stack typescript, project none' }]);
+      expect(result.host!.showcases[0].views).toEqual(['source', 'console']);
+    });
+
+    it('Refuses the view "demo" on a recorded showcase, by its marker or showroom.json\'s "showcaseViews"', async () => {
+      const scratch = await copyFixture('showcase-recorded');
+      try {
+        await writeFile(join(scratch.path, 'errors', 'demo.md'), "# Demo\n\n```mjs showcase=node-run view=demo\nconsole.log('x');\n```\n");
+        const marker = await check(scratch.path, { trust: true });
+        expect(marker.issues).toContainEqual({
+          severity: 'error',
+          message: 'Showcase adapter "node-run" records its showcases, which have no showcase frame: they can\'t have the view "demo"',
+          path: 'errors/demo.md',
+          line: 3,
+        });
+        // Without trust, the custom showcase adapter isn't loaded, so nobody knows it records (D732)
+        expect((await check(scratch.path, { trust: false })).issues.filter((issue) => issue.severity === 'error')).toEqual([]);
+        await writeFile(join(scratch.path, 'errors', 'demo.md'), '# Demo\n');
+        const configuration = JSON.parse(await readFile(join(scratch.path, 'showroom.json'), 'utf8'));
+        await writeFile(join(scratch.path, 'showroom.json'), JSON.stringify({ ...configuration, showcaseViews: { 'node-run': ['console', 'demo'] } }));
+        expect((await check(scratch.path, { trust: true })).issues).toContainEqual({
+          severity: 'error',
+          message: '"showcaseViews" gives "node-run" the view "demo", but it records its showcases, which have no showcase frame',
+          path: 'showroom.json',
+        });
+      } finally {
+        await scratch.remove();
+      }
+    });
+
+    it('Refuses a recorded custom showcase adapter without its default views, or with invalid declarations', async () => {
+      const scratch = await copyFixture('showcase-recorded');
+      try {
+        const adapter = join(scratch.path, 'adapters', 'node-run.js');
+        const source = await readFile(adapter, 'utf8');
+        await writeFile(adapter, source.replace("defaultViews: ['source', 'console'],", ''));
+        expect((await check(scratch.path, { trust: true })).issues).toContainEqual({
+          severity: 'error',
+          message:
+            'Custom showcase adapter "node-run": "./adapters/node-run.js"\'s showcase adapter records its showcases, so it must declare "defaultViews", ' +
+            'without "demo" (its showcases have no showcase frame)',
+          path: 'showroom.json',
+        });
+      } finally {
+        await scratch.remove();
+      }
     });
   });
 });

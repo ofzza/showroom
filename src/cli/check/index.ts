@@ -12,6 +12,7 @@ import {
   DEFAULT_SHOWCASE_VIEWS,
   getDefaultViews,
   getShowcaseAdapterNames,
+  getTrustExecutables,
   getTrustTools,
   loadCustomShowcaseAdapters,
 } from '../../adapters/showcase/registry/index.js';
@@ -39,6 +40,7 @@ import {
   type MarkdownLink,
   type ScannedShowcase,
 } from '../../markdown/index.js';
+import { createRunSession } from '../../host-copy/index.js';
 import { resolveNavigation } from '../../navigation/index.js';
 import { buildShowcases, getBuildShowcasesIssues } from '../../showcases/index.js';
 import { createIgnoreMatcher, getCustomShowcaseAdapterModules, resolveOutputFolder } from './internal/index.js';
@@ -96,6 +98,11 @@ export interface CheckOptions {
    * and before anything of the host repository runs, with what would run; it resolves to the decision, and a rejection means no trust.
    */
   trust?: boolean | ((request: TrustRequest) => Promise<boolean>);
+  /**
+   * Names of environment variables passed on to recorded showcases' build steps (restoring, compiling), beside the fixed ones; never to a recorded
+   * run (`--pass-env`)
+   */
+  passEnv?: string[];
 }
 
 /**
@@ -112,9 +119,19 @@ export interface TrustRequest {
    */
   tools: { name: string; path: string }[];
   /**
+   * The executables building the showcases would start, by name, each with its absolute real path, as the built-in showcase adapters resolve them
+   * from the `PATH` (a custom showcase adapter's can't be named before it is loaded)
+   */
+  executables: { name: string; path: string }[];
+  /**
    * Number of showcases
    */
   showcases: number;
+  /**
+   * Number of the showcases that would be recorded: built and run on this machine, by a built-in showcase adapter (a custom showcase adapter's
+   * can't be counted before it is loaded)
+   */
+  recorded: number;
 }
 
 /**
@@ -325,9 +342,14 @@ export async function checkHost(root: string, options: CheckOptions, report: 'ch
     ...(navigation ? { navigation } : {}),
   };
 
-  // Build every showcase, if asked to, throwing the showcase frames away; build warnings fail nothing
+  // Build every showcase, if asked to, throwing the showcase frames and recordings away; build warnings fail nothing
   if (options.showcases) {
-    issues.push(...getBuildShowcasesIssues(await buildShowcases({ root, host, configuration, trust: trusted })));
+    const session = createRunSession({ passEnv: options.passEnv });
+    try {
+      issues.push(...getBuildShowcasesIssues(await buildShowcases({ root, host, configuration, trust: trusted, session, outDir: options.outDir })));
+    } finally {
+      await session.dispose();
+    }
     if (issues.some((issue) => issue.severity === 'error')) return fail();
   }
   return { passed: true, host, issues, trusted };
@@ -407,6 +429,8 @@ async function _checkShowcases(
     if (!getShowcaseAdapterNames().includes(name) && !Object.hasOwn(listed, name)) {
       const message = `"showcaseViews" names "${name}", which is neither a built-in showcase adapter nor one of "customShowcaseAdapters"`;
       issues.push({ severity: 'error', message, path: CONFIGURATION_FILE_NAME });
+    } else if (!Object.hasOwn(listed, name) && createShowcaseAdapter(name)?.recorded) {
+      _checkRecordedViews(name, configured.get(name)!, issues);
     }
   }
   const adapters = new Map<string, ShowcaseAdapter>();
@@ -456,7 +480,9 @@ async function _checkShowcases(
       const request: TrustRequest = {
         customShowcaseAdapters: await getCustomShowcaseAdapterModules(root, listed),
         tools: [...used].flatMap(([name, valid]) => getTrustTools(name, resolve(root), valid)),
+        executables: [...used].flatMap(([name, valid]) => getTrustExecutables(name, resolve(root), valid)),
         showcases: showcases.length,
+        recorded: showcases.filter((showcase) => adapters.get(showcase.adapter)?.recorded).length,
       };
       trusted = await trust(request).then(
         (answer) => answer === true,
@@ -468,7 +494,10 @@ async function _checkShowcases(
       // Load the custom showcase adapters, then resolve their showcases' views and validate them
       const loaded = await loadCustomShowcaseAdapters(root, listed);
       issues.push(...loaded.errors.map((message) => ({ severity: 'error' as const, message, path: CONFIGURATION_FILE_NAME })));
-      for (const [name, adapter] of loaded.adapters) adapters.set(name, adapter);
+      for (const [name, adapter] of loaded.adapters) {
+        adapters.set(name, adapter);
+        if (adapter.recorded && configured.has(name)) _checkRecordedViews(name, configured.get(name)!, issues);
+      }
       for (const [name, found] of custom) {
         const adapter = loaded.adapters.get(name);
         if (!adapter) continue; // A custom showcase adapter that didn't load, reported already
@@ -487,6 +516,7 @@ async function _checkShowcases(
             await adapter.check(
               resolve(root),
               used.get(name)!.map((showcase) => ({ ...showcase })),
+              { ...(configuration.project === undefined ? {} : { project: configuration.project }), stack: configuration.stack },
             ),
           );
           if ('problem' in result) {
@@ -558,6 +588,11 @@ async function _validateShowcase(
   used: Map<string, Showcase[]>,
   error: (message: string) => void,
 ): Promise<void> {
+  // A recorded showcase has no showcase frame, so no demo view
+  if (adapter.recorded && showcase.views?.includes('demo')) {
+    error(`Showcase adapter "${name}" records its showcases, which have no showcase frame: they can't have the view "demo"`);
+    return;
+  }
   const resolved = _resolveViews(showcase, configured.get(name) ?? getDefaultViews(adapter), error);
   if (!resolved) return;
   const valid = used.get(name) ?? [];
@@ -577,6 +612,18 @@ async function _validateShowcase(
   } catch (err) {
     error(`Showcase adapter "${name}" failed to validate the showcase: ${(err as Error).message}`);
   }
+}
+
+/**
+ * Checks the default views `showroom.json`'s `showcaseViews` sets for a recorded showcase adapter: they can't hold `demo`
+ * @param name Name of the showcase adapter
+ * @param views The views set
+ * @param issues Issues to add the error to
+ */
+function _checkRecordedViews(name: string, views: readonly ShowcaseView[], issues: CheckIssue[]): void {
+  if (!views.includes('demo')) return;
+  const message = `"showcaseViews" gives "${name}" the view "demo", but it records its showcases, which have no showcase frame`;
+  issues.push({ severity: 'error', message, path: CONFIGURATION_FILE_NAME });
 }
 
 /**
