@@ -18,6 +18,9 @@ import {
   NOT_BUILT_TEXT,
   SHOWCASE_BLOCK_FRAME_MIN_HEIGHT,
   ShowcaseBlock,
+  TRUST_NOTICE_TEXT,
+  TRUST_NOTICE_TOOLTIP,
+  TrustedContext,
   getCodePaneMinLines,
   getFrameView,
   getInitialCodePaneState,
@@ -347,6 +350,49 @@ describe('app/code-pane', () => {
       expect(getPlaceholderHeight('demo', 4)).toBe(SHOWCASE_BLOCK_FRAME_MIN_HEIGHT);
       expect(getPlaceholderHeight('demo')).toBe(CONSOLE_VIEW_HEIGHT);
       expect(getPlaceholderHeight('console', 240)).toBe(CONSOLE_VIEW_HEIGHT);
+    });
+  });
+
+  describe('Without trust', () => {
+    // A showcase of a host repository that isn't trusted (D741 in .workflow/SPEC-S14-trust.md): its block rendered on the server inside the trust
+    // context, as App provides it from the shown host information's `trusted`.
+
+    /**
+     * Renders a block without trust
+     * @param showcase The showcase, as the shown host information gives it without trust
+     * @param onClose Given for a block in the showcase sidebar
+     * @returns The rendered HTML
+     */
+    const render = (showcase: ShownShowcase, onClose?: () => void) =>
+      renderToString(
+        <SSRProvider>
+          <FluentProvider theme={webLightTheme}>
+            <TrustedContext.Provider value={false}>
+              <ShowcaseBlock showcase={showcase} documentation={[]} onClose={onClose} />
+            </TrustedContext.Provider>
+          </FluentProvider>
+        </SSRProvider>,
+      ).replaceAll('<!-- -->', '');
+    const untrusted: ShownShowcase = { ..._SHOWCASE, views: ['source'], url: undefined, buildMark: false };
+
+    it('Shows the trust notice, with its (i) icon and its tooltip, in place of the status marks', () => {
+      const html = render(untrusted);
+      expect(html).toContain('data-trust-notice=""');
+      expect(html).toContain(TRUST_NOTICE_TEXT);
+      expect(html).toContain(`title="${TRUST_NOTICE_TOOLTIP.replaceAll("'", '&#x27;')}"`);
+      expect(TRUST_NOTICE_TOOLTIP).toMatch(/--trust/);
+      expect(html).not.toContain('data-status-mark');
+      // Its source, and no showcase frame
+      expect(html).toContain('data-showcase-view="source"');
+      expect(html).not.toContain('<iframe');
+      // Trusted, the status marks are back
+      expect(_render(_SHOWCASE)).not.toContain('data-trust-notice');
+    });
+
+    it("Starts a linked showcase shown inline's block filling the showcase sidebar, with its tabs", () => {
+      expect(getInitialCodePaneState(['source'], true, false)).toBe('sidebar');
+      expect(getInitialCodePaneState(['source'], false, false)).toBe(INITIAL_CODE_PANE_STATE);
+      expect(render({ ...untrusted, display: 'inline' }, () => {})).toContain('data-code-pane-state="sidebar"');
     });
   });
 

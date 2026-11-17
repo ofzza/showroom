@@ -217,6 +217,11 @@ export type ShownHostInformation = Pick<HostInformation, 'project' | 'documentat
    * The virtual files with no showcase adapter whose views aren't `source` alone, sorted by documentation file and offset
    */
   virtualFiles: ShownVirtualFile[];
+  /**
+   * True if the host repository's code was allowed to run; without trust, every showcase shows its source, with a notice in place of its status
+   * marks
+   */
+  trusted: boolean;
 };
 
 /**

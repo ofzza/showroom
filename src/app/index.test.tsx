@@ -22,6 +22,7 @@ const _DATA: ShownHostInformation = {
   showcases: [],
   virtualFiles: [],
   linkedFiles: [],
+  trusted: true,
 };
 
 /**
@@ -81,7 +82,14 @@ describe('app', () => {
   });
 
   it('Shows only the project information without a root README', () => {
-    const html = _render(undefined, undefined, { project: { name: 'bare' }, documentation: [], showcases: [], virtualFiles: [], linkedFiles: [] });
+    const html = _render(undefined, undefined, {
+      project: { name: 'bare' },
+      documentation: [],
+      showcases: [],
+      virtualFiles: [],
+      linkedFiles: [],
+      trusted: true,
+    });
     expect(html).toMatch(/<h1 [^>]*>bare<\/h1>/);
     expect(html).not.toContain('<h1 id=');
   });

@@ -3,11 +3,11 @@
  * by main() with a dynamic `import()`, so library users and `showroom check` never load Vite, and not re-exported.
  */
 
-import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdtemp, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, sep } from 'node:path';
 import { build as viteBuild, type InlineConfig } from 'vite';
-import { check } from '../check/index.js';
+import { checkHost, type CheckOptions } from '../check/index.js';
 import { formatIssues, resolveOutputFolder, SILENCED_WARNINGS } from '../check/internal/index.js';
 import type { CliOutput } from '../index.js';
 import { readConfiguration } from '../../configuration/index.js';
@@ -34,9 +34,10 @@ export const OUTPUT_FOLDER_MARKER = '.showroom';
 export const OUTPUT_FOLDER_MARKER_CONTENT = 'This folder is the output folder of `showroom build`: its whole content is deleted and rebuilt on every build.\n';
 
 /**
- * Represents the state of an output folder, before building: missing, empty, holding a previous build (marked), or holding anything else (unmarked)
+ * Represents the state of an output folder, before building: missing, empty, holding a previous build (marked), holding anything else (unmarked),
+ * or a symbolic link, or a folder whose real path leads outside the host repository's real root through one (linked), which is never emptied
  */
-export type OutputFolderState = 'missing' | 'empty' | 'marked' | 'unmarked';
+export type OutputFolderState = 'missing' | 'empty' | 'marked' | 'unmarked' | 'linked';
 
 /**
  * Gets the state of an output folder from its entries
@@ -52,14 +53,37 @@ export function getOutputFolderState(entries: string[] | undefined): OutputFolde
 /**
  * Reads the state of an output folder
  * @param path Path of the output folder
+ * @param root Path of the host repository's root, whose real path the output folder's must lead inside; not checked if not given
  * @returns The state of the output folder; anything that isn't a readable folder (e.g. a file) counts as unmarked
  */
-export async function readOutputFolderState(path: string): Promise<OutputFolderState> {
+export async function readOutputFolderState(path: string, root?: string): Promise<OutputFolderState> {
+  if (root !== undefined && !(await _isInsideRealRoot(path, root))) return 'linked';
   try {
     return getOutputFolderState(await readdir(path));
   } catch (err) {
     return (err as NodeJS.ErrnoException).code === 'ENOENT' ? 'missing' : 'unmarked';
   }
+}
+
+/**
+ * Checks that a folder is no symbolic link, and that its real path (or, while it doesn't exist, its nearest existing parent's, with the rest of its
+ * path) is inside the real path of a root, and isn't the root itself
+ * @param path Path of the folder
+ * @param root Path of the root
+ * @returns True if it is
+ */
+async function _isInsideRealRoot(path: string, root: string): Promise<boolean> {
+  if ((await lstat(path).catch(() => undefined))?.isSymbolicLink()) return false;
+  const rest: string[] = [];
+  let existing = path;
+  let real: string | undefined;
+  while ((real = await realpath(existing).catch(() => undefined)) === undefined) {
+    if (dirname(existing) === existing) return false;
+    rest.unshift(basename(existing));
+    existing = dirname(existing);
+  }
+  const relativePath = relative(await realpath(root), join(real, ...rest));
+  return !!relativePath && relativePath !== '..' && !relativePath.startsWith(`..${sep}`) && !isAbsolute(relativePath);
 }
 
 // #endregion
@@ -124,17 +148,23 @@ export interface BuildOptions {
    * Folder of the showroom (see getAppDir())
    */
   appDir?: string;
+  /**
+   * Whether the host repository's code may run, or the function deciding it, called by the check (see CheckOptions' `trust`); not trusted if not
+   * given: the showroom is built with every showcase shown as its source
+   */
+  trust?: CheckOptions['trust'];
 }
 
 /**
  * Builds the showroom of a host repository into its output folder: checks it, makes sure the output folder may be emptied, builds every showcase,
- * then builds the showroom with the showcase frames, and marks the output folder
+ * then builds the showroom with the showcase frames, and marks the output folder. Trust is decided once, by the check; without it, no showcase is
+ * built, and the showroom shows every showcase as its source.
  * @param options Options of the command
  * @returns Exit code: 0 once built, 1 if the check fails, the output folder can't be emptied, a showcase doesn't build, or the build fails
  */
-export async function build({ root, outDir, output, appDir = getAppDir() }: BuildOptions): Promise<number> {
-  // Check the host repository first
-  const result = await check(root, { outDir });
+export async function build({ root, outDir, output, appDir = getAppDir(), trust = false }: BuildOptions): Promise<number> {
+  // Check the host repository first, deciding trust
+  const result = await checkHost(root, { outDir, trust }, 'build');
   output.stderr(formatIssues(result.issues));
   if (!result.passed || !result.host) {
     return 1;
@@ -147,7 +177,15 @@ export async function build({ root, outDir, output, appDir = getAppDir() }: Buil
     output.stderr(`error: ${outputFolder?.error ?? 'The configuration changed while building'}\n`);
     return 1;
   }
-  if ((await readOutputFolderState(outputFolder.path)) === 'unmarked') {
+  const state = await readOutputFolderState(outputFolder.path, root);
+  if (state === 'linked') {
+    output.stderr(
+      `error: Output folder "${outputFolder.relativePath}" is a symbolic link, or leads outside the host repository through one; ` +
+        'choose another output folder\n',
+    );
+    return 1;
+  }
+  if (state === 'unmarked') {
     output.stderr(
       `error: Output folder "${outputFolder.relativePath}" is not empty, and holds no ${OUTPUT_FOLDER_MARKER} file from an earlier build; ` +
         'empty or delete it, or choose another output folder\n',
@@ -156,13 +194,13 @@ export async function build({ root, outDir, output, appDir = getAppDir() }: Buil
   }
 
   // Build every showcase, leaving the output folder untouched if any fails; build warnings are written, and fail nothing
-  const showcases = await buildShowcases({ root, host: result.host, configuration });
+  const showcases = await buildShowcases({ root, host: result.host, configuration, trust: result.trusted });
   const issues = getBuildShowcasesIssues(showcases);
   output.stderr(formatIssues(issues));
   if (issues.some((issue) => issue.severity === 'error')) {
     return 1;
   }
-  const host = getShownHostInformation(result.host, showcases, await getTabFileHashes(root, result.host));
+  const host = getShownHostInformation(result.host, { ...showcases, trusted: result.trusted }, await getTabFileHashes(root, result.host));
   // Only the showcase frames a view loads are emitted: a showcase shown by its markdown or source alone was built and checked, and that's all
   const loaded = new Set(result.host.showcases.filter(({ views }) => loadsShowcaseFrame(views)).map(({ id }) => id));
   const frames = new Map([...showcases.frames].filter(([id]) => loaded.has(id)));

@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { Ignore } from 'ignore';
 import { createServer, type ViteDevServer } from 'vite';
-import { check, type CheckIssue, type CheckResult } from '../check/index.js';
+import { checkHost, type CheckIssue, type CheckOptions, type CheckResult } from '../check/index.js';
 import { formatIssues, readIgnoreMatcher } from '../check/internal/index.js';
 import type { CliOutput } from '../index.js';
 import type { ShownHostInformation, ShownShowcase } from '../../app/host/index.js';
@@ -223,6 +223,10 @@ export interface HostWatcherOptions {
    * Gets the hashes of the text linked files shown as tabs, after a successful check (see getTabFileHashes()); none if not given
    */
   hashFiles?: (host: HostInformation) => Promise<ReadonlyMap<string, string>>;
+  /**
+   * True if the host repository is trusted, as the first check decided, for the whole session; not trusted if not given
+   */
+  trusted?: boolean;
 }
 
 /**
@@ -337,7 +341,7 @@ export function createHostWatcher(options: HostWatcherOptions): HostWatcher {
       const hashes = (await options.hashFiles?.(result.host)) ?? new Map<string, string>();
       if (closed) return;
       next = {
-        host: getShownHostInformation(result.host, { frames: built.frames, ...built.shown }, hashes),
+        host: getShownHostInformation(result.host, { frames: built.frames, ...built.shown, trusted: options.trusted ?? false }, hashes),
         frames: built.frames,
         shown: built.shown,
         issues: [...result.issues, ...built.issues],
@@ -446,6 +450,22 @@ export interface ServeOptions {
    * Called with the dev server's URL once it listens; internal, for the tests, never set by the command line
    */
   onListening?: (url: string) => void;
+  /**
+   * Whether the host repository's code may run, or the function deciding it, called by the first check only (see CheckOptions' `trust`): its
+   * decision holds for the whole session; not trusted if not given
+   */
+  trust?: CheckOptions['trust'];
+}
+
+/**
+ * Gets the warning of a check of `serve` that has something to trust while the session runs without trust although nobody was asked, as its first
+ * check had nothing to trust
+ * @param result The check's outcome
+ * @returns The warning, or none
+ */
+export function getRestartWarnings(result: CheckResult): CheckIssue[] {
+  if (result.trusted || !result.host?.showcases.length) return [];
+  return [{ severity: 'warning', message: 'Showcases were added since `showroom serve` started without trust; restart it with --trust to build them' }];
 }
 
 /**
@@ -476,31 +496,57 @@ function _waitForStop(server: ViteDevServer, signal?: AbortSignal): Promise<void
  * without a restart
  * @param root Path of the host repository's root
  * @param host Host information of the passed check
+ * @param trust True if the host repository is trusted
  * @returns The outcome of building them; throws if the configuration can't be read
  */
-async function _buildShowcases(root: string, host: HostInformation): Promise<BuildShowcasesResult> {
+async function _buildShowcases(root: string, host: HostInformation, trust: boolean): Promise<BuildShowcasesResult> {
   const { configuration, errors } = await readConfiguration(root);
   if (!configuration) throw new Error(errors?.join('; ') ?? 'The configuration could not be read');
-  return buildShowcases({ root, host, configuration, mode: 'development' });
+  return buildShowcases({ root, host, configuration, mode: 'development', trust });
 }
 
 /**
  * Serves the showroom of a host repository with Vite's dev server, until the process is asked to stop: checks it, builds every showcase, then
- * listens. A showcase that doesn't build is shown with its issues, and never stops `serve`.
+ * listens. A showcase that doesn't build is shown with its issues, and never stops `serve`. Trust is decided once, by the first check, for the whole
+ * session; without it, no showcase is built (so no showcase frame is served), every showcase is shown as its source, and linked files of active
+ * types are sent as plain text.
  * @param options Options of the command
  * @returns Exit code: 0 once stopped, 1 if the first check fails or the server can't start
  */
-export async function serve({ root, port = DEFAULT_PORT, outDir, output, appDir = getAppDir(), signal, onListening }: ServeOptions): Promise<number> {
-  // Check the host repository first, then build its showcases
-  const first = await check(root, { outDir });
+export async function serve({
+  root,
+  port = DEFAULT_PORT,
+  outDir,
+  output,
+  appDir = getAppDir(),
+  signal,
+  onListening,
+  trust = false,
+}: ServeOptions): Promise<number> {
+  // Check the host repository first, deciding trust for the session, then build its showcases
+  let asked = typeof trust !== 'function';
+  const decide: CheckOptions['trust'] =
+    typeof trust === 'function'
+      ? (request) => {
+          asked = true;
+          return trust(request);
+        }
+      : trust;
+  const first = await checkHost(root, { outDir, trust: decide }, 'build');
   if (!first.passed || !first.host) {
     output.stderr(formatIssues(first.issues));
     return 1;
   }
-  const build = (host: HostInformation) => _buildShowcases(root, host);
+  const trusted = first.trusted;
+  // A later check that has something to trust while nobody was asked warns to restart with trust
+  const checkAgain = async (): Promise<CheckResult> => {
+    const result = await checkHost(root, { outDir, trust: trusted }, 'build');
+    return asked ? result : { ...result, issues: [...result.issues, ...getRestartWarnings(result)] };
+  };
+  const build = (host: HostInformation) => _buildShowcases(root, host, trusted);
   const built = await runBuild(first.host, build, new Map());
   const initial: ServedState = {
-    host: getShownHostInformation(first.host, { frames: built.frames, ...built.shown }, await getTabFileHashes(root, first.host)),
+    host: getShownHostInformation(first.host, { frames: built.frames, ...built.shown, trusted }, await getTabFileHashes(root, first.host)),
     frames: built.frames,
     shown: built.shown,
     issues: [...first.issues, ...built.issues],
@@ -538,8 +584,9 @@ export async function serve({ root, port = DEFAULT_PORT, outDir, output, appDir 
     const current = createHostWatcher({
       initial,
       matcher: await readIgnoreMatcher(root, outDir),
-      check: () => check(root, { outDir }),
+      check: checkAgain,
       build,
+      trusted,
       readMatcher: () => readIgnoreMatcher(root, outDir),
       hashFiles: (host) => getTabFileHashes(root, host),
       watch: (paths, matcher) => watchTargets(getWatchTargets(paths, matcher)),

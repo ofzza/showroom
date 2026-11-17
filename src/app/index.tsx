@@ -9,6 +9,7 @@ import { FluentProvider } from '@fluentui/react-components';
 import type { CheckIssue } from '../cli/check/index.js';
 import type { ShownHostInformation, ShownShowcaseUpdate } from './host/index.js';
 import { applyShowcaseUpdates, getRootReadme } from './host/index.js';
+import { TrustedContext } from './code-pane/index.js';
 import { IssuesBar } from './issues/index.js';
 import { Layout } from './layout/index.js';
 import { getNavigationItems } from './navigation/index.js';
@@ -121,10 +122,12 @@ export function App({ data, issues = _NO_ISSUES, route, theme: initialTheme }: A
   return (
     <FluentProvider theme={getTheme(theme)}>
       <ThemeContext.Provider value={theme}>
-        <Layout project={data.project} navigation={navigation} current={current} anchor={anchor} theme={theme} onThemeChange={onThemeChange}>
-          <IssuesBar issues={issues} />
-          {page}
-        </Layout>
+        <TrustedContext.Provider value={data.trusted}>
+          <Layout project={data.project} navigation={navigation} current={current} anchor={anchor} theme={theme} onThemeChange={onThemeChange}>
+            <IssuesBar issues={issues} />
+            {page}
+          </Layout>
+        </TrustedContext.Provider>
       </ThemeContext.Provider>
     </FluentProvider>
   );

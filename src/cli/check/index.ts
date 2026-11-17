@@ -9,8 +9,10 @@ import type { ShowcaseAdapter } from '../../adapters/showcase/index.js';
 import {
   checkHostCheckResult,
   createShowcaseAdapter,
+  DEFAULT_SHOWCASE_VIEWS,
   getDefaultViews,
   getShowcaseAdapterNames,
+  getTrustTools,
   loadCustomShowcaseAdapters,
 } from '../../adapters/showcase/registry/index.js';
 import { getStackAdapter, getStackAdapterNames } from '../../adapters/stack/index.js';
@@ -87,6 +89,32 @@ export interface CheckOptions {
    * an error
    */
   showcases?: boolean;
+  /**
+   * Whether the host repository's code may run: its custom showcase adapters, its tools (e.g. its TypeScript) and its showcases. `false` by default:
+   * nothing of the host repository runs, and every showcase is shown as its source. A function is called at most once, only when the host
+   * repository has something to trust (a showcase, or a custom showcase adapter), after `showroom.json` is read and the documentation files scanned
+   * and before anything of the host repository runs, with what would run; it resolves to the decision, and a rejection means no trust.
+   */
+  trust?: boolean | ((request: TrustRequest) => Promise<boolean>);
+}
+
+/**
+ * Represents what trusting a host repository would run, as given to the `trust` option's function
+ */
+export interface TrustRequest {
+  /**
+   * The custom showcase adapter modules `showroom.json` lists, by name, each with the absolute real path of its module (those that exist)
+   */
+  customShowcaseAdapters: { name: string; path: string }[];
+  /**
+   * The tools building the showcases would load from outside `showroom`, by package name, each with the absolute real path of its folder: including
+   * TypeScript, Angular's compiler and the CSS preprocessors resolvable from the host repository, as the bundler and its plugins may load more
+   */
+  tools: { name: string; path: string }[];
+  /**
+   * Number of showcases
+   */
+  showcases: number;
 }
 
 /**
@@ -105,6 +133,10 @@ export interface CheckResult {
    * Every issue found, errors and warnings
    */
   issues: CheckIssue[];
+  /**
+   * True if the host repository's code was allowed to run (see CheckOptions' `trust`); false when nothing asked for it
+   */
+  trusted: boolean;
 }
 
 // #endregion
@@ -158,8 +190,21 @@ function _getKind(name: string, extension: string): DocumentationKind {
  * @returns The outcome of the check: whether it passed, the host information if it did, and every issue found
  */
 export async function check(root: string, options: CheckOptions = {}): Promise<CheckResult> {
+  return checkHost(root, options, options.showcases ? 'build' : 'check');
+}
+
+/**
+ * Checks a host repository and collects its host information, as check() does, reporting the showcases of a check without trust as the command
+ * running it shows them. Internal: `serve` and `build` report them as not built, as they build the showcases themselves; never re-exported.
+ * @param root Path of the host repository's root
+ * @param options Options overriding the configuration
+ * @param report What the showcases of a check without trust are reported as: by showcase adapter (`check`), or as not built (`build`)
+ * @returns The outcome of the check
+ */
+export async function checkHost(root: string, options: CheckOptions, report: 'check' | 'build'): Promise<CheckResult> {
   const issues: CheckIssue[] = [];
-  const fail = (): CheckResult => ({ passed: false, issues });
+  let trusted = options.trust === true;
+  const fail = (): CheckResult => ({ passed: false, issues, trusted });
 
   // Read the configuration
   const { configuration, errors } = await readConfiguration(root);
@@ -254,7 +299,7 @@ export async function check(root: string, options: CheckOptions = {}): Promise<C
   }
   links.sort((a, b) => _compare(a.documentation, b.documentation) || a.line - b.line);
   await _checkVirtualFiles(root, virtualFiles, issues);
-  await _checkShowcases(root, configuration, showcases, virtualFiles, issues);
+  trusted = await _checkShowcases(root, configuration, showcases, virtualFiles, issues, options.trust ?? false, report);
   const included = await _checkIncludes(root, documentation, showcases, virtualFiles, outputFolder.relativePath, issues);
   await _checkLinks(root, links, issues);
   const linkedFiles = await _collectLinkedFiles(root, documentation, links, showcases, included, outputFolder.relativePath, issues);
@@ -282,10 +327,10 @@ export async function check(root: string, options: CheckOptions = {}): Promise<C
 
   // Build every showcase, if asked to, throwing the showcase frames away; build warnings fail nothing
   if (options.showcases) {
-    issues.push(...getBuildShowcasesIssues(await buildShowcases({ root, host, configuration })));
+    issues.push(...getBuildShowcasesIssues(await buildShowcases({ root, host, configuration, trust: trusted })));
     if (issues.some((issue) => issue.severity === 'error')) return fail();
   }
-  return { passed: true, host, issues };
+  return { passed: true, host, issues, trusted };
 }
 
 // #endregion
@@ -326,15 +371,23 @@ async function _checkVirtualFiles(root: string, virtualFiles: VirtualFile[], iss
 }
 
 /**
- * Checks every showcase: its linked entry point, its views, and its showcase adapter's validation; then each used showcase adapter's host
- * requirements, given the showcases whose validation passed (errors as error issues, warnings as warning issues). Every custom showcase adapter is
- * loaded, used or not. Each showcase's options are replaced by the validated ones, and each showcase without views gets its defaults: those
- * `showroom.json`'s `showcaseViews` sets for its showcase adapter, or else its showcase adapter's own.
+ * Checks every showcase, in two parts around the decision to trust the host repository. First, without running anything of it: each showcase's
+ * linked entry point, its showcase adapter's name, and for a built-in showcase adapter, its views and its validation (plain parsing). Then trust is
+ * decided, when the host repository has something to trust (a showcase, or a custom showcase adapter), given what would run. With trust, the custom
+ * showcase adapters are loaded (every one, used or not), their showcases' views resolved and validated, then each used showcase adapter's host
+ * requirements checked, given the showcases whose validation passed (errors as error issues, warnings as warning issues). Without trust, nothing of
+ * the host repository runs: no custom showcase adapter is loaded (its showcases keep their options unvalidated, and get the views of their marker,
+ * else `showroom.json`'s `showcaseViews`, else `demo`), no host check runs, and warnings say so. Each showcase's options are replaced by the
+ * validated ones, and each showcase without views gets its defaults: those `showroom.json`'s `showcaseViews` sets for its showcase adapter, or else
+ * its showcase adapter's own.
  * @param root Path of the host repository's root
  * @param configuration Configuration of the host repository
  * @param showcases Showcases, sorted by documentation file and line
  * @param virtualFiles Virtual files
  * @param issues Issues to add the errors to
+ * @param trust Whether the host repository's code may run, or the function deciding it (see CheckOptions' `trust`)
+ * @param report What the showcases are reported as without trust: by showcase adapter (`check`), or as not built (`build`)
+ * @returns True if the host repository's code was allowed to run
  */
 async function _checkShowcases(
   root: string,
@@ -342,11 +395,10 @@ async function _checkShowcases(
   showcases: ScannedShowcase[],
   virtualFiles: VirtualFile[],
   issues: CheckIssue[],
-): Promise<void> {
-  // Load the custom showcase adapters
+  trust: NonNullable<CheckOptions['trust']>,
+  report: 'check' | 'build',
+): Promise<boolean> {
   const listed = configuration.customShowcaseAdapters ?? {};
-  const custom = await loadCustomShowcaseAdapters(root, listed);
-  issues.push(...custom.errors.map((message) => ({ severity: 'error' as const, message, path: CONFIGURATION_FILE_NAME })));
 
   // The default views the configuration sets, each for a showcase adapter there is
   const configured = new Map<string, ShowcaseView[]>();
@@ -357,11 +409,14 @@ async function _checkShowcases(
       issues.push({ severity: 'error', message, path: CONFIGURATION_FILE_NAME });
     }
   }
-  const adapters = new Map<string, ShowcaseAdapter>(custom.adapters);
+  const adapters = new Map<string, ShowcaseAdapter>();
   const used = new Map<string, Showcase[]>();
+  const custom = new Map<string, ScannedShowcase[]>(Object.keys(listed).map((name) => [name, []]));
   const virtualPaths = new Set(virtualFiles.map((file) => file.path.toLowerCase()));
+  let trusted = false;
 
   try {
+    // Without running anything of the host repository: the showcases' entry points, showcase adapters, and the built-in ones' views and validation
     for (const showcase of showcases) {
       const error = (message: string): void => void issues.push({ severity: 'error', message, path: showcase.documentation, line: showcase.line });
 
@@ -377,69 +432,83 @@ async function _checkShowcases(
         }
       }
 
-      // Its showcase adapter
+      // Its showcase adapter: a custom one is only loaded once trusted
+      if (Object.hasOwn(listed, showcase.adapter)) {
+        custom.get(showcase.adapter)!.push(showcase);
+        continue;
+      }
       if (!adapters.has(showcase.adapter)) {
         const adapter = createShowcaseAdapter(showcase.adapter);
-        if (adapter) {
-          adapters.set(showcase.adapter, adapter);
-        } else if (!Object.hasOwn(listed, showcase.adapter)) {
-          const names = [...getShowcaseAdapterNames(), ...custom.adapters.keys()].sort();
+        if (!adapter) {
+          const names = [...getShowcaseAdapterNames(), ...Object.keys(listed)].sort();
           error(`Unknown showcase adapter "${showcase.adapter}"; the showcase adapters are: ${names.join(', ')}`);
           continue;
         }
+        adapters.set(showcase.adapter, adapter);
       }
-      const adapter = adapters.get(showcase.adapter);
-      if (!adapter) continue; // A custom showcase adapter that didn't load, reported already
-
-      // Its views: the marker's, or the configuration's default for its showcase adapter, or the showcase adapter's own
-      const resolved: Showcase = Object.assign(showcase, { views: showcase.views ?? configured.get(showcase.adapter) ?? getDefaultViews(adapter) });
-      // A linked showcase shown inline shows its tabs in the showcase sidebar, whatever its views
-      if (resolved.views.includes('none') && resolved.tabs.length > 1 && resolved.display === 'block') {
-        error(`A showcase shown with the view "none" can't have "include=", as nothing would show its tabs`);
-        continue;
-      }
-      const valid = used.get(showcase.adapter) ?? [];
-      used.set(showcase.adapter, valid);
-
-      // Its validation
-      try {
-        const validation = await adapter.validate({ ...resolved });
-        if (validation.errors.length) {
-          validation.errors.forEach(error);
-        } else {
-          if (validation.options === undefined) {
-            delete showcase.options;
-          } else {
-            showcase.options = validation.options;
-          }
-          valid.push(resolved);
-        }
-      } catch (err) {
-        error(`Showcase adapter "${showcase.adapter}" failed to validate the showcase: ${(err as Error).message}`);
-      }
+      await _validateShowcase(showcase, showcase.adapter, adapters.get(showcase.adapter)!, configured, used, error);
     }
 
-    // The host requirements of the showcase adapters in use, given the showcases whose validation passed
-    for (const name of [...used.keys()].sort()) {
-      try {
-        const adapter = adapters.get(name)!;
-        if (!adapter.check) continue;
-        const result = checkHostCheckResult(
-          await adapter.check(
-            resolve(root),
-            used.get(name)!.map((showcase) => ({ ...showcase })),
-          ),
-        );
-        if ('problem' in result) {
-          issues.push({ severity: 'error', message: `Showcase adapter "${name}" returned an invalid host check: ${result.problem}` });
-          continue;
+    // Decide whether to trust the host repository, given what would run
+    if (typeof trust !== 'function') {
+      trusted = trust;
+    } else if (showcases.length || custom.size) {
+      const request: TrustRequest = {
+        customShowcaseAdapters: await _getModules(root, listed),
+        tools: [...used].flatMap(([name, valid]) => getTrustTools(name, resolve(root), valid)),
+        showcases: showcases.length,
+      };
+      trusted = await trust(request).then(
+        (answer) => answer === true,
+        () => false,
+      );
+    }
+
+    if (trusted) {
+      // Load the custom showcase adapters, then resolve their showcases' views and validate them
+      const loaded = await loadCustomShowcaseAdapters(root, listed);
+      issues.push(...loaded.errors.map((message) => ({ severity: 'error' as const, message, path: CONFIGURATION_FILE_NAME })));
+      for (const [name, adapter] of loaded.adapters) adapters.set(name, adapter);
+      for (const [name, found] of custom) {
+        const adapter = loaded.adapters.get(name);
+        if (!adapter) continue; // A custom showcase adapter that didn't load, reported already
+        for (const showcase of found) {
+          const error = (message: string): void => void issues.push({ severity: 'error', message, path: showcase.documentation, line: showcase.line });
+          await _validateShowcase(showcase, name, adapter, configured, used, error);
         }
-        for (const [severity, messages] of [['error', result.errors] as const, ['warning', result.warnings] as const]) {
-          issues.push(...messages.map((message) => ({ severity, message: `Showcase adapter "${name}": ${message}` })));
-        }
-      } catch (err) {
-        issues.push({ severity: 'error', message: `Showcase adapter "${name}" failed to check the host repository: ${(err as Error).message}` });
       }
+
+      // The host requirements of the showcase adapters in use, given the showcases whose validation passed
+      for (const name of [...used.keys()].sort()) {
+        try {
+          const adapter = adapters.get(name)!;
+          if (!adapter.check) continue;
+          const result = checkHostCheckResult(
+            await adapter.check(
+              resolve(root),
+              used.get(name)!.map((showcase) => ({ ...showcase })),
+            ),
+          );
+          if ('problem' in result) {
+            issues.push({ severity: 'error', message: `Showcase adapter "${name}" returned an invalid host check: ${result.problem}` });
+            continue;
+          }
+          for (const [severity, messages] of [['error', result.errors] as const, ['warning', result.warnings] as const]) {
+            issues.push(...messages.map((message) => ({ severity, message: `Showcase adapter "${name}": ${message}` })));
+          }
+        } catch (err) {
+          issues.push({ severity: 'error', message: `Showcase adapter "${name}" failed to check the host repository: ${(err as Error).message}` });
+        }
+      }
+    } else {
+      // The custom showcase adapters' showcases get their views without them, and warnings say what didn't run
+      for (const [name, found] of custom) {
+        for (const showcase of found) {
+          const error = (message: string): void => void issues.push({ severity: 'error', message, path: showcase.documentation, line: showcase.line });
+          _resolveViews(showcase, configured.get(name) ?? [...DEFAULT_SHOWCASE_VIEWS], error);
+        }
+      }
+      issues.push(..._getUntrustedWarnings(showcases.length, custom, used, adapters, report));
     }
   } finally {
     // Let every showcase adapter clean up
@@ -451,6 +520,118 @@ async function _checkShowcases(
       }
     }
   }
+  return trusted;
+}
+
+/**
+ * Resolves a showcase's views: its marker's, or else the defaults given; a showcase shown as a block with the view `none` can't include files
+ * @param showcase The showcase, given its views in place
+ * @param defaults The default views: the configuration's for its showcase adapter, or else the showcase adapter's own
+ * @param error Reports an error at the showcase
+ * @returns The showcase with its views, or undefined after an error
+ */
+function _resolveViews(showcase: ScannedShowcase, defaults: ShowcaseView[], error: (message: string) => void): Showcase | undefined {
+  const resolved: Showcase = Object.assign(showcase, { views: showcase.views ?? defaults });
+  // A linked showcase shown inline shows its tabs in the showcase sidebar, whatever its views
+  if (resolved.views.includes('none') && resolved.tabs.length > 1 && resolved.display === 'block') {
+    error(`A showcase shown with the view "none" can't have "include=", as nothing would show its tabs`);
+    return undefined;
+  }
+  return resolved;
+}
+
+/**
+ * Resolves a showcase's views and validates it with its showcase adapter, replacing its options by the validated ones, and adding it to its
+ * showcase adapter's showcases whose validation passed
+ * @param showcase The showcase
+ * @param name Name of its showcase adapter
+ * @param adapter Its showcase adapter
+ * @param configured The default views the configuration sets, by showcase adapter
+ * @param used The showcases whose validation passed, by showcase adapter, added to
+ * @param error Reports an error at the showcase
+ */
+async function _validateShowcase(
+  showcase: ScannedShowcase,
+  name: string,
+  adapter: ShowcaseAdapter,
+  configured: ReadonlyMap<string, ShowcaseView[]>,
+  used: Map<string, Showcase[]>,
+  error: (message: string) => void,
+): Promise<void> {
+  const resolved = _resolveViews(showcase, configured.get(name) ?? getDefaultViews(adapter), error);
+  if (!resolved) return;
+  const valid = used.get(name) ?? [];
+  used.set(name, valid);
+  try {
+    const validation = await adapter.validate({ ...resolved });
+    if (validation.errors.length) {
+      validation.errors.forEach(error);
+    } else {
+      if (validation.options === undefined) {
+        delete showcase.options;
+      } else {
+        showcase.options = validation.options;
+      }
+      valid.push(resolved);
+    }
+  } catch (err) {
+    error(`Showcase adapter "${name}" failed to validate the showcase: ${(err as Error).message}`);
+  }
+}
+
+/**
+ * Gets the custom showcase adapter modules a host repository lists, by name, with their real paths, for a trust request; one that doesn't exist is
+ * left out
+ * @param root Path of the host repository's root
+ * @param listed Custom showcase adapters' paths, relative to the root, by name
+ * @returns The modules, in the order listed
+ */
+async function _getModules(root: string, listed: Record<string, string>): Promise<TrustRequest['customShowcaseAdapters']> {
+  const modules: TrustRequest['customShowcaseAdapters'] = [];
+  for (const [name, path] of Object.entries(listed)) {
+    const real = await realpath(resolve(root, path)).catch(() => undefined);
+    if (real !== undefined) modules.push({ name, path: real });
+  }
+  return modules;
+}
+
+/**
+ * Gets the warnings of a check without trust: by showcase adapter for `check` (each custom showcase adapter not loaded, each built-in one whose
+ * host check didn't run, with its number of showcases), or for `build`, one about the showcases not built, and one about the custom showcase
+ * adapters not loaded
+ * @param count Number of showcases
+ * @param custom The showcases of each custom showcase adapter listed, by name
+ * @param used The showcases of each built-in showcase adapter whose validation passed, by name
+ * @param adapters The built-in showcase adapters in use, by name
+ * @param report What the showcases are reported as
+ * @returns The warnings
+ */
+function _getUntrustedWarnings(
+  count: number,
+  custom: ReadonlyMap<string, ScannedShowcase[]>,
+  used: ReadonlyMap<string, Showcase[]>,
+  adapters: ReadonlyMap<string, ShowcaseAdapter>,
+  report: 'check' | 'build',
+): CheckIssue[] {
+  const reason = `as the host repository isn't trusted`;
+  const showcasesOf = (number: number) => `${number} showcase${number === 1 ? '' : 's'}`;
+  const warning = (message: string): CheckIssue => ({ severity: 'warning', message });
+  const names = [...custom.keys()].sort();
+  if (report === 'build') {
+    return [
+      ...(count
+        ? [warning(`${showcasesOf(count)} not built, ${reason}; ${count === 1 ? 'it is' : 'they are'} shown as ${count === 1 ? 'its' : 'their'} source`)]
+        : []),
+      ...(names.length ? [warning(`Custom showcase adapters not loaded, ${reason}: ${names.map((name) => `"${name}"`).join(', ')}`)] : []),
+    ];
+  }
+  return [
+    ...names.map((name) => warning(`Custom showcase adapter "${name}" not loaded, ${reason} (${showcasesOf(custom.get(name)!.length)})`)),
+    ...[...used.keys()]
+      .sort()
+      .filter((name) => adapters.get(name)?.check)
+      .map((name) => warning(`Showcase adapter "${name}": its host check didn't run, ${reason} (${showcasesOf(used.get(name)!.length)})`)),
+  ];
 }
 
 /**

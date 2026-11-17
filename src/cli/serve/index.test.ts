@@ -17,6 +17,7 @@ import {
   createHostWatcher,
   createIgnored,
   getWatchTargets,
+  getRestartWarnings,
   getShownChange,
   runBuild,
   serve,
@@ -103,7 +104,7 @@ function _build(page: string, failing: string[] = [], watched: string[] = [], ty
 async function _initial(host: HostInformation, build: HostWatcherOptions['build'] = _build('first')): Promise<ServedState> {
   const built = await runBuild(host, build, new Map());
   return {
-    host: getShownHostInformation(host, { frames: built.frames, ...built.shown }),
+    host: getShownHostInformation(host, { frames: built.frames, ...built.shown, trusted: true }),
     frames: built.frames,
     shown: built.shown,
     issues: built.issues,
@@ -124,6 +125,7 @@ function _watcher(initial: ServedState, results: CheckResult[], options: Partial
     initial,
     check: async () => results[Math.min(record.checks++, results.length - 1)],
     build: _build('first'),
+    trusted: true,
     readMatcher: async () => ignore().add('vendor/'),
     target: { reload: () => record.reloads++, send: (event, data) => void record.events.push([event, data]) },
     output: { stdout: () => undefined, stderr: (text) => (record.stderr += text) },
@@ -267,6 +269,7 @@ describe('cli/serve', () => {
       })),
       virtualFiles: [],
       linkedFiles,
+      trusted: true,
     });
 
     it('Needs nothing when nothing changed', () => {
@@ -307,12 +310,36 @@ describe('cli/serve', () => {
     });
   });
 
+  describe('getRestartWarnings', () => {
+    // The warning of a session that started without trust, nobody asked, once its host repository has a showcase (D753 in
+    // .workflow/SPEC-S14-trust.md).
+
+    it('Warns to restart with --trust once there is a showcase, unless trusted', () => {
+      expect(getRestartWarnings({ passed: true, trusted: false, host: _host('a', [], 1), issues: [] })).toEqual([
+        { severity: 'warning', message: 'Showcases were added since `showroom serve` started without trust; restart it with --trust to build them' },
+      ]);
+      expect(getRestartWarnings({ passed: true, trusted: false, host: _host('a'), issues: [] })).toEqual([]);
+      expect(getRestartWarnings({ passed: true, trusted: true, host: _host('a', [], 1), issues: [] })).toEqual([]);
+      expect(getRestartWarnings({ passed: false, trusted: false, issues: [] })).toEqual([]);
+    });
+  });
+
   describe('createHostWatcher', () => {
     // When the host watcher reloads or sends events, what it writes, and which data, showcase frames, issues and matcher it keeps; the tabs' hashes
     // come from a fake `hashFiles`.
 
+    it('Shows every showcase as its source, with no showcase frame, without trust', async () => {
+      // D753 (.workflow/SPEC-S14-trust.md): the first check's decision holds for every run of the session
+      const { watcher } = _watcher(await _initial(_host('first', [], 1)), [{ passed: true, trusted: false, host: _host('second', [], 1), issues: [] }], {
+        trusted: false,
+      });
+      await watcher.update();
+      expect(watcher.getHost().trusted).toBe(false);
+      expect(watcher.getHost().showcases.map(({ views, url }) => ({ views, url }))).toEqual([{ views: ['source'], url: undefined }]);
+    });
+
     it('Reloads, with the new data, when the shown host information changed', async () => {
-      const { watcher, record } = _watcher(await _initial(_host('first')), [{ passed: true, host: _host('second'), issues: [] }]);
+      const { watcher, record } = _watcher(await _initial(_host('first')), [{ passed: true, trusted: true, host: _host('second'), issues: [] }]);
       await watcher.update();
       expect(record.reloads).toBe(1);
       expect(record.events).toEqual([]);
@@ -321,14 +348,14 @@ describe('cli/serve', () => {
     });
 
     it("Doesn't reload when only the code file index changed", async () => {
-      const { watcher, record } = _watcher(await _initial(_host('first')), [{ passed: true, host: _host('first', ['src/new.ts']), issues: [] }]);
+      const { watcher, record } = _watcher(await _initial(_host('first')), [{ passed: true, trusted: true, host: _host('first', ['src/new.ts']), issues: [] }]);
       await watcher.update();
       expect(record.reloads).toBe(0);
       expect(record.events).toEqual([]);
     });
 
     it('Reloads when a showcase is added', async () => {
-      const { watcher, record } = _watcher(await _initial(_host('first', [], 1)), [{ passed: true, host: _host('first', [], 2), issues: [] }]);
+      const { watcher, record } = _watcher(await _initial(_host('first', [], 1)), [{ passed: true, trusted: true, host: _host('first', [], 2), issues: [] }]);
       await watcher.update();
       expect(record.reloads).toBe(1);
       expect([...watcher.getFrames().keys()]).toEqual(['README.md#1', 'README.md#2']);
@@ -336,7 +363,7 @@ describe('cli/serve', () => {
 
     it('Sends every showcase, without a reload, when only showcase frames changed', async () => {
       const host = _host('first', [], 2);
-      const { watcher, record } = _watcher(await _initial(host), [{ passed: true, host, issues: [] }], { build: _build('second') });
+      const { watcher, record } = _watcher(await _initial(host), [{ passed: true, trusted: true, host, issues: [] }], { build: _build('second') });
       const before = watcher.getHost().showcases;
       await watcher.update();
       expect(record.reloads).toBe(0);
@@ -352,12 +379,12 @@ describe('cli/serve', () => {
       const hashFiles = async () => new Map([['a.html', hash]]);
       const built = await runBuild(host, _build('first'), new Map());
       const initial = {
-        host: getShownHostInformation(host, { frames: built.frames }, await hashFiles()),
+        host: getShownHostInformation(host, { frames: built.frames, trusted: true }, await hashFiles()),
         frames: built.frames,
         issues: [],
         watched: built.watched,
       };
-      const { watcher, record } = _watcher(initial, [{ passed: true, host, issues: [] }], { hashFiles });
+      const { watcher, record } = _watcher(initial, [{ passed: true, trusted: true, host, issues: [] }], { hashFiles });
       hash = 'bbbbbbbb';
       await watcher.update();
       expect(record.reloads).toBe(0);
@@ -367,7 +394,9 @@ describe('cli/serve', () => {
 
     it('Sends a showcase that stops building without its URL, with its issues, and the build errors as issues, without a reload', async () => {
       const host = _host('first', [], 2);
-      const { watcher, record } = _watcher(await _initial(host), [{ passed: true, host, issues: [] }], { build: _build('first', ['README.md#2']) });
+      const { watcher, record } = _watcher(await _initial(host), [{ passed: true, trusted: true, host, issues: [] }], {
+        build: _build('first', ['README.md#2']),
+      });
       await watcher.update();
       const issues = [{ severity: 'error', message: 'README.md#2 broke', path: 'README.md', line: 2 }];
       expect(record.reloads).toBe(0);
@@ -387,7 +416,7 @@ describe('cli/serve', () => {
       const calls: [readonly string[], boolean][] = [];
       const builds = [_build('first', [], ['dist/a.js']), _build('first', [], ['dist/a.js']), _build('first', [], ['dist/b.js'])];
       let run = 0;
-      const { watcher } = _watcher(await _initial(host), [{ passed: true, host, issues: [] }], {
+      const { watcher } = _watcher(await _initial(host), [{ passed: true, trusted: true, host, issues: [] }], {
         build: (built) => builds[run++](built),
         watch: (watched, matcher) => void calls.push([watched, matcher?.ignores('vendor/') ?? false]),
       });
@@ -409,7 +438,7 @@ describe('cli/serve', () => {
       const calls: (readonly string[])[] = [];
       const builds = [_build('first', ['README.md#1'], ['README.md']), _build('first', [], ['README.md', 'dist/b.js'])];
       let run = 0;
-      const { watcher } = _watcher(await _initial(host, _build('first', [], ['README.md', 'dist/a.js'])), [{ passed: true, host, issues: [] }], {
+      const { watcher } = _watcher(await _initial(host, _build('first', [], ['README.md', 'dist/a.js'])), [{ passed: true, trusted: true, host, issues: [] }], {
         build: (built) => builds[run++](built),
         watch: (watched) => void calls.push(watched),
       });
@@ -427,8 +456,8 @@ describe('cli/serve', () => {
       const { watcher } = _watcher(
         initial,
         [
-          { passed: false, issues: [] },
-          { passed: true, host, issues: [] },
+          { passed: false, trusted: true, issues: [] },
+          { passed: true, trusted: true, host, issues: [] },
         ],
         {
           build: () => Promise.reject(new Error('no configuration')),
@@ -445,7 +474,7 @@ describe('cli/serve', () => {
       const matcher = ignore().add('old/');
       const initial = await _initial(_host('first', [], 1));
       const issues = [{ severity: 'error' as const, message: 'Broken', path: 'showroom.json' }];
-      const { watcher, record } = _watcher(initial, [{ passed: false, issues }], { matcher });
+      const { watcher, record } = _watcher(initial, [{ passed: false, trusted: true, issues }], { matcher });
       await watcher.update();
       expect(record.reloads).toBe(0);
       expect(watcher.getHost()).toBe(initial.host);
@@ -459,9 +488,9 @@ describe('cli/serve', () => {
     it('Writes and sends the issues only when they changed', async () => {
       const warning = { severity: 'warning' as const, message: 'Several', path: 'README.md' };
       const { watcher, record } = _watcher(await _initial(_host('first')), [
-        { passed: true, host: _host('first'), issues: [warning] },
-        { passed: true, host: _host('first'), issues: [warning] },
-        { passed: true, host: _host('first'), issues: [] },
+        { passed: true, trusted: true, host: _host('first'), issues: [warning] },
+        { passed: true, trusted: true, host: _host('first'), issues: [warning] },
+        { passed: true, trusted: true, host: _host('first'), issues: [] },
       ]);
       await watcher.update();
       await watcher.update();
@@ -477,7 +506,9 @@ describe('cli/serve', () => {
 
     it('Checks once after changes stop for the delay', async () => {
       vi.useFakeTimers();
-      const { watcher, record } = _watcher(await _initial(_host('first')), [{ passed: true, host: _host('second'), issues: [] }], { delay: 100 });
+      const { watcher, record } = _watcher(await _initial(_host('first')), [{ passed: true, trusted: true, host: _host('second'), issues: [] }], {
+        delay: 100,
+      });
       watcher.notify();
       await vi.advanceTimersByTimeAsync(60);
       watcher.notify();
@@ -497,7 +528,7 @@ describe('cli/serve', () => {
         check: () =>
           new Promise<CheckResult>((done) => {
             const host = results[calls++];
-            finish = () => done({ passed: true, host, issues: [] });
+            finish = () => done({ passed: true, trusted: true, host, issues: [] });
           }),
       });
       const first = watcher.update();
@@ -512,7 +543,9 @@ describe('cli/serve', () => {
 
     it('Stops checking once closed', async () => {
       vi.useFakeTimers();
-      const { watcher, record } = _watcher(await _initial(_host('first')), [{ passed: true, host: _host('second'), issues: [] }], { delay: 100 });
+      const { watcher, record } = _watcher(await _initial(_host('first')), [{ passed: true, trusted: true, host: _host('second'), issues: [] }], {
+        delay: 100,
+      });
       watcher.notify();
       await watcher.close();
       watcher.notify();
@@ -524,7 +557,7 @@ describe('cli/serve', () => {
       // serve() removes its folders and closes the server only once the run is done, so the run never builds into a removed folder
       let finish: () => void = () => undefined;
       let built = false;
-      const { watcher, record } = _watcher(await _initial(_host('first')), [{ passed: true, host: _host('second'), issues: [] }], {
+      const { watcher, record } = _watcher(await _initial(_host('first')), [{ passed: true, trusted: true, host: _host('second'), issues: [] }], {
         build: (host) =>
           new Promise((done) => {
             finish = () => {

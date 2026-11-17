@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** implementation: _`P19`_ (trust, _`S14`_) approved, for its split and _`P19.1`_ ([PLAN-P19-trust.md](./PLAN-P19-trust.md)); _`P19.2`_ (the prompt) still a draft, approved when reached.
-- **Next free:** _`D760`_, _`S17`_, _`P20`_, _`O120`_, _`L15`_, _`R57`_, _`H1`_, _`K29`_
-- **Working on:** nothing started yet.
-- **Next step:** implement _`P19.1`_ (the gate and the flags), step by step, then its checkpoint.
+- **Next free:** _`D761`_, _`S17`_, _`P20`_, _`O123`_, _`L15`_, _`R57`_, _`H1`_, _`K29`_
+- **Working on:** _`P19.1`_ (the gate and the flags) implemented and committed; _`P19.2`_'s open points _`O120`_, _`O121`_ are in [PLAN-P19-trust.md](./PLAN-P19-trust.md).
+- **Next step:** _`P19.2`_ (the prompt): review its draft with the user, approve it, then implement it.
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/p19.1-format/` (formatting backups); ask before deleting it.
 - `./.workflow/.temp/review-p19/` (the review's record, `REVIEW.md`, its snapshots and formatting backups); ask before deleting it.
 - `./.workflow/.temp/questions-p19/` (_`P19`_'s choices, recorded as _`D740`_–_`D751`_, and formatting backups); ask before deleting it.
 - `./.workflow/.temp/review-s14-s16/` (the review's record, `REVIEW.md`, its snapshots and formatting backups); ask before deleting it.
@@ -413,3 +414,5 @@
 - 2026-11-17: Go-ahead for a zero-context review of the _`P19`_ draft (option chosen: "Review first (Rec.)"): 2 agents, consistency and security.
 - 2026-11-17: Zero-context review of the _`P19`_ draft run (2 agents; 25 findings, 1 blocker: linked `.html` and `.svg` files run without trust; stray-write check clean): R1–R7 answered (options chosen: "Serve as text", "Any showcase, always", "Once, else no (Rec.)", "Shown only; keep md (Rec.)", "Split jobs (Rec.)", "Keep in P19.2", all three extras), fixes applied (option chosen: "Apply all (Rec.)"), recorded as _`D752`_–_`D759`_; _`S14`_ (_`R55`_) and _`S13`_ (_`R56`_) revised, pending re-approval.
 - 2026-11-17: _`P19`_ approved, for its split and _`P19.1`_, with _`S14`_ (_`R54`_, _`R55`_) and _`S13`_ (_`R56`_) re-approved (option chosen: "Approve and commit (Rec.)").
+- 2026-11-17: _`P19.1`_ (the gate and the flags) implemented, pending its checkpoint: `--trust`/`--no-trust`, `check()`'s `trust` option and `TrustRequest`, every showcase shown as its source without trust, the linked files' headers, the navigation's URL schemes, the output folder's symbolic links, the showroom's Vite hardened (_`D746`_'s audit recorded), the workflows split; _`K24`_ ticked off; _`O120`_–_`O122`_ recorded.
+- 2026-11-17: _`P19.1`_'s checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"); _`O122`_ resolved by _`D760`_ (option chosen: "Leave as is").

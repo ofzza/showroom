@@ -23,7 +23,10 @@ jobs:
       matrix:
         node: [22, 24]
     steps:
+      # No token left in .git/config for the code it runs (`ci:showroom` runs this repository's own showcases with --trust)
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v7
         with:

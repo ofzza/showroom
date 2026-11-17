@@ -332,6 +332,11 @@ export interface BuildShowcasesOptions {
    * Mode to build in: `development` in `serve`, `production` (the default) in `build` and `check --showcases`
    */
   mode?: 'development' | 'production';
+  /**
+   * True if the host repository's code may run, as the check decided (see CheckResult's `trusted`); `false` by default: no showcase is built, no
+   * custom showcase adapter loaded, and nothing is reported, as the check warned already
+   */
+  trust?: boolean;
 }
 
 /**
@@ -397,11 +402,13 @@ function _getModulePath(root: string, path: string): string | undefined {
  * folder per run (removed afterwards), and adds the frame script to each showcase frame page. Custom showcase adapters are loaded again, so the
  * run gets fresh showcase adapter objects, each closed at its end. A showcase that doesn't build never stops the others. The files to watch are the
  * custom showcase adapter modules, every showcase's included files (an included virtual file's documentation file), and the files each build read.
+ * Without trust, it builds nothing and loads nothing: every showcase has no checks and no issues, and the files to watch are the custom showcase
+ * adapter modules and the included files.
  * @param options What to build
  * @returns The showcase frames of the showcases that built, the errors and warnings of each (placed, and as shown), the checks each ran, and the
  * run's own issues
  */
-export async function buildShowcases({ root, host, configuration, mode = 'production' }: BuildShowcasesOptions): Promise<BuildShowcasesResult> {
+export async function buildShowcases({ root, host, configuration, mode = 'production', trust = false }: BuildShowcasesOptions): Promise<BuildShowcasesResult> {
   const issues: CheckIssue[] = [];
   const errors = new Map<string, CheckIssue[]>();
   const warnings: CheckIssue[] = [];
@@ -412,6 +419,16 @@ export async function buildShowcases({ root, host, configuration, mode = 'produc
   const script = getFrameScript();
   const listed = configuration.customShowcaseAdapters ?? {};
   const watched = new Set(Object.values(listed).flatMap((path) => _getModulePath(absoluteRoot, path) ?? []));
+
+  // Without trust, nothing is built or loaded
+  if (!trust) {
+    for (const showcase of host.showcases) {
+      checks.set(showcase.id, []);
+      shownIssues.set(showcase.id, []);
+      for (const path of showcase.include) watched.add(host.virtualFiles.find((file) => file.path === path)?.documentation ?? path);
+    }
+    return { frames, errors, warnings, shownIssues, checks, issues, watched: [...watched].sort() };
+  }
 
   // Load the custom showcase adapters
   const custom = await loadCustomShowcaseAdapters(root, listed);

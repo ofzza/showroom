@@ -4,16 +4,18 @@
  */
 
 import { createHash } from 'node:crypto';
+import { realpathSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { ShowcaseView } from '../../../host/index.js';
+import type { Showcase, ShowcaseView } from '../../../host/index.js';
 import { checkShowcaseViews, SHOWCASE_ADAPTER_NAME } from '../../../markdown/index.js';
 import { HtmlShowcaseAdapter } from '../html/index.js';
 import { AngularShowcaseAdapter } from '../angular/index.js';
 import type { ShowcaseAdapter, ShowcaseHostCheck } from '../index.js';
 import { ReactShowcaseAdapter } from '../react/index.js';
 import { TsShowcaseAdapter } from '../ts/index.js';
+import { getDocumentationFolder, resolvePackage } from '../ts/typecheck/index.js';
 
 // #region Built-in showcase adapters
 
@@ -193,6 +195,80 @@ export function checkHostCheckResult(result: unknown): ShowcaseHostCheck | { pro
   if (!isStrings(errors)) return { problem: '"errors" must be a list of strings' };
   if (!isStrings(warnings)) return { problem: '"warnings" must be a list of strings' };
   return { errors, warnings };
+}
+
+// #endregion
+
+// #region Trust
+
+/**
+ * Represents a tool from outside `showroom` that building a showcase would load: a package resolved from the host repository
+ */
+export interface TrustTool {
+  /**
+   * Name of the package (e.g. `typescript`)
+   */
+  name: string;
+  /**
+   * Absolute real path of the package's folder
+   */
+  path: string;
+}
+
+/**
+ * Names of the CSS preprocessors the bundler loads from the host repository when a showcase imports a stylesheet of their kind
+ */
+export const CSS_PREPROCESSORS: readonly string[] = ['sass', 'sass-embedded', 'less', 'stylus'];
+
+/**
+ * Gets the tools from outside `showroom` that a built-in showcase adapter's host check and builds would load, resolved from each documentation
+ * file's folder without loading anything: for the `ts` and `react` showcase adapters, TypeScript where showcases type check, and the CSS
+ * preprocessors; for the `angular` showcase adapter, Angular's compiler, its TypeScript, and the CSS preprocessors; nothing for the `html` showcase
+ * adapter, or for any other. Internal: the trust request's hook, never part of the showcase adapter interface.
+ * @param name Name of the built-in showcase adapter
+ * @param root Absolute path of the host repository's root
+ * @param showcases Its showcases whose validation passed, with their validated options
+ * @param resolver Resolves a package from a folder (see resolvePackage()); the tests replace it
+ * @returns The tools, by real path, without duplicates, sorted by name then path
+ */
+export function getTrustTools(
+  name: string,
+  root: string,
+  showcases: readonly Showcase[],
+  resolver: (folder: string, name: string) => string | undefined = resolvePackage,
+): TrustTool[] {
+  if (name !== 'ts' && name !== 'react' && name !== 'angular') return [];
+  const tools = new Map<string, TrustTool>();
+  const add = (tool: string, folder: string | undefined) => {
+    if (folder === undefined) return;
+    const path = _realPath(folder);
+    tools.set(`${tool}\0${path}`, { name: tool, path });
+  };
+  for (const showcase of showcases) {
+    const folder = resolve(root, getDocumentationFolder(showcase.documentation));
+    if (name === 'angular') {
+      const compilerCli = resolver(folder, '@angular/compiler-cli');
+      add('@angular/compiler-cli', compilerCli);
+      if (compilerCli !== undefined) add('typescript', resolver(compilerCli, 'typescript'));
+    } else if ((showcase.options as { typeCheck?: unknown } | undefined)?.typeCheck !== false) {
+      add('typescript', resolver(folder, 'typescript'));
+    }
+    for (const preprocessor of CSS_PREPROCESSORS) add(preprocessor, resolver(folder, preprocessor));
+  }
+  return [...tools.values()].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+}
+
+/**
+ * Gets the real path of a path, following symbolic links
+ * @param path The path
+ * @returns Its real path, or the path itself if it can't be resolved
+ */
+function _realPath(path: string): string {
+  try {
+    return realpathSync(path);
+  } catch (_err) {
+    return path;
+  }
 }
 
 // #endregion

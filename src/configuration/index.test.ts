@@ -142,6 +142,8 @@ describe('configuration', () => {
         { title: 'Labelled', path: 'docs/*.md' },
         { path: '!docs/a.md' },
         { title: 'Nested', items: [{ path: 'a.md' }, { title: 'Deeper', items: [{ path: 3 }] }] },
+        { title: 'Script', path: 'JavaScript:alert(1)' },
+        { title: 'Data', path: 'data:text/html,<p>hi</p>' },
       ];
       expect(validateConfiguration({ stack: 'typescript', navigation }).errors).toEqual([
         'showroom.json: "navigation" item 1: must be an object',
@@ -156,7 +158,14 @@ describe('configuration', () => {
         'showroom.json: "navigation" item 10: a pattern takes no "title": each documentation file it matches is labelled by its first heading',
         'showroom.json: "navigation" item 11: "path" can\'t be negated ("!")',
         'showroom.json: "navigation" item 12.2.1: "path" must be a non-empty string',
+        'showroom.json: "navigation" item 13: a URL must be "http:", "https:", "mailto:" or protocol-relative ("//")',
+        'showroom.json: "navigation" item 14: a URL must be "http:", "https:", "mailto:" or protocol-relative ("//")',
       ]);
+    });
+
+    it("Accepts a navigation item's URL of an allowed scheme, in any case, or protocol-relative", () => {
+      const navigation = ['HTTPS://example.com', 'http://example.com', 'mailto:a@example.com', '//example.com/a'].map((path) => ({ title: 'URL', path }));
+      expect(validateConfiguration({ stack: 'typescript', navigation }).errors).toEqual([]);
     });
   });
 

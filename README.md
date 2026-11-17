@@ -16,6 +16,7 @@ Jump to section:
 - [Quick start](#quick-start)
 - [Usage](#usage)
   - [How it works](#how-it-works)
+  - [Trust](#trust)
   - [Configuration: `showroom.json`](#configuration-showroomjson)
   - [Patterns](#patterns)
   - [Documentation files](#documentation-files)
@@ -86,16 +87,16 @@ In a TypeScript or JavaScript repository with a `package.json`:
 
    On GitHub or npm, it is still an ordinary, highlighted code block; in the showroom, the button runs in its showcase frame, its code a click away.
 
-4. Preview the showroom, and keep it open while you write: it updates as you edit.
+4. Preview the showroom, and keep it open while you write: it updates as you edit. `--trust` lets `showroom` run your repository's code, its showcases included; without it, every showcase shows its source (see [Trust](#trust)).
 
    ```sh
-   $ npx showroom serve
+   $ npx showroom serve --trust
    ```
 
 5. Build it, as static files, into `./showroom/` (add that folder to your `.gitignore`), and publish it, e.g. [to GitHub Pages](#publishing-to-github-pages):
 
    ```sh
-   $ npx showroom build
+   $ npx showroom build --trust
    ```
 
 Then read on: [Showcases](#showcases) for what else a showcase can be (TypeScript, React, Angular, or your own), and [Configuration](#configuration-showroomjson) for what `showroom.json` can set.
@@ -128,7 +129,41 @@ host information
 - **Showcase adapter**: an implementation of the common interface for building showcase frames for one kind of code (HTML, TypeScript, React, Angular, or the host repository's own), chosen per showcase by its marker.
 - **Showcase frame**: the page that renders one showcase, in isolation, embedded in the showroom with an iframe.
 
-The command line is `showroom <command> [options]`, with three commands, [`check`](#showroom-check), [`serve`](#showroom-serve) and [`build`](#showroom-build). `showroom --help` writes its usage to `stdout`. A missing or unknown command, an unknown option, an option the command doesn't take (e.g. `--port` with `check`), or a `--port` that isn't a whole number from 1 to 65535 writes what is wrong, and the usage, to `stderr`, and exits with `1`.
+The command line is `showroom <command> [options]`, with three commands, [`check`](#showroom-check), [`serve`](#showroom-serve) and [`build`](#showroom-build). `showroom --help` writes its usage to `stdout`. A missing or unknown command, an unknown option, an option the command doesn't take (e.g. `--port` with `check`), a `--port` that isn't a whole number from 1 to 65535, or `--trust` with `--no-trust` writes what is wrong, and the usage, to `stderr`, and exits with `1`.
+
+## Trust
+
+A host repository's showcases, its custom showcase adapters and the tools its showcases are built with are its code. `showroom` runs that code only when **you trust the host repository**, by passing `--trust` to any command. Trusting a host repository means running its code on your machine, with your rights: trust isn't a sandbox, it only decides whether the code runs. Under trust, `showroom`:
+
+- loads the [custom showcase adapters](#custom-showcase-adapters-experimental) `showroom.json` lists, which every command does;
+- runs the showcase adapters' host checks, and loads the host's own tools from the host repository: its TypeScript, to type check `ts` and `react` showcases; Angular's compiler (with its Linker and Babel) and its TypeScript, for `angular` showcases; and a CSS preprocessor (`sass`, `sass-embedded`, `less`, `stylus`), when a showcase imports a stylesheet of its kind;
+- builds every showcase, `html` included, into its showcase frame, whose code runs in the browser, on the showroom's origin.
+
+Without trust (neither flag, or `--no-trust`), none of it runs. `showroom` reads `showroom.json` and the documentation files, checks the links, the linked files, and the showcases' markers and the built-in showcase adapters' options, and builds no showcase:
+
+- Every showcase shows its source: its `source` view, and its `markdown` view where it has one, in place of its other views. Its header bar shows "Source only: not trusted" in place of its [status marks](#status-marks-and-issues), with an (i) icon whose tooltip says why. A `view=none` showcase stays hidden, and a linked showcase shown inline stays a link, its showcase sidebar showing its tabs.
+- `check` warns about each custom showcase adapter it didn't load and each host check it didn't run, naming how many showcases they have; `check --showcases`, `serve` and `build` warn once that the showcases weren't built, and once about the custom showcase adapters not loaded. None of them fails for lack of trust: `build` publishes a showroom of the showcases' sources.
+- `serve` sends the linked files a browser would run (`.html`, `.htm`, `.svg`, `.xml`, `.xhtml`) as plain text, so opening one shows its source.
+
+When the host repository has something to trust (a showcase, or a custom showcase adapter) and neither flag is given, `showroom` warns that it runs without trust, and how to allow it; `--no-trust` runs without trust, without that warning (e.g. in scripts). Trust is decided once per command: `serve` keeps it for its whole session, and one that started with nothing to trust warns to restart it with `--trust` once a showcase appears. Nothing in the host repository can trust itself: no setting in `showroom.json`, and no environment variable.
+
+### Reading a repository you don't trust
+
+Trust protects you from a host repository only while `showroom` comes from outside it. A `showroom` the repository installs itself (as a devDependency, or through `npx showroom` run inside it, which prefers the repository's own `node_modules/.bin/showroom`), its `.npmrc` and its npm scripts are the repository's code already. To read a repository you don't trust, don't install its dependencies, and run a `showroom` of your own from outside it, without `--trust`:
+
+```sh
+$ cd ~ && npx --yes @ofzza/showroom serve --root ./path/to/their-repository
+```
+
+### Trust in CI
+
+A trusted `showroom` in CI runs the host repository's code with the job's access:
+
+- keep secrets out of the step's environment, and check out with `actions/checkout`'s `persist-credentials: false`, or the job's token stays readable in `.git/config`;
+- never pass `--trust` in a workflow run by `pull_request_target`, or for pull requests from forks: it would run their code with the repository's access;
+- build in a job of its own that can only read the repository (`contents: read`), and deploy what it built from another job, as in [Publishing to GitHub Pages](#publishing-to-github-pages).
+
+A published showroom is its owner's site, visited as any other: `build` copies the linked files as they are (static hosting sends no headers), so a linked HTML page runs when opened, and a showroom on GitHub Pages (`https://<user>.github.io/<repo>/`) shares its origin with its owner's other project pages.
 
 ## Configuration: `showroom.json`
 
@@ -204,7 +239,7 @@ With `navigation`, the showroom shows yours instead: a list of items, each a pag
 - A **page** has a `path`, and an optional `title`, its label; without one, it is labelled by its documentation file's first heading, or its path when it has none. Its `path` is one of:
   - a documentation file's path, relative to the host repository's root, matched as the showroom's addresses are (regardless of case, a leading `./` dropped), optionally followed by `#<heading id>` to open the page at that heading (the ids are the ones GitHub gives headings);
   - `/`, the home page, as is the root `README`'s path, also with a `#<heading id>` (e.g. `/#install`); without a `title`, it is labelled by the root `README`'s first heading, or else the project's name;
-  - an absolute URL (e.g. `https://…`), opened in a new tab; it needs a `title`;
+  - an absolute URL, `http:`, `https:` or `mailto:` (e.g. `https://…`), or protocol-relative (`//…`), opened in a new tab; it needs a `title`;
   - a [pattern](#patterns), e.g. `examples/*/README.md` (a path holding `*`, `?` or `[`), standing for a page per documentation file it matches, in path order, each labelled by its first heading (a pattern takes no `title`). It skips the files the navigation lists anywhere else by their path, and the files an earlier pattern took, so it means "the rest of these". A `#<heading id>` after a pattern applies to every page it matches.
 
   A `path` can't start with `!`: unlike the other patterns, the navigation's only add pages.
@@ -215,14 +250,14 @@ A documentation file can be listed more than once, under different anchors: e.g.
 
 `showroom check` reports the navigation's issues:
 
-| Case                                                                                                                                                                                                              | Issue                                                                                     |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| An invalid item: e.g. an unknown key, both a `path` and `items`, a group with no `title` or no `items`, an empty `title` or `path`, a URL without a `title`, a pattern with a `title`, a `path` starting with `!` | error, naming its position, e.g. `"navigation" item 2.1` for the first item of the second |
-| A path that leads to no documentation file                                                                                                                                                                        | error                                                                                     |
-| A documentation file the navigation doesn't list                                                                                                                                                                  | warning, about that file                                                                  |
-| A pattern that matches no documentation file the navigation doesn't already list                                                                                                                                  | warning                                                                                   |
-| The same page listed twice with the same anchor, or twice without one                                                                                                                                             | warning                                                                                   |
-| An anchor that leads to no heading of its file                                                                                                                                                                    | warning                                                                                   |
+| Case                                                                                                                                                                                                                                                        | Issue                                                                                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| An invalid item: e.g. an unknown key, both a `path` and `items`, a group with no `title` or no `items`, an empty `title` or `path`, a URL without a `title` or of another scheme (e.g. `javascript:`), a pattern with a `title`, a `path` starting with `!` | error, naming its position, e.g. `"navigation" item 2.1` for the first item of the second |
+| A path that leads to no documentation file                                                                                                                                                                                                                  | error                                                                                     |
+| A documentation file the navigation doesn't list                                                                                                                                                                                                            | warning, about that file                                                                  |
+| A pattern that matches no documentation file the navigation doesn't already list                                                                                                                                                                            | warning                                                                                   |
+| The same page listed twice with the same anchor, or twice without one                                                                                                                                                                                       | warning                                                                                   |
+| An anchor that leads to no heading of its file                                                                                                                                                                                                              | warning                                                                                   |
 
 ## Stack adapters
 
@@ -656,7 +691,7 @@ A host repository can bring its own showcase adapter: a JavaScript ES module (a 
 [My widget](./src/widget.js 'showcase=my-frames({ "size": 2 })')
 ```
 
-Names follow the marker's rules, and can't be a built-in showcase adapter's. Paths are relative to the host repository's root, inside it, to a `.js` or `.mjs` file. Every listed module is loaded by every `showroom check`, used or not, so each listed module runs the host repository's code; one that doesn't load, or doesn't implement the interface, is an error. Each module is loaded once per process, and once more whenever its content changes (in `serve`; the modules it imports are not loaded again), and its default export is called once per run (a `check`, then the showcases' build in `build`, `serve` or `check --showcases`; `serve` runs both again after every change), so every run gets a fresh showcase adapter object, closed at the end of that run.
+Names follow the marker's rules, and can't be a built-in showcase adapter's. Paths are relative to the host repository's root, inside it, to a `.js` or `.mjs` file. Under [trust](#trust), every listed module is loaded by every `showroom check`, used or not, so each listed module runs the host repository's code; one that doesn't load, or doesn't implement the interface, is an error. Without trust, none is loaded: its showcases aren't validated, and are shown as their source. Each module is loaded once per process, and once more whenever its content changes (in `serve`; the modules it imports are not loaded again), and its default export is called once per run (a `check`, then the showcases' build in `build`, `serve` or `check --showcases`; `serve` runs both again after every change), so every run gets a fresh showcase adapter object, closed at the end of that run.
 
 The sample below is TypeScript, for its types; `showroom` loads JavaScript, so compile such a module first, or write it in JavaScript with JSDoc types, as the `number-table` example's [module](./examples/number-table/number-table.js) does (`/** @import { ShowcaseAdapter } from '@ofzza/showroom' */`):
 
@@ -721,7 +756,7 @@ See the rest in the example:
 ### Developing a custom showcase adapter
 
 - **Try it in `serve`**: `npx showroom serve` loads the module, and loads it again whenever its content changes, then checks the host repository and builds every showcase again, so an edit to the module shows at once. The modules it imports aren't loaded again: restart `serve` after changing them. Changes to `showroom.json`, its `customShowcaseAdapters` included, apply without a restart.
-- **Check it as CI does**: `npx showroom check --showcases --quiet` builds every showcase in production mode, as `build` does, and fails on any error (e.g. `error: README.md:16: Showcase README.md#2 (README.md:14): <message>`); `serve` builds in development mode, and keeps serving whatever fails. Every `showroom check`, `--showcases` or not, loads every listed module, used or not, and runs `validate()` and the host check.
+- **Check it as CI does**: `npx showroom check --showcases --quiet --trust` builds every showcase in production mode, as `build` does, and fails on any error (e.g. `error: README.md:16: Showcase README.md#2 (README.md:14): <message>`); `serve` builds in development mode, and keeps serving whatever fails. Every `showroom check --trust`, `--showcases` or not, loads every listed module, used or not, and runs `validate()` and the host check.
 - **The loader's errors**, reported against `showroom.json` as `Custom showcase adapter "<name>": <problem>`, where `<problem>` is one of:
   - `invalid name: use lower-case letters, digits and "-", starting with a letter`, or `the name is taken by a built-in showcase adapter`;
   - `"<path>" is outside the host repository`, `"<path>" must be a .js or .mjs file`, `"<path>" is not a file`, or `"<path>" not found`;
@@ -781,7 +816,7 @@ The showroom is the same in `showroom serve` and in what `showroom build` builds
 Checks the host repository in the current directory (or the one `--root` names):
 
 ```sh
-$ npx showroom check [--root <dir>] [--out-dir <dir>] [--showcases] [--quiet]
+$ npx showroom check [--root <dir>] [--out-dir <dir>] [--showcases] [--quiet] [--trust | --no-trust]
 ```
 
 - Every issue found goes to `stderr`, one per line, as `error: <path>: <message>` or `warning: <path>: <message>`, with the line (`<path>:<line>:`) when the issue concerns one, or as `error: <message>` when it concerns no file.
@@ -790,7 +825,9 @@ $ npx showroom check [--root <dir>] [--out-dir <dir>] [--showcases] [--quiet]
 
 `--out-dir` overrides `showroom.json`'s `outDir`, relative to the current directory (as `--root` is); `check` takes it so it skips the same files `build` would.
 
-`--showcases` also builds every showcase, as `showroom build` does, and throws the result away, once the rest of the check finds no errors. A showcase that doesn't build, or whose checks find errors, is an error, naming the showcase and its entry point, then the check, if it belongs to one (e.g. `error: README.md:16: Showcase README.md#2 (README.md:14): type check: <message>`), placed where the issue is. A build's warnings are reported the same way, as warnings. Without it, `check` builds nothing, so it stays fast; it still runs each showcase adapter's host check (e.g. that React is installed for `react` showcases), so the packages the showcases need must be installed for it to pass. Run `check --showcases` in CI to catch showcases that no longer build.
+`--trust` lets the host repository's code run, and `--no-trust` runs without it, without warning about it (see [Trust](#trust)): without trust, `check` loads no custom showcase adapter, runs no host check, and builds no showcase, even with `--showcases`.
+
+`--showcases` also builds every showcase, as `showroom build` does, and throws the result away, once the rest of the check finds no errors. A showcase that doesn't build, or whose checks find errors, is an error, naming the showcase and its entry point, then the check, if it belongs to one (e.g. `error: README.md:16: Showcase README.md#2 (README.md:14): type check: <message>`), placed where the issue is. A build's warnings are reported the same way, as warnings. Without it, `check` builds nothing, so it stays fast; under trust, it still runs each showcase adapter's host check (e.g. that React is installed for `react` showcases), so the packages the showcases need must be installed for it to pass. Run `check --showcases --trust` in CI to catch showcases that no longer build.
 
 Errors are:
 
@@ -807,7 +844,8 @@ Warnings are:
 - documentation files the [navigation](#navigation) leaves out, and its other warnings;
 - broken links and images;
 - [linked files](#linked-files) that aren't copied (in the output folder, or outside the host repository through a symbolic link);
-- a host check's warnings (e.g. a TypeScript 7, whose type checking is skipped).
+- a host check's warnings (e.g. a TypeScript 7, whose type checking is skipped);
+- without [trust](#trust), the custom showcase adapters not loaded, the host checks not run, or the showcases not built.
 
 A link (or reference definition, or image) in a Markdown documentation file is broken when its relative target, URL-decoded and without its query and fragment, leads outside the host repository, or to nothing on disk; links to fragments only, and absolute URLs, are not checked.
 
@@ -864,10 +902,10 @@ Paths are POSIX-style and relative to the host repository's root. Documentation 
 Serves the showroom of the host repository in the current directory (or the one `--root` names), for previewing it while writing its documentation:
 
 ```sh
-$ npx showroom serve [--root <dir>] [--port <port>] [--out-dir <dir>]
+$ npx showroom serve [--root <dir>] [--port <port>] [--out-dir <dir>] [--trust | --no-trust]
 ```
 
-- It checks the host repository first, as `showroom check` does. If the check fails, it writes the issues to `stderr` and exits with `1` without serving.
+- It checks the host repository first, as `showroom check` does, deciding [trust](#trust) for its whole session. If the check fails, it writes the issues to `stderr` and exits with `1` without serving. Without trust, it builds no showcase, and serves every showcase's source.
 - It then builds every showcase, in development mode, and writes the check's issues and the showcases' build errors and warnings to `stderr`. A showcase that doesn't build doesn't stop it: it shows "Not built", with its errors in its [status marks and issue list](#status-marks-and-issues), and every other showcase is shown as usual; one whose check finds errors (e.g. a type error) is served as built, beside its errors.
 - It then serves [the showroom](#the-showroom) with Vite's dev server on `--port` (default: `5173`, or the next free port), on `localhost` only, writing its URL to `stdout`, until you stop it with Ctrl+C. To look at the showroom from another device, `build` it, and serve its output folder over HTTP. The showcase frames are served from memory, and the [linked files](#linked-files) from the host repository, at the same paths `build` writes them to; nothing is written into the host repository.
 - It watches the host repository, skipping the files the `ignore` patterns skip, and the output folder (`--out-dir`, as for `check`). After any change it checks the host repository again and, when the check passes, builds every showcase again, then updates the page as the table below says. A failed check keeps showing the last good data.
@@ -892,12 +930,12 @@ Each run keeps Vite's cache in a fresh folder in the system's temporary folder, 
 Builds the showroom of the host repository in the current directory (or the one `--root` names) into its output folder, as static files:
 
 ```sh
-$ npx showroom build [--root <dir>] [--out-dir <dir>]
+$ npx showroom build [--root <dir>] [--out-dir <dir>] [--trust | --no-trust]
 ```
 
-- It checks the host repository first, as `showroom check` does, writing the issues to `stderr`. If the check fails, it exits with `1` without building.
+- It checks the host repository first, as `showroom check` does, writing the issues to `stderr`. If the check fails, it exits with `1` without building. Without [trust](#trust), it builds no showcase, and the showroom it publishes shows every showcase's source.
 - It then builds every showcase. If any doesn't build, it writes every build error to `stderr` (as `check --showcases` does), and exits with `1`, leaving the output folder untouched. The builds' warnings are written to `stderr` too, and don't fail it.
-- The output folder is `outDir` from `showroom.json` (default: `./showroom`), or `--out-dir`, relative to the current directory. It must be inside the host repository, and can't be its root.
+- The output folder is `outDir` from `showroom.json` (default: `./showroom`), or `--out-dir`, relative to the current directory. It must be inside the host repository, and can't be its root; `build` refuses one that is a symbolic link, or that leads outside the host repository through one.
 - **The output folder is emptied before every build.** To keep a mistyped `outDir` from deleting your files, every build writes a `.showroom` marker file into it, and `build` refuses (exiting with `1`) to empty a folder that isn't empty and holds no `.showroom` marker. A missing or empty folder, or one an earlier build marked, is fine.
 - It writes the output folder's path to `stdout` once built, and exits with `0`. Warnings from the check don't fail it.
 
@@ -905,7 +943,7 @@ The output is an `index.html`, its `assets/`, the showcase frames in `showcases/
 
 ## Publishing to GitHub Pages
 
-`showroom` only builds; publishing is up to the host repository. With `showroom` in its `devDependencies`, a GitHub Actions workflow like this one (e.g. `.github/workflows/showroom.yml`) builds and publishes the showroom on every push to `master`, once the repository's Settings › Pages › Source is set to "GitHub Actions":
+`showroom` only builds; publishing is up to the host repository. With `showroom` in its `devDependencies`, a GitHub Actions workflow like this one (e.g. `.github/workflows/showroom.yml`) builds and publishes the showroom on every push to `master`, once the repository's Settings › Pages › Source is set to "GitHub Actions". It builds with `--trust`, in a job that can only read the repository, and deploys from another (see [Trust in CI](#trust-in-ci)):
 
 ```yaml
 name: Showroom
@@ -917,31 +955,41 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run build --if-present
-      - run: npx showroom build
+      - run: npx showroom build --trust
       - uses: actions/upload-pages-artifact@v5
         with:
           path: showroom
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v5
 ```
@@ -950,13 +998,14 @@ jobs:
 - If you configured another `outDir`, change the artifact's `path` to match.
 - `npm run build --if-present` builds the host's own package first, for showcases that import it by its name (through its `package.json`'s `exports`, pointing at its `dist/`); drop it if none does.
 - Without a lockfile (`package-lock.json`), drop `cache: npm`, and run `npm install` instead of `npm ci`.
-- Without `showroom` in `devDependencies`, run `npx --yes @ofzza/showroom build` instead of `npx showroom build`.
-- Run `npx showroom check --showcases --quiet` in your CI workflow too, so a showcase that no longer builds is caught before a push to `master` publishes.
+- Without `showroom` in `devDependencies`, run `npx --yes @ofzza/showroom build --trust` instead of `npx showroom build --trust`.
+- Run `npx showroom check --showcases --quiet --trust` in your CI workflow too, so a showcase that no longer builds is caught before a push to `master` publishes; check out with `persist-credentials: false` there too, and never with `--trust` for pull requests from forks (see [Trust in CI](#trust-in-ci)).
 
-This repository publishes its own showroom with [`.github/workflows/showroom.yml`](./.github/workflows/showroom.yml), this workflow but for two steps: its `npm ci` builds `showroom` already (its `prepare` script), so it has no build step, and it runs `node dist/cli/bin.js build`, as a package's own `bin` isn't linked into its own `node_modules`.
+This repository publishes its own showroom with [`.github/workflows/showroom.yml`](./.github/workflows/showroom.yml), this workflow but for two steps: its `npm ci` builds `showroom` already (its `prepare` script), so it has no build step, and it runs `node dist/cli/bin.js build --trust`, as a package's own `bin` isn't linked into its own `node_modules`.
 
 ## Troubleshooting
 
+- **Every showcase shows its source, "Source only: not trusted"**: `showroom` ran without [trust](#trust), so it ran none of the host repository's code. Pass `--trust` if you trust the repository; restart `serve` with it.
 - **A showcase shows "Not built"**: it didn't build (e.g. a syntax error, or an import that doesn't resolve). Its issue list says why, and so do `serve`'s `stderr` and `npx showroom check --showcases`. See [Status marks and issues](#status-marks-and-issues).
 - **TS2307, or TS2882, on a CSS or asset import**: TypeScript doesn't know what Vite bundles. Add `/// <reference types="vite/client" />` to a `.d.ts` file the tsconfig includes, or declarations of your own (e.g. `declare module '*.css';`), or turn `typeCheck` off. See [Type checking](#type-checking).
 - **TS7016 on a `.js` import**: a `.js` file without declarations, under `strict`. Give the showcase the `allowJs` option (`showcase=ts({ allowJs: true })`). See [Type checking](#type-checking).
@@ -972,12 +1021,21 @@ This repository publishes its own showroom with [`.github/workflows/showroom.yml
 Everything the command line does is also exported, except serving and building, which are only available through the command line and `main()`:
 
 ```ts
-import { check, readConfiguration, getStackAdapter, getStackAdapterNames, type CheckResult } from '@ofzza/showroom';
+import { check, readConfiguration, getStackAdapter, getStackAdapterNames, type CheckResult, type TrustRequest } from '@ofzza/showroom';
 
 // Checks a host repository, and collects its host information if the check passes
 const result: CheckResult = await check('./path/to/host');
-// The output folder can be overridden, as with --out-dir; showcases: true also builds every showcase, as with --showcases
-await check('./path/to/host', { outDir: './path/to/host/site', showcases: true });
+// The output folder can be overridden, as with --out-dir; showcases: true also builds every showcase, as with --showcases; trust: true lets the
+// host repository's code run, as with --trust
+await check('./path/to/host', { outDir: './path/to/host/site', showcases: true, trust: true });
+// Or decide it once the check knows what would run
+const decided = await check('./path/to/host', {
+  trust: async (request: TrustRequest) => {
+    console.log(request.customShowcaseAdapters, request.tools, request.showcases);
+    return false;
+  },
+});
+console.log(decided.trusted);
 if (result.passed) {
   console.log(result.host?.code);
 }
@@ -997,12 +1055,12 @@ const project = await adapter?.readProject('./path/to/host', configuration?.proj
 console.log(getStackAdapterNames(), project, errors);
 ```
 
-- `check(root, options?)`: checks a host repository and collects its host information; resolves to a `CheckResult` (`passed`, `host` when it passed, and `issues`, each with its `severity`, `message`, the `path` and `line` it concerns, if any, and the `check` a showcase's issue belongs to, if any, e.g. `type check`). `options` (`CheckOptions`) overrides the configuration: `outDir`, absolute or relative to the current directory; and `showcases: true` also builds every showcase, failing the check on any that doesn't build, or whose checks find errors.
+- `check(root, options?)`: checks a host repository and collects its host information; resolves to a `CheckResult` (`passed`, `host` when it passed, `issues`, each with its `severity`, `message`, the `path` and `line` it concerns, if any, and the `check` a showcase's issue belongs to, if any, e.g. `type check`, and `trusted`, whether the host repository's code was allowed to run). `options` (`CheckOptions`) overrides the configuration: `outDir`, absolute or relative to the current directory; `showcases: true` also builds every showcase, failing the check on any that doesn't build, or whose checks find errors; and `trust` decides whether the host repository's code runs (see [Trust](#trust)): `false` by default, `true`, or a function called at most once, only when the host repository has something to trust, after `showroom.json` is read and the documentation files scanned and before any of its code runs, with a `TrustRequest` (the custom showcase adapter modules, by name and real path; the tools a build would load, by package name and real path, including TypeScript, Angular's compiler and the CSS preprocessors resolvable from the host repository, as the bundler and its plugins may load more; and the number of showcases), resolving to the decision (a rejection means no trust).
 - `readConfiguration(root)` / `validateConfiguration(value)`: read and validate a `showroom.json`, resolving to either a `configuration` or `errors`.
 - `getStackAdapter(name)` / `getStackAdapterNames()`: look up the built-in stack adapters, which implement the `StackAdapter` interface; `TypeScriptStackAdapter` is the `typescript` one, and `DotNetStackAdapter` the `dotnet` one. `readProject(root, project?)` reads the project information, from the file `project` names (relative to `root`) or the stack adapter's default.
 - `main(args, output?)`: runs the command line with the given arguments, resolving to its exit code; `USAGE` is its help text.
 - Constants: `CONFIGURATION_FILE_NAME` (`showroom.json`), `DEFAULT_OUT_DIR` (`./showroom`), and `BUILT_IN_DOCUMENTATION` (the built-in documentation patterns).
-- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase` (with its `views` and `tabs`), `ShowcaseTab` (`source`, `markdown`, or an included `file`), `ShowcaseKind`, `ShowcaseDisplay`, `ShowcaseView` (`markdown`, `source`, `demo`, `console` or `none`), `VirtualFile` (with its fence's `offset`, and its `views` when it has no showcase adapter), `LinkedFile`, `NavigationItem` (the resolved navigation, `HostInformation.navigation`), `Configuration`, `NavigationEntry` (an item of its `navigation`), `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity` and `CliOutput`.
+- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase` (with its `views` and `tabs`), `ShowcaseTab` (`source`, `markdown`, or an included `file`), `ShowcaseKind`, `ShowcaseDisplay`, `ShowcaseView` (`markdown`, `source`, `demo`, `console` or `none`), `VirtualFile` (with its fence's `offset`, and its `views` when it has no showcase adapter), `LinkedFile`, `NavigationItem` (the resolved navigation, `HostInformation.navigation`), `Configuration`, `NavigationEntry` (an item of its `navigation`), `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity`, `TrustRequest` and `CliOutput`.
 - Experimental types, for [custom showcase adapters](#custom-showcase-adapters-experimental): `ShowcaseAdapter`, `ShowcaseValidation`, `ShowcaseHostCheck`, `ShowcaseBuildRequest`, `ShowcaseBuildResult`, `ShowcaseBuildFile` and `ShowcaseBuildIssue`.
 
 # Development

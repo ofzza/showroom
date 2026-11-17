@@ -3,12 +3,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { symlink, writeFile } from 'node:fs/promises';
+import { realpath, symlink, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LINKED_FILE_SIDEBAR_LIMIT } from '../../linked-files/index.js';
-import { copyFixture, createScratchFolder } from '../../testing/index.js';
-import { BUILT_IN_DOCUMENTATION, check } from './index.js';
+import { copyFixture, createCanaryHost, createScratchFolder } from '../../testing/index.js';
+import { BUILT_IN_DOCUMENTATION, check, checkHost, type TrustRequest } from './index.js';
 
 /**
  * Gets the path of a fixture host repository
@@ -159,6 +159,7 @@ describe('cli/check', () => {
         expect(await check(scratch.path)).toEqual({
           passed: false,
           issues: [{ severity: 'error', message: 'Project "../Other/Other.csproj" is outside the host repository', path: 'showroom.json' }],
+          trusted: false,
         });
       } finally {
         await scratch.remove();
@@ -231,10 +232,12 @@ describe('cli/check', () => {
       expect(await check(_fixture('out-dir-root'))).toEqual({
         passed: false,
         issues: [{ severity: 'error', message: `Output folder "./" is the host repository's root`, path: 'showroom.json' }],
+        trusted: false,
       });
       expect(await check(_fixture('out-dir-outside'))).toEqual({
         passed: false,
         issues: [{ severity: 'error', message: 'Output folder "../site" is outside the host repository', path: 'showroom.json' }],
+        trusted: false,
       });
     });
 
@@ -259,7 +262,7 @@ describe('cli/check', () => {
 
     it('Reports ts showcases in other languages, or with invalid options, and accepts every language of the ts showcase adapter', async () => {
       // The showcase-ts-invalid fixture: tsx, html, jsx and cjs entry points, invalid options, then one valid showcase per accepted language
-      const { passed, issues } = await check(_fixture('showcase-ts-invalid'));
+      const { passed, issues } = await check(_fixture('showcase-ts-invalid'), { trust: true });
       expect(passed).toBe(false);
       expect(issues.map(({ path, line, message }) => `${path}:${line}: ${message}`)).toEqual([
         'README.md:3: The ts showcase adapter needs a "ts", "js", "mts" or "mjs" code block; for tsx and jsx, use the react showcase adapter',
@@ -272,7 +275,7 @@ describe('cli/check', () => {
     });
 
     it('Collects the showcases, with the options their showcase adapters validated', async () => {
-      const { passed, issues, host } = await check(_fixture('showcases'));
+      const { passed, issues, host } = await check(_fixture('showcases'), { trust: true });
       expect(passed).toBe(true);
       expect(issues).toEqual([]);
       expect(host?.showcases.map(({ id, line, kind, adapter, options, entry }) => ({ id, line, kind, adapter, options, entry }))).toEqual([
@@ -291,7 +294,7 @@ describe('cli/check', () => {
       // among them, and one named like the include key's keyword "source"), a documentation file, a code block showcase's entry point and another
       // folder's virtual file (on a custom showcase adapter, as an html showcase can't include outside its entry point's folder); named showcases
       // (greeting.html, docs/helper.js), included by name
-      const { passed, issues, host } = await check(_fixture('showcase-keys'));
+      const { passed, issues, host } = await check(_fixture('showcase-keys'), { trust: true });
       expect(issues).toEqual([]);
       expect(passed).toBe(true);
       expect(host?.showcases.map(({ id, kind, display, include }) => ({ id, kind, display, include }))).toEqual([
@@ -333,7 +336,7 @@ describe('cli/check', () => {
 
     it('Collects the virtual files, and parses Markdown documentation files only', async () => {
       // docs/notes.txt holds a broken marker, ignored as the file is plain text
-      const { host } = await check(_fixture('showcases'));
+      const { host } = await check(_fixture('showcases'), { trust: true });
       // Each offset is its fence's, in its documentation file
       for (const file of host!.virtualFiles) {
         expect(host!.documentation.find(({ path }) => path === file.documentation)!.content.slice(file.offset)).toMatch(/^```/);
@@ -354,7 +357,7 @@ describe('cli/check', () => {
     });
 
     it('Reports every broken showcase, with its documentation file and line', async () => {
-      const result = await check(_fixture('showcase-errors'));
+      const result = await check(_fixture('showcase-errors'), { trust: true });
       expect(result.passed).toBe(false);
       expect(result.host).toBeUndefined();
       expect(result.issues.map(({ path, line, message }) => `${path}:${line}: ${message}`)).toEqual([
@@ -383,12 +386,9 @@ describe('cli/check', () => {
         'errors/collisions.md:15: Virtual file "errors/collisions.showcase-1.html" collides with the virtual file at errors/collisions.md:12',
         // A named showcase's name against a later showcase's generated name, which counts the named one (D533, .workflow/SPEC-S12-showcase-views.md)
         'errors/collisions.md:21: Virtual file "errors/collisions.showcase-3.html" collides with the virtual file at errors/collisions.md:18',
-        // The custom showcase adapters
-        'showroom.json:undefined: Custom showcase adapter "broken": "./adapters/missing.js" not found',
-        // The showcases: unknown adapters, linked entry points, validation
-        'errors/adapters.md:3: Unknown showcase adapter "nope"; the showcase adapters are: angular, html, needy, react, throwing, ts',
-        'errors/adapters.md:12: needy takes no options',
-        'errors/adapters.md:15: Showcase adapter "throwing" failed to validate the showcase: validate broke',
+        // The showcases, before trust is decided: unknown adapters (the custom ones listed are known, loaded or not), linked entry points, the
+        // built-in showcase adapters' validation
+        'errors/adapters.md:3: Unknown showcase adapter "nope"; the showcase adapters are: angular, broken, html, needy, react, throwing, ts',
         `errors/entries.md:3: A linked showcase's entry point "errors/missing.html" not found`,
         `errors/entries.md:5: A linked showcase's entry point "errors/folder" is a folder`,
         'errors/entries.md:5: The html showcase adapter needs a link to an .html or .htm file, not "errors/folder"',
@@ -398,6 +398,10 @@ describe('cli/check', () => {
         'errors/html.md:8: The html showcase adapter takes no options',
         `errors/keys.md:12: The html showcase adapter can't include "README.md": it must be inside the entry point's folder ("errors")`,
         `errors/keys.md:14: The html showcase adapter can't include "errors/Index.html": it would replace the showcase frame's page`,
+        // Once trusted, the custom showcase adapters, loaded, then their showcases' validation
+        'showroom.json:undefined: Custom showcase adapter "broken": "./adapters/missing.js" not found',
+        'errors/adapters.md:12: needy takes no options',
+        'errors/adapters.md:15: Showcase adapter "throwing" failed to validate the showcase: validate broke',
         // The host requirements of the showcase adapters in use, and closing them
         // (needy's host check is given only the showcase whose validation passed)
         'undefined:undefined: Showcase adapter "needy": needs "left-pad" installed',
@@ -415,7 +419,7 @@ describe('cli/check', () => {
     });
 
     it('Loads every custom showcase adapter, used or not, reporting those that fail', async () => {
-      const result = await check(_fixture('showcase-adapters'));
+      const result = await check(_fixture('showcase-adapters'), { trust: true });
       expect(result.passed).toBe(false);
       expect(result.issues.map(({ path, message }) => `${path}: ${message}`)).toEqual([
         'showroom.json: Custom showcase adapter "html": the name is taken by a built-in showcase adapter',
@@ -433,7 +437,7 @@ describe('cli/check', () => {
 
     it("Gives each showcase its views: the marker's, or showroom.json's default for its showcase adapter, or the showcase adapter's own", async () => {
       // The showcase-views fixture sets html's and the custom bare showcase adapter's defaults in showroom.json; the custom plain one declares its own
-      const { passed, issues, host } = await check(_fixture('showcase-views'));
+      const { passed, issues, host } = await check(_fixture('showcase-views'), { trust: true });
       expect({ passed, issues }).toEqual({ passed: true, issues: [] });
       expect(host!.showcases.map(({ adapter, views }) => `${adapter}: ${views.join(',')}`)).toEqual([
         'html: source,demo',
@@ -458,7 +462,7 @@ describe('cli/check', () => {
     it('Reports every misused view, and default views for a showcase adapter there is not', async () => {
       // The showcase-views-errors fixture: one showcase per rule, and showroom.json naming an unknown showcase adapter and giving html "none"; its
       // inline link with "none" and included files is no error (line 21), as the showcase sidebar shows its tabs
-      const result = await check(_fixture('showcase-views-errors'));
+      const result = await check(_fixture('showcase-views-errors'), { trust: true });
       expect(result.passed).toBe(false);
       expect(result.issues.map(({ path, line, message }) => `${path}${line ? `:${line}` : ''}: ${message}`)).toEqual([
         'README.md:5: Unknown view "Demo"; the views are: markdown, source, demo, console, none, in showcase marker "showcase view=Demo"',
@@ -468,6 +472,103 @@ describe('cli/check', () => {
         'README.md:13: A showcase shown with the view "none" can\'t have "include=", as nothing would show its tabs',
         'README.md:17: A showcase shown with the view "none" can\'t have "include=", as nothing would show its tabs',
       ]);
+    });
+  });
+
+  describe('Trust', () => {
+    // Whether the host repository's code runs (D740, D748, D749 and D756 in .workflow/): on a canary host repository whose custom showcase
+    // adapter, `sass` package and PostCSS configuration record that they ran, and on the showcases fixture, without trust, with it, and with a
+    // function deciding it.
+
+    it("Runs nothing of the host repository without trust, and reports its showcases' views as resolved", async () => {
+      const host = await createCanaryHost();
+      try {
+        for (const options of [{}, { trust: false }, { showcases: true }]) {
+          const result = await check(host.path, options);
+          expect(result).toMatchObject({ passed: true, trusted: false });
+          // The custom showcase adapter's showcase gets the views of its marker, else showcaseViews', else demo (D754)
+          expect(result.host?.showcases.map(({ adapter, views }) => [adapter, views])).toEqual([
+            ['ts', ['source', 'console']],
+            ['html', ['demo']],
+            ['canary', ['demo']],
+          ]);
+        }
+        expect([host.ran('adapter'), host.ran('sass'), host.ran('postcss')]).toEqual([false, false, false]);
+        // The canary itself works
+        expect((await check(host.path, { trust: true })).trusted).toBe(true);
+        expect(host.ran('adapter')).toBe(true);
+      } finally {
+        await host.remove();
+      }
+    });
+
+    it('Warns by showcase adapter in a plain check, and about the showcases not built otherwise', async () => {
+      const host = await createCanaryHost();
+      try {
+        expect((await check(host.path)).issues).toEqual([
+          { severity: 'warning', message: `Custom showcase adapter "canary" not loaded, as the host repository isn't trusted (1 showcase)` },
+          { severity: 'warning', message: `Showcase adapter "ts": its host check didn't run, as the host repository isn't trusted (1 showcase)` },
+        ]);
+        const built = [
+          { severity: 'warning', message: `3 showcases not built, as the host repository isn't trusted; they are shown as their source` },
+          { severity: 'warning', message: `Custom showcase adapters not loaded, as the host repository isn't trusted: "canary"` },
+        ];
+        expect((await check(host.path, { showcases: true })).issues).toEqual(built);
+        // serve and build report them as not built, as they build the showcases themselves
+        expect((await checkHost(host.path, {}, 'build')).issues).toEqual(built);
+      } finally {
+        await host.remove();
+      }
+    });
+
+    it('Asks a function once, before anything of the host repository runs, with what would run, and follows its answer', async () => {
+      const host = await createCanaryHost();
+      try {
+        const requests: TrustRequest[] = [];
+        const ran: boolean[] = [];
+        const ask = (answer: boolean) => async (request: TrustRequest) => {
+          requests.push(request);
+          ran.push(host.ran('adapter'));
+          return answer;
+        };
+        expect((await check(host.path, { trust: ask(false) })).trusted).toBe(false);
+        expect(host.ran('adapter')).toBe(false);
+        expect((await check(host.path, { trust: ask(true), showcases: false })).trusted).toBe(true);
+        expect(host.ran('adapter')).toBe(true);
+        // Asked once per check, each time before the custom showcase adapter loaded (D722)
+        expect(ran).toEqual([false, false]);
+        const real = await realpath(host.path);
+        expect(requests[0]).toEqual({
+          customShowcaseAdapters: [{ name: 'canary', path: join(real, 'canary.js') }],
+          tools: expect.arrayContaining([{ name: 'sass', path: join(real, 'node_modules', 'sass') }]),
+          showcases: 3,
+        });
+        expect(requests[0].tools.map(({ name }) => name)).toEqual(['sass', 'typescript']);
+      } finally {
+        await host.remove();
+      }
+    });
+
+    it('Asks only when the host repository has a showcase, or lists a custom showcase adapter', async () => {
+      let asked = 0;
+      const ask = async () => (asked++, true);
+      expect(await check(_fixture('minimal'), { trust: ask })).toMatchObject({ passed: true, trusted: false });
+      expect(asked).toBe(0);
+      // An html showcase alone is something to trust too (D756)
+      expect((await check(_fixture('links'), { trust: ask })).trusted).toBe(true);
+      expect(asked).toBe(1);
+      // trust: true is trusted whatever there is
+      expect((await check(_fixture('minimal'), { trust: true })).trusted).toBe(true);
+    });
+
+    it('Runs without trust when the function rejects', async () => {
+      const host = await createCanaryHost();
+      try {
+        expect((await check(host.path, { trust: () => Promise.reject(new Error('Interrupted')) })).trusted).toBe(false);
+        expect(host.ran('adapter')).toBe(false);
+      } finally {
+        await host.remove();
+      }
     });
   });
 

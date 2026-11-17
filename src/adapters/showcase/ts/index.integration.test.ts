@@ -21,10 +21,10 @@ import { resolveTypeScript } from './typecheck/index.js';
  */
 async function _build(name: string, mode?: 'development' | 'production') {
   const root = join(FIXTURES, name);
-  const { host } = await check(root);
+  const { host } = await check(root, { trust: true });
   const { configuration } = await readConfiguration(root);
   if (!host || !configuration) throw new Error(`The fixture "${name}" doesn't pass the check`);
-  return buildShowcases({ root, host, configuration, mode });
+  return buildShowcases({ root, host, configuration, mode, trust: true });
 }
 
 /**
@@ -263,7 +263,7 @@ describe('adapters/showcase/ts (integration)', () => {
      */
     async function _buildCompiled(modules: Record<string, string>) {
       const root = join(FIXTURES, 'showcase-ts-defaults');
-      const { host } = await check(root);
+      const { host } = await check(root, { trust: true });
       if (!host) throw new Error("The fixture doesn't pass the check");
       const compiled = new Map(Object.entries(modules).map(([path, code]) => [resolve(root, path), code]));
       const transformed: Record<string, string> = {};

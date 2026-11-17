@@ -25,6 +25,23 @@ export function isNavigationUrl(path: string): boolean {
 }
 
 /**
+ * Schemes a navigation item's absolute URL may have; a protocol-relative URL is allowed too
+ */
+export const NAVIGATION_URL_SCHEMES: readonly string[] = ['http:', 'https:', 'mailto:'];
+
+/**
+ * Checks if a navigation item's absolute URL has an allowed scheme (see NAVIGATION_URL_SCHEMES), case-insensitively, or is protocol-relative, so no
+ * item runs a script (`javascript:`) or opens a document of another kind (`data:`, `file:`)
+ * @param url The absolute URL
+ * @returns True if it is allowed
+ */
+export function isAllowedNavigationUrl(url: string): boolean {
+  if (url.startsWith('//')) return true;
+  const scheme = /^[a-z][a-z\d+.-]*:/i.exec(url)?.[0].toLowerCase();
+  return scheme !== undefined && NAVIGATION_URL_SCHEMES.includes(scheme);
+}
+
+/**
  * Checks if a navigation item's path is a `.gitignore`-style pattern, standing for every documentation file it matches (it holds `*`, `?` or `[`)
  * @param path Path of a navigation item, not an absolute URL
  * @returns True if the path is a pattern

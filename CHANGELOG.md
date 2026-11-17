@@ -4,6 +4,26 @@ All notable changes to `@ofzza/showroom`, by version as published to npm. This p
 
 ## Unreleased
 
+### Breaking changes
+
+- **`showroom` runs the host repository's code only when you trust it**: pass `--trust` to `check`, `serve` or `build` (or `trust: true` to `check()`). Without it, no custom showcase adapter is loaded, no host check runs, no tool is loaded from the host repository (its TypeScript, Angular's compiler, a CSS preprocessor), and no showcase is built, `html` included: every showcase shows its source, with a notice in place of its status marks, `check`, `serve` and `build` warn, and `build` publishes a showroom of the sources. Add `--trust` where you build or check your own repository, e.g. in CI (see README.md › Trust in CI, whose GitHub Pages recipe now builds and deploys in two jobs).
+
+### Added
+
+- **`--trust` and `--no-trust`** on every command; `--no-trust` runs without trust, without warning about it.
+- **`CheckOptions.trust`** (`false` by default, `true`, or a function given a `TrustRequest`, the new type naming what would run), and **`CheckResult.trusted`**.
+
+### Changed
+
+- **`serve` sends linked files with `X-Content-Type-Options: nosniff`**, and without trust, linked `.html`, `.htm`, `.svg`, `.xml` and `.xhtml` files as plain text.
+- **A navigation item's URL must be `http:`, `https:`, `mailto:` or protocol-relative**: any other scheme (e.g. `javascript:`) is an error.
+- **`build` refuses an output folder that is a symbolic link**, or that leads outside the host repository through one.
+- **The showroom's own Vite reads no PostCSS configuration, `.env` files or public folder**, which it looked for from its folder up, inside the host repository when `showroom` is installed in it.
+
+### Fixed
+
+- **A project name holding `$&` or `$'`** no longer garbles the showroom page's title.
+
 ## 0.1.0-alpha.2 (2026-11-16)
 
 ### Breaking changes

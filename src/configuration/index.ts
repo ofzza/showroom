@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ShowcaseView } from '../host/index.js';
 import { checkShowcaseViews } from '../markdown/index.js';
-import { isNavigationGlob, isNavigationUrl } from '../navigation/index.js';
+import { NAVIGATION_URL_SCHEMES, isAllowedNavigationUrl, isNavigationGlob, isNavigationUrl } from '../navigation/index.js';
 
 // #region Configuration
 
@@ -65,7 +65,7 @@ export interface Configuration {
 
 /**
  * Represents an item of `showroom.json`'s `navigation`: a page, by its `path` (a documentation file's path, optionally followed by
- * `#<heading id>`; `/` for the home page; an absolute URL; or a `.gitignore`-style pattern standing for every documentation file it matches),
+ * `#<heading id>`; `/` for the home page; an absolute URL, `http:`, `https:`, `mailto:` or protocol-relative; or a `.gitignore`-style pattern standing for every documentation file it matches),
  * labelled by its `title` or else by its documentation file's first heading; or a group of items, captioned by its `title`
  */
 export type NavigationEntry = { title?: string; path: string; items?: undefined } | { title: string; items: NavigationEntry[]; path?: undefined };
@@ -173,7 +173,11 @@ function _checkNavigation(items: unknown[], position = ''): string[] {
     if (path.startsWith('!')) {
       problem('"path" can\'t be negated ("!")');
     } else if (isNavigationUrl(path)) {
-      if (title === undefined) problem('a URL needs a "title"');
+      if (!isAllowedNavigationUrl(path)) {
+        problem(`a URL must be ${NAVIGATION_URL_SCHEMES.map((scheme) => `"${scheme}"`).join(', ')} or protocol-relative ("//")`);
+      } else if (title === undefined) {
+        problem('a URL needs a "title"');
+      }
     } else if (isNavigationGlob(path)) {
       if (title !== undefined) problem('a pattern takes no "title": each documentation file it matches is labelled by its first heading');
     }

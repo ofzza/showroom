@@ -31,6 +31,7 @@ import {
   MARKDOWN_TAB_LABEL,
   getShownTabs,
   getTabFileHashes,
+  getUntrustedViews,
   getViteConfiguration,
 } from './index.js';
 
@@ -164,6 +165,7 @@ describe('vite', () => {
       showcases: [],
       virtualFiles: [],
       linkedFiles: _HOST.linkedFiles,
+      trusted: false,
     });
     // Nothing built: no URLs, checks or issues (D584)
     expect(shown.showcases.map(({ id, url, checks, issues }) => ({ id, url, checks, issues }))).toEqual([
@@ -178,7 +180,7 @@ describe('vite', () => {
   });
 
   it('Gets the shown showcases with their showcase frames, by URL-encoded relative URLs', () => {
-    expect(getShownHostInformation(_HOST, { frames: _FRAMES }).showcases).toEqual([
+    expect(getShownHostInformation(_HOST, { frames: _FRAMES, trusted: true }).showcases).toEqual([
       {
         id: 'README.md#1',
         documentation: 'README.md',
@@ -212,11 +214,37 @@ describe('vite', () => {
       },
     ]);
     // A showcase that doesn't build is shipped without a URL (D584)
-    const partial = getShownHostInformation(_HOST, { frames: new Map([['README.md#1', _FRAMES.get('README.md#1')!]]) }).showcases;
+    const partial = getShownHostInformation(_HOST, { frames: new Map([['README.md#1', _FRAMES.get('README.md#1')!]]), trusted: true }).showcases;
     expect(partial.map(({ id, url }) => [id, url !== undefined])).toEqual([
       ['README.md#1', true],
       ['my docs/a #1.md#2', false],
     ]);
+  });
+
+  it('Shows every showcase as its source without trust, with nothing built', () => {
+    const issue = { severity: 'error' as const, message: 'Broke', path: 'a.html' };
+    const shown = getShownHostInformation(_HOST, {
+      frames: _FRAMES,
+      checks: new Map([['README.md#1', ['type check']]]),
+      shownIssues: new Map([['README.md#1', [issue]]]),
+    });
+    expect(shown.trusted).toBe(false);
+    // D741 and D754 (.workflow/SPEC-S14-trust.md): no showcase frame, no checks, no issues, no build status mark, even when given
+    expect(shown.showcases.map(({ views, url, checks, issues, buildMark }) => ({ views, url, checks, issues, buildMark }))).toEqual([
+      { views: ['source'], url: undefined, checks: [], issues: [], buildMark: false },
+      { views: ['source'], url: undefined, checks: [], issues: [], buildMark: false },
+    ]);
+    expect(getShownHostInformation(_HOST, { frames: _FRAMES, trusted: true }).trusted).toBe(true);
+  });
+
+  it('Gets the views of a showcase without trust: its source, and its markdown where it has one', () => {
+    expect(getUntrustedViews(['demo'])).toEqual(['source']);
+    expect(getUntrustedViews(['demo', 'console'])).toEqual(['source']);
+    expect(getUntrustedViews(['source', 'console'])).toEqual(['source']);
+    expect(getUntrustedViews(['markdown', 'demo'])).toEqual(['markdown', 'source']);
+    expect(getUntrustedViews(['demo', 'markdown', 'source'])).toEqual(['source', 'markdown']);
+    expect(getUntrustedViews(['markdown'])).toEqual(['markdown']);
+    expect(getUntrustedViews(['none'])).toEqual(['none']);
   });
 
   it('Gives each shown showcase its checks and issues, by id', () => {
@@ -224,6 +252,7 @@ describe('vite', () => {
     const warning = { severity: 'warning' as const, message: 'Slow', path: 'demo.html' };
     const [first, second] = getShownHostInformation(_HOST, {
       frames: _FRAMES,
+      trusted: true,
       checks: new Map([['my docs/a #1.md#2', ['type check']]]),
       shownIssues: new Map([
         ['README.md#1', [warning]],
@@ -252,7 +281,7 @@ describe('vite', () => {
         { ..._HOST.showcases[1], documentation: 'README.md', display: 'block', offset: content.indexOf('[demo]'), views: ['console'] },
       ],
     };
-    const [source, console] = getShownHostInformation(host, { frames: _FRAMES }).showcases;
+    const [source, console] = getShownHostInformation(host, { frames: _FRAMES, trusted: true }).showcases;
     expect(source).toMatchObject({ views: ['source'], markdown: '```html showcase view=source\n<p>1</p>\n```' });
     // Its page is never loaded, so it has no URL (D574)
     expect(source).not.toHaveProperty('url');
@@ -270,7 +299,7 @@ describe('vite', () => {
           documentation: [{ path: 'README.md', kind: 'readme', extension: '.md', content }],
           showcases: [{ ..._HOST.showcases[1], documentation: 'README.md', display: 'inline', offset: content.indexOf('[demo]'), views }],
         },
-        { frames: _FRAMES },
+        { frames: _FRAMES, trusted: true },
       ).showcases[0];
     expect(shown(['none'])).not.toHaveProperty('url');
     expect(shown(['demo']).url).toMatch(/^showcases\/my%20docs\//);
@@ -341,7 +370,7 @@ describe('vite', () => {
       ['README.md#1', _FRAMES.get('README.md#1')!],
       ['my docs/a #1.md#2', _FRAMES.get('my docs/a #1.md#2')!],
     ]);
-    const [block, inline] = getShownHostInformation(host, { frames }).showcases;
+    const [block, inline] = getShownHostInformation(host, { frames, trusted: true }).showcases;
     expect(block.tabs.map(({ label }) => label)).toEqual(['HTML', 'a.css', MARKDOWN_TAB_LABEL]);
     expect(block.tabs[2]).toEqual({
       label: 'Markdown',
@@ -509,10 +538,14 @@ describe('vite', () => {
      * @param linkedFiles The linked files it serves
      * @returns The response's status, headers and body, or `next` if the request went on to Vite
      */
-    const request = (url: string, method = 'GET', linkedFiles = _LINKED) =>
+    const request = (url: string, method = 'GET', linkedFiles = _LINKED, trusted = true) =>
       new Promise<'next' | { statusCode: number; headers: Record<string, unknown>; body?: Buffer | string }>((resolve) => {
         const response = { statusCode: 0, headers: {} as Record<string, unknown>, body: undefined as Buffer | string | undefined };
-        createLinkedFilesMiddleware(_LINKED_ROOT, () => linkedFiles)(
+        createLinkedFilesMiddleware(
+          _LINKED_ROOT,
+          () => linkedFiles,
+          () => trusted,
+        )(
           { url, method } as IncomingMessage,
           {
             set statusCode(code: number) {
@@ -530,7 +563,7 @@ describe('vite', () => {
 
     it('Serves a linked file from the host repository, never cached', async () => {
       const code = await request('/files/src/index.ts?x=1');
-      expect(code).toMatchObject({ statusCode: 200, headers: { 'Cache-Control': 'no-store', 'Content-Length': 75 } });
+      expect(code).toMatchObject({ statusCode: 200, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Length': 75 } });
       expect(String((code as { body: Buffer }).body)).toBe(await readFile(join(_LINKED_ROOT, 'src', 'index.ts'), 'utf8'));
       expect(await request('/files/assets/logo.png')).toMatchObject({ statusCode: 200, headers: { 'Content-Type': 'image/png' } });
       expect(await request('/files/Makefile', 'HEAD')).toMatchObject({ statusCode: 200, body: undefined });
@@ -539,7 +572,22 @@ describe('vite', () => {
     it('Serves a text file whose extension says nothing as plain text', () => {
       expect(getLinkedFileContentType({ path: 'Makefile', size: 1, text: true })).toBe('text/plain; charset=utf-8');
       expect(getLinkedFileContentType({ path: 'data.bin', size: 1, text: false })).toBe('application/octet-stream');
-      expect(getLinkedFileContentType({ path: 'index.html', size: 1, text: true })).toBe('text/html; charset=utf-8');
+      expect(getLinkedFileContentType({ path: 'index.html', size: 1, text: true }, true)).toBe('text/html; charset=utf-8');
+    });
+
+    it('Serves a linked file of an active type as plain text without trust, so a new tab shows its source', async () => {
+      // D752 (.workflow/SPEC-S14-trust.md): without trust, no host code reaches the dev server's origin
+      for (const path of ['a.html', 'a.HTM', 'a.svg', 'a.xml', 'a.xhtml']) {
+        expect(getLinkedFileContentType({ path, size: 1, text: true })).toBe('text/plain; charset=utf-8');
+      }
+      for (const path of ['a.html', 'a.HTM', 'a.svg']) expect(getLinkedFileContentType({ path, size: 1, text: true }, true)).not.toMatch(/^text\/plain/);
+      expect(getLinkedFileContentType({ path: 'logo.png', size: 1, text: false })).toBe('image/png');
+      const demo = [{ path: 'demo/demo.html', size: 1, text: true }];
+      expect(await request('/files/demo/demo.html', 'GET', demo, false)).toMatchObject({
+        statusCode: 200,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Content-Type-Options': 'nosniff' },
+      });
+      expect(await request('/files/demo/demo.html', 'GET', demo, true)).toMatchObject({ headers: { 'Content-Type': 'text/html; charset=utf-8' } });
     });
 
     it("Answers anything else in the linked files' folder with a 404", async () => {
@@ -619,6 +667,13 @@ describe('vite', () => {
         '<head><title>my &lt;library&gt; &amp; &quot;co&quot;</title></head>',
       );
     });
+
+    it("Keeps replacement patterns in the project's name as text", () => {
+      // `$&` or `$'` in a replacement string would insert the matched title, or the page after it (D758 in .workflow/PLAN-P19-trust.md)
+      const name = "a $& b $' c $$";
+      const plugin = createHostPlugin(() => getShownHostInformation({ ..._HOST, project: { ..._HOST.project, name } }));
+      expect(_call(plugin, 'transformIndexHtml', '<title>showroom</title><p>x</p>')).toBe(`<title>a $&amp; b $' c $$</title><p>x</p>`);
+    });
   });
 
   it("Aliases React, React DOM and the scheduler, with their subpaths, to showroom's own copies", () => {
@@ -649,6 +704,9 @@ describe('vite', () => {
     const getHost = () => getShownHostInformation(_HOST);
     const configuration = getViteConfiguration({ appDir: '/app', cacheDir: '/cache', hostRoot: '/host', getHost });
     expect(configuration).toMatchObject({ configFile: false, root: '/app', base: './', cacheDir: '/cache', clearScreen: false, logLevel: 'warn' });
+    // Nothing Vite would otherwise look for from its root up, inside the host repository when showroom is installed in it (D746 in
+    // .workflow/PLAN-P19-trust.md): no PostCSS configuration, no .env files, no public folder
+    expect(configuration).toMatchObject({ css: { postcss: {} }, envDir: false, publicDir: false });
     expect((configuration.plugins as Plugin[]).map((plugin) => plugin.name)).toEqual(['showroom-host', 'showroom-showcase-frames', 'showroom-linked-files']);
     expect(configuration.resolve?.alias).toEqual(getReactAliases());
   });

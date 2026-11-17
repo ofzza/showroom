@@ -37,15 +37,15 @@ describe('cli/check (integration)', () => {
   // showcases; nothing is written to any of them. On this repository, it also renders the examples as the showroom does, for their heading ids.
 
   it('Passes with the host information when every showcase builds', async () => {
-    const plain = await check(join(FIXTURES, 'showcase-frames'));
-    const result = await check(join(FIXTURES, 'showcase-frames'), { showcases: true });
+    const plain = await check(join(FIXTURES, 'showcase-frames'), { trust: true });
+    const result = await check(join(FIXTURES, 'showcase-frames'), { showcases: true, trust: true });
     expect(result).toEqual(plain);
     expect(result.passed).toBe(true);
   });
 
   it('Fails without the host information when a showcase does not build, with each build error as an issue', async () => {
-    expect((await check(join(FIXTURES, 'showcase-build-errors'))).passed).toBe(true);
-    const result = await check(join(FIXTURES, 'showcase-build-errors'), { showcases: true });
+    expect((await check(join(FIXTURES, 'showcase-build-errors'), { trust: true })).passed).toBe(true);
+    const result = await check(join(FIXTURES, 'showcase-build-errors'), { showcases: true, trust: true });
     expect(result.passed).toBe(false);
     expect(result.host).toBeUndefined();
     expect(result.issues.map(({ path, line, message }) => `${path}:${line}: ${message}`)).toEqual([
@@ -65,7 +65,7 @@ describe('cli/check (integration)', () => {
   it("Passes on this repository, with README.md's and the showcase adapter examples' live showcases", async () => {
     // Guards this repository's own showroom (dogfooding): an edit that breaks one of README.md's live examples, or a showcase adapter example,
     // fails here. See AGENTS.md › Markers in this repository's own documentation files are live.
-    const result = await check(_ROOT, { showcases: true });
+    const result = await check(_ROOT, { showcases: true, trust: true });
     expect(result.issues).toEqual([]);
     const showcases = result.host!.showcases.filter((showcase) => showcase.documentation === 'README.md');
     expect(showcases[0]).toMatchObject({ kind: 'code-block', adapter: 'html', entry: 'README.showcase-1.html' });
@@ -86,7 +86,7 @@ describe('cli/check (integration)', () => {
   it('Links README.md only to headings the showcase adapter examples have, both relatively and in the published showroom', async () => {
     // Guards README.md's links into particular showcases of the examples (D317 in .workflow/PLAN-P8-examples.md): check warns about a link to a
     // missing file, but not about a missing heading, so a renamed heading would break them silently. The showroom's heading ids are GitHub's.
-    const { host } = await check(_ROOT);
+    const { host } = await check(_ROOT, { trust: true });
     const documentation = host!.documentation;
     const readme = documentation.find((file) => file.path === 'README.md')!.content;
     const relative = [...readme.matchAll(/\]\(\.\/(examples\/[^)#\s]+)#([^)\s]+)\)/g)].map(([, path, id]) => `${path}#${id}`);

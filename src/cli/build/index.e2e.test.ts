@@ -4,11 +4,11 @@
 
 import { existsSync } from 'node:fs';
 import { cp, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
-import { join, sep } from 'node:path';
+import { basename, dirname, join, sep } from 'node:path';
 import { afterEach, describe, expect, inject, it } from 'vitest';
 import { getFrameScript } from '../../frame/index.js';
 import { getShowcaseFrameHash } from '../../showcases/index.js';
-import { copyFixture, createScratchFolder, type ScratchFolder } from '../../testing/index.js';
+import { copyFixture, createCanaryHost, createScratchFolder, type ScratchFolder } from '../../testing/index.js';
 import { OUTPUT_FOLDER_MARKER, OUTPUT_FOLDER_MARKER_CONTENT, build } from './index.js';
 
 describe('cli/build (end to end)', () => {
@@ -32,18 +32,46 @@ describe('cli/build (end to end)', () => {
   /**
    * Runs build() on a host repository, capturing its output
    * @param root Path of the host repository's root
+   * @param trust True to trust the host repository (the default)
+   * @param appDir Folder of the showroom; the compiled one by default
    * @returns Exit code, and everything written to stdout and stderr
    */
-  async function run(root: string): Promise<{ code: number; stdout: string; stderr: string }> {
+  async function run(root: string, trust = true, appDir = inject('appDir')): Promise<{ code: number; stdout: string; stderr: string }> {
     let stdout = '';
     let stderr = '';
     const output = { stdout: (text: string) => void (stdout += text), stderr: (text: string) => void (stderr += text) };
-    const code = await build({ root, output, appDir: inject('appDir') });
+    const code = await build({ root, output, appDir, trust });
     return { code, stdout, stderr };
   }
 
   afterEach(async () => {
     await Promise.all(copies.splice(0).map((scratch) => scratch.remove()));
+  });
+
+  it("Builds a showroom of the showcases' sources without trust, running nothing of the host repository", async () => {
+    // D740, D742 and D746 (.workflow/): on a canary host repository, with the showroom copied under a PostCSS configuration recording that it ran,
+    // which Vite would find from its root up without the showroom's own `css.postcss`
+    const host = await createCanaryHost();
+    copies.push(host);
+    const app = await createScratchFolder('app-');
+    copies.push(app);
+    // The whole compiled folder, as the showroom's modules import their siblings
+    await cp(dirname(inject('appDir')), join(app.path, 'compiled'), { recursive: true });
+    await writeFile(
+      join(app.path, 'postcss.config.mjs'),
+      "import { writeFileSync } from 'node:fs';\nwriteFileSync(new URL('./ran-postcss', import.meta.url), '');\nexport default {};\n",
+    );
+    const { code, stderr } = await run(host.path, false, join(app.path, 'compiled', basename(inject('appDir'))));
+    expect(code).toBe(0);
+    expect(stderr).toBe(
+      `warning: 3 showcases not built, as the host repository isn't trusted; they are shown as their source\n` +
+        `warning: Custom showcase adapters not loaded, as the host repository isn't trusted: "canary"\n`,
+    );
+    expect([host.ran('adapter'), host.ran('sass'), host.ran('postcss'), existsSync(join(app.path, 'ran-postcss'))]).toEqual([false, false, false, false]);
+    const out = join(host.path, 'showroom');
+    expect(existsSync(join(out, 'showcases'))).toBe(false);
+    // Linked files are published as they are (D752)
+    expect(await readFile(join(out, 'files', 'page.html'), 'utf8')).toBe('<p>Linked</p>\n');
   });
 
   it('Builds the showroom with every showcase frame, placed by the shown host information', async () => {

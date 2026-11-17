@@ -4,10 +4,11 @@
 
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { check } from './check/index.js';
+import { check, type CheckOptions } from './check/index.js';
 import { formatIssues } from './check/internal/index.js';
 
-export * from './check/index.js';
+export { BUILT_IN_DOCUMENTATION, check } from './check/index.js';
+export type { CheckIssue, CheckIssueSeverity, CheckOptions, CheckResult, TrustRequest } from './check/index.js';
 
 // #region Usage
 
@@ -31,8 +32,20 @@ Options:
   --showcases      Also builds every showcase, throwing the result away (check only;
                    build always builds them)
   --quiet          Writes no host information to stdout, only the issues (check only)
+  --trust          Trusts the host repository: lets its code run on this machine, with
+                   your rights (its custom showcase adapters, its tools such as its
+                   TypeScript, and its showcases); without it, none of it runs, and
+                   every showcase is shown as its source
+  --no-trust       Runs without trust, without warning about it
   --help           Shows this help
 `;
+
+/**
+ * Warning written when the host repository has something to trust, and neither `--trust` nor `--no-trust` was given
+ */
+const _UNTRUSTED_WARNING =
+  "warning: The host repository isn't trusted, so none of its code runs, and its showcases are shown as their source; pass --trust to run its " +
+  'code on this machine (its custom showcase adapters, its tools and its showcases), or --no-trust to run without it, without this warning\n';
 
 /**
  * Represents the output streams the command line writes to
@@ -88,6 +101,19 @@ export async function main(args: string[], output: CliOutput = _processOutput())
     output.stderr(`--quiet only applies to check\n\n${USAGE}`);
     return 1;
   }
+  if (values.trust && values['no-trust']) {
+    output.stderr(`--trust and --no-trust can't be given together\n\n${USAGE}`);
+    return 1;
+  }
+  // Without either flag, a run without trust, warning how to allow it only when there is something to trust
+  const trust: NonNullable<CheckOptions['trust']> = values.trust
+    ? true
+    : values['no-trust']
+      ? false
+      : async () => {
+          output.stderr(_UNTRUSTED_WARNING);
+          return false;
+        };
 
   // Serve the showroom; Vite is only loaded here
   if (command === 'serve') {
@@ -97,7 +123,7 @@ export async function main(args: string[], output: CliOutput = _processOutput())
       return 1;
     }
     const { serve } = await import('./serve/index.js');
-    return serve({ root, port, outDir, output });
+    return serve({ root, port, outDir, output, trust });
   }
   if (values.port !== undefined) {
     output.stderr(`--port only applies to serve\n\n${USAGE}`);
@@ -107,11 +133,11 @@ export async function main(args: string[], output: CliOutput = _processOutput())
   // Build the showroom; Vite is only loaded here
   if (command === 'build') {
     const { build } = await import('./build/index.js');
-    return build({ root, outDir, output });
+    return build({ root, outDir, output, trust });
   }
 
   // Run the check
-  const result = await check(root, { outDir, ...(values.showcases ? { showcases: true } : {}) });
+  const result = await check(root, { outDir, trust, ...(values.showcases ? { showcases: true } : {}) });
   output.stderr(formatIssues(result.issues));
   if (result.host && !values.quiet) output.stdout(`${JSON.stringify(result.host, null, 2)}\n`);
   return result.passed ? 0 : 1;
@@ -142,6 +168,8 @@ function _parse(args: string[]) {
       port: { type: 'string' },
       showcases: { type: 'boolean' },
       quiet: { type: 'boolean' },
+      trust: { type: 'boolean' },
+      'no-trust': { type: 'boolean' },
       help: { type: 'boolean' },
     },
   });

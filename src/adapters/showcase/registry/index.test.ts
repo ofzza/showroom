@@ -2,10 +2,12 @@
  * Tests of the showcase adapter registry
  */
 
+import { realpathSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import type { Showcase } from '../../../host/index.js';
 import { copyFixture } from '../../../testing/index.js';
 import { HtmlShowcaseAdapter } from '../html/index.js';
 import { AngularShowcaseAdapter } from '../angular/index.js';
@@ -17,6 +19,7 @@ import {
   DEFAULT_SHOWCASE_VIEWS,
   getDefaultViews,
   getShowcaseAdapterNames,
+  getTrustTools,
   loadCustomShowcaseAdapters,
   PLANNED_SHOWCASE_ADAPTER_NAMES,
 } from './index.js';
@@ -148,5 +151,55 @@ describe('adapters/showcase/registry', () => {
     expect(problem({ errors: [1], warnings: [] })).toBe('"errors" must be a list of strings');
     expect(problem({ errors: [] })).toBe('"warnings" must be a list of strings');
     expect(problem({ errors: [], warnings: 'w' })).toBe('"warnings" must be a list of strings');
+  });
+
+  describe('getTrustTools', () => {
+    // The tools a trust request names for each built-in showcase adapter, resolved by a fake resolver answering from made-up folders (which have no
+    // real path, so they are named as given): a package is found for a folder only where the resolver knows it.
+
+    const root = join(process.cwd(), 'host');
+    const installed: Record<string, string[]> = {
+      [root]: ['typescript', 'sass', '@angular/compiler-cli'],
+      [join(root, 'docs')]: ['less'],
+      '/pkgs/@angular/compiler-cli': ['typescript'],
+    };
+    const resolver = (folder: string, name: string) => {
+      if (!installed[folder]?.includes(name)) return undefined;
+      return name === 'typescript' && folder.startsWith('/pkgs')
+        ? '/pkgs/angular-typescript'
+        : name.startsWith('@')
+          ? `/pkgs/${name}`
+          : `${folder}/node_modules/${name}`;
+    };
+    const showcase = (documentation: string, options?: object) => ({ documentation, ...(options ? { options } : {}) }) as Showcase;
+
+    it('Names TypeScript where showcases type check, and the CSS preprocessors, for the ts and react showcase adapters', () => {
+      expect(getTrustTools('ts', root, [showcase('README.md'), showcase('docs/guide.md'), showcase('README.md')], resolver)).toEqual([
+        { name: 'less', path: join(root, 'docs', 'node_modules', 'less') },
+        { name: 'sass', path: join(root, 'node_modules', 'sass') },
+        { name: 'typescript', path: join(root, 'node_modules', 'typescript') },
+      ]);
+      // No type check, no TypeScript
+      expect(getTrustTools('react', root, [showcase('README.md', { typeCheck: false })], resolver).map(({ name }) => name)).toEqual(['sass']);
+    });
+
+    it("Names Angular's compiler and its own TypeScript for the angular showcase adapter, whatever its type check", () => {
+      expect(getTrustTools('angular', root, [showcase('README.md', { typeCheck: false })], resolver)).toEqual([
+        { name: '@angular/compiler-cli', path: '/pkgs/@angular/compiler-cli' },
+        { name: 'sass', path: join(root, 'node_modules', 'sass') },
+        { name: 'typescript', path: '/pkgs/angular-typescript' },
+      ]);
+    });
+
+    it('Names nothing for the html showcase adapter, or any other', () => {
+      expect(getTrustTools('html', root, [showcase('README.md')], resolver)).toEqual([]);
+      expect(getTrustTools('needy', root, [showcase('README.md')], resolver)).toEqual([]);
+    });
+
+    it('Names a tool by its real path', () => {
+      // This repository's own TypeScript, as Node resolves it from here
+      const [typescript] = getTrustTools('ts', process.cwd(), [showcase('README.md')]).filter(({ name }) => name === 'typescript');
+      expect(typescript.path).toBe(realpathSync(join(process.cwd(), 'node_modules', 'typescript')));
+    });
   });
 });

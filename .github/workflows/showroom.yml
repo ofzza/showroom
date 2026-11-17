@@ -2,7 +2,8 @@ name: Showroom
 
 # Builds this repository's own showroom with `showroom` itself, and publishes it to GitHub Pages, on every push to
 # master (the latest release). Needs Settings › Pages › Source set to "GitHub Actions", and master allowed to deploy to
-# the github-pages environment (see PUBLISH.md)
+# the github-pages environment (see PUBLISH.md). The build trusts this repository (--trust), so it runs in a job of its
+# own that can only read it, with no token left behind, and the deployment in another (see README.md › Trust)
 on:
   push:
     branches: [master]
@@ -10,8 +11,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # One deployment at a time, and never cancel one in progress
 concurrency:
@@ -19,13 +18,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v7
         with:
@@ -37,11 +37,21 @@ jobs:
 
       # A package's own `bin` isn't linked into its own `node_modules`, so `npx showroom` doesn't resolve here: run the
       # command line just built instead
-      - run: node dist/cli/bin.js build
+      - run: node dist/cli/bin.js build --trust
 
       - uses: actions/upload-pages-artifact@v5
         with:
           path: showroom
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v5

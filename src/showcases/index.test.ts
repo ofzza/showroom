@@ -4,8 +4,12 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { check } from '../cli/check/index.js';
+import { readConfiguration } from '../configuration/index.js';
 import type { Showcase, VirtualFile } from '../host/index.js';
+import { createCanaryHost } from '../testing/index.js';
 import {
+  buildShowcases,
   checkBuildResult,
   getBuildIssue,
   getBuildShowcasesIssues,
@@ -34,7 +38,26 @@ const _CHARSET = '<meta charset="utf-8">';
 
 describe('showcases', () => {
   // Tests the functions `buildShowcases()` is made of on hand-written pages, results and errors; `buildShowcases()` itself is tested on fixtures by
-  // the integration tests, as it creates a temporary folder.
+  // the integration tests, as it creates a temporary folder, except without trust, when it creates nothing.
+
+  it('Builds and loads nothing without trust, and reports nothing', async () => {
+    // D740 (.workflow/SPEC-S14-trust.md): on a canary host repository, whose custom showcase adapter, sass and PostCSS configuration record running
+    const host = await createCanaryHost();
+    try {
+      const { host: information } = await check(host.path);
+      const { configuration } = await readConfiguration(host.path);
+      const result = await buildShowcases({ root: host.path, host: information!, configuration: configuration! });
+      expect([host.ran('adapter'), host.ran('sass'), host.ran('postcss')]).toEqual([false, false, false]);
+      expect(result.frames.size).toBe(0);
+      expect([result.errors.size, result.warnings, result.issues]).toEqual([0, [], []]);
+      expect([...result.checks.values()]).toEqual([[], [], []]);
+      expect([...result.shownIssues.values()]).toEqual([[], [], []]);
+      // Still watched: the custom showcase adapter module, and the included files
+      expect(result.watched).toEqual(['canary.js', 'style.scss']);
+    } finally {
+      await host.remove();
+    }
+  });
 
   describe('Showcase frame paths', () => {
     // Tests the showcase frame's folder in the output folder, and the URL the showroom loads it by, with its content's hash.

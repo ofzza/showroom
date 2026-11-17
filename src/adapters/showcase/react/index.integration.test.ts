@@ -17,10 +17,10 @@ import { FIXTURES } from '../../../testing/index.js';
  * @returns The outcome of buildShowcases()
  */
 async function _build(root: string, mode?: 'development' | 'production') {
-  const { host, issues } = await check(root);
+  const { host, issues } = await check(root, { trust: true });
   const { configuration } = await readConfiguration(root);
   if (!host || !configuration) throw new Error(`The host "${root}" doesn't pass the check: ${JSON.stringify(issues)}`);
-  return buildShowcases({ root, host, configuration, mode });
+  return buildShowcases({ root, host, configuration, mode, trust: true });
 }
 
 /**

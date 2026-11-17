@@ -117,6 +117,8 @@ describe('cli', () => {
       expect(USAGE).toMatch(/^ {2}--port <port> /m);
       expect(USAGE).toMatch(/^ {2}--showcases {6}/m);
       expect(USAGE).toMatch(/^ {2}--quiet {10}/m);
+      expect(USAGE).toMatch(/^ {2}--trust {10}/m);
+      expect(USAGE).toMatch(/^ {2}--no-trust {7}/m);
     });
 
     it('Fails on --quiet with serve and build, before either starts', async () => {
@@ -164,6 +166,48 @@ describe('cli', () => {
       const { code, stderr } = await _run(['build', '--port', '8080', '--root', _fixture('minimal')]);
       expect(code).toBe(1);
       expect(stderr).toBe(`--port only applies to serve\n\n${USAGE}`);
+    });
+  });
+
+  describe('Trust', () => {
+    // --trust and --no-trust (D699, D751 and D759 in .workflow/), and the warning of a run without either, on fixtures with and without showcases.
+
+    it('Fails on --trust with --no-trust, on every command, before it starts', async () => {
+      for (const command of ['check', 'serve', 'build']) {
+        const { code, stdout, stderr } = await _run([command, '--trust', '--no-trust', '--root', _fixture('minimal')]);
+        expect(code).toBe(1);
+        expect(stdout).toBe('');
+        expect(stderr).toBe(`--trust and --no-trust can't be given together\n\n${USAGE}`);
+      }
+    });
+
+    it('Warns how to allow the host repository to run without either flag, only when it has something to trust', async () => {
+      const { code, stderr } = await _run(['check', '--quiet', '--root', _fixture('links')]);
+      expect(code).toBe(0);
+      expect(stderr).toMatch(/^warning: The host repository isn't trusted, so none of its code runs.*pass --trust.*--no-trust/);
+      expect(stderr.match(/isn't trusted, so none/g)).toHaveLength(1);
+      // The minimal fixture has no showcase: nothing to trust, nothing to say
+      expect((await _run(['check', '--quiet', '--root', _fixture('minimal')])).stderr).toBe('');
+    });
+
+    it("Doesn't warn with either flag", async () => {
+      for (const flag of ['--trust', '--no-trust']) {
+        expect((await _run(['check', flag, '--quiet', '--root', _fixture('links')])).stderr).not.toMatch(/isn't trusted, so none/);
+      }
+    });
+
+    it('Passes the flags on to serve and build', async () => {
+      // The showcase-errors fixture's check fails after trust is decided, so neither starts anything
+      for (const command of ['serve', 'build']) {
+        const args = [command, '--root', _fixture('showcase-errors'), ...(command === 'serve' ? ['--port', '8080'] : [])];
+        const untrusted = await _run(args);
+        expect(untrusted.code).toBe(1);
+        expect(untrusted.stderr).toMatch(/^warning: The host repository isn't trusted/);
+        expect(untrusted.stderr).not.toMatch(/Custom showcase adapter "broken"/);
+        expect((await _run([...args, '--no-trust'])).stderr).not.toMatch(/isn't trusted, so none/);
+        // Trusted, its custom showcase adapters load, and their errors show
+        expect((await _run([...args, '--trust'])).stderr).toMatch(/Custom showcase adapter "broken"/);
+      }
     });
   });
 

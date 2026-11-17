@@ -3,11 +3,12 @@
  */
 
 import { afterEach, describe, expect, inject, it } from 'vitest';
-import { copyFixture, type ScratchFolder } from '../../testing/index.js';
+import { copyFixture, createCanaryHost, type ScratchFolder } from '../../testing/index.js';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ShownShowcase } from '../../app/host/index.js';
+import type { CheckOptions } from '../check/index.js';
 import { serve } from './index.js';
 
 /**
@@ -50,11 +51,12 @@ describe('cli/serve (serve)', () => {
 
   /**
    * Serves a copy of a fixture, until stopped (or the test ends)
-   * @param name Name of the fixture
+   * @param name Name of the fixture, or a scratch folder holding a host repository, removed after the test
+   * @param trust True to trust the host repository (the default), false to serve it without trust, or the function deciding it
    * @returns The running serve()
    */
-  async function start(name: string): Promise<_Served> {
-    const copy = await copyFixture(name);
+  async function start(name: string | ScratchFolder, trust: CheckOptions['trust'] = true): Promise<_Served> {
+    const copy = typeof name === 'string' ? await copyFixture(name) : name;
     copies.push(copy);
     const controller = new AbortController();
     let stderr = '';
@@ -67,6 +69,7 @@ describe('cli/serve (serve)', () => {
       appDir: inject('appDir'),
       signal: controller.signal,
       onListening: listening,
+      trust,
     });
     let stopped: Promise<number> | undefined;
     const served: _Served = {
@@ -103,6 +106,33 @@ describe('cli/serve (serve)', () => {
     const host = JSON.parse(/export default ([\s\S]*?);\s*export const issues/.exec(source)![1]) as { showcases: { id: string; url: string }[] };
     return Object.fromEntries(host.showcases.map(({ id, url }) => [id, url]));
   }
+
+  it("Serves the showcases' sources without trust, running nothing of the host repository, and linked pages as text", async () => {
+    // D721, D740 and D752 (.workflow/SPEC-S14-trust.md): on a canary host repository, whose code records that it ran
+    const host = await createCanaryHost();
+    let asked = 0;
+    const { url, stderr } = await start(host, async () => (asked++, false));
+    expect([host.ran('adapter'), host.ran('sass'), host.ran('postcss')]).toEqual([false, false, false]);
+    // Asked once, by the first check, for the whole session (D753)
+    expect(asked).toBe(1);
+    expect(stderr()).toMatch(/warning: 3 showcases not built, as the host repository isn't trusted/);
+    const shown = JSON.parse(/export default ([\s\S]*?);\s*export const issues/.exec(await fetchHostModule(url))![1]) as {
+      trusted: boolean;
+      showcases: ShownShowcase[];
+    };
+    expect(shown.trusted).toBe(false);
+    expect(shown.showcases.map(({ views, url: frame }) => ({ views, frame }))).toEqual([
+      { views: ['source'], frame: undefined },
+      { views: ['source'], frame: undefined },
+      { views: ['source'], frame: undefined },
+    ]);
+    // No showcase frame is served: Vite answers with the showroom's own page
+    expect(await (await fetch(new URL('showcases/README.md/2/index.html', url))).text()).not.toContain('<p>Hi</p>');
+    const page = await fetch(new URL('files/page.html', url));
+    expect(page.headers.get('content-type')).toBe('text/plain; charset=utf-8');
+    expect(page.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(await page.text()).toBe('<p>Linked</p>\n');
+  });
 
   it('Serves the showroom, and every showcase frame with its files, from memory, never cached', async () => {
     const { url } = await start('showcase-frames');
@@ -248,7 +278,10 @@ describe('cli/serve (serve)', () => {
     const code = await fetch(new URL('files/src/index.ts', url));
     expect(code.status).toBe(200);
     expect(code.headers.get('cache-control')).toBe('no-store');
+    expect(code.headers.get('x-content-type-options')).toBe('nosniff');
     expect(await code.text()).toContain('export function greet');
+    // Trusted, a linked page is sent as a page (D752 in .workflow/SPEC-S14-trust.md)
+    expect((await fetch(new URL('files/demo/demo.html', url))).headers.get('content-type')).toBe('text/html; charset=utf-8');
     // An ignored linked file, and a binary one
     expect(await (await fetch(new URL('files/vendor/data.json', url))).text()).toBe('{ "data": [1, 2, 3] }\n');
     expect((await fetch(new URL('files/assets/logo.png', url))).headers.get('content-type')).toBe('image/png');

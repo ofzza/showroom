@@ -3,8 +3,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { mkdir, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { copyFixture, createScratchFolder } from '../../testing/index.js';
 import type { CliOutput } from '../index.js';
 import {
   CHUNK_SIZE_WARNING_LIMIT,
@@ -55,6 +57,28 @@ describe('cli/build', () => {
       expect(await readOutputFolderState(join(root, 'unmarked'))).toBe('unmarked');
     });
 
+    it('Reads an output folder that is a symbolic link, or leads outside the root through one, as linked', async () => {
+      // D758 (.workflow/PLAN-P19-trust.md): build empties the output folder, which a repository you don't trust could point anywhere
+      const host = await copyFixture('output-folder');
+      const outside = await createScratchFolder('outside-');
+      try {
+        await mkdir(join(host.path, 'inside'));
+        await symlink(join(host.path, 'inside'), join(host.path, 'link'), 'dir');
+        await symlink(outside.path, join(host.path, 'away'), 'dir');
+        expect(await readOutputFolderState(join(host.path, 'link'), host.path)).toBe('linked');
+        expect(await readOutputFolderState(join(host.path, 'away', 'site'), host.path)).toBe('linked');
+        // Inside the root, existing or not
+        expect(await readOutputFolderState(join(host.path, 'inside'), host.path)).toBe('empty');
+        expect(await readOutputFolderState(join(host.path, 'inside', 'missing', 'site'), host.path)).toBe('missing');
+        const { output, written } = _capture();
+        expect(await build({ root: host.path, outDir: join(host.path, 'away'), output })).toBe(1);
+        expect(written.stderr).toMatch(/error: Output folder "away" is a symbolic link, or leads outside the host repository through one; choose another/);
+      } finally {
+        await host.remove();
+        await outside.remove();
+      }
+    });
+
     it('Reads a file in place of the output folder as unmarked', async () => {
       // A file can't be emptied as a folder, so it must never be deleted either
       expect(await readOutputFolderState(join(_fixture('output-folder'), 'README.md'))).toBe('unmarked');
@@ -72,7 +96,7 @@ describe('cli/build', () => {
       appDir: '/app',
       cacheDir: '/cache',
       hostRoot: '/host',
-      getHost: () => ({ project: { name: 'host' }, documentation: [], showcases: [], virtualFiles: [], linkedFiles: [] }),
+      getHost: () => ({ project: { name: 'host' }, documentation: [], showcases: [], virtualFiles: [], linkedFiles: [], trusted: true }),
       outDir: '/host/showroom',
     });
 

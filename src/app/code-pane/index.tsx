@@ -6,7 +6,7 @@
  * showcase shown inline, shown as a block in the showcase sidebar, its code pane always shown: below its views, or filling it while they are collapsed.
  */
 
-import { useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { createContext, useContext, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Button, makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
 import {
   CheckmarkCircle16Filled,
@@ -15,6 +15,7 @@ import {
   Code16Regular,
   Dismiss16Regular,
   DismissCircle16Filled,
+  Info16Regular,
   PanelRight16Regular,
   Warning16Filled,
 } from '@fluentui/react-icons';
@@ -120,13 +121,14 @@ export const SIDEBAR_VIEWS_BUTTON_LABELS: Record<SidebarViewsState, string> = {
 
 /**
  * Gets the state a block's code pane starts in: on a page, hidden; in the showcase sidebar, half (below the views, expanded), or filling it when
- * there are no views (`none`), which it then never leaves
+ * there are no views (`none`), which it then never leaves, or without trust, where its views only show its code again
  * @param views The block's views
  * @param sidebar True for a block in the showcase sidebar
+ * @param trusted True if the host repository is trusted
  * @returns The state it starts in
  */
-export function getInitialCodePaneState(views: readonly ShowcaseView[], sidebar: boolean): CodePaneState {
-  return !sidebar ? INITIAL_CODE_PANE_STATE : _showsNothing(views) ? 'sidebar' : 'half';
+export function getInitialCodePaneState(views: readonly ShowcaseView[], sidebar: boolean, trusted = true): CodePaneState {
+  return !sidebar ? INITIAL_CODE_PANE_STATE : _showsNothing(views) || !trusted ? 'sidebar' : 'half';
 }
 
 /**
@@ -356,6 +358,7 @@ const _useMarkStyles = makeStyles({
   passed: { color: tokens.colorPaletteGreenForeground1 },
   warning: { color: tokens.colorPaletteMarigoldForeground1 },
   error: { color: tokens.colorPaletteRedForeground1 },
+  info: { display: 'inline-flex', cursor: 'help' },
   list: {
     margin: '0',
     padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
@@ -467,6 +470,43 @@ function _StatusMarks({ showcase, console, expanded, listId, onToggle, onRuntime
           </Button>
         );
       })}
+    </div>
+  );
+}
+
+// #region Trust notice
+
+/**
+ * Context telling the blocks whether the host repository is trusted (the shown host information's `trusted`); trusted by default
+ */
+export const TrustedContext = createContext(true);
+
+/**
+ * Text of the notice a block's header bar shows in place of its status marks without trust
+ */
+export const TRUST_NOTICE_TEXT = 'Source only: not trusted';
+
+/**
+ * Tooltip of the trust notice's (i) icon, explaining it
+ */
+export const TRUST_NOTICE_TOOLTIP =
+  "Running this showcase would run the host repository's code, which showroom only does when the person running it trusts the repository " +
+  '(showroom --trust). Until then, the showcase shows its source.';
+
+/**
+ * Renders the trust notice, in place of the status marks without trust: its text, and an (i) icon whose tooltip explains it
+ * @returns The notice
+ */
+function _TrustNotice(): ReactNode {
+  const styles = _useMarkStyles();
+  return (
+    <div className={styles.marks}>
+      <span className={styles.mark} data-trust-notice="">
+        {TRUST_NOTICE_TEXT}
+        <span className={styles.info} title={TRUST_NOTICE_TOOLTIP} aria-label={TRUST_NOTICE_TOOLTIP} role="img" tabIndex={0}>
+          <Info16Regular aria-hidden="true" />
+        </span>
+      </span>
     </div>
   );
 }
@@ -589,21 +629,30 @@ export interface HeaderBarProps {
    * What sits at its right end (a block's cycling button, and in the showcase sidebar its close button), if anything
    */
   end?: ReactNode;
+  /**
+   * False without trust: the trust notice shows in place of the status marks; trusted if not given
+   */
+  trusted?: boolean;
 }
 
 /**
- * Renders a showcase's header bar, its status marks on its left and what is given at its right end, and its issue list under it while expanded
+ * Renders a showcase's header bar, its status marks (or without trust, the trust notice) on its left and what is given at its right end, and its
+ * issue list under it while expanded
  * @param props Properties of the component
  * @returns The header bar and the issue list
  */
-export function HeaderBar({ showcase, console, onRuntime, end }: HeaderBarProps): ReactNode {
+export function HeaderBar({ showcase, console, onRuntime, end, trusted = true }: HeaderBarProps): ReactNode {
   const styles = _useBarStyles();
   const listId = useId();
   const [expanded, toggle] = useIssueList(showcase.issues.length);
   return (
     <>
       <div className={styles.bar}>
-        <_StatusMarks showcase={showcase} console={console[0]} expanded={expanded} listId={listId} onToggle={toggle} onRuntime={onRuntime} />
+        {trusted ? (
+          <_StatusMarks showcase={showcase} console={console[0]} expanded={expanded} listId={listId} onToggle={toggle} onRuntime={onRuntime} />
+        ) : (
+          <_TrustNotice />
+        )}
         {end && <div className={styles.end}>{end}</div>}
       </div>
       {expanded && showcase.issues.length > 0 && <IssueList showcase={showcase} id={listId} />}
@@ -768,7 +817,8 @@ export function ShowcaseBlock({ showcase, documentation, initialState, initialCo
   const styles = _useStyles();
   const idPrefix = useId();
   const sidebar = onClose !== undefined;
-  const [state, setState] = useState<CodePaneState>(() => initialState ?? getInitialCodePaneState(showcase.views, sidebar));
+  const trusted = useContext(TrustedContext);
+  const [state, setState] = useState<CodePaneState>(() => initialState ?? getInitialCodePaneState(showcase.views, sidebar, trusted));
   // In the showcase sidebar, the code pane fills it in the sidebar state
   const fill = sidebar && state === 'sidebar';
   const [selected, setSelected] = useState(0);
@@ -880,6 +930,7 @@ export function ShowcaseBlock({ showcase, documentation, initialState, initialCo
             showcase={showcase}
             console={shared}
             onRuntime={onRuntime}
+            trusted={trusted}
             end={
               (cycling || hide || close) && (
                 <>

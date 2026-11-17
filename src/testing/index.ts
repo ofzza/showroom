@@ -6,7 +6,8 @@
 
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { cp, mkdir, mkdtemp, readdir, readFile, rename, rm, stat } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { cp, mkdir, mkdtemp, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
@@ -267,6 +268,68 @@ export async function copyFixture(name: string): Promise<ScratchFolder> {
   const scratch = await createScratchFolder(`${name}-`);
   await cp(join(FIXTURES, name), scratch.path, { recursive: true });
   return scratch;
+}
+
+/**
+ * Names of what a canary host repository records once it runs (see createCanaryHost())
+ */
+export type CanaryName = 'adapter' | 'sass' | 'postcss';
+
+/**
+ * Represents a canary host repository: a scratch host repository whose code records that it ran, to show that nothing of it runs without trust
+ */
+export interface CanaryHost extends ScratchFolder {
+  /**
+   * Checks if a part of it ran
+   * @param name The part: its custom showcase adapter module, its `sass` package, or its PostCSS configuration
+   * @returns True if it ran, at any time since the canary host was created
+   */
+  ran(name: CanaryName): boolean;
+}
+
+/**
+ * Creates a canary host repository in a scratch folder: a custom showcase adapter module (`canary`, used by a showcase), a stub `sass` package in its
+ * `node_modules`, and a `postcss.config.js`, each recording that it ran by writing a file `ran-<name>` into the root as it is loaded; and a `ts`
+ * showcase importing a `.scss` file, an `html` showcase and a linked `.html` file
+ * @returns The canary host repository
+ */
+export async function createCanaryHost(): Promise<CanaryHost> {
+  const scratch = await createScratchFolder('canary-');
+  const record = (name: CanaryName, path: string) =>
+    `import { writeFileSync } from 'node:fs';\nwriteFileSync(new URL('${path}ran-${name}', import.meta.url), '');\n`;
+  const files: Record<string, string> = {
+    'package.json': JSON.stringify({ name: 'canary', version: '1.0.0', type: 'module' }),
+    'showroom.json': JSON.stringify({ stack: 'typescript', sourceRoot: '.', customShowcaseAdapters: { canary: './canary.js' } }),
+    'canary.js': `${record('adapter', './')}export default () => ({ validate: () => ({ errors: [] }), build: async () => ({ reads: [] }) });\n`,
+    'postcss.config.js': `${record('postcss', './')}export default { plugins: [] };\n`,
+    'node_modules/sass/package.json': JSON.stringify({ name: 'sass', version: '1.0.0', type: 'module', main: 'index.js' }),
+    'node_modules/sass/index.js': record('sass', '../../'),
+    'style.scss': 'p { color: red; }\n',
+    'page.html': '<p>Linked</p>\n',
+    'README.md': [
+      '# Canary',
+      '',
+      '```ts showcase=ts include=style.scss',
+      "import './style.scss';",
+      '```',
+      '',
+      '```html showcase=html',
+      '<p>Hi</p>',
+      '```',
+      '',
+      '```html showcase=canary',
+      '<p>Canary</p>',
+      '```',
+      '',
+      'See [the page](page.html).',
+      '',
+    ].join('\n'),
+  };
+  for (const [path, content] of Object.entries(files)) {
+    await mkdir(join(scratch.path, path, '..'), { recursive: true });
+    await writeFile(join(scratch.path, path), content);
+  }
+  return { ...scratch, ran: (name) => existsSync(join(scratch.path, `ran-${name}`)) };
 }
 
 // #endregion

@@ -47,7 +47,7 @@ describe('cli (end to end)', () => {
 
     it('Writes the showcases and virtual files with the host information', async () => {
       const root = await copy('showcases');
-      const { code, stdout, stderr } = await _run(['check', '--root', root]);
+      const { code, stdout, stderr } = await _run(['check', '--trust', '--root', root]);
       expect(stderr).toBe('');
       expect(code).toBe(0);
       const host = JSON.parse(stdout);
@@ -71,7 +71,7 @@ describe('cli (end to end)', () => {
       await rm(join(root, 'demos', 'demo.html'));
       const readme = await readFile(join(root, 'README.md'), 'utf8');
       await writeFile(join(root, 'README.md'), readme.replace('```html showcase', '```html showcase=nope'));
-      const { code, stdout, stderr } = await _run(['check', '--root', root]);
+      const { code, stdout, stderr } = await _run(['check', '--trust', '--root', root]);
       expect(code).toBe(1);
       expect(stdout).toBe('');
       expect(stderr).toBe(
@@ -85,7 +85,7 @@ describe('cli (end to end)', () => {
 
     it('Reports every broken showcase on stderr', async () => {
       const root = await copy('showcase-errors');
-      const { code, stdout, stderr } = await _run(['check', '--root', root]);
+      const { code, stdout, stderr } = await _run(['check', '--trust', '--root', root]);
       expect(code).toBe(1);
       expect(stdout).toBe('');
       const lines = stderr.trimEnd().split('\n');
@@ -100,7 +100,7 @@ describe('cli (end to end)', () => {
 
     it('Warns about broken links and images on stderr, and passes', async () => {
       const root = await copy('links');
-      const { code, stdout, stderr } = await _run(['check', '--root', root]);
+      const { code, stdout, stderr } = await _run(['check', '--trust', '--root', root]);
       expect(code).toBe(0);
       expect(JSON.parse(stdout).project.name).toBe('links-host');
       expect(stderr).toBe(
@@ -119,7 +119,7 @@ describe('cli (end to end)', () => {
     it('Stops warning about a link once its target exists', async () => {
       const root = await copy('links');
       await writeFile(join(root, 'docs', 'missing.md'), '# Not missing any more\n');
-      const { stderr } = await _run(['check', '--root', root]);
+      const { stderr } = await _run(['check', '--trust', '--root', root]);
       expect(stderr).not.toContain('docs/missing.md');
     });
   });
@@ -129,7 +129,7 @@ describe('cli (end to end)', () => {
 
     it('Writes the host information when every showcase builds', async () => {
       const root = await copy('showcase-frames');
-      const { code, stdout, stderr } = await _run(['check', '--showcases', '--root', root]);
+      const { code, stdout, stderr } = await _run(['check', '--trust', '--showcases', '--root', root]);
       expect(stderr).toBe('');
       expect(code).toBe(0);
       expect(JSON.parse(stdout).showcases).toHaveLength(5);
@@ -137,7 +137,7 @@ describe('cli (end to end)', () => {
 
     it('Writes nothing to stdout with --quiet, as npm run ci runs it on this repository', async () => {
       const root = await copy('showcase-frames');
-      const { code, stdout, stderr } = await _run(['check', '--showcases', '--quiet', '--root', root]);
+      const { code, stdout, stderr } = await _run(['check', '--trust', '--showcases', '--quiet', '--root', root]);
       expect(code).toBe(0);
       expect(stdout).toBe('');
       expect(stderr).toBe('');
@@ -145,7 +145,7 @@ describe('cli (end to end)', () => {
 
     it('Reports every build issue on stderr, with its check, and fails', async () => {
       const root = await copy('showcase-build-errors');
-      const { code, stdout, stderr } = await _run(['check', '--showcases', '--root', root]);
+      const { code, stdout, stderr } = await _run(['check', '--trust', '--showcases', '--root', root]);
       expect(code).toBe(1);
       expect(stdout).toBe('');
       expect(stderr).toBe(

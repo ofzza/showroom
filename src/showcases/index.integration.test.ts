@@ -19,10 +19,10 @@ import { buildShowcases } from './index.js';
  */
 async function _build(name: string) {
   const root = join(FIXTURES, name);
-  const { host } = await check(root);
+  const { host } = await check(root, { trust: true });
   const { configuration } = await readConfiguration(root);
   if (!host || !configuration) throw new Error(`The fixture "${name}" doesn't pass the check`);
-  return buildShowcases({ root, host, configuration });
+  return buildShowcases({ root, host, configuration, trust: true });
 }
 
 describe('showcases (integration)', () => {

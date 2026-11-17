@@ -55,6 +55,20 @@ export interface ShownBuild {
    * The issues of each showcase, as shown, by showcase id; none if not given
    */
   shownIssues?: ReadonlyMap<string, ShownIssue[]>;
+  /**
+   * True if the host repository's code was allowed to run (see CheckResult's `trusted`); false if not given
+   */
+  trusted?: boolean;
+}
+
+/**
+ * Gets the views a showcase shows without trust: its `source` view, and its `markdown` view where it has one, in place of its views that load its
+ * showcase frame (`demo`, `console`); `none` is kept
+ * @param views The showcase's views
+ * @returns The views shown, in their order, each once
+ */
+export function getUntrustedViews(views: readonly ShowcaseView[]): ShowcaseView[] {
+  return [...new Set(views.map((view): ShowcaseView => (view === 'demo' || view === 'console' ? 'source' : view)))];
 }
 
 /**
@@ -73,14 +87,15 @@ export function hasBuildMark(showcase: Pick<Showcase, 'adapter'>, issues: readon
 }
 
 /**
- * Gets the shown host information: the part of the host information the showroom presents
+ * Gets the shown host information: the part of the host information the showroom presents. Without trust, every showcase shows its source (see
+ * getUntrustedViews()), with no checks, issues, `build` status mark or showcase frame.
  * @param host Host information
- * @param built What building the showcases gave; nothing built when not given
+ * @param built What building the showcases gave, and whether the host repository was trusted; nothing built, without trust, when not given
  * @param hashes The hashes of the text linked files shown as tabs, by path (see getTabFileHashes()); a tab without one has no hash in its URL
  * @param options Options from the configuration: whether showcases shown as blocks get their Markdown tab
  * @returns The project information, documentation files and linked files, without the code file index; every showcase, built or not, each with its
  * views, its Markdown source, its tabs, its checks and issues, its `build` status mark, and its showcase frame's URL where it built and a view loads
- * it; and the virtual files with no showcase adapter whose views aren't `source` alone
+ * it; the virtual files with no showcase adapter whose views aren't `source` alone; and whether the host repository was trusted
  */
 export function getShownHostInformation(
   host: HostInformation,
@@ -93,13 +108,15 @@ export function getShownHostInformation(
     if (!sources.has(path)) sources.set(path, getShowcaseSources(host.documentation.find((file) => file.path === path)?.content ?? ''));
     return sources.get(path)!;
   };
+  const trusted = built.trusted ?? false;
   const showcases = host.showcases.map((showcase) => {
-    const frame = built.frames.get(showcase.id);
-    const { id, documentation, offset, display, views } = showcase;
+    const frame = trusted ? built.frames.get(showcase.id) : undefined;
+    const { id, documentation, offset, display } = showcase;
+    const views = trusted ? showcase.views : getUntrustedViews(showcase.views);
     const markdown = getSources(documentation).get(offset) ?? '';
     const tabs = getShownTabs(host, showcase, hashes, markdown);
-    const checks = built.checks?.get(id) ?? [];
-    const issues = built.shownIssues?.get(id) ?? [];
+    const checks = (trusted && built.checks?.get(id)) || [];
+    const issues = (trusted && built.shownIssues?.get(id)) || [];
     const url = frame && loadsShowcaseFrame(views) ? { url: getShowcaseFrameUrl(frame) } : {};
     return {
       id,
@@ -113,7 +130,7 @@ export function getShownHostInformation(
       ...url,
       checks,
       issues,
-      buildMark: hasBuildMark(showcase, issues),
+      buildMark: trusted && hasBuildMark(showcase, issues),
     };
   });
   const virtualFiles = host.virtualFiles.flatMap(({ path, documentation, offset, views }) =>
@@ -128,6 +145,7 @@ export function getShownHostInformation(
     virtualFiles,
     linkedFiles: host.linkedFiles,
     ...(host.navigation ? { navigation: host.navigation } : {}),
+    trusted,
   };
 }
 
@@ -229,7 +247,8 @@ export function createHostPlugin(getHost: () => ShownHostInformation, getIssues:
     resolveId: (id) => (id === HOST_MODULE_ID ? RESOLVED_HOST_MODULE_ID : undefined),
     load: (id) =>
       id === RESOLVED_HOST_MODULE_ID ? `export default ${JSON.stringify(getHost())};\nexport const issues = ${JSON.stringify(getIssues())};\n` : undefined,
-    transformIndexHtml: (html) => html.replace(/<title>[^<]*<\/title>/, `<title>${_escapeHtml(getHost().project.name)}</title>`),
+    // A function, so `$` patterns in the project's name stay text
+    transformIndexHtml: (html) => html.replace(/<title>[^<]*<\/title>/, () => `<title>${_escapeHtml(getHost().project.name)}</title>`),
   };
 }
 
@@ -317,6 +336,7 @@ function _notFound(request: IncomingMessage, response: ServerResponse): void {
 function _send(request: IncomingMessage, response: ServerResponse, contentType: string, content: Uint8Array): void {
   response.statusCode = 200;
   response.setHeader('Cache-Control', 'no-store');
+  response.setHeader('X-Content-Type-Options', 'nosniff');
   response.setHeader('Content-Type', contentType);
   response.setHeader('Content-Length', content.byteLength);
   response.end(request.method === 'HEAD' ? undefined : content);
@@ -372,24 +392,35 @@ export function createShowcaseFramesPlugin(getFrames: () => ReadonlyMap<string, 
 // #region Linked files
 
 /**
- * Gets the content type a linked file is served with in `serve`: by its extension, or plain text for a text file whose extension says nothing
+ * Extensions of the linked files whose content a browser runs (pages and documents that can hold scripts), sent as plain text without trust
+ */
+export const ACTIVE_LINKED_FILE_EXTENSIONS: readonly string[] = ['html', 'htm', 'svg', 'xml', 'xhtml'];
+
+/**
+ * Gets the content type a linked file is served with in `serve`: by its extension, or plain text for a text file whose extension says nothing;
+ * without trust, plain text for a file of an active type (see ACTIVE_LINKED_FILE_EXTENSIONS), so a browser shows its source instead of running it
  * @param file The linked file
+ * @param trusted True if the host repository is trusted
  * @returns Its content type
  */
-export function getLinkedFileContentType(file: LinkedFile): string {
+export function getLinkedFileContentType(file: LinkedFile, trusted = false): string {
+  const extension = /\.([^./]+)$/.exec(file.path)?.[1].toLowerCase() ?? '';
+  if (!trusted && ACTIVE_LINKED_FILE_EXTENSIONS.includes(extension)) return 'text/plain; charset=utf-8';
   const contentType = getContentType(file.path);
   return file.text && contentType === 'application/octet-stream' ? 'text/plain; charset=utf-8' : contentType;
 }
 
 /**
  * Creates the dev server's middleware serving the linked files from the host repository, read on every request, at the paths `build` copies them
- * to (`files/<path>`), with `Cache-Control: no-store`. It answers every request in the linked files' folder: a linked file, or a 404 for any other
- * path, so `serve` hands out nothing `build` doesn't publish; every other request goes on.
+ * to (`files/<path>`), with `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`, and without trust, a file of an active type as plain
+ * text (see getLinkedFileContentType()). It answers every request in the linked files' folder: a linked file, or a 404 for any other path, so
+ * `serve` hands out nothing `build` doesn't publish; every other request goes on.
  * @param root Path of the host repository's root
  * @param getLinkedFiles Gets the linked files to serve; called on every request, so they can change while serving
+ * @param isTrusted Tells if the host repository is trusted; not trusted if not given
  * @returns The middleware
  */
-export function createLinkedFilesMiddleware(root: string, getLinkedFiles: () => readonly LinkedFile[]): Middleware {
+export function createLinkedFilesMiddleware(root: string, getLinkedFiles: () => readonly LinkedFile[], isTrusted: () => boolean = () => false): Middleware {
   return (request, response, next) => {
     if (request.method !== 'GET' && request.method !== 'HEAD') return next();
     const path = _getRequestPath(request);
@@ -397,7 +428,7 @@ export function createLinkedFilesMiddleware(root: string, getLinkedFiles: () => 
     const file = getLinkedFiles().find((candidate) => candidate.path === path.slice(LINKED_FILES_FOLDER.length + 1));
     if (!file) return _notFound(request, response);
     readFile(join(root, file.path)).then(
-      (content) => _send(request, response, getLinkedFileContentType(file), content),
+      (content) => _send(request, response, getLinkedFileContentType(file, isTrusted()), content),
       () => _notFound(request, response),
     );
   };
@@ -408,13 +439,14 @@ export function createLinkedFilesMiddleware(root: string, getLinkedFiles: () => 
  * it copies them into the build, each at `files/<path>`, so that the build's `emptyOutDir` and its marker cover them
  * @param root Path of the host repository's root
  * @param getLinkedFiles Gets the linked files to serve or copy
+ * @param isTrusted Tells if the host repository is trusted, in `serve`; not trusted if not given
  * @returns The Vite plugin
  */
-export function createLinkedFilesPlugin(root: string, getLinkedFiles: () => readonly LinkedFile[]): Plugin {
+export function createLinkedFilesPlugin(root: string, getLinkedFiles: () => readonly LinkedFile[], isTrusted: () => boolean = () => false): Plugin {
   return {
     name: 'showroom-linked-files',
     configureServer(server) {
-      server.middlewares.use(createLinkedFilesMiddleware(root, getLinkedFiles));
+      server.middlewares.use(createLinkedFilesMiddleware(root, getLinkedFiles, isTrusted));
     },
     async generateBundle() {
       for (const file of getLinkedFiles()) {
@@ -487,8 +519,9 @@ export interface ViteConfigurationOptions {
 }
 
 /**
- * Gets the Vite configuration of the showroom. It reads no Vite configuration file, and uses relative asset paths (`base: './'`), so the
- * built application works on static hosting under any path.
+ * Gets the Vite configuration of the showroom. It reads no Vite configuration file, no PostCSS configuration (`css.postcss`), no `.env` files
+ * (`envDir`) and no public folder (`publicDir`), as Vite would otherwise look for them from its root up, which is inside the host repository when
+ * `showroom` is installed in it; and it uses relative asset paths (`base: './'`), so the built application works on static hosting under any path.
  * @param options Options of the configuration
  * @returns Vite's inline configuration; `serve` and `build` add their own `server` and `build` options
  */
@@ -500,7 +533,18 @@ export function getViteConfiguration({ appDir, cacheDir, hostRoot, getHost, getF
     cacheDir,
     clearScreen: false,
     logLevel: 'warn',
-    plugins: [createHostPlugin(getHost, getIssues), createShowcaseFramesPlugin(getFrames), createLinkedFilesPlugin(hostRoot, () => getHost().linkedFiles)],
+    envDir: false,
+    publicDir: false,
+    css: { postcss: {} },
+    plugins: [
+      createHostPlugin(getHost, getIssues),
+      createShowcaseFramesPlugin(getFrames),
+      createLinkedFilesPlugin(
+        hostRoot,
+        () => getHost().linkedFiles,
+        () => getHost().trusted,
+      ),
+    ],
     resolve: { alias: getReactAliases() },
   };
 }
