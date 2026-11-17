@@ -12,10 +12,12 @@ import type { Showcase, ShowcaseView } from '../../../host/index.js';
 import { checkShowcaseViews, SHOWCASE_ADAPTER_NAME } from '../../../markdown/index.js';
 import { HtmlShowcaseAdapter } from '../html/index.js';
 import { AngularShowcaseAdapter } from '../angular/index.js';
+import { CS_ENVIRONMENT_NAMES, CsShowcaseAdapter, getHostSdkPaths, readGlobalJson } from '../cs/index.js';
 import type { ShowcaseAdapter, ShowcaseHostCheck } from '../index.js';
 import { ReactShowcaseAdapter } from '../react/index.js';
 import { TsShowcaseAdapter } from '../ts/index.js';
 import { getDocumentationFolder, resolvePackage } from '../ts/typecheck/index.js';
+import { resolveCommand } from '../../../processes/index.js';
 
 // #region Built-in showcase adapters
 
@@ -27,12 +29,13 @@ const _SHOWCASE_ADAPTERS: Record<string, () => ShowcaseAdapter> = {
   ts: () => new TsShowcaseAdapter(),
   react: () => new ReactShowcaseAdapter(),
   angular: () => new AngularShowcaseAdapter(),
+  cs: () => new CsShowcaseAdapter(),
 };
 
 /**
  * Names of the showcase adapters planned as built-in ones, which custom showcase adapters can't take either
  */
-export const PLANNED_SHOWCASE_ADAPTER_NAMES: readonly string[] = ['cs'];
+export const PLANNED_SHOWCASE_ADAPTER_NAMES: readonly string[] = [];
 
 /**
  * Default showcase views of a showcase adapter that declares none (see ShowcaseAdapter's `defaultViews`)
@@ -46,6 +49,16 @@ export const DEFAULT_SHOWCASE_VIEWS: readonly ShowcaseView[] = ['demo'];
  */
 export function getDefaultViews(adapter: ShowcaseAdapter): ShowcaseView[] {
   return [...(adapter.defaultViews ?? DEFAULT_SHOWCASE_VIEWS)];
+}
+
+/**
+ * Gets the names of the environment variables of `showroom`'s own environment a built-in showcase adapter passes on to the commands it runs, beside
+ * the fixed ones: `DOTNET_ROOT` for the `cs` showcase adapter, none for any other
+ * @param name Name of the showcase adapter
+ * @returns The names
+ */
+export function getShowcaseAdapterEnvironmentNames(name: string): readonly string[] {
+  return name === 'cs' ? CS_ENVIRONMENT_NAMES : [];
 }
 
 /**
@@ -282,15 +295,31 @@ export function getTrustTools(
 }
 
 /**
- * Gets the executables a built-in showcase adapter's host check and builds would start, resolved from the `PATH` without starting anything: none for
- * the built-in showcase adapters there are. Internal: the trust request's hook, never part of the showcase adapter interface.
- * @param _name Name of the built-in showcase adapter
- * @param _root Absolute path of the host repository's root
+ * Gets the executables a built-in showcase adapter's host check and builds would start, resolved from the `PATH` without starting anything: for the
+ * `cs` showcase adapter, `dotnet` (from outside the host repository), and the SDK folders the host's `global.json` names inside the host repository
+ * (`sdk.paths`, read statically), which its builds may use; none for any other. Internal: the trust request's hook, never part of the showcase
+ * adapter interface.
+ * @param name Name of the built-in showcase adapter
+ * @param root Absolute path of the host repository's root
  * @param _showcases Its showcases whose validation passed
+ * @param resolver Resolves a command from the `PATH`, outside the given folders (see resolveCommand()); the tests replace it
  * @returns The executables, by name and real path
  */
-export function getTrustExecutables(_name: string, _root: string, _showcases: readonly Showcase[]): TrustTool[] {
-  return [];
+export function getTrustExecutables(
+  name: string,
+  root: string,
+  _showcases: readonly Showcase[],
+  resolver: (command: string, excluded: readonly string[]) => string | undefined = (command, excluded) =>
+    resolveCommand(command, { path: process.env.PATH ?? process.env.Path, excluded, pathext: process.env.PATHEXT }),
+): TrustTool[] {
+  if (name !== 'cs') return [];
+  const executables: TrustTool[] = [];
+  const dotnet = resolver('dotnet', [root]);
+  if (dotnet !== undefined) executables.push({ name: 'dotnet', path: _realPath(dotnet) });
+  const globalJson = readGlobalJson(root);
+  const paths = globalJson && !('error' in globalJson) ? (globalJson.paths ?? []) : [];
+  for (const path of getHostSdkPaths(root, paths)) executables.push({ name: 'dotnet SDK (global.json)', path: _realPath(path) });
+  return executables;
 }
 
 /**

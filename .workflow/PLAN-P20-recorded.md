@@ -24,6 +24,7 @@ Found in the code while planning: `buildShowcases()` (`src/showcases/`) builds s
 - _`D779`_ (`live`, refined by _`D790`_; Q12, option chosen: "Accept all (Rec.)"; rejected: leaving the recording as written (temporary paths)): **Paths into the host copy become root-relative**: in issues (the compiler's lines, deduplicated, mapped to their file and line, a virtual file's lines to its code block's, as for `ts`) and in the recording (the host copy's absolute path replaced by the root-relative path, e.g. `in docs/throw.cs:line 3`), `run()` doing the replacement for every showcase adapter.
 - _`D780`_ (`live`, refined by _`D784`_, _`D790`_; resolves _`O102`_ (SPEC-S15-recorded-showcases.md); Q13, option chosen: "Accept all (Rec.)"; rejected: also showing when it was recorded): **A recording is shown as recorded**: the console view's title says "Recorded output"; its last line is the showroom's own, the end of the run ("Exited with code 0", "Exited with code 134", "Stopped after the 30 s time limit"); the `runtime` status mark's label says "recorded when built". No timestamp.
 - _`D781`_ (`live`; resolves _`O118`_ (SPEC-S16-csharp.md); Q14, option chosen: "Accept all (Rec.)"): **The rest**: `cs` is reserved in `PLANNED_SHOWCASE_ADAPTER_NAMES` in _`P20.1`_ and moved to the registry in _`P20.2`_; the fence languages `cs`, `csharp` and `c#` give `.cs`; _`O105`_ (SPEC-S15-recorded-showcases.md) is measured in _`P20.2`_'s `integration` tests (a `showcase-cs-many` fixture of 5 showcases, cold and with kept artifacts), recorded as evidence as _`D255`_ (PLAN-P7.1-ts.md) was; the Glossary's wording (_`D711`_, _`D736`_ (SPEC-S15-recorded-showcases.md)) is proposed in _`P20.1`_ below.
+  - Evidence, 2026-11-17 (_`O105`_ (SPEC-S15-recorded-showcases.md); .NET SDK 10.0.115, Linux (WSL2), packages cached; `showcase-cs-many`'s `integration` test): 5 `cs` showcases referencing one project, built and recorded one after another, 22.8 s cold (a fresh run session, ~4.6 s each) and 5.1 s again in the same run session, their build output kept (~1 s each), matching _`D778`_'s spike.
 
 ### The zero-context review of 2026-11-17
 
@@ -122,7 +123,7 @@ _`S15`_ (SPEC-S15-recorded-showcases.md) whole: _`D683`_–_`D690`_, _`D705`_–
 
 ### _`P20.2`_ The `cs` showcase adapter
 
-approved 2026-11-17 (option chosen: "Approve and commit (Rec.)")
+approved 2026-11-17 (option chosen: "Approve and commit (Rec.)"); implemented 2026-11-17 (checkpoint, option chosen: "Approve and commit (Rec.)")
 
 #### Goals
 

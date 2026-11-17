@@ -32,6 +32,11 @@ jobs:
           node-version: 24
           cache: npm
 
+      # The .NET SDK 10, for the cs showcase adapter's tests and showcase adapter example (SPEC-S16 D718)
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
       # Plain `npm ci` (see ci.yml); its `prepare` script also builds `dist/`
       - run: npm ci
 

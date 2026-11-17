@@ -267,6 +267,22 @@ describe('cli/build (end to end)', () => {
     expect((await readdir(root)).sort()).toEqual(['README.md', 'adapters', 'ignored', 'package.json', 'scripts', 'showroom', 'showroom.json']);
   });
 
+  it('Builds cs showcases with the .NET SDK, their recordings in the shown host information', async () => {
+    // PLAN-P20 P20.2: the cs showcase adapter builds file-based apps in the host copy, never in the host repository
+    const root = await copy('showcase-cs');
+    const { code, stderr } = await run(root);
+    expect(stderr).toBe("warning: README.md:18: Showcase README.md#2 (README.md:17): CS0219: The variable 'unused' is assigned but its value is never used\n");
+    expect(code).toBe(0);
+    const out = join(root, 'showroom');
+    expect(existsSync(join(out, 'showcases'))).toBe(false);
+    const bundle = (await Promise.all((await readdir(join(out, 'assets'))).map((name) => readFile(join(out, 'assets', name), 'utf8')))).join('\n');
+    expect(bundle).toContain('thousands 1,234,567');
+    expect(bundle).toContain('inside 1,000');
+    // No bin/ or obj/ appears in the host repository: the build output goes to the run folder
+    expect((await readdir(root)).sort()).toEqual(['README.md', 'docs', 'showroom', 'showroom.json', 'src']);
+    expect((await readdir(join(root, 'src', 'Numbers'))).sort()).toEqual(['Format.cs', 'Numbers.csproj', 'README.md']);
+  });
+
   it('Leaves the output folder untouched when a showcase does not build', async () => {
     const root = await copy('showcase-build-errors');
     await mkdir(join(root, 'showroom'));

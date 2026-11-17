@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P20`_ recorded showcases (_`S15`_) and the `cs` showcase adapter (_`S16`_) ([PLAN-P20-recorded.md](./PLAN-P20-recorded.md)): _`P20.1`_ (the shared recording) implemented; _`P20.2`_ (the `cs` showcase adapter) approved.
+- **Stage:** implementation: _`P20`_ recorded showcases (_`S15`_) and the `cs` showcase adapter (_`S16`_) ([PLAN-P20-recorded.md](./PLAN-P20-recorded.md)): _`P20.1`_ (the shared recording) implemented; _`P20.2`_ (the `cs` showcase adapter) implemented; _`P20`_ implemented.
 - **Next free:** _`D803`_, _`S17`_, _`P21`_, _`O124`_, _`L16`_, _`R58`_, _`H1`_, _`K29`_
-- **Working on:** nothing yet: _`P20.2`_ is approved and committed.
-- **Next step:** implement _`P20.2`_ (the `cs` showcase adapter).
+- **Working on:** nothing: _`P20`_ is implemented and committed.
+- **Next step:** ask the user what to work on next (e.g. pushing `dotnet-showcase-adapter`, or the next specification segment).
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/p20.2-plan-format/` (formatting backups), `p20.2-check/` (fixture copies and a cache folder checked by hand), `ci-p20.2.log`, `ci-p20.2-rest.log`, `serve-dogfood-p20.2.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p20.1/` (_`P20.1`_'s implementation choices, recorded as _`D791`_–_`D798`_), `p20.1-format/` (formatting backups), `p20.1-readme-ts/` (`README.md`'s samples, type checked), `p20.1-check/` (the fixture copy served at the checkpoint), `ci-p20.1.log`, `serve-dogfood-p20.1.log`, `serve-p20.1-check.log`; ask before deleting them.
 - `./.workflow/.temp/questions-p20/` (_`P20`_'s choices, recorded as _`D768`_–_`D781`_, and formatting backups); ask before deleting it.
 - `./.workflow/.temp/review-p20/` (the review's record, `REVIEW.md`, its snapshots and formatting backups); ask before deleting it.
@@ -436,3 +437,5 @@
 - 2026-11-17: Fast path: the bundler's `PLUGIN_TIMINGS` warning silenced (`SILENCED_WARNINGS`), as it failed GitHub Actions run 44110251121's `serve` tier on Node 22 on a slow runner (options chosen: "Fast path (Rec.)", "Current branch (Rec.)"); checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)").
 - 2026-11-17: _`P20.2`_ planned: its choices settled as _`D799`_–_`D802`_ (options chosen: "Showcase + #:project files (Rec.)", "Installed ≥10, pin checked (Rec.)", "Errors all, warnings own (Rec.)", "Standalone file-based apps"); _`O123`_ resolved by _`D799`_.
 - 2026-11-17: _`P20.2`_ approved (option chosen: "Approve and commit (Rec.)").
+- 2026-11-17: _`P20.2`_ (the `cs` showcase adapter) implemented, pending its checkpoint: `src/adapters/showcase/cs/`, registered (`PLANNED_SHOWCASE_ADAPTER_NAMES` empty), its trust executables and `DOTNET_ROOT`; the `showcase-cs`, `showcase-cs-errors` and `showcase-cs-many` fixtures in every tier; `examples/cs/`; `actions/setup-dotnet` in both workflows; the documentation; _`K28`_ and _`O105`_ resolved.
+- 2026-11-17: _`P20.2`_'s checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"), with its deviations (no time limit case in the `cs` fixtures, `useOwnCacheFolder()`, `actions/setup-dotnet@v5`); _`P20`_ implemented.

@@ -10,7 +10,7 @@ import { FluentProvider, SSRProvider, webLightTheme } from '@fluentui/react-comp
 import { describe, expect, it } from 'vitest';
 import { Markdown } from '../../app/markdown/index.js';
 import type { DocumentationFile } from '../../host/index.js';
-import { FIXTURES } from '../../testing/index.js';
+import { FIXTURES, useOwnCacheFolder } from '../../testing/index.js';
 import { check } from './index.js';
 
 /**
@@ -65,7 +65,9 @@ describe('cli/check (integration)', () => {
   it("Passes on this repository, with README.md's and the showcase adapter examples' live showcases", async () => {
     // Guards this repository's own showroom (dogfooding): an edit that breaks one of README.md's live examples, or a showcase adapter example,
     // fails here. See AGENTS.md › Markers in this repository's own documentation files are live.
-    const result = await check(_ROOT, { showcases: true, trust: true });
+    // Its cs example's run folder is in a cache folder of its own, apart from the other test files' recorded showcases
+    const cache = await useOwnCacheFolder();
+    const result = await check(_ROOT, { showcases: true, trust: true }).finally(() => cache.restore());
     expect(result.issues).toEqual([]);
     const showcases = result.host!.showcases.filter((showcase) => showcase.documentation === 'README.md');
     expect(showcases[0]).toMatchObject({ kind: 'code-block', adapter: 'html', entry: 'README.showcase-1.html' });
@@ -78,6 +80,7 @@ describe('cli/check (integration)', () => {
         'examples/ts/README.md ts',
         'examples/react/README.md react',
         'examples/angular/README.md angular',
+        'examples/cs/README.md cs',
         'examples/number-table/README.md number-table',
       ]),
     );

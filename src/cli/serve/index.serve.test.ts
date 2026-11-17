@@ -240,6 +240,23 @@ describe('cli/serve (serve)', () => {
     expect(await readdir(getCacheFolder())).toEqual([]);
   });
 
+  it('Ships cs showcases with their recordings, built with the .NET SDK', async () => {
+    // PLAN-P20 P20.2: the cs showcase adapter records file-based apps in the host copy, kept for the session
+    const served = await start('showcase-cs');
+    const source = await fetchHostModule(served.url);
+    const host = JSON.parse(/export default ([\s\S]*?);\s*export const issues/.exec(source)![1]) as { showcases: ShownShowcase[] };
+    const first = host.showcases.find(({ id }) => id === 'README.md#1')!;
+    expect(first).toMatchObject({ checks: ['runtime'], issues: [], views: ['source', 'console'] });
+    expect(first.url).toBeUndefined();
+    expect(first.recording!.lines.map(({ text }) => text)).toContain('thousands 1,234,567');
+    const named = host.showcases.find(({ id }) => id === 'README.md#2')!;
+    expect(named.issues).toEqual([
+      { severity: 'warning', message: "CS0219: The variable 'unused' is assigned but its value is never used", path: 'hello.cs', line: 1 },
+    ]);
+    expect(await served.stop()).toBe(0);
+    expect(await readdir(getCacheFolder())).toEqual([]);
+  }, 180_000);
+
   it('Serves ts showcase frames, built in development mode, with their files', async () => {
     const { url, stderr } = await start('showcase-ts');
     expect(stderr()).toBe('');

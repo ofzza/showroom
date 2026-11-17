@@ -8,7 +8,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { Showcase } from '../../../host/index.js';
-import { copyFixture } from '../../../testing/index.js';
+import { copyFixture, createScratchFolder } from '../../../testing/index.js';
+import { CsShowcaseAdapter } from '../cs/index.js';
 import { HtmlShowcaseAdapter } from '../html/index.js';
 import { AngularShowcaseAdapter } from '../angular/index.js';
 import { ReactShowcaseAdapter } from '../react/index.js';
@@ -19,6 +20,7 @@ import {
   createShowcaseAdapter,
   DEFAULT_SHOWCASE_VIEWS,
   getDefaultViews,
+  getShowcaseAdapterEnvironmentNames,
   getShowcaseAdapterNames,
   getTrustExecutables,
   getTrustTools,
@@ -36,12 +38,13 @@ describe('adapters/showcase/registry', () => {
   // way of getting it wrong. Each module's default export is a factory of showcase adapter objects.
 
   it('Lists and creates the built-in showcase adapters', () => {
-    expect(getShowcaseAdapterNames()).toEqual(['angular', 'html', 'react', 'ts']);
+    expect(getShowcaseAdapterNames()).toEqual(['angular', 'cs', 'html', 'react', 'ts']);
     expect(createShowcaseAdapter('html')).toBeInstanceOf(HtmlShowcaseAdapter);
     expect(createShowcaseAdapter('html')).not.toBe(createShowcaseAdapter('html'));
     expect(createShowcaseAdapter('ts')).toBeInstanceOf(TsShowcaseAdapter);
     expect(createShowcaseAdapter('react')).toBeInstanceOf(ReactShowcaseAdapter);
     expect(createShowcaseAdapter('angular')).toBeInstanceOf(AngularShowcaseAdapter);
+    expect(createShowcaseAdapter('cs')).toBeInstanceOf(CsShowcaseAdapter);
     expect(createShowcaseAdapter('toString')).toBeUndefined();
   });
 
@@ -51,13 +54,19 @@ describe('adapters/showcase/registry', () => {
     expect(getDefaultViews(createShowcaseAdapter('ts')!)).toEqual(['source', 'console']);
     expect(getDefaultViews(createShowcaseAdapter('react')!)).toEqual(['demo']);
     expect(getDefaultViews(createShowcaseAdapter('angular')!)).toEqual(['demo']);
+    expect(getDefaultViews(createShowcaseAdapter('cs')!)).toEqual(['source', 'console']);
     expect(DEFAULT_SHOWCASE_VIEWS).toEqual(['demo']);
     expect(getDefaultViews({ validate: () => ({ errors: [] }), build: async () => ({ reads: [] }) })).toEqual(['demo']);
   });
 
-  it('Reserves the planned built-in name "cs"', () => {
-    // See PLAN-P20 D781: cs is reserved until P20.2 builds it in
-    expect(PLANNED_SHOWCASE_ADAPTER_NAMES).toEqual(['cs']);
+  it('Reserves no planned built-in name once cs is built in', () => {
+    // See PLAN-P20 D781: cs was reserved until P20.2 built it in; a custom showcase adapter named cs is refused as a built-in name
+    expect(PLANNED_SHOWCASE_ADAPTER_NAMES).toEqual([]);
+  });
+
+  it("Passes DOTNET_ROOT on to the cs showcase adapter's commands only", () => {
+    expect(getShowcaseAdapterEnvironmentNames('cs')).toEqual(['DOTNET_ROOT']);
+    expect(getShowcaseAdapterEnvironmentNames('ts')).toEqual([]);
   });
 
   it('Loads custom showcase adapters', async () => {
@@ -224,7 +233,25 @@ describe('adapters/showcase/registry', () => {
     }
   });
 
-  it('Names no executable for the built-in showcase adapters there are', () => {
-    expect(getTrustExecutables('ts', _ROOT, [])).toEqual([]);
+  it('Names no executable for the built-in showcase adapters that start none', () => {
+    expect(getTrustExecutables('ts', _ROOT, [], () => '/usr/bin/dotnet')).toEqual([]);
+  });
+
+  it("Names the cs showcase adapter's dotnet, and the SDK folders global.json names inside the host repository", async () => {
+    // See PLAN-P20 D789: dotnet comes from the PATH outside the root; sdk.paths inside the root are named, as its builds may use an SDK shipped there
+    const scratch = await createScratchFolder('trust-cs-');
+    try {
+      const excluded: (readonly string[])[] = [];
+      const resolver = (command: string, folders: readonly string[]) => {
+        excluded.push(folders);
+        return command === 'dotnet' ? join(scratch.path, 'dotnet') : undefined;
+      };
+      expect(getTrustExecutables('cs', scratch.path, [], resolver)).toEqual([{ name: 'dotnet', path: join(scratch.path, 'dotnet') }]);
+      expect(excluded).toEqual([[scratch.path]]);
+      await writeFile(join(scratch.path, 'global.json'), '{ "sdk": { "paths": [".dotnet", "$host$", "/opt/dotnet"] } }');
+      expect(getTrustExecutables('cs', scratch.path, [], () => undefined)).toEqual([{ name: 'dotnet SDK (global.json)', path: join(scratch.path, '.dotnet') }]);
+    } finally {
+      await scratch.remove();
+    }
   });
 });

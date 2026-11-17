@@ -109,6 +109,11 @@ describe('app/markdown', () => {
       ['json', '{ "a": [1, true, null, "s"] }'],
       ['bash', '#!/bin/sh\nexport A="$B" && echo $(ls) # c'],
       ['diff', '--- a\n+++ b\n@@ -1 +1 @@\n-x\n+y'],
+      // C#, for the cs showcase adapter (PLAN-P20 D790 C23): its directives, attributes, generics, interpolated and verbatim strings
+      [
+        'cs',
+        '#:project ../src/Numbers\n#nullable enable\nusing System;\nnamespace N;\n[Obsolete("x")]\npublic record R<T>(int A) where T : class { public string S => $"{A:N0}" + @"\\p"; } // c\n/// <summary>d</summary>\nvar x = 1.5m; char c = \'a\'; bool b = x is > 1 and < 2;',
+      ],
     ];
     const html = samples.map(([language, code]) => _render(`\`\`\`${language}\n${code}\n\`\`\``)).join('');
     const emitted = new Set([...html.matchAll(/class="(hljs-[\w-]+)/g)].map((match) => match[1]!));

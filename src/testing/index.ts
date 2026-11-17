@@ -272,6 +272,25 @@ export async function copyFixture(name: string): Promise<ScratchFolder> {
 }
 
 /**
+ * Gives the calling test file a user's cache folder of its own (`XDG_CACHE_HOME`, a scratch folder), so the run folders it makes, and the processes
+ * running in them, are told apart from those of the other test files of its tier, which run at once in other processes
+ * @returns The cache folder, and a function restoring the tier's own and removing it
+ */
+export async function useOwnCacheFolder(): Promise<{ path: string; restore(): Promise<void> }> {
+  const scratch = await createScratchFolder('cache-');
+  const previous = process.env.XDG_CACHE_HOME;
+  process.env.XDG_CACHE_HOME = scratch.path;
+  return {
+    path: scratch.path,
+    restore: async () => {
+      if (previous === undefined) delete process.env.XDG_CACHE_HOME;
+      else process.env.XDG_CACHE_HOME = previous;
+      await scratch.remove();
+    },
+  };
+}
+
+/**
  * Names of what a canary host repository records once it runs (see createCanaryHost())
  */
 export type CanaryName = 'adapter' | 'sass' | 'postcss';

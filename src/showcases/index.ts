@@ -10,7 +10,7 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { ShowcaseAdapter, ShowcaseBuildFile, ShowcaseBuildIssue, ShowcaseConsoleLine, ShowcaseRecording } from '../adapters/showcase/index.js';
-import { createShowcaseAdapter, loadCustomShowcaseAdapters } from '../adapters/showcase/registry/index.js';
+import { createShowcaseAdapter, getShowcaseAdapterEnvironmentNames, loadCustomShowcaseAdapters } from '../adapters/showcase/registry/index.js';
 import type { ShownIssue } from '../app/host/index.js';
 import type { CheckIssue } from '../cli/check/index.js';
 import { resolveOutputFolder } from '../cli/check/internal/index.js';
@@ -625,7 +625,15 @@ export async function buildShowcases({
           scratchFolder,
           ...(configuration.project === undefined ? {} : { project: configuration.project }),
           stack: configuration.stack,
-          ...(adapter.hostCopy && hostCopy ? { hostCopy: runSession.createShowcaseHostCopy(hostCopy, { root: absoluteRoot, folder }) } : {}),
+          ...(adapter.hostCopy && hostCopy
+            ? {
+                hostCopy: runSession.createShowcaseHostCopy(hostCopy, {
+                  root: absoluteRoot,
+                  folder,
+                  names: custom.adapters.has(showcase.adapter) ? [] : getShowcaseAdapterEnvironmentNames(showcase.adapter),
+                }),
+              }
+            : {}),
           ...(adapter.hostCopy || adapter.recorded ? { showcaseFolder: await runSession.getShowcaseFolder(showcase.id) } : {}),
         });
       } catch (err) {

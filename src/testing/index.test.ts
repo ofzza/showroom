@@ -12,6 +12,7 @@ import {
   copyFixture,
   createCliInput,
   createScratchFolder,
+  useOwnCacheFolder,
   CURRENT_MAJORS,
   FIXTURES,
   getInstalledFixturePath,
@@ -30,7 +31,7 @@ import {
 describe('testing', () => {
   // Tests the scratch folder helpers on the real file system: each test creates its scratch folder inside `node_modules/.cache/showroom-tests/`, and
   // removes it again; installing fixtures, into a scratch folder, with a fake npm; and the majors guard, on this repository's own install and on
-  // hand-written states; and the command line's input, answering as given.
+  // hand-written states; the command line's input, answering as given; and a test file's own cache folder.
 
   it('Creates a scratch folder of its own, and removes it', async () => {
     const first = await createScratchFolder('helper-');
@@ -45,6 +46,16 @@ describe('testing', () => {
     }
     expect(existsSync(first.path)).toBe(false);
     expect(existsSync(second.path)).toBe(false);
+  });
+
+  it("Gives a test file a cache folder of its own, then restores the tier's", async () => {
+    const previous = process.env.XDG_CACHE_HOME;
+    const cache = await useOwnCacheFolder();
+    expect(process.env.XDG_CACHE_HOME).toBe(cache.path);
+    expect(existsSync(cache.path)).toBe(true);
+    await cache.restore();
+    expect(process.env.XDG_CACHE_HOME).toBe(previous);
+    expect(existsSync(cache.path)).toBe(false);
   });
 
   it('Copies a fixture into a scratch folder', async () => {

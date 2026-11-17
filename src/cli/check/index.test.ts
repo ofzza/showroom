@@ -388,7 +388,7 @@ describe('cli/check', () => {
         'errors/collisions.md:21: Virtual file "errors/collisions.showcase-3.html" collides with the virtual file at errors/collisions.md:18',
         // The showcases, before trust is decided: unknown adapters (the custom ones listed are known, loaded or not), linked entry points, the
         // built-in showcase adapters' validation
-        'errors/adapters.md:3: Unknown showcase adapter "nope"; the showcase adapters are: angular, broken, html, needy, react, throwing, ts',
+        'errors/adapters.md:3: Unknown showcase adapter "nope"; the showcase adapters are: angular, broken, cs, html, needy, react, throwing, ts',
         `errors/entries.md:3: A linked showcase's entry point "errors/missing.html" not found`,
         `errors/entries.md:5: A linked showcase's entry point "errors/folder" is a folder`,
         'errors/entries.md:5: The html showcase adapter needs a link to an .html or .htm file, not "errors/folder"',
@@ -658,7 +658,12 @@ describe('cli/check', () => {
         const result = await check(host.path);
         expect(result.passed).toBe(false);
         expect(result.issues.filter(({ path }) => path === 'docs/README.md')).toEqual([
-          { severity: 'error', message: 'Unknown showcase adapter "x"; the showcase adapters are: angular, html, react, ts', path: 'docs/README.md', line: 3 },
+          {
+            severity: 'error',
+            message: 'Unknown showcase adapter "x"; the showcase adapters are: angular, cs, html, react, ts',
+            path: 'docs/README.md',
+            line: 3,
+          },
           {
             severity: 'error',
             message: 'Included file "out/stale.txt" is in the output folder, which `showroom build` empties',
