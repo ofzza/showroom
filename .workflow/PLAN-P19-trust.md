@@ -20,10 +20,10 @@ Found in the code while planning: `showroom` starts no process today (no `child_
 
 ### The zero-context review of 2026-11-17
 
-- _`D757`_ (`live`; review R6, option chosen: "Keep in P19.2"; rejected: moving the escaping into _`P19.1`_ (the agent's recommendation)): **Escaping control characters stays in _`P19.2`_** (_`D724`_ (SPEC-S14-trust.md)): _`P19.1`_ is never published on its own; _`P19.2`_ follows it before any publish.
+- _`D757`_ (`live`, refined by _`D764`_; review R6, option chosen: "Keep in P19.2"; rejected: moving the escaping into _`P19.1`_ (the agent's recommendation)): **Escaping control characters stays in _`P19.2`_** (_`D724`_ (SPEC-S14-trust.md)): _`P19.1`_ is never published on its own; _`P19.2`_ follows it before any publish.
 - _`D758`_ (`live`; changes _`D632`_ (SPEC-S13-navigation.md); review R7, options chosen: all three): **_`P19.1`_ also fixes three findings outside trust**: `build` refuses an output folder that is a symbolic link, or whose real path leads outside the host repository's real root (`resolveOutputFolder()`, `readOutputFolderState()`), as a source-only `build` of a repository you don't trust is now supported (_`D742`_ (SPEC-S14-trust.md)); a navigation item's absolute URL must be `http:`, `https:` or `mailto:` (or protocol-relative), an error otherwise; the page title's replacement uses a function, so `$` patterns in a project's name stay text.
 - _`D760`_ (`live`; resolves _`O122`_; _`P19.1`_'s checkpoint, option chosen: "Leave as is"; rejected: leaving it for _`P19.2`_ (the agent's recommendation), restricting it now): **`serve` keeps Vite's default `server.fs.allow`**, the workspace root: it runs nothing, and without trust no host code reaches `serve`'s origin.
-- _`D759`_ (`live`; refines _`D748`_, _`D749`_; review fixes, option chosen: "Apply all (Rec.)"): **The review's fixes**:
+- _`D759`_ (`live`, refined by _`D761`_; refines _`D748`_, _`D749`_; review fixes, option chosen: "Apply all (Rec.)"): **The review's fixes**:
   - the request's tools come from an internal hook of the built-in showcase adapters, run after validation and before the decision (the host's TypeScript per documentation file's folder, none with `typeCheck: false`; Angular's compiler and its TypeScript; the CSS preprocessors resolvable from each documentation file's folder); modules and tools are named by their real paths, and the list says "including", as Vite and plugins may load more;
   - the warnings of a run without trust come from `check()` alone, never again from `buildShowcases()`, so `build` and `serve` print each once;
   - _`P19.1`_'s command line passes `check()` a function returning `false` that records that it was called, and warns how to allow it only then; `--no-trust` is an option of its own (not `parseArgs`' `allowNegative`, which would let the last flag win, against _`D751`_);
@@ -58,7 +58,7 @@ _`D677`_, _`D679`_–_`D682`_, _`D699`_–_`D701`_, _`D720`_, _`D721`_, _`D722`_
 
 ### _`P19.2`_ The prompt
 
-draft
+approved 2026-11-17 (option chosen: "Approve and commit (Rec.)")
 
 #### Goals
 
@@ -73,8 +73,19 @@ _`D678`_, _`D693`_–_`D695`_, _`D697`_, _`D698`_, _`D724`_ and _`D725`_ (SPEC-S
 5. **Tests**: `main()` with an injected input (yes, no, the default, Ctrl-C, no terminal, the flags skipping it), the prompt's text, the escaping, `serve`'s single answer and its notices.
 6. **Documentation**: `README.md` (the prompt), `CHANGELOG.md`, `AGENTS.md` (`CliInput`, the Testing section).
 
+#### Decisions
+
+Settled planning it on 2026-11-17 (`./.workflow/.temp/questions-p19.2/QUESTIONS.md`), option chosen for all: "Accept all (Rec.)".
+
+- _`D761`_ (`live`; refines _`D698`_ (SPEC-S14-trust.md), _`D759`_; Q1; rejected: a readable stream, an options object breaking `main(args, output)`): **`CliInput` is `{ isTerminal: boolean; ask(question: string): Promise<string | null> }`**, `main(args, output?, input?)`'s third parameter, exported: `ask()` writes the question to standard error and resolves to the line typed, `''` at the end of input (Ctrl-D, a no), `null` on Ctrl-C. The default reads the terminal on standard input with `node:readline`; `isTerminal` is `process.stdin.isTTY && process.stderr.isTTY`.
+- _`D762`_ (`live`; refines _`D694`_, _`D753`_ (SPEC-S14-trust.md); Q2; rejected: exit code 1): **Ctrl-C at the prompt** writes a newline and ends the command with exit code 130, writing nothing else.
+- _`D763`_ (`live`; refines _`D678`_, _`D693`_, _`D694`_ (SPEC-S14-trust.md); Q3; rejected: one line of counts): **The prompt**, on standard error: "showroom would run the host repository's code on this machine, with your rights:", then a line each for the custom showcase adapters (name and absolute path), the tools ("including", name and absolute path) and the number of showcases, built and run (a line with nothing to name left out, no list cut short), "Only trust a repository whose code you would run yourself.", and "Trust `<root>` and run its code? [y/N]". The answer is trimmed and compared case-insensitively: `y` or `yes` is a yes, anything else a no.
+- _`D764`_ (`live`; refines _`D724`_ (SPEC-S14-trust.md), _`D757`_; Q4; rejected: C0 and DEL only): **One escaping helper** shows C0 controls, DEL and C1 controls as `\xNN`, and Unicode's bidirectional controls (U+202A–U+202E, U+2066–U+2069) as `\uNNNN`; `formatIssues()` applies it to every issue, keeping `\n` and `\t` (build errors' code frames span lines), and the prompt and `serve`'s notices to every host string, newlines escaped too.
+- _`D765`_ (`live`; refines _`D725`_ (SPEC-S14-trust.md); Q5; rejected: notices for new tools and new showcases too): **`serve`'s notices**: after the first run, a notice whenever a run loads a custom showcase adapter module from a path not loaded before in the session, by name and path, with `--trust` too; none for a changed version of a module already loaded, for tools (the request says "including") or for new showcases (they run what was already allowed).
+- _`D766`_ (`live`; resolves _`O121`_; Q6; rejected: a reminder after a no): **The messages without trust**: the warning naming `--trust` and `--no-trust` only when no prompt could be shown (no terminal), saying that a terminal would have asked; nothing more after an explicit no (_`D749`_'s summary warnings still show); the trust notice's tooltip names the prompt too ("answer yes when showroom asks, or pass --trust").
+
 ## Open points
 
 - [ ] _`O120`_ From _`D759`_, implementing _`P19.1`_: "every existing `main()` test injects an input with no terminal (a test helper)" needs `CliInput`, which _`P19.2`_ step 1 introduces; _`P19.1`_ reads no input, so its `main()` tests can't wait on a prompt. For _`P19.2`_, with its `README.md` › `# Usage` of `CliInput` and `main()`'s input.
-- [ ] _`O121`_ From _`D741`_, implementing _`P19.1`_: the trust notice's tooltip (`TRUST_NOTICE_TOOLTIP`, `src/app/code-pane/`) names `--trust` only, and the untrusted warning (`src/cli/`) `--trust` and `--no-trust`; _`P19.2`_ adds the prompt to both.
+- [x] _`O121`_ (resolved by _`D766`_) From _`D741`_, implementing _`P19.1`_: the trust notice's tooltip (`TRUST_NOTICE_TOOLTIP`, `src/app/code-pane/`) names `--trust` only, and the untrusted warning (`src/cli/`) `--trust` and `--no-trust`; _`P19.2`_ adds the prompt to both.
 - [x] _`O122`_ (resolved by _`D760`_) From _`D746`_'s audit: whether `serve` sets `server.fs.allow` (e.g. to the showroom's own folder and its dependencies) instead of Vite's default, the workspace root, which is the host repository when `showroom` is installed in a workspace host. For the user to decide.
