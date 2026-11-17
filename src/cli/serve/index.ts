@@ -10,7 +10,7 @@ import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { Ignore } from 'ignore';
 import { createServer, type ViteDevServer } from 'vite';
 import { checkHost, type CheckIssue, type CheckOptions, type CheckResult } from '../check/index.js';
-import { formatIssues, readIgnoreMatcher } from '../check/internal/index.js';
+import { escapeControlCharacters, formatIssues, getCustomShowcaseAdapterModules, readIgnoreMatcher } from '../check/internal/index.js';
 import type { CliOutput } from '../index.js';
 import type { ShownHostInformation, ShownShowcase } from '../../app/host/index.js';
 import { readConfiguration } from '../../configuration/index.js';
@@ -393,7 +393,7 @@ export function createHostWatcher(options: HostWatcherOptions): HostWatcher {
     notify: () => {
       if (closed) return;
       clearTimeout(timer);
-      timer = setTimeout(() => void update().catch((err: Error) => options.output.stderr(`error: ${err.message}\n`)), delay);
+      timer = setTimeout(() => void update().catch((err: Error) => options.output.stderr(`error: ${escapeControlCharacters(err.message, true)}\n`)), delay);
     },
     update,
     getHost: () => state.host,
@@ -458,6 +458,23 @@ export interface ServeOptions {
 }
 
 /**
+ * Gets the notices of the custom showcase adapter modules a trusted session loads for the first time, after its first check: one for each module
+ * whose path the session hasn't loaded before (a changed version of a module already loaded gets none), each string from the host repository escaped
+ * @param loaded Absolute real paths of the modules the session has loaded so far, to which the new ones are added
+ * @param modules The custom showcase adapter modules the latest check loaded (see getCustomShowcaseAdapterModules())
+ * @returns One line per new module, each with its line break, or an empty string
+ */
+export function getTrustNotices(loaded: Set<string>, modules: readonly { name: string; path: string }[]): string {
+  let notices = '';
+  for (const { name, path } of modules) {
+    if (loaded.has(path)) continue;
+    loaded.add(path);
+    notices += `notice: Running the custom showcase adapter ${escapeControlCharacters(name, false)} (${escapeControlCharacters(path, false)}), trusted for this session\n`;
+  }
+  return notices;
+}
+
+/**
  * Gets the warning of a check of `serve` that has something to trust while the session runs without trust although nobody was asked, as its first
  * check had nothing to trust
  * @param result The check's outcome
@@ -489,6 +506,16 @@ function _waitForStop(server: ViteDevServer, signal?: AbortSignal): Promise<void
     server.httpServer?.on('close', stop);
     if (signal?.aborted) stop();
   });
+}
+
+/**
+ * Gets the custom showcase adapter modules a trusted check loads: those the configuration lists that exist
+ * @param root Path of the host repository's root
+ * @returns The modules, by name and absolute real path; none if the configuration can't be read
+ */
+async function _getLoadedModules(root: string): Promise<{ name: string; path: string }[]> {
+  const { configuration } = await readConfiguration(root);
+  return configuration ? getCustomShowcaseAdapterModules(root, configuration.customShowcaseAdapters ?? {}) : [];
 }
 
 /**
@@ -538,9 +565,12 @@ export async function serve({
     return 1;
   }
   const trusted = first.trusted;
+  // A trusted session notices each custom showcase adapter module it loads for the first time after its first check
+  const loaded = new Set(trusted ? (await _getLoadedModules(root)).map(({ path }) => path) : []);
   // A later check that has something to trust while nobody was asked warns to restart with trust
   const checkAgain = async (): Promise<CheckResult> => {
     const result = await checkHost(root, { outDir, trust: trusted }, 'build');
+    if (trusted) output.stderr(getTrustNotices(loaded, await _getLoadedModules(root)));
     return asked ? result : { ...result, issues: [...result.issues, ...getRestartWarnings(result)] };
   };
   const build = (host: HostInformation) => _buildShowcases(root, host, trusted);
@@ -624,13 +654,13 @@ export async function serve({
     });
     await server.listen();
     const url = server.resolvedUrls?.local[0] ?? `http://localhost:${server.config.server.port}/`;
-    output.stdout(`Serving the showroom of ${first.host.project.name} at ${url}\nPress Ctrl+C to stop.\n`);
+    output.stdout(`Serving the showroom of ${escapeControlCharacters(first.host.project.name, false)} at ${url}\nPress Ctrl+C to stop.\n`);
     onListening?.(url);
 
     await _waitForStop(server, signal);
     return 0;
   } catch (err) {
-    output.stderr(`error: ${(err as Error).message}\n`);
+    output.stderr(`error: ${escapeControlCharacters((err as Error).message, true)}\n`);
     return 1;
   } finally {
     await watcher?.close();

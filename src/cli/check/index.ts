@@ -41,7 +41,7 @@ import {
 } from '../../markdown/index.js';
 import { resolveNavigation } from '../../navigation/index.js';
 import { buildShowcases, getBuildShowcasesIssues } from '../../showcases/index.js';
-import { createIgnoreMatcher, resolveOutputFolder } from './internal/index.js';
+import { createIgnoreMatcher, getCustomShowcaseAdapterModules, resolveOutputFolder } from './internal/index.js';
 
 // #region Types
 
@@ -454,7 +454,7 @@ async function _checkShowcases(
       trusted = trust;
     } else if (showcases.length || custom.size) {
       const request: TrustRequest = {
-        customShowcaseAdapters: await _getModules(root, listed),
+        customShowcaseAdapters: await getCustomShowcaseAdapterModules(root, listed),
         tools: [...used].flatMap(([name, valid]) => getTrustTools(name, resolve(root), valid)),
         showcases: showcases.length,
       };
@@ -577,22 +577,6 @@ async function _validateShowcase(
   } catch (err) {
     error(`Showcase adapter "${name}" failed to validate the showcase: ${(err as Error).message}`);
   }
-}
-
-/**
- * Gets the custom showcase adapter modules a host repository lists, by name, with their real paths, for a trust request; one that doesn't exist is
- * left out
- * @param root Path of the host repository's root
- * @param listed Custom showcase adapters' paths, relative to the root, by name
- * @returns The modules, in the order listed
- */
-async function _getModules(root: string, listed: Record<string, string>): Promise<TrustRequest['customShowcaseAdapters']> {
-  const modules: TrustRequest['customShowcaseAdapters'] = [];
-  for (const [name, path] of Object.entries(listed)) {
-    const real = await realpath(resolve(root, path)).catch(() => undefined);
-    if (real !== undefined) modules.push({ name, path: real });
-  }
-  return modules;
 }
 
 /**

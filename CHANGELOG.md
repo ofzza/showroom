@@ -10,11 +10,14 @@ All notable changes to `@ofzza/showroom`, by version as published to npm. This p
 
 ### Added
 
-- **`--trust` and `--no-trust`** on every command; `--no-trust` runs without trust, without warning about it.
+- **`--trust` and `--no-trust`** on every command; `--no-trust` runs without trust, without asking or warning about it.
+- **The trust prompt**: without either flag, and when the host repository has something to trust, `showroom` asks in a terminal whether to trust it, naming what would run (`[y/N]`); with no terminal, it runs without trust, and warns. Ctrl-C at the prompt ends the command with exit code `130`. A trusted `serve` writes a notice whenever it loads a custom showcase adapter module it hadn't loaded yet.
+- **`main()`'s third parameter, `input`** (`CliInput`, the new type): what the prompt asks through; the terminal on standard input by default, never a pipe.
 - **`CheckOptions.trust`** (`false` by default, `true`, or a function given a `TrustRequest`, the new type naming what would run), and **`CheckResult.trusted`**.
 
 ### Changed
 
+- **Control characters from the host repository are shown escaped** (e.g. `\x1b`) in everything `showroom` writes to the terminal: the issues, the prompt and its notices.
 - **`serve` sends linked files with `X-Content-Type-Options: nosniff`**, and without trust, linked `.html`, `.htm`, `.svg`, `.xml` and `.xhtml` files as plain text.
 - **A navigation item's URL must be `http:`, `https:`, `mailto:` or protocol-relative**: any other scheme (e.g. `javascript:`) is an error.
 - **`build` refuses an output folder that is a symbolic link**, or that leads outside the host repository through one.

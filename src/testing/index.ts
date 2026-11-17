@@ -1,7 +1,7 @@
 /**
  * Testing helpers, for the tests only (excluded from the build, never re-exported): scratch folders inside this repository's
  * `node_modules/.cache/showroom-tests/`, copies of the fixture host repositories in them, and the work of the test projects' global setups (the
- * temporary folder, the compiled showroom, and the installed fixtures)
+ * temporary folder, the compiled showroom, and the installed fixtures), and the command line's input
  */
 
 import { execFile } from 'node:child_process';
@@ -11,6 +11,7 @@ import { cp, mkdir, mkdtemp, readdir, readFile, rename, rm, stat, writeFile } fr
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import type { CliInput } from '../cli/index.js';
 
 declare module 'vitest' {
   /**
@@ -414,6 +415,45 @@ export async function compileApp(folder: string): Promise<string> {
   });
   await cp(join(REPOSITORY_ROOT, 'src', 'app', 'index.html'), join(folder, 'app', 'index.html'));
   return join(folder, 'app');
+}
+
+// #endregion
+
+// #region Command line input
+
+/**
+ * Represents an input for main() in the tests, recording the questions asked
+ */
+export interface TestCliInput {
+  /**
+   * The input, to pass to main()
+   */
+  input: CliInput;
+  /**
+   * The questions asked, in order
+   */
+  questions: string[];
+}
+
+/**
+ * Creates an input for main() in the tests, so no test reads the real terminal, or waits on a prompt
+ * @param terminal True if the input is a terminal, so main() asks; false (the default) for no terminal, so it never asks
+ * @param answers The answers to give, in order (null for Ctrl-C); a question past them is answered at the end of the input (an empty string)
+ * @returns The input, and the questions it was asked
+ */
+export function createCliInput(terminal = false, answers: (string | null)[] = []): TestCliInput {
+  const questions: string[] = [];
+  const left = [...answers];
+  return {
+    questions,
+    input: {
+      isTerminal: terminal,
+      ask: async (question) => {
+        questions.push(question);
+        return left.length ? left.shift()! : '';
+      },
+    },
+  };
 }
 
 // #endregion

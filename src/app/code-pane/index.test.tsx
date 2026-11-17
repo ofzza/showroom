@@ -380,7 +380,7 @@ describe('app/code-pane', () => {
       expect(html).toContain('data-trust-notice=""');
       expect(html).toContain(TRUST_NOTICE_TEXT);
       expect(html).toContain(`title="${TRUST_NOTICE_TOOLTIP.replaceAll("'", '&#x27;')}"`);
-      expect(TRUST_NOTICE_TOOLTIP).toMatch(/--trust/);
+      expect(TRUST_NOTICE_TOOLTIP).toMatch(/answer yes when showroom asks, or pass --trust/);
       expect(html).not.toContain('data-status-mark');
       // Its source, and no showcase frame
       expect(html).toContain('data-showcase-view="source"');

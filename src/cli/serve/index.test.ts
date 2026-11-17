@@ -18,6 +18,7 @@ import {
   createIgnored,
   getWatchTargets,
   getRestartWarnings,
+  getTrustNotices,
   getShownChange,
   runBuild,
   serve,
@@ -321,6 +322,29 @@ describe('cli/serve', () => {
       expect(getRestartWarnings({ passed: true, trusted: false, host: _host('a'), issues: [] })).toEqual([]);
       expect(getRestartWarnings({ passed: true, trusted: true, host: _host('a', [], 1), issues: [] })).toEqual([]);
       expect(getRestartWarnings({ passed: false, trusted: false, issues: [] })).toEqual([]);
+    });
+  });
+
+  describe('getTrustNotices', () => {
+    // The notices of a trusted session loading a custom showcase adapter module for the first time after its first check (D725 in
+    // .workflow/SPEC-S14-trust.md, D765 in .workflow/PLAN-P19-trust.md), on hand-written modules.
+
+    it('Notices each module whose path the session has not loaded, once', () => {
+      const loaded = new Set(['/host/a.js']);
+      const modules = [
+        { name: 'a', path: '/host/a.js' },
+        { name: 'b', path: '/host/b.js' },
+      ];
+      expect(getTrustNotices(loaded, modules)).toBe('notice: Running the custom showcase adapter b (/host/b.js), trusted for this session\n');
+      expect(loaded).toEqual(new Set(['/host/a.js', '/host/b.js']));
+      // A changed version of a module already loaded has the same path
+      expect(getTrustNotices(loaded, modules)).toBe('');
+    });
+
+    it('Escapes the control characters of the names and paths', () => {
+      expect(getTrustNotices(new Set(), [{ name: 'c', path: '/host/\x1b]0;x\x07.js' }])).toBe(
+        'notice: Running the custom showcase adapter c (/host/\\x1b]0;x\\x07.js), trusted for this session\n',
+      );
     });
   });
 

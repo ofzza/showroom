@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, isAbsolute, join, relative, sep } from 'node:path';
 import { build as viteBuild, type InlineConfig } from 'vite';
 import { checkHost, type CheckOptions } from '../check/index.js';
-import { formatIssues, resolveOutputFolder, SILENCED_WARNINGS } from '../check/internal/index.js';
+import { escapeControlCharacters, formatIssues, resolveOutputFolder, SILENCED_WARNINGS } from '../check/internal/index.js';
 import type { CliOutput } from '../index.js';
 import { readConfiguration } from '../../configuration/index.js';
 import { buildShowcases, getBuildShowcasesIssues } from '../../showcases/index.js';
@@ -174,20 +174,20 @@ export async function build({ root, outDir, output, appDir = getAppDir(), trust 
   const { configuration } = await readConfiguration(root);
   const outputFolder = configuration && resolveOutputFolder(root, configuration, outDir);
   if (!outputFolder || 'error' in outputFolder) {
-    output.stderr(`error: ${outputFolder?.error ?? 'The configuration changed while building'}\n`);
+    output.stderr(`error: ${escapeControlCharacters(outputFolder?.error ?? 'The configuration changed while building', true)}\n`);
     return 1;
   }
   const state = await readOutputFolderState(outputFolder.path, root);
   if (state === 'linked') {
     output.stderr(
-      `error: Output folder "${outputFolder.relativePath}" is a symbolic link, or leads outside the host repository through one; ` +
+      `error: Output folder "${escapeControlCharacters(outputFolder.relativePath, false)}" is a symbolic link, or leads outside the host repository through one; ` +
         'choose another output folder\n',
     );
     return 1;
   }
   if (state === 'unmarked') {
     output.stderr(
-      `error: Output folder "${outputFolder.relativePath}" is not empty, and holds no ${OUTPUT_FOLDER_MARKER} file from an earlier build; ` +
+      `error: Output folder "${escapeControlCharacters(outputFolder.relativePath, false)}" is not empty, and holds no ${OUTPUT_FOLDER_MARKER} file from an earlier build; ` +
         'empty or delete it, or choose another output folder\n',
     );
     return 1;
@@ -210,10 +210,10 @@ export async function build({ root, outDir, output, appDir = getAppDir(), trust 
   try {
     await viteBuild(getBuildConfiguration({ appDir, cacheDir, hostRoot: root, getHost: () => host, getFrames: () => frames, outDir: outputFolder.path }));
     await writeFile(join(outputFolder.path, OUTPUT_FOLDER_MARKER), OUTPUT_FOLDER_MARKER_CONTENT);
-    output.stdout(`Built the showroom of ${host.project.name} into ${outputFolder.path}\n`);
+    output.stdout(`Built the showroom of ${escapeControlCharacters(host.project.name, false)} into ${escapeControlCharacters(outputFolder.path, false)}\n`);
     return 0;
   } catch (err) {
-    output.stderr(`error: ${(err as Error).message}\n`);
+    output.stderr(`error: ${escapeControlCharacters((err as Error).message, true)}\n`);
     return 1;
   } finally {
     await rm(cacheDir, { recursive: true, force: true });

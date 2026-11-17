@@ -3,9 +3,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { cp } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { main, USAGE } from './index.js';
+import { createCliInput, createScratchFolder } from '../testing/index.js';
+import { main, USAGE, type CliInput } from './index.js';
 
 /**
  * Gets the path of a fixture host repository
@@ -17,14 +19,15 @@ function _fixture(name: string): string {
 }
 
 /**
- * Runs the command line, capturing its output
+ * Runs the command line, capturing its output, with an input that is no terminal unless one is given, so it never waits on a prompt
  * @param args Command line arguments
+ * @param input Input to ask through (see createCliInput())
  * @returns Exit code, and everything written to stdout and stderr
  */
-async function _run(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+async function _run(args: string[], input: CliInput = createCliInput().input): Promise<{ code: number; stdout: string; stderr: string }> {
   let stdout = '';
   let stderr = '';
-  const code = await main(args, { stdout: (text) => (stdout += text), stderr: (text) => (stderr += text) });
+  const code = await main(args, { stdout: (text) => (stdout += text), stderr: (text) => (stderr += text) }, input);
   return { code, stdout, stderr };
 }
 
@@ -208,6 +211,99 @@ describe('cli', () => {
         // Trusted, its custom showcase adapters load, and their errors show
         expect((await _run([...args, '--trust'])).stderr).toMatch(/Custom showcase adapter "broken"/);
       }
+    });
+  });
+
+  describe('Prompt', () => {
+    // The prompt of a run without either flag (D693, D694, D724 in SPEC-S14-trust.md, D761-D763 and D766 in PLAN-P19-trust.md), through an injected
+    // input (createCliInput()) answering as given and recording the questions. The showcase-errors fixture's custom showcase adapter "broken" only
+    // reports its error when it is loaded, so its error shows whether the answer trusted the host repository.
+
+    /**
+     * Runs `check --quiet` on a fixture in a terminal answering as given
+     * @param name Name of the fixture
+     * @param answers The answers to give
+     * @param args More arguments
+     * @returns The run's outcome, and the questions asked
+     */
+    const ask = async (name: string, answers: (string | null)[], args: string[] = []) => {
+      const { input, questions } = createCliInput(true, answers);
+      return { ...(await _run(['check', '--quiet', '--root', _fixture(name), ...args], input)), questions };
+    };
+
+    it('Trusts the host repository on y or yes, in any case, around spaces', async () => {
+      for (const answer of ['y', 'Y', 'yes', ' YES ']) {
+        const { code, stderr, questions } = await ask('showcase-errors', [answer]);
+        expect(code).toBe(1);
+        expect(questions).toHaveLength(1);
+        expect(stderr).toMatch(/Custom showcase adapter "broken": /);
+      }
+    });
+
+    it("Doesn't trust it on any other answer, the default and the end of the input, saying nothing more", async () => {
+      for (const answer of ['', 'n', 'no', 'yeah', 'y es']) {
+        const { stderr, questions } = await ask('showcase-errors', [answer]);
+        expect(questions).toHaveLength(1);
+        expect(stderr).not.toMatch(/Custom showcase adapter "broken": /);
+        expect(stderr).not.toMatch(/isn't trusted, so none/);
+      }
+    });
+
+    it('Names what would run, and asks with no as the default', async () => {
+      const root = _fixture('showcase-errors');
+      const [question] = (await ask('showcase-errors', ['n'])).questions;
+      const lines = question!.split('\n');
+      expect(lines[0]).toBe("showroom would run the host repository's code on this machine, with your rights:");
+      // The "broken" adapter's module is missing, so only the two that exist are named, by their real paths
+      expect(lines[1]).toBe(`  custom showcase adapters: needy (${join(root, 'adapters', 'needy.js')}), throwing (${join(root, 'adapters', 'throwing.js')})`);
+      expect(lines.at(-3)).toMatch(/^ {2}\d+ showcases, built and run$/);
+      expect(lines.at(-2)).toBe('Only trust a repository whose code you would run yourself.');
+      expect(lines.at(-1)).toBe(`Trust ${root} and run its code? [y/N] `);
+    });
+
+    it('Names the tools a build would load', async () => {
+      const [question] = (await ask('showcase-ts', ['n'])).questions;
+      expect(question).toMatch(/^ {2}tools, including: typescript \(\/.*\)$/m);
+      expect(question).not.toMatch(/custom showcase adapters/);
+    });
+
+    it('Escapes the control characters of what it names', async () => {
+      // A bidirectional control in the root's path would reorder the line it is shown on
+      const scratch = await createScratchFolder('trust-\u202e-');
+      try {
+        await cp(_fixture('links'), scratch.path, { recursive: true });
+        const { input, questions } = createCliInput(true, ['n']);
+        await _run(['check', '--quiet', '--root', scratch.path], input);
+        expect(questions[0]).not.toContain('\u202e');
+        expect(questions[0]).toContain('trust-\\u202e-');
+      } finally {
+        await scratch.remove();
+      }
+    });
+
+    it('Ends the command on Ctrl-C, on every command, before it starts', async () => {
+      for (const command of ['check', 'serve', 'build']) {
+        const { input, questions } = createCliInput(true, [null]);
+        const { code, stdout, stderr } = await _run(
+          [command, '--root', _fixture('showcase-errors'), ...(command === 'serve' ? ['--port', '8080'] : [])],
+          input,
+        );
+        expect(questions).toHaveLength(1);
+        expect(code).toBe(130);
+        expect(stdout).toBe('');
+        expect(stderr).toBe('\n');
+      }
+    });
+
+    it('Never asks with nothing to trust, with either flag, or with no terminal', async () => {
+      expect((await ask('minimal', ['y'])).questions).toEqual([]);
+      for (const flag of ['--trust', '--no-trust']) {
+        expect((await ask('showcase-errors', ['y'], [flag])).questions).toEqual([]);
+      }
+      const { input, questions } = createCliInput(false, ['y']);
+      const { stderr } = await _run(['check', '--quiet', '--root', _fixture('showcase-errors')], input);
+      expect(questions).toEqual([]);
+      expect(stderr).toMatch(/^warning: The host repository isn't trusted.*in a terminal, showroom would have asked/);
     });
   });
 

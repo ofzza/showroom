@@ -87,7 +87,7 @@ In a TypeScript or JavaScript repository with a `package.json`:
 
    On GitHub or npm, it is still an ordinary, highlighted code block; in the showroom, the button runs in its showcase frame, its code a click away.
 
-4. Preview the showroom, and keep it open while you write: it updates as you edit. `--trust` lets `showroom` run your repository's code, its showcases included; without it, every showcase shows its source (see [Trust](#trust)).
+4. Preview the showroom, and keep it open while you write: it updates as you edit. `--trust` lets `showroom` run your repository's code, its showcases included; without it, `showroom` asks in a terminal, and if you don't say yes, every showcase shows its source (see [Trust](#trust)).
 
    ```sh
    $ npx showroom serve --trust
@@ -129,11 +129,11 @@ host information
 - **Showcase adapter**: an implementation of the common interface for building showcase frames for one kind of code (HTML, TypeScript, React, Angular, or the host repository's own), chosen per showcase by its marker.
 - **Showcase frame**: the page that renders one showcase, in isolation, embedded in the showroom with an iframe.
 
-The command line is `showroom <command> [options]`, with three commands, [`check`](#showroom-check), [`serve`](#showroom-serve) and [`build`](#showroom-build). `showroom --help` writes its usage to `stdout`. A missing or unknown command, an unknown option, an option the command doesn't take (e.g. `--port` with `check`), a `--port` that isn't a whole number from 1 to 65535, or `--trust` with `--no-trust` writes what is wrong, and the usage, to `stderr`, and exits with `1`.
+The command line is `showroom <command> [options]`, with three commands, [`check`](#showroom-check), [`serve`](#showroom-serve) and [`build`](#showroom-build). `showroom --help` writes its usage to `stdout`. A missing or unknown command, an unknown option, an option the command doesn't take (e.g. `--port` with `check`), a `--port` that isn't a whole number from 1 to 65535, or `--trust` with `--no-trust` writes what is wrong, and the usage, to `stderr`, and exits with `1`. Ctrl-C at the [trust](#trust) prompt ends the command, with `130`.
 
 ## Trust
 
-A host repository's showcases, its custom showcase adapters and the tools its showcases are built with are its code. `showroom` runs that code only when **you trust the host repository**, by passing `--trust` to any command. Trusting a host repository means running its code on your machine, with your rights: trust isn't a sandbox, it only decides whether the code runs. Under trust, `showroom`:
+A host repository's showcases, its custom showcase adapters and the tools its showcases are built with are its code. `showroom` runs that code only when **you trust the host repository**, by passing `--trust` to any command, or by answering yes when it asks. Trusting a host repository means running its code on your machine, with your rights: trust isn't a sandbox, it only decides whether the code runs. Under trust, `showroom`:
 
 - loads the [custom showcase adapters](#custom-showcase-adapters-experimental) `showroom.json` lists, which every command does;
 - runs the showcase adapters' host checks, and loads the host's own tools from the host repository: its TypeScript, to type check `ts` and `react` showcases; Angular's compiler (with its Linker and Babel) and its TypeScript, for `angular` showcases; and a CSS preprocessor (`sass`, `sass-embedded`, `less`, `stylus`), when a showcase imports a stylesheet of its kind;
@@ -145,7 +145,18 @@ Without trust (neither flag, or `--no-trust`), none of it runs. `showroom` reads
 - `check` warns about each custom showcase adapter it didn't load and each host check it didn't run, naming how many showcases they have; `check --showcases`, `serve` and `build` warn once that the showcases weren't built, and once about the custom showcase adapters not loaded. None of them fails for lack of trust: `build` publishes a showroom of the showcases' sources.
 - `serve` sends the linked files a browser would run (`.html`, `.htm`, `.svg`, `.xml`, `.xhtml`) as plain text, so opening one shows its source.
 
-When the host repository has something to trust (a showcase, or a custom showcase adapter) and neither flag is given, `showroom` warns that it runs without trust, and how to allow it; `--no-trust` runs without trust, without that warning (e.g. in scripts). Trust is decided once per command: `serve` keeps it for its whole session, and one that started with nothing to trust warns to restart it with `--trust` once a showcase appears. Nothing in the host repository can trust itself: no setting in `showroom.json`, and no environment variable.
+When the host repository has something to trust (a showcase, or a custom showcase adapter) and neither flag is given, `showroom` asks you, once `showroom.json` is read and the documentation files scanned, and before any of the host repository's code runs. The prompt, on `stderr`, names what would run, and defaults to no:
+
+```text
+showroom would run the host repository's code on this machine, with your rights:
+  custom showcase adapters: number-table (/home/me/host/examples/number-table/number-table.js)
+  tools, including: typescript (/home/me/host/node_modules/typescript)
+  12 showcases, built and run
+Only trust a repository whose code you would run yourself.
+Trust /home/me/host and run its code? [y/N]
+```
+
+Only `y` or `yes` (in any case) trusts it; anything else, or just Enter, doesn't, and Ctrl-C ends the command. The tools are named "including", as the bundler and its plugins may load more. `showroom` only asks when both its standard input and its standard error are a terminal: the answer is never read from a pipe (`yes | showroom …` answers nothing). With no terminal (e.g. in CI), it runs without trust, and warns so, and how to allow it; `--no-trust` runs without trust, without asking or warning (e.g. in scripts). Trust is decided once per command: `serve` keeps it for its whole session, and one that started with nothing to trust warns to restart it with `--trust` once a showcase appears. Nothing in the host repository can trust itself: no setting in `showroom.json`, and no environment variable. A trusted `serve` writes a notice to `stderr` whenever it loads a custom showcase adapter module that wasn't loaded yet in its session (e.g. one added to `showroom.json` while it runs). Every string from the host repository that `showroom` writes to the terminal (in the prompt, its notices and the issues) has its control characters shown escaped (e.g. `\x1b`), so none can rewrite what you read.
 
 ### Reading a repository you don't trust
 
@@ -825,7 +836,7 @@ $ npx showroom check [--root <dir>] [--out-dir <dir>] [--showcases] [--quiet] [-
 
 `--out-dir` overrides `showroom.json`'s `outDir`, relative to the current directory (as `--root` is); `check` takes it so it skips the same files `build` would.
 
-`--trust` lets the host repository's code run, and `--no-trust` runs without it, without warning about it (see [Trust](#trust)): without trust, `check` loads no custom showcase adapter, runs no host check, and builds no showcase, even with `--showcases`.
+`--trust` lets the host repository's code run, and `--no-trust` runs without it, without asking or warning about it; with neither, `check` asks in a terminal (see [Trust](#trust)): without trust, `check` loads no custom showcase adapter, runs no host check, and builds no showcase, even with `--showcases`.
 
 `--showcases` also builds every showcase, as `showroom build` does, and throws the result away, once the rest of the check finds no errors. A showcase that doesn't build, or whose checks find errors, is an error, naming the showcase and its entry point, then the check, if it belongs to one (e.g. `error: README.md:16: Showcase README.md#2 (README.md:14): type check: <message>`), placed where the issue is. A build's warnings are reported the same way, as warnings. Without it, `check` builds nothing, so it stays fast; under trust, it still runs each showcase adapter's host check (e.g. that React is installed for `react` showcases), so the packages the showcases need must be installed for it to pass. Run `check --showcases --trust` in CI to catch showcases that no longer build.
 
@@ -1005,7 +1016,7 @@ This repository publishes its own showroom with [`.github/workflows/showroom.yml
 
 ## Troubleshooting
 
-- **Every showcase shows its source, "Source only: not trusted"**: `showroom` ran without [trust](#trust), so it ran none of the host repository's code. Pass `--trust` if you trust the repository; restart `serve` with it.
+- **Every showcase shows its source, "Source only: not trusted"**: `showroom` ran without [trust](#trust), so it ran none of the host repository's code. Pass `--trust`, or answer yes when `showroom` asks, if you trust the repository; restart `serve` to do so.
 - **A showcase shows "Not built"**: it didn't build (e.g. a syntax error, or an import that doesn't resolve). Its issue list says why, and so do `serve`'s `stderr` and `npx showroom check --showcases`. See [Status marks and issues](#status-marks-and-issues).
 - **TS2307, or TS2882, on a CSS or asset import**: TypeScript doesn't know what Vite bundles. Add `/// <reference types="vite/client" />` to a `.d.ts` file the tsconfig includes, or declarations of your own (e.g. `declare module '*.css';`), or turn `typeCheck` off. See [Type checking](#type-checking).
 - **TS7016 on a `.js` import**: a `.js` file without declarations, under `strict`. Give the showcase the `allowJs` option (`showcase=ts({ allowJs: true })`). See [Type checking](#type-checking).
@@ -1021,7 +1032,7 @@ This repository publishes its own showroom with [`.github/workflows/showroom.yml
 Everything the command line does is also exported, except serving and building, which are only available through the command line and `main()`:
 
 ```ts
-import { check, readConfiguration, getStackAdapter, getStackAdapterNames, type CheckResult, type TrustRequest } from '@ofzza/showroom';
+import { check, main, readConfiguration, getStackAdapter, getStackAdapterNames, type CheckResult, type CliInput, type TrustRequest } from '@ofzza/showroom';
 
 // Checks a host repository, and collects its host information if the check passes
 const result: CheckResult = await check('./path/to/host');
@@ -1053,14 +1064,22 @@ const { configuration, errors } = await readConfiguration('./path/to/host');
 const adapter = getStackAdapter(configuration?.stack ?? 'typescript');
 const project = await adapter?.readProject('./path/to/host', configuration?.project);
 console.log(getStackAdapterNames(), project, errors);
+
+// Runs the command line, with its output and its trust prompt's input given
+const code = await main(
+  ['check', '--quiet', '--root', './path/to/host'],
+  { stdout: (text) => process.stdout.write(text), stderr: (text) => process.stderr.write(text) },
+  { isTerminal: true, ask: async (question) => (console.log(question), 'n') } satisfies CliInput,
+);
+console.log(code);
 ```
 
 - `check(root, options?)`: checks a host repository and collects its host information; resolves to a `CheckResult` (`passed`, `host` when it passed, `issues`, each with its `severity`, `message`, the `path` and `line` it concerns, if any, and the `check` a showcase's issue belongs to, if any, e.g. `type check`, and `trusted`, whether the host repository's code was allowed to run). `options` (`CheckOptions`) overrides the configuration: `outDir`, absolute or relative to the current directory; `showcases: true` also builds every showcase, failing the check on any that doesn't build, or whose checks find errors; and `trust` decides whether the host repository's code runs (see [Trust](#trust)): `false` by default, `true`, or a function called at most once, only when the host repository has something to trust, after `showroom.json` is read and the documentation files scanned and before any of its code runs, with a `TrustRequest` (the custom showcase adapter modules, by name and real path; the tools a build would load, by package name and real path, including TypeScript, Angular's compiler and the CSS preprocessors resolvable from the host repository, as the bundler and its plugins may load more; and the number of showcases), resolving to the decision (a rejection means no trust).
 - `readConfiguration(root)` / `validateConfiguration(value)`: read and validate a `showroom.json`, resolving to either a `configuration` or `errors`.
 - `getStackAdapter(name)` / `getStackAdapterNames()`: look up the built-in stack adapters, which implement the `StackAdapter` interface; `TypeScriptStackAdapter` is the `typescript` one, and `DotNetStackAdapter` the `dotnet` one. `readProject(root, project?)` reads the project information, from the file `project` names (relative to `root`) or the stack adapter's default.
-- `main(args, output?)`: runs the command line with the given arguments, resolving to its exit code; `USAGE` is its help text.
+- `main(args, output?, input?)`: runs the command line with the given arguments, resolving to its exit code; `USAGE` is its help text. `output` (`CliOutput`: `stdout` and `stderr` functions) defaults to the process's streams. `input` (`CliInput`) is what the [trust](#trust) prompt asks through: `isTerminal`, whether it may ask at all, and `ask(question)`, resolving to the line typed, `''` at the end of the input, or `null` on Ctrl-C (which ends the command with `130`); it defaults to the terminal on the process's standard input, never a pipe.
 - Constants: `CONFIGURATION_FILE_NAME` (`showroom.json`), `DEFAULT_OUT_DIR` (`./showroom`), and `BUILT_IN_DOCUMENTATION` (the built-in documentation patterns).
-- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase` (with its `views` and `tabs`), `ShowcaseTab` (`source`, `markdown`, or an included `file`), `ShowcaseKind`, `ShowcaseDisplay`, `ShowcaseView` (`markdown`, `source`, `demo`, `console` or `none`), `VirtualFile` (with its fence's `offset`, and its `views` when it has no showcase adapter), `LinkedFile`, `NavigationItem` (the resolved navigation, `HostInformation.navigation`), `Configuration`, `NavigationEntry` (an item of its `navigation`), `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity`, `TrustRequest` and `CliOutput`.
+- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase` (with its `views` and `tabs`), `ShowcaseTab` (`source`, `markdown`, or an included `file`), `ShowcaseKind`, `ShowcaseDisplay`, `ShowcaseView` (`markdown`, `source`, `demo`, `console` or `none`), `VirtualFile` (with its fence's `offset`, and its `views` when it has no showcase adapter), `LinkedFile`, `NavigationItem` (the resolved navigation, `HostInformation.navigation`), `Configuration`, `NavigationEntry` (an item of its `navigation`), `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity`, `TrustRequest`, `CliOutput` and `CliInput`.
 - Experimental types, for [custom showcase adapters](#custom-showcase-adapters-experimental): `ShowcaseAdapter`, `ShowcaseValidation`, `ShowcaseHostCheck`, `ShowcaseBuildRequest`, `ShowcaseBuildResult`, `ShowcaseBuildFile` and `ShowcaseBuildIssue`.
 
 # Development

@@ -10,6 +10,7 @@ import { MINIMUM_ANGULAR_VERSION } from '../adapters/showcase/angular/index.js';
 import { MINIMUM_REACT_VERSION } from '../adapters/showcase/react/index.js';
 import {
   copyFixture,
+  createCliInput,
   createScratchFolder,
   CURRENT_MAJORS,
   FIXTURES,
@@ -29,7 +30,7 @@ import {
 describe('testing', () => {
   // Tests the scratch folder helpers on the real file system: each test creates its scratch folder inside `node_modules/.cache/showroom-tests/`, and
   // removes it again; installing fixtures, into a scratch folder, with a fake npm; and the majors guard, on this repository's own install and on
-  // hand-written states.
+  // hand-written states; and the command line's input, answering as given.
 
   it('Creates a scratch folder of its own, and removes it', async () => {
     const first = await createScratchFolder('helper-');
@@ -97,6 +98,16 @@ describe('testing', () => {
     } finally {
       await scratch.remove();
     }
+  });
+
+  it('Creates an input answering as given, recording the questions, and at the end of its answers as at the end of the input', async () => {
+    const { input, questions } = createCliInput(true, ['y', null]);
+    expect(input.isTerminal).toBe(true);
+    expect(await input.ask('first? ')).toBe('y');
+    expect(await input.ask('second? ')).toBeNull();
+    expect(await input.ask('third? ')).toBe('');
+    expect(questions).toEqual(['first? ', 'second? ', 'third? ']);
+    expect(createCliInput().input.isTerminal).toBe(false);
   });
 
   describe('Supported majors', () => {

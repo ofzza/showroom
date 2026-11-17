@@ -6,7 +6,14 @@ import { describe, it, expect } from 'vitest';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TypeScriptStackAdapter } from '../../../adapters/stack/typescript/index.js';
-import { createIgnoreMatcher, formatIssues, readIgnoreMatcher, resolveOutputFolder } from './index.js';
+import {
+  createIgnoreMatcher,
+  escapeControlCharacters,
+  formatIssues,
+  getCustomShowcaseAdapterModules,
+  readIgnoreMatcher,
+  resolveOutputFolder,
+} from './index.js';
 
 /**
  * Gets the path of a fixture host repository
@@ -19,7 +26,8 @@ function _fixture(name: string): string {
 
 describe('cli/check/internal', () => {
   // Tests the output folder's resolution (on paths alone: nothing is read), the ignore matcher, built from the TypeScript stack adapter and
-  // configurations (hand-made, or read from the fixture host repositories), and the formatting of issues.
+  // configurations (hand-made, or read from the fixture host repositories), the formatting of issues and the escaping of control characters (on
+  // hand-written strings), and the custom showcase adapter modules (on the showcase-errors fixture).
 
   it("Ignores the stack adapter's patterns, then the configuration's", () => {
     const matcher = createIgnoreMatcher(new TypeScriptStackAdapter(), { stack: 'typescript', ignore: ['vendor/', '!node_modules/keep/'] });
@@ -86,5 +94,29 @@ describe('cli/check/internal', () => {
         { severity: 'error', message: 'Unknown', path: 'docs/guide.md', line: 12 },
       ]),
     ).toBe('error: showroom.json: Broken\nwarning: Odd\nerror: docs/guide.md:12: Unknown\n');
+  });
+
+  it("Escapes control characters in issues' paths and messages, keeping line breaks and tabs", () => {
+    // See D764 in .workflow/PLAN-P19-trust.md: an escape sequence from the host repository could otherwise rewrite the line it is shown on
+    expect(formatIssues([{ severity: 'error', message: 'Bad\x1b[2K\n  1 |\tcode', path: 'docs/\u202egood.md', line: 3 }])).toBe(
+      'error: docs/\\u202egood.md:3: Bad\\x1b[2K\n  1 |\tcode\n',
+    );
+  });
+
+  it('Escapes C0, DEL, C1 and bidirectional controls, and nothing else', () => {
+    expect(escapeControlCharacters('a\x00b\x1b\r\x7f\x85\x9f', true)).toBe('a\\x00b\\x1b\\x0d\\x7f\\x85\\x9f');
+    expect(escapeControlCharacters('\u202a\u202e\u2066\u2069', true)).toBe('\\u202a\\u202e\\u2066\\u2069');
+    expect(escapeControlCharacters('line\n\tcol', true)).toBe('line\n\tcol');
+    expect(escapeControlCharacters('line\n\tcol', false)).toBe('line\\x0a\\x09col');
+    expect(escapeControlCharacters('é ü 名 😀 \u00a0 \u2029 \u2067x', false)).toBe('é ü 名 😀 \u00a0 \u2029 \\u2067x');
+  });
+
+  it('Gets the custom showcase adapter modules that exist, by their real paths, in the order listed', async () => {
+    const root = _fixture('showcase-errors');
+    const listed = { needy: './adapters/needy.js', broken: './adapters/missing.js', throwing: 'adapters/throwing.js' };
+    expect(await getCustomShowcaseAdapterModules(root, listed)).toEqual([
+      { name: 'needy', path: join(root, 'adapters', 'needy.js') },
+      { name: 'throwing', path: join(root, 'adapters', 'throwing.js') },
+    ]);
   });
 });

@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P19`_ (trust, _`S14`_) approved for its split, _`P19.1`_ (implemented) and _`P19.2`_ (the prompt) ([PLAN-P19-trust.md](./PLAN-P19-trust.md)).
+- **Stage:** implementation: _`P19`_ (trust, _`S14`_) approved and implemented: _`P19.1`_ (the gate and the flags) and _`P19.2`_ (the prompt) ([PLAN-P19-trust.md](./PLAN-P19-trust.md)).
 - **Next free:** _`D767`_, _`S17`_, _`P20`_, _`O123`_, _`L15`_, _`R57`_, _`H1`_, _`K29`_
-- **Working on:** _`P19.2`_ (the prompt), approved; its choices are _`D761`_–_`D766`_, and its open point _`O120`_, in [PLAN-P19-trust.md](./PLAN-P19-trust.md).
-- **Next step:** implement _`P19.2`_, then its checkpoint.
+- **Working on:** nothing: _`P19`_ (trust) is done.
+- **Next step:** pick the next segment with the user (_`S15`_ recorded showcases and _`S16`_ the C# showcase adapter are specified, not yet planned).
 
 ## Open questions
 
@@ -14,6 +14,7 @@
 ## Waiting on me
 
 - `./.workflow/.temp/questions-p19.2/` (_`P19.2`_'s choices, recorded as _`D761`_–_`D766`_, and formatting backups); ask before deleting it.
+- `./.workflow/.temp/p19.2-format/`, `ci-p19.2.log` and `scratch/readme-ts/` (the README sample's type check); ask before deleting them.
 - `./.workflow/.temp/p19.1-format/` (formatting backups); ask before deleting it.
 - `./.workflow/.temp/review-p19/` (the review's record, `REVIEW.md`, its snapshots and formatting backups); ask before deleting it.
 - `./.workflow/.temp/questions-p19/` (_`P19`_'s choices, recorded as _`D740`_–_`D751`_, and formatting backups); ask before deleting it.
@@ -419,3 +420,4 @@
 - 2026-11-17: _`P19.1`_'s checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"); _`O122`_ resolved by _`D760`_ (option chosen: "Leave as is").
 - 2026-11-17: _`P19.2`_'s choices settled as _`D761`_–_`D766`_ (option chosen: "Accept all (Rec.)"); _`O121`_ resolved by _`D766`_.
 - 2026-11-17: _`P19.2`_ approved (option chosen: "Approve and commit (Rec.)").
+- 2026-11-17: _`P19.2`_'s checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"), with the Glossary's "Trust" naming the prompt; _`O120`_ resolved by _`D761`_; _`P19`_ implemented.

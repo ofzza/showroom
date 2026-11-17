@@ -1,6 +1,6 @@
 # _`P19`_ Trust
 
-approved 2026-11-17, for its split and _`P19.1`_ (option chosen: "Approve and commit (Rec.)")
+approved 2026-11-17, for its split and _`P19.1`_ (option chosen: "Approve and commit (Rec.)"); implemented 2026-11-17 (its children _`P19.1`_ and _`P19.2`_)
 
 _`S14`_ (SPEC-S14-trust.md): running the host repository's code only when the person running `showroom` allows it, with `--trust` or by answering a prompt. Two child segments (_`D744`_): _`P19.1`_ the gate and the flags, then _`P19.2`_ the prompt. Its choices were settled planning it on 2026-11-17 (`./.workflow/.temp/questions-p19/QUESTIONS.md`), where the user's simplification (_`D740`_–_`D743`_ (SPEC-S14-trust.md)) revised _`S14`_ (_`R54`_); its zero-context review of 2026-11-17 (consistency and security; `./.workflow/.temp/review-p19/REVIEW.md`) as _`D752`_–_`D756`_ (SPEC-S14-trust.md) (_`R55`_) and _`D757`_–_`D759`_.
 
@@ -58,7 +58,7 @@ _`D677`_, _`D679`_–_`D682`_, _`D699`_–_`D701`_, _`D720`_, _`D721`_, _`D722`_
 
 ### _`P19.2`_ The prompt
 
-approved 2026-11-17 (option chosen: "Approve and commit (Rec.)")
+approved 2026-11-17 (option chosen: "Approve and commit (Rec.)"); implemented 2026-11-17 (checkpoint, option chosen: "Approve and commit (Rec.)")
 
 #### Goals
 
@@ -86,6 +86,6 @@ Settled planning it on 2026-11-17 (`./.workflow/.temp/questions-p19.2/QUESTIONS.
 
 ## Open points
 
-- [ ] _`O120`_ From _`D759`_, implementing _`P19.1`_: "every existing `main()` test injects an input with no terminal (a test helper)" needs `CliInput`, which _`P19.2`_ step 1 introduces; _`P19.1`_ reads no input, so its `main()` tests can't wait on a prompt. For _`P19.2`_, with its `README.md` › `# Usage` of `CliInput` and `main()`'s input.
+- [x] _`O120`_ (resolved by _`D761`_) From _`D759`_, implementing _`P19.1`_: "every existing `main()` test injects an input with no terminal (a test helper)" needs `CliInput`, which _`P19.2`_ step 1 introduces; _`P19.1`_ reads no input, so its `main()` tests can't wait on a prompt. For _`P19.2`_, with its `README.md` › `# Usage` of `CliInput` and `main()`'s input.
 - [x] _`O121`_ (resolved by _`D766`_) From _`D741`_, implementing _`P19.1`_: the trust notice's tooltip (`TRUST_NOTICE_TOOLTIP`, `src/app/code-pane/`) names `--trust` only, and the untrusted warning (`src/cli/`) `--trust` and `--no-trust`; _`P19.2`_ adds the prompt to both.
 - [x] _`O122`_ (resolved by _`D760`_) From _`D746`_'s audit: whether `serve` sets `server.fs.allow` (e.g. to the showroom's own folder and its dependencies) instead of Vite's default, the workspace root, which is the host repository when `showroom` is installed in a workspace host. For the user to decide.

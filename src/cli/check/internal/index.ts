@@ -1,9 +1,11 @@
 /**
  * Internals of the check shared with `showroom serve`, `showroom build` and the `ts` showcase adapter, and so not re-exported: the output folder,
- * the ignore matcher (which files of a host repository are ignored), the formatting of check issues as output, and the bundler warnings left out
+ * the ignore matcher (which files of a host repository are ignored), the formatting of check issues as output, escaping control characters written
+ * to the terminal, the custom showcase adapter modules, and the bundler warnings left out
  */
 
 import ignore, { type Ignore } from 'ignore';
+import { realpath } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { getStackAdapter, type StackAdapter } from '../../../adapters/stack/index.js';
 import { DEFAULT_OUT_DIR, readConfiguration, type Configuration } from '../../../configuration/index.js';
@@ -97,8 +99,57 @@ export async function readIgnoreMatcher(root: string, outDir?: string): Promise<
  */
 export function formatIssues(issues: CheckIssue[]): string {
   return issues
-    .map((issue) => `${issue.severity}: ${issue.path ? `${issue.path}${issue.line !== undefined ? `:${issue.line}` : ''}: ` : ''}${issue.message}\n`)
+    .map((issue) => {
+      const location = issue.path ? `${issue.path}${issue.line !== undefined ? `:${issue.line}` : ''}: ` : '';
+      return `${issue.severity}: ${escapeControlCharacters(`${location}${issue.message}`, true)}\n`;
+    })
     .join('');
+}
+
+// #endregion
+
+// #region Escaping
+
+/**
+ * Escapes the control characters of a text written to the terminal, so a string from the host repository can never move the cursor, rewrite a
+ * line or reorder it: C0 controls, DEL and C1 controls are shown as `\xNN`, and Unicode's bidirectional controls (U+202A–U+202E, U+2066–U+2069)
+ * as `\uNNNN`
+ * @param text Text to escape
+ * @param keepLineBreaks True to keep line feeds and tabs as they are (e.g. a build error's code frame), false to escape them too
+ * @returns The text, with its control characters shown visibly
+ */
+export function escapeControlCharacters(text: string, keepLineBreaks: boolean): string {
+  let escaped = '';
+  for (const char of text) {
+    const code = char.codePointAt(0)!;
+    const control = code <= 0x1f || (code >= 0x7f && code <= 0x9f) || (code >= 0x202a && code <= 0x202e) || (code >= 0x2066 && code <= 0x2069);
+    if (!control || (keepLineBreaks && (code === 0x09 || code === 0x0a))) {
+      escaped += char;
+    } else {
+      escaped += code <= 0xff ? `\\x${code.toString(16).padStart(2, '0')}` : `\\u${code.toString(16).padStart(4, '0')}`;
+    }
+  }
+  return escaped;
+}
+
+// #endregion
+
+// #region Custom showcase adapter modules
+
+/**
+ * Gets the custom showcase adapter modules a configuration lists that exist, each by the absolute real path of its module, as the trust request
+ * names them (see TrustRequest), and as `serve`'s notices compare them
+ * @param root Path of the host repository's root
+ * @param listed Custom showcase adapters' paths, relative to the root, by name
+ * @returns The modules, in the order listed
+ */
+export async function getCustomShowcaseAdapterModules(root: string, listed: Record<string, string>): Promise<{ name: string; path: string }[]> {
+  const modules: { name: string; path: string }[] = [];
+  for (const [name, path] of Object.entries(listed)) {
+    const real = await realpath(resolve(root, path)).catch(() => undefined);
+    if (real !== undefined) modules.push({ name, path: real });
+  }
+  return modules;
 }
 
 // #endregion

@@ -491,7 +491,7 @@ export const TRUST_NOTICE_TEXT = 'Source only: not trusted';
  */
 export const TRUST_NOTICE_TOOLTIP =
   "Running this showcase would run the host repository's code, which showroom only does when the person running it trusts the repository " +
-  '(showroom --trust). Until then, the showcase shows its source.';
+  '(answer yes when showroom asks, or pass --trust). Until then, the showcase shows its source.';
 
 /**
  * Renders the trust notice, in place of the status marks without trust: its text, and an (i) icon whose tooltip explains it

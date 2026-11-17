@@ -5,18 +5,19 @@
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { copyFixture, type ScratchFolder } from '../testing/index.js';
-import { main } from './index.js';
+import { copyFixture, createCliInput, type ScratchFolder } from '../testing/index.js';
+import { main, type CliInput } from './index.js';
 
 /**
- * Runs the command line, capturing its output
+ * Runs the command line, capturing its output, with an input that is no terminal unless one is given, so it never waits on a prompt
  * @param args Command line arguments
+ * @param input Input to ask through (see createCliInput())
  * @returns Exit code, and everything written to stdout and stderr
  */
-async function _run(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+async function _run(args: string[], input: CliInput = createCliInput().input): Promise<{ code: number; stdout: string; stderr: string }> {
   let stdout = '';
   let stderr = '';
-  const code = await main(args, { stdout: (text) => (stdout += text), stderr: (text) => (stderr += text) });
+  const code = await main(args, { stdout: (text) => (stdout += text), stderr: (text) => (stderr += text) }, input);
   return { code, stdout, stderr };
 }
 
