@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** planning: _`P21`_ the `jsonschema` showcase adapter ([PLAN-P21-jsonschema.md](./PLAN-P21-jsonschema.md)), approved for its split and _`P21.1`_; _`S17`_ re-approved for _`R59`_.
-- **Next free:** _`D857`_, _`S18`_, _`P22`_, _`O144`_, _`L20`_, _`R60`_, _`H1`_, _`K32`_
-- **Working on:** _`P21.1`_ (the shared Mermaid bundle) implemented and committed; _`P21.2`_ (the `jsonschema` showcase adapter) still draft.
-- **Next step:** approving _`P21.2`_, then implementing it.
+- **Stage:** implementation: _`P21`_ the `jsonschema` showcase adapter ([PLAN-P21-jsonschema.md](./PLAN-P21-jsonschema.md)), implemented; _`S17`_ re-approved for _`R60`_.
+- **Next free:** _`D862`_, _`S18`_, _`P22`_, _`O144`_, _`L20`_, _`R61`_, _`H1`_, _`K32`_
+- **Working on:** _`P21.1`_ (the shared Mermaid bundle) implemented and committed; _`P21.2`_ (the `jsonschema` showcase adapter) implemented and committed; _`P21`_ is done.
+- **Next step:** the user's choice of what comes next (e.g. merging `adapters-extra`, or the next segment).
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/p21.2-check/` (a fixture copy served, screenshots), `p21.2-format/` (formatting backups), `ci-p21.2.log`, `ci-p21.2-rest.log`, `serve-dogfood-p21.2.log`; ask before deleting them.
 - `./.workflow/.temp/p21.1-format/` (formatting backups) and `ci-p21.1.log`, `serve-dogfood-p21.1.log`; ask before deleting them.
 - `./.workflow/.temp/review-p21/` (the review's record, `REVIEW.md`, and its snapshots); ask before deleting it.
 - `./.workflow/.temp/questions-p21/` (_`P21`_'s choices, recorded as _`D832`_–_`D839`_) and `p21-format/` (formatting backups); ask before deleting them.
@@ -465,3 +466,7 @@
 - 2026-11-18: _`P21`_'s split and _`P21.1`_ approved, and _`S17`_ re-approved for _`R59`_ (option chosen: "Split + P21.1, S17, commit (Rec.)").
 - 2026-11-18: _`P21.1`_ implemented: the `.gitignore` choice settled as _`D855`_ (option chosen: "Re-include build/mermaid/"), _`D856`_ settled while implementing; _`K29`_ resolved.
 - 2026-11-18: _`P21.1`_'s checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"); `npm run ci` green.
+- 2026-11-18: _`P21.2`_ approved (option chosen: "Approve and implement (Rec.)").
+- 2026-11-18: _`P21.2`_'s implementation choices: _`D857`_ (option chosen: "B: in build(), with trust only"), _`D858`_ (option chosen: "A: import map (Rec.)"); _`S17`_ revised (_`R60`_).
+- 2026-11-18: _`P21.2`_ implemented: _`D859`_–_`D861`_ settled while implementing; _`K30`_ resolved; `npm run ci` green (after one test's expected list was updated, the rest of the tiers run again).
+- 2026-11-18: _`P21.2`_'s checkpoint: approved and committed, _`S17`_ re-approved for _`R60`_, _`K31`_ resolved (option chosen: "Approve and commit (Rec.)"); _`P21`_ implemented.

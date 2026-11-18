@@ -286,6 +286,8 @@ describe('vite', () => {
   it('Shows a build status mark on every showcase but an html one without issues of its build', () => {
     const issue = (check?: string) => ({ severity: 'error' as const, message: 'Broke', path: 'a.html', ...(check ? { check } : {}) });
     expect(hasBuildMark({ adapter: 'ts' }, [])).toBe(true);
+    // A jsonschema showcase builds its diagram, so it has a build mark (SPEC-S17 D820)
+    expect(hasBuildMark({ adapter: 'jsonschema' }, [])).toBe(true);
     expect(hasBuildMark({ adapter: 'html' }, [])).toBe(false);
     expect(hasBuildMark({ adapter: 'html' }, [issue('lint')])).toBe(false);
     expect(hasBuildMark({ adapter: 'html' }, [issue()])).toBe(true);

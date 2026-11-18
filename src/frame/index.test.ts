@@ -384,6 +384,20 @@ describe('frame', () => {
       expect(_heights(frame)).toEqual([111, 131, 151, 50]);
     });
 
+    it('Keeps reporting heights while the theme is toggled again and again', () => {
+      // See PLAN-P21 D842: a jsonschema diagram redrawn in each theme, fitted to the width, has one height per theme; each redraw swaps the drawing
+      // in at once, so the height never passes through another value, and the guard on repeated growth is never reached
+      const frame = _createFrame();
+      _run(frame);
+      for (let toggle = 0; toggle < MAX_REPEATED_GROWTHS * 3; toggle++) {
+        const theme = toggle % 2 ? 'light' : 'dark';
+        frame.dispatch('message', { source: frame.parent, data: createThemeMessage(theme) });
+        frame.setBottom(theme === 'dark' ? 200 : 100.2);
+        frame.resize();
+      }
+      expect(_heights(frame)).toEqual([111, ...Array.from({ length: MAX_REPEATED_GROWTHS * 3 }, (_, toggle) => (toggle % 2 ? 111 : 210))]);
+    });
+
     it('Keeps reporting growth by varying amounts', () => {
       const frame = _createFrame();
       _run(frame);

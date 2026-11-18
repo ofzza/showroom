@@ -82,6 +82,7 @@ describe('cli/check (integration)', () => {
         'examples/react/README.md react',
         'examples/angular/README.md angular',
         'examples/cs/README.md cs',
+        'examples/jsonschema/README.md jsonschema',
         'examples/number-table/README.md number-table',
       ]),
     );

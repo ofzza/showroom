@@ -72,6 +72,7 @@ src/
       compile/          The Angular compile, with the host repository's own Angular compiler and TypeScript, in memory
       plugins/          Its Vite plugins: the emitted modules, the Angular Linker, the production defines
     cs/                 The cs showcase adapter: a C# file-based app built with the host's .NET SDK in the host copy, then run and recorded
+    jsonschema/         The jsonschema showcase adapter: a JSON Schema read with tsschema, written as a Mermaid class diagram's source, drawn by its page
   markdown/             Scanning documentation files' Markdown: showcase markers, showcases, virtual files, links, images and headings (Node-free: the showroom uses its link resolution)
   navigation/           Resolving showroom.json's navigation against the documentation files (Node-free)
   linked-files/         Linked files: their folder and URLs, the showcase sidebar's limit, telling text from binary (Node-free)
@@ -267,6 +268,13 @@ The `cs` showcase adapter (`src/adapters/showcase/cs/`), the first built-in one 
 - **Reads its diagnostics** from the build's output, paths already root-relative (`parseDiagnostics()`): every error, and the warnings in the showcase's own file (`getCsBuildIssues()`). Its reads are the showcase's file and the project files its `#:project` directives name.
 - **Its host check** runs nothing of the host repository: `dotnet --list-sdks` from the `PATH`, in a run session of its own (removed by `close()`), judged with the host's `global.json`, read statically (`judgeSdks()`). The registry's trust hook names `dotnet` and the `global.json`'s SDK folders inside the host repository (`getTrustExecutables()`), and passes `DOTNET_ROOT` on (`getShowcaseAdapterEnvironmentNames()`).
 
+The `jsonschema` showcase adapter (`src/adapters/showcase/jsonschema/`), the first built-in one whose showcase frame is derived from its entry point's content:
+
+- **Reads the schema** as strict JSON (`parseJsonSchema()`, a syntax error at its line), then with `@ofzza/tsschema`'s `reflect()`, walking its definitions by name and following references by their names, never their `target`s (`mapJsonSchema()`), so a recursive schema never recurses.
+- **Writes the Mermaid source** of a `classDiagram` in Node: generated node ids, every display text through one escaper (`escapeDisplayText()`), so the schema's text is never markup; it fails the build over Mermaid's own limits.
+- **Warns of what `tsschema` doesn't read yet** by reading the raw JSON (`getSchemaWarnings()`): `definitions`, the `$ref`s `tsschema` doesn't resolve (asked of `tsschema` itself), and `properties` without `"type": "object"`.
+- **Its page** carries the source as a JSON data element and draws it with the shared Mermaid bundle (`jsonSchemaPageScript()`, inlined as its source text), imported by a fixed specifier that the import map `buildShowcases()` inserts after the frame script resolves to the bundle's URL with its hash; it draws again, with a fresh id, when the theme changes. The registry marks it as using the bundle (`usesMermaidBundle()`), never a custom showcase adapter.
+
 #### Where to change things
 
 [AGENTS.md](./AGENTS.md) › Testing says what each module's tests cover, and its Gotchas and known issues what to watch out for.
@@ -286,7 +294,7 @@ The `cs` showcase adapter (`src/adapters/showcase/cs/`), the first built-in one 
 | The navigation                               | `src/configuration/` (validation), `src/navigation/` (`resolveNavigation()`), `src/app/navigation/`, `src/app/layout/`                                    | the same modules, `src/cli/check/`; `navigation`, `navigation-errors`                           |
 | `serve`'s reloads and events                 | `src/cli/serve/` (`createHostWatcher()`, `getShownChange()`), `src/vite/`, `src/app/main.ts`                                                              | `src/cli/serve/` (unit tests, and `index.serve.test.ts`), `src/vite/`                           |
 | `build`'s output                             | `src/cli/build/` (`getBuildConfiguration()`), `src/vite/`                                                                                                 | `src/cli/build/` (unit tests, and `index.e2e.test.ts`); `output-folder`, `out-dir-root`         |
-| The shared Mermaid bundle                    | `build/mermaid/` (its build), `src/vite/` (serving and copying it), `src/showcases/` (its URL from a page)                                                | `src/vite/` (unit tests, and `index.integration.test.ts`), `src/showcases/`                     |
+| The shared Mermaid bundle                    | `build/mermaid/` (its build), `src/vite/` (serving and copying it), `src/showcases/` (its URL and import map from a page)                                 | `src/vite/` (unit tests, and `index.integration.test.ts`), `src/showcases/`                     |
 
 ### Tests
 

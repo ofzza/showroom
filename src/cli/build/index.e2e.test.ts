@@ -7,7 +7,8 @@ import { cp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, sep } from 'node:path';
 import { afterEach, describe, expect, inject, it } from 'vitest';
 import { getFrameScript } from '../../frame/index.js';
-import { getShowcaseFrameHash } from '../../showcases/index.js';
+import { getMermaidHash, getShowcaseFrameHash, MERMAID_ENTRY_FILE } from '../../showcases/index.js';
+import { listMermaidFiles } from '../../vite/index.js';
 import { copyFixture, createCanaryHost, createScratchFolder, type ScratchFolder } from '../../testing/index.js';
 import { OUTPUT_FOLDER_MARKER, OUTPUT_FOLDER_MARKER_CONTENT, build } from './index.js';
 
@@ -40,7 +41,7 @@ describe('cli/build (end to end)', () => {
     let stdout = '';
     let stderr = '';
     const output = { stdout: (text: string) => void (stdout += text), stderr: (text: string) => void (stderr += text) };
-    const code = await build({ root, output, appDir, trust });
+    const code = await build({ root, output, appDir, mermaidDir: inject('mermaidDir'), trust });
     return { code, stdout, stderr };
   }
 
@@ -163,6 +164,25 @@ describe('cli/build (end to end)', () => {
       '\n',
     );
     expect(bundle).toContain('{path:`assets/logo.png`,size:70,text:!1}');
+  });
+
+  it('Builds jsonschema showcases, emitting the shared Mermaid bundle once, where every page reaches it', async () => {
+    // See PLAN-P21 D832, D853, D858: one copy of the bundle at mermaid/, each page's import map pointing up to it with its hash
+    const root = await copy('showcase-jsonschema');
+    const { code, stderr } = await run(root);
+    expect(stderr).toBe('');
+    expect(code).toBe(0);
+    const out = join(root, 'showroom');
+    expect((await listMermaidFiles(join(out, 'mermaid')))?.sort()).toEqual((await listMermaidFiles(inject('mermaidDir')))?.sort());
+    const hash = await getMermaidHash(inject('mermaidDir'));
+    for (const page of [join('README.md', '1'), join('README.md', '6'), join('docs', 'nested.md', '1')]) {
+      const folder = join(out, 'showcases', page);
+      expect(await readdir(folder)).toEqual(['index.html']);
+      const url = /"showroom-mermaid":"([^"]+)"/.exec(await readFile(join(folder, 'index.html'), 'utf8'))![1];
+      expect(url).toBe(`${'../'.repeat(page.split(sep).length + 1)}mermaid/${MERMAID_ENTRY_FILE}?hash=${hash}`);
+      // Resolved from the page's own folder, it is the bundle's entry point
+      expect(existsSync(join(folder, url.split('?')[0]))).toBe(true);
+    }
   });
 
   it('Builds ts showcases into their showcase frames, and writes build warnings without failing', async () => {

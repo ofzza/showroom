@@ -143,12 +143,28 @@ export async function getMermaidHash(mermaidDir: string): Promise<string | undef
  * folder, then the page's folders) to the output folder's root, so it works in `serve`, in `build` and under any base path
  * @param showcase The showcase
  * @param page POSIX-style path of its page among its showcase frame's files
- * @param hash The hash of the bundle's entry point (see getMermaidHash())
- * @returns The relative URL, with the hash as its query
+ * @param hash The hash of the bundle's entry point (see getMermaidHash()); none when the bundle is missing
+ * @returns The relative URL, with the hash as its query when given
  */
-export function getMermaidUrl(showcase: Pick<Showcase, 'id' | 'documentation'>, page: string, hash: string): string {
+export function getMermaidUrl(showcase: Pick<Showcase, 'id' | 'documentation'>, page: string, hash: string | undefined): string {
   const depth = getShowcaseFrameFolder(showcase).split('/').length + page.split('/').length - 1;
-  return `${'../'.repeat(depth)}${MERMAID_FOLDER}/${MERMAID_ENTRY_FILE}?${HASH_PARAMETER}=${hash}`;
+  return `${'../'.repeat(depth)}${MERMAID_FOLDER}/${MERMAID_ENTRY_FILE}${hash === undefined ? '' : `?${HASH_PARAMETER}=${hash}`}`;
+}
+
+/**
+ * Module specifier a showcase frame's page imports the shared Mermaid bundle by (`import mermaid from 'showroom-mermaid'`), which the import map
+ * buildShowcases() inserts into a showcase frame using the bundle resolves (see getMermaidImportMap())
+ */
+export const MERMAID_SPECIFIER = 'showroom-mermaid';
+
+/**
+ * Gets the import map mapping MERMAID_SPECIFIER to the shared Mermaid bundle's entry point, as an HTML element
+ * @param url URL of the bundle's entry point, relative to the page (see getMermaidUrl())
+ * @returns The `<script type="importmap">` element, its JSON never closing the element early
+ */
+export function getMermaidImportMap(url: string): string {
+  const json = JSON.stringify({ imports: { [MERMAID_SPECIFIER]: url } }).replace(/</g, '\\u003c');
+  return `<script type="importmap">${json}</script>`;
 }
 
 // #endregion
@@ -204,9 +220,10 @@ function _skipSpaceAndComments(html: string, start: number): number {
  * `<meta charset="utf-8">` before the script. The script never goes before the doctype.
  * @param html The page
  * @param script Source text of the script
+ * @param after HTML inserted right after the script (e.g. an import map, see getMermaidImportMap()); none if not given
  * @returns The page with the script
  */
-export function insertFrameScript(html: string, script: string): string {
+export function insertFrameScript(html: string, script: string, after = ''): string {
   let at = html.charCodeAt(0) === 0xfeff ? 1 : 0;
   /**
    * Moves past a tag at the next position that isn't whitespace or a comment, if it matches
@@ -233,7 +250,7 @@ export function insertFrameScript(html: string, script: string): string {
       charset = '';
     }
   }
-  return `${html.slice(0, at)}${charset}<script>${script}</script>${html.slice(at)}`;
+  return `${html.slice(0, at)}${charset}<script>${script}</script>${after}${html.slice(at)}`;
 }
 
 // #endregion
@@ -513,6 +530,11 @@ export interface BuildShowcasesOptions {
    * Output folder given on the command line, overriding the configuration's, which the host copy leaves out
    */
   outDir?: string;
+  /**
+   * Folder of the shared Mermaid bundle, whose entry point's hash the import map of a showcase frame using it carries (see getMermaidImportMap());
+   * the package's if not given (see getMermaidDir())
+   */
+  mermaidDir?: string;
 }
 
 /**
@@ -584,7 +606,8 @@ function _getModulePath(root: string, path: string): string | undefined {
  * is synced first, before any build. A recording's failure is an error of its `runtime` check. A showcase that doesn't build never stops the others.
  * The files to watch are the custom showcase adapter modules, every showcase's included files (an included virtual file's documentation file), and
  * the files each build read. Without trust, it builds nothing and loads nothing: every showcase has no checks and no issues, and the files to watch
- * are the custom showcase adapter modules and the included files.
+ * are the custom showcase adapter modules and the included files. A built-in showcase adapter's showcase frame that uses the shared Mermaid bundle
+ * gets its import map right after the frame script, the bundle's entry point's hash read once per run.
  * @param options What to build
  * @returns The showcase frames and recordings of the showcases that built, the errors and warnings of each (placed, and as shown), the checks each
  * ran, and the run's own issues
@@ -597,6 +620,7 @@ export async function buildShowcases({
   trust = false,
   session,
   outDir,
+  mermaidDir = getMermaidDir(),
 }: BuildShowcasesOptions): Promise<BuildShowcasesResult> {
   const issues: CheckIssue[] = [];
   const errors = new Map<string, CheckIssue[]>();
@@ -609,6 +633,7 @@ export async function buildShowcases({
   const script = getFrameScript();
   const listed = configuration.customShowcaseAdapters ?? {};
   const watched = new Set(Object.values(listed).flatMap((path) => _getModulePath(absoluteRoot, path) ?? []));
+  let mermaidHash: Promise<string | undefined> | undefined;
   const done = (): BuildShowcasesResult => ({ frames, recordings, errors, warnings, shownIssues, checks, issues, watched: [...watched].sort() });
 
   // Without trust, nothing is built or loaded
@@ -725,9 +750,13 @@ export async function buildShowcases({
         const failure = getRecordingFailure(recording);
         if (failure) add({ severity: 'error', message: `The recording failed: it ${failure}`, check: RUNTIME_CHECK });
       } else if (page !== undefined && files !== undefined) {
-        const scripted = files.map((file) => (file.path === page ? { path: file.path, content: insertFrameScript(file.content as string, script) } : file));
-        // Only a built-in showcase adapter's showcase frames may use the shared Mermaid bundle
+        // Only a built-in showcase adapter's showcase frames may use the shared Mermaid bundle, through its import map
         const mermaid = !custom.adapters.has(showcase.adapter) && usesMermaidBundle(showcase.adapter);
+        mermaidHash ??= mermaid ? getMermaidHash(mermaidDir) : undefined;
+        const importMap = mermaid ? getMermaidImportMap(getMermaidUrl(showcase, page, await mermaidHash)) : '';
+        const scripted = files.map((file) =>
+          file.path === page ? { path: file.path, content: insertFrameScript(file.content as string, script, importMap) } : file,
+        );
         frames.set(showcase.id, { folder: getShowcaseFrameFolder(showcase), page, files: scripted, reads: checked.reads, ...(mermaid ? { mermaid } : {}) });
       }
     }

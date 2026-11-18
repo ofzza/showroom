@@ -23,6 +23,7 @@
         { "title": "React", "path": "examples/react/README.md" },
         { "title": "Angular", "path": "examples/angular/README.md" },
         { "title": "C#", "path": "examples/cs/README.md" },
+        { "title": "JSON Schema", "path": "examples/jsonschema/README.md" },
         { "title": "Custom", "path": "examples/number-table/README.md" }
       ]
     },

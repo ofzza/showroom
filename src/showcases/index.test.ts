@@ -18,7 +18,9 @@ import {
   getBuildIssue,
   getBuildShowcasesIssues,
   getMermaidHash,
+  getMermaidImportMap,
   getMermaidUrl,
+  MERMAID_SPECIFIER,
   MERMAID_ENTRY_FILE,
   getRecordingFailure,
   getShowcaseFrameFolder,
@@ -126,6 +128,16 @@ describe('showcases', () => {
       // A nested documentation file, and a nested page, each add a level
       expect(getMermaidUrl({ id: 'docs/a b/c.md#2', documentation: 'docs/a b/c.md' }, 'index.html', 'h')).toBe('../../../../../mermaid/mermaid.js?hash=h');
       expect(getMermaidUrl({ id: 'README.md#1', documentation: 'README.md' }, 'pages/x/index.html', 'h')).toBe('../../../../../mermaid/mermaid.js?hash=h');
+      // A missing bundle has no hash, so its URL has no query
+      expect(getMermaidUrl({ id: 'README.md#1', documentation: 'README.md' }, 'index.html', undefined)).toBe('../../../mermaid/mermaid.js');
+    });
+
+    it('Maps its specifier to its URL in an import map that never closes its element early', () => {
+      // See PLAN-P21 D858
+      expect(getMermaidImportMap('../mermaid/mermaid.js?hash=h')).toBe(
+        `<script type="importmap">{"imports":{"${MERMAID_SPECIFIER}":"../mermaid/mermaid.js?hash=h"}}</script>`,
+      );
+      expect(getMermaidImportMap('</script>')).toContain('"\\u003c/script>"');
     });
 
     it("Hashes the bundle's entry point, and gives none without one", async () => {
@@ -169,6 +181,11 @@ describe('showcases', () => {
         `<!DOCTYPE html>\n<HTML>\n<HEAD>\n  <meta charset="utf-8" />${_TAG}\n<title>`,
       );
       expect(insertFrameScript('<head><meta name="viewport" content="x">', _SCRIPT)).toBe(`<head>${_CHARSET}${_TAG}<meta name="viewport" content="x">`);
+    });
+
+    it('Inserts what goes after the script right after it', () => {
+      // See PLAN-P21 D858: a showcase frame using the shared Mermaid bundle gets its import map there, before any of the page's module scripts
+      expect(insertFrameScript('<head><title>x</title>', _SCRIPT, '<i></i>')).toBe(`<head>${_CHARSET}${_TAG}<i></i><title>x</title>`);
     });
 
     it('Inserts after <html> or the doctype when there is no <head>', () => {

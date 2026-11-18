@@ -14,6 +14,7 @@ import { HtmlShowcaseAdapter } from '../html/index.js';
 import { AngularShowcaseAdapter } from '../angular/index.js';
 import { CS_ENVIRONMENT_NAMES, CsShowcaseAdapter, getHostSdkPaths, readGlobalJson } from '../cs/index.js';
 import type { ShowcaseAdapter, ShowcaseHostCheck } from '../index.js';
+import { JsonSchemaShowcaseAdapter } from '../jsonschema/index.js';
 import { ReactShowcaseAdapter } from '../react/index.js';
 import { TsShowcaseAdapter } from '../ts/index.js';
 import { getDocumentationFolder, resolvePackage } from '../ts/typecheck/index.js';
@@ -30,18 +31,19 @@ const _SHOWCASE_ADAPTERS: Record<string, () => ShowcaseAdapter> = {
   react: () => new ReactShowcaseAdapter(),
   angular: () => new AngularShowcaseAdapter(),
   cs: () => new CsShowcaseAdapter(),
+  jsonschema: () => new JsonSchemaShowcaseAdapter(),
 };
 
 /**
  * Names of the showcase adapters planned as built-in ones, which custom showcase adapters can't take either
  */
-export const PLANNED_SHOWCASE_ADAPTER_NAMES: readonly string[] = ['jsonschema'];
+export const PLANNED_SHOWCASE_ADAPTER_NAMES: readonly string[] = [];
 
 /**
  * Names of the built-in showcase adapters whose showcase frames load the shared Mermaid bundle; internal, never part of the showcase adapter
  * interface, so custom showcase adapters can't use it
  */
-const _MERMAID_SHOWCASE_ADAPTERS: readonly string[] = [];
+const _MERMAID_SHOWCASE_ADAPTERS: readonly string[] = ['jsonschema'];
 
 /**
  * Checks if a built-in showcase adapter's showcase frames load the shared Mermaid bundle (see MERMAID_FOLDER)

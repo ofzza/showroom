@@ -538,12 +538,22 @@ async function _getLoadedModules(root: string): Promise<{ name: string; path: st
  * @param root Path of the host repository's root
  * @param host Host information of the passed check
  * @param trust True if the host repository is trusted
+ * @param session The run session, kept across runs
+ * @param outDir Output folder given on the command line, if any
+ * @param mermaidDir Folder of the shared Mermaid bundle; the package's if not given
  * @returns The outcome of building them; throws if the configuration can't be read
  */
-async function _buildShowcases(root: string, host: HostInformation, trust: boolean, session: RunSession, outDir?: string): Promise<BuildShowcasesResult> {
+async function _buildShowcases(
+  root: string,
+  host: HostInformation,
+  trust: boolean,
+  session: RunSession,
+  outDir?: string,
+  mermaidDir?: string,
+): Promise<BuildShowcasesResult> {
   const { configuration, errors } = await readConfiguration(root);
   if (!configuration) throw new Error(errors?.join('; ') ?? 'The configuration could not be read');
-  return buildShowcases({ root, host, configuration, mode: 'development', trust, session, outDir });
+  return buildShowcases({ root, host, configuration, mode: 'development', trust, session, outDir, mermaidDir });
 }
 
 /**
@@ -591,7 +601,7 @@ export async function serve({
   };
   // One run session for the whole session, keeping the host copy and the showcases' own folders across runs
   const session = createRunSession({ passEnv });
-  const build = (host: HostInformation) => _buildShowcases(root, host, trusted, session, outDir);
+  const build = (host: HostInformation) => _buildShowcases(root, host, trusted, session, outDir, mermaidDir);
   let built: Awaited<ReturnType<typeof runBuild>>;
   try {
     built = await runBuild(first.host, build, new Map());

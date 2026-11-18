@@ -68,6 +68,7 @@ describe('cli/serve (serve)', () => {
       port: 0,
       output: { stdout: () => undefined, stderr: (text) => (stderr += text) },
       appDir: inject('appDir'),
+      mermaidDir: inject('mermaidDir'),
       signal: controller.signal,
       onListening: listening,
       trust,
@@ -279,6 +280,21 @@ describe('cli/serve (serve)', () => {
     expect(svg.headers.get('content-type')).toBe('image/svg+xml');
     const lazy = /"\.\/(lazy-[\w-]+\.js)"/.exec(code)![1];
     expect(await (await fetch(new URL(`showcases/README.md/1/assets/${lazy}`, url))).text()).toContain('"later"');
+  });
+
+  it('Serves jsonschema showcase frames, and the shared Mermaid bundle their import maps reach', async () => {
+    // See PLAN-P21 D849, D858: the bundle is served while a showcase frame uses it, at the URL each page's import map gives
+    const { url, stderr } = await start('showcase-jsonschema');
+    expect(stderr()).toBe('');
+    const urls = getShowcaseUrls(await fetchHostModule(url));
+    const pageUrl = new URL(urls['docs/nested.md#1'], url);
+    const page = await (await fetch(pageUrl)).text();
+    expect(page).toContain('import mermaid from "showroom-mermaid";');
+    const entry = /"showroom-mermaid":"([^"]+)"/.exec(page)![1];
+    const response = await fetch(new URL(entry, pageUrl));
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toMatch(/^text\/javascript/);
+    expect(await response.text()).toBe(await readFile(join(inject('mermaidDir'), 'mermaid.js'), 'utf8'));
   });
 
   it("Serves react showcase frames, built in development mode with React's development build", async () => {

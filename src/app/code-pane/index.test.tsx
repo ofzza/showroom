@@ -231,6 +231,18 @@ describe('app/code-pane', () => {
       expect(getStatusMarks(_SHOWCASE, _ready(1, 3)).at(-1)).toEqual({ kind: 'runtime', name: 'runtime', status: 'error', count: 3 });
     });
 
+    it("Gives a jsonschema block build and runtime, and only build when its diagram doesn't build", () => {
+      // See PLAN-P21 D854, SPEC-S17 D820: its build's issues name no check; an error ships no showcase frame, so there is no runtime
+      const jsonschema: ShownShowcase = {
+        ..._SHOWCASE,
+        tabs: [{ label: 'JSON', path: 'README.showcase-1.json', language: 'json', source: { kind: 'virtual', content: '{}' } }],
+      };
+      const warning = { severity: 'warning' as const, message: 'The diagram is empty', path: 'README.showcase-1.json' };
+      expect(getStatusMarks({ ...jsonschema, issues: [warning] }, _ready()).map(getStatusMarkText)).toEqual(['build ⚠ 1', 'runtime ✓']);
+      const error = { severity: 'error' as const, message: "The schema isn't valid JSON", path: 'README.showcase-1.json', line: 3 };
+      expect(getStatusMarks({ ...jsonschema, issues: [error], url: undefined }, _ready()).map(getStatusMarkText)).toEqual(['build ✗ 1']);
+    });
+
     it('Reads runtime pending until the page is ready', () => {
       expect(getStatusMarks(_SHOWCASE, INITIAL_CONSOLE_STATE).map(getStatusMarkText)).toEqual(['build ✓', 'runtime …']);
     });

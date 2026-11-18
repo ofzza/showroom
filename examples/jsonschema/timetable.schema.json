@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Timetable",
+  "type": "object",
+  "required": ["stations", "lines"],
+  "properties": {
+    "stations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Station"
+      },
+      "minItems": 1
+    },
+    "lines": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Line"
+      }
+    },
+    "operator": {
+      "$ref": "#/$defs/Operator"
+    }
+  },
+  "$defs": {
+    "Identified": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        }
+      }
+    },
+    "Id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "Coordinates": {
+      "type": "object",
+      "required": ["lat", "lon"],
+      "properties": {
+        "lat": {
+          "type": "number"
+        },
+        "lon": {
+          "type": "number"
+        }
+      }
+    },
+    "Station": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Identified"
+        },
+        {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "position": {
+              "$ref": "#/$defs/Coordinates"
+            },
+            "platforms": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Platform"
+              },
+              "minItems": 1
+            },
+            "zone": {
+              "$ref": "#/$defs/Zone"
+            }
+          }
+        }
+      ]
+    },
+    "Platform": {
+      "type": "object",
+      "required": ["number"],
+      "properties": {
+        "number": {
+          "type": "integer"
+        },
+        "accessible": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Zone": {
+      "enum": ["A", "B", "C"]
+    },
+    "Line": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/Identified"
+        },
+        {
+          "type": "object",
+          "required": ["code", "stops", "mode"],
+          "properties": {
+            "code": {
+              "type": "string",
+              "pattern": "^[A-Z][0-9]+$"
+            },
+            "mode": {
+              "$ref": "#/$defs/Mode"
+            },
+            "stops": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Stop"
+              },
+              "minItems": 2
+            },
+            "schedule": {
+              "$ref": "#/$defs/Schedule"
+            },
+            "colour": {
+              "type": ["string", "null"]
+            }
+          }
+        }
+      ]
+    },
+    "Mode": {
+      "enum": ["bus", "tram", "metro", "rail"]
+    },
+    "Stop": {
+      "type": "object",
+      "required": ["station", "offset"],
+      "properties": {
+        "station": {
+          "$ref": "#/$defs/Id"
+        },
+        "offset": {
+          "$ref": "#/$defs/Duration"
+        },
+        "request": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Duration": {
+      "type": "string",
+      "format": "duration"
+    },
+    "Schedule": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Interval"
+        },
+        {
+          "$ref": "#/$defs/FixedTimes"
+        }
+      ]
+    },
+    "Interval": {
+      "type": "object",
+      "required": ["every", "from", "to"],
+      "properties": {
+        "every": {
+          "$ref": "#/$defs/Duration"
+        },
+        "from": {
+          "$ref": "#/$defs/TimeOfDay"
+        },
+        "to": {
+          "$ref": "#/$defs/TimeOfDay"
+        },
+        "days": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Weekday"
+          }
+        }
+      }
+    },
+    "FixedTimes": {
+      "type": "object",
+      "required": ["departures"],
+      "properties": {
+        "departures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TimeOfDay"
+          }
+        },
+        "days": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Weekday"
+          }
+        }
+      }
+    },
+    "TimeOfDay": {
+      "type": "string",
+      "pattern": "^[0-2][0-9]:[0-5][0-9]$"
+    },
+    "Weekday": {
+      "enum": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+    },
+    "Operator": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "website": {
+          "type": "string",
+          "format": "uri"
+        },
+        "replacement": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Operator"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$id": "https://example.com/headway/timetable.schema.json",
+  "description": "A city transport timetable: its stations, its lines and their schedules"
+}

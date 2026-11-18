@@ -425,6 +425,7 @@ Tabs show only the entry point and the included files, never what a showcase als
 | ` ```tsx showcase=react ` + code                                              | A `react` showcase: the rendered component, its code a click away                                                 |
 | ` ```ts showcase=angular({ zone: true }) ` + code                             | An `angular` showcase, with zone.js: the created component, its code a click away                                 |
 | ` ```cs showcase=cs ` + code                                                  | A `cs` showcase: built and run as a C# file-based app, its code then its recorded output                          |
+| ` ```json showcase=jsonschema ` + code                                        | A `jsonschema` showcase: a JSON Schema's definitions drawn as a diagram, its code a click away                    |
 | ` ```html showcase include=./figures.css,theme.css ` + code                   | The same `html` showcase, with two more tabs; a real `figures.css` is copied next to its page too                 |
 | ` ```ts showcase=ts include=./src/units.ts ` + code                           | A `ts` showcase with `units.ts` as another tab; it imports whatever it imports, listed or not                     |
 | ` ```ts showcase=ts include=markdown ` + code                                 | A `ts` showcase whose first tab shows it as written, marker included, then its code's tab                         |
@@ -455,6 +456,7 @@ The built-in showcase adapters:
 | `react`          | a `tsx` or `jsx` code block, or a `.tsx` or `.jsx` file                                                           | `typeCheck`, `allowJs` | `ts`'s, and `react` and `react-dom` 18 or later, with `@types/react` where they type check                                            |
 | `angular`        | a `ts` code block (or `typescript`), or a `.ts` file                                                              | `typeCheck`, `zone`    | the packages its showcases import, Angular 20 or later, its compiler's `typescript` (5.x or 6.x), and `zone.js` where they set `zone` |
 | `cs`             | a `cs` code block (or `csharp`, `c#`), or a `.cs` file                                                            | none                   | the .NET SDK 10 or later on the `PATH`, and the projects and packages its showcases reference                                         |
+| `jsonschema`     | a `json` code block, or a `.json` file                                                                            | none                   | nothing                                                                                                                               |
 
 ### Showcase views
 
@@ -466,7 +468,7 @@ A **showcase block**, what a code block showcase or a linked showcase shown as a
 - `console`: its console panel alone, always shown, 8 lines high, with "No output" while nothing is logged. Without `demo`, the showcase frame still runs, hidden, at its real width, so its page behaves as when it is shown.
 - `none`: nothing; the showcase is still built and checked. A showcase shown as a block whose views are `none` can't have `include=`, as nothing would show its tabs.
 
-A `markdown` or `source` view is at most 20 lines high, or the viewport's height where that's less, and scrolls beyond. A showcase whose views are only `markdown` and `source` (or `none`) is built and checked like any other, so its code is verified, but its page is never loaded: `showroom build` leaves its showcase frame out. A showcase's views come from its marker's `view=`, or else from `showroom.json`'s `showcaseViews` for its showcase adapter, or else from its showcase adapter's own default: `demo` for `html`, `react`, `angular` and a custom showcase adapter that declares none; `source,console` for `ts`, as plain TypeScript is more often logic than UI, and for `cs`, whose recording is what it shows (a [recorded showcase](#recorded-showcases) can't have `demo`). A linked showcase shown inline has no defaults: its showcase sidebar shows the views its marker's `view=` names, or none (its code pane alone).
+A `markdown` or `source` view is at most 20 lines high, or the viewport's height where that's less, and scrolls beyond. A showcase whose views are only `markdown` and `source` (or `none`) is built and checked like any other, so its code is verified, but its page is never loaded: `showroom build` leaves its showcase frame out. A showcase's views come from its marker's `view=`, or else from `showroom.json`'s `showcaseViews` for its showcase adapter, or else from its showcase adapter's own default: `demo` for `html`, `react`, `angular`, `jsonschema` and a custom showcase adapter that declares none; `source,console` for `ts`, as plain TypeScript is more often logic than UI, and for `cs`, whose recording is what it shows (a [recorded showcase](#recorded-showcases) can't have `demo`). A linked showcase shown inline has no defaults: its showcase sidebar shows the views its marker's `view=` names, or none (its code pane alone).
 
 Here is a `ts` showcase with its default views, its code then its console; its marker is `ts showcase=ts include=markdown`:
 
@@ -655,6 +657,26 @@ See the rest in the example:
 
 - [durations](./examples/cs/README.md#durations) ([live](https://ofzza.github.io/showroom/#/examples/cs/README.md#durations)), a code block showcase;
 - [rounding](./examples/cs/README.md#rounding) ([live](https://ofzza.github.io/showroom/#/examples/cs/README.md#rounding)), with a record and a `switch` expression.
+
+### `jsonschema` showcases
+
+A `jsonschema` showcase is one JSON Schema, drawn as a class diagram of its definitions and how they reference one another. `showroom` reads the schema with [`@ofzza/tsschema`](https://www.npmjs.com/package/@ofzza/tsschema) when the showcase is built, writes the diagram's [Mermaid](https://mermaid.js.org/) source, and its showcase frame only draws it, in the showroom's light or dark theme, scaled to the frame's width. Both come with `showroom`, so it needs nothing from the host repository, and runs nothing of it (it is still only built with [trust](#trust), as every showcase is). Its showcase frames share one copy of Mermaid, which `build` writes into the output folder's `mermaid/` folder (about 3.85 MB) only when it builds one.
+
+- **What it shows.** Each definition of the schema's `$defs` is a node: a model (`"type": "object"` with `properties`) lists its properties with their types (`?` marks an optional one, `[]` an array, `| null` a nullable one), an enum (`«enumeration»`) its values, and any other definition its kind (`«alias»` for one that is only a `$ref`, `«oneOf»`, `«anyOf»`, `«primitive»`, `«record»`, …). A property referencing other definitions starts with `→`, and an arrow labelled with its name points to each; a definition whose `allOf` holds a reference inherits from it (merging its models' properties), and an `anyOf` or `oneOf` of references points to each, labelled by its kind. The root is a node, `«root»`, when it is a model, named by its `title`, else by a named showcase's name (`file=<name>.json`), else `root`; a root that is only a `$ref` marks the definition it names `«root»`; a root holding only `$defs` isn't drawn. Names show exactly as written, whatever their characters.
+- **Strict JSON.** Its entry point is a `json` code block (a named one is `<name>.json`), or a linked `.json` file; a byte order mark is accepted, comments are an error. It takes no options. Included files are shown as tabs only, never read for references.
+- **Its issues** are its build's, under its `build` status mark, at its entry point. Errors, which leave it not built: a syntax error (at its line: a code block's in the documentation file), a schema that isn't an object (a boolean schema only warns that nothing shows), and a diagram over Mermaid's limits (50,000 characters of source, or 500 edges). Warnings, for what isn't read yet: `definitions` without `$defs` (draft-04 to draft-07), every `$ref` that doesn't resolve (into another file, a virtual file of the same documentation file included, or inside the file but not a definition of its own `$defs`, e.g. `#/definitions/X`), each definition, or root, with `properties` but no `"type": "object"`, and an empty diagram. Its `runtime` status mark shows Mermaid's failures to draw.
+- **Its limits**, until `tsschema` reads more: only `$defs` is read, so a `definitions` schema shows nothing; a `$ref` into another file shows as `unknown`; `properties` without `"type": "object"` aren't a model (in an `allOf`'s member too, where nothing warns of it); `additionalProperties` beside `properties` isn't shown, a record's values (`additionalProperties` alone) are `unknown`, and a tuple (`prefixItems`) is an array of `unknown`.
+
+The [`jsonschema` example](./examples/jsonschema/README.md) ([live](https://ofzza.github.io/showroom/#/examples/jsonschema/README.md)) documents `headway`, the made-up data models of a city transport timetable. Its first showcase is [`timetable.schema.json`](./examples/jsonschema/timetable.schema.json), the whole timetable, linked as a showcase shown as a block (`showcase=jsonschema block include=markdown`):
+
+[The timetable](./examples/jsonschema/timetable.schema.json 'showcase=jsonschema block include=markdown')
+
+See the rest in the example:
+
+- [a departure board](./examples/jsonschema/README.md#a-departure-board) ([live](https://ofzza.github.io/showroom/#/examples/jsonschema/README.md#a-departure-board)), a code block whose root is a model, with an enum and an alias;
+- [fares](./examples/jsonschema/README.md#fares) ([live](https://ofzza.github.io/showroom/#/examples/jsonschema/README.md#fares)), a named showcase, with a record;
+- [a trip](./examples/jsonschema/README.md#a-trip) ([live](https://ofzza.github.io/showroom/#/examples/jsonschema/README.md#a-trip)), a root that is only a `$ref`;
+- [a clock, with its schema](./examples/jsonschema/README.md#a-clock-with-its-schema) ([live](https://ofzza.github.io/showroom/#/examples/jsonschema/README.md#a-clock-with-its-schema)), shown by its diagram and its source (`view=demo,source`).
 
 ### Showcase frames
 
@@ -1023,7 +1045,7 @@ $ npx showroom build [--root <dir>] [--out-dir <dir>] [--trust | --no-trust] [--
 - **The output folder is emptied before every build.** To keep a mistyped `outDir` from deleting your files, every build writes a `.showroom` marker file into it, and `build` refuses (exiting with `1`) to empty a folder that isn't empty and holds no `.showroom` marker. A missing or empty folder, or one an earlier build marked, is fine.
 - It writes the output folder's path to `stdout` once built, and exits with `0`. Warnings from the check don't fail it.
 
-The output is an `index.html`, its `assets/`, the showcase frames in `showcases/` (one folder per showcase, `showcases/<documentation file's path>/<n>/`), the [linked files](#linked-files) in `files/` (each at `files/<path>`) and the `.showroom` marker, with relative paths throughout, so it works wherever it's hosted, under any path (e.g. GitHub Pages' `https://<user>.github.io/<repo>/`). Pages are addressed in the URL's hash, so the host needs no rewrite rules. It needs to be served over HTTP: browsers won't run it from `file://`. Add the output folder to your `.gitignore`, unless you mean to commit it.
+The output is an `index.html`, its `assets/`, the showcase frames in `showcases/` (one folder per showcase, `showcases/<documentation file's path>/<n>/`), the [linked files](#linked-files) in `files/` (each at `files/<path>`), the shared Mermaid bundle in `mermaid/` (only when a [`jsonschema` showcase](#jsonschema-showcases) is built) and the `.showroom` marker, with relative paths throughout, so it works wherever it's hosted, under any path (e.g. GitHub Pages' `https://<user>.github.io/<repo>/`). Pages are addressed in the URL's hash, so the host needs no rewrite rules. It needs to be served over HTTP: browsers won't run it from `file://`. Add the output folder to your `.gitignore`, unless you mean to commit it.
 
 ## Publishing to GitHub Pages
 

@@ -11,6 +11,7 @@ import type { Showcase } from '../../../host/index.js';
 import { copyFixture, createScratchFolder } from '../../../testing/index.js';
 import { CsShowcaseAdapter } from '../cs/index.js';
 import { HtmlShowcaseAdapter } from '../html/index.js';
+import { JsonSchemaShowcaseAdapter } from '../jsonschema/index.js';
 import { AngularShowcaseAdapter } from '../angular/index.js';
 import { ReactShowcaseAdapter } from '../react/index.js';
 import { TsShowcaseAdapter } from '../ts/index.js';
@@ -39,13 +40,14 @@ describe('adapters/showcase/registry', () => {
   // way of getting it wrong. Each module's default export is a factory of showcase adapter objects.
 
   it('Lists and creates the built-in showcase adapters', () => {
-    expect(getShowcaseAdapterNames()).toEqual(['angular', 'cs', 'html', 'react', 'ts']);
+    expect(getShowcaseAdapterNames()).toEqual(['angular', 'cs', 'html', 'jsonschema', 'react', 'ts']);
     expect(createShowcaseAdapter('html')).toBeInstanceOf(HtmlShowcaseAdapter);
     expect(createShowcaseAdapter('html')).not.toBe(createShowcaseAdapter('html'));
     expect(createShowcaseAdapter('ts')).toBeInstanceOf(TsShowcaseAdapter);
     expect(createShowcaseAdapter('react')).toBeInstanceOf(ReactShowcaseAdapter);
     expect(createShowcaseAdapter('angular')).toBeInstanceOf(AngularShowcaseAdapter);
     expect(createShowcaseAdapter('cs')).toBeInstanceOf(CsShowcaseAdapter);
+    expect(createShowcaseAdapter('jsonschema')).toBeInstanceOf(JsonSchemaShowcaseAdapter);
     expect(createShowcaseAdapter('toString')).toBeUndefined();
   });
 
@@ -56,22 +58,22 @@ describe('adapters/showcase/registry', () => {
     expect(getDefaultViews(createShowcaseAdapter('react')!)).toEqual(['demo']);
     expect(getDefaultViews(createShowcaseAdapter('angular')!)).toEqual(['demo']);
     expect(getDefaultViews(createShowcaseAdapter('cs')!)).toEqual(['source', 'console']);
+    expect(getDefaultViews(createShowcaseAdapter('jsonschema')!)).toEqual(['demo']);
     expect(DEFAULT_SHOWCASE_VIEWS).toEqual(['demo']);
     expect(getDefaultViews({ validate: () => ({ errors: [] }), build: async () => ({ reads: [] }) })).toEqual(['demo']);
   });
 
-  it('Reserves jsonschema as a planned built-in name, refused to custom showcase adapters', async () => {
-    // See PLAN-P21 D833: jsonschema is reserved from P21.1 until P21.2 builds it in (as cs was until P20.2, D781)
-    expect(PLANNED_SHOWCASE_ADAPTER_NAMES).toEqual(['jsonschema']);
-    expect(getShowcaseAdapterNames()).not.toContain('jsonschema');
+  it('Reserves no planned built-in name once jsonschema is built in, refusing it to custom showcase adapters', async () => {
+    // See PLAN-P21 D833: jsonschema was reserved from P21.1 until P21.2 built it in (as cs was until P20.2, D781)
+    expect(PLANNED_SHOWCASE_ADAPTER_NAMES).toEqual([]);
     const { adapters, errors } = await loadCustomShowcaseAdapters(_ROOT, { jsonschema: './adapters/good.js' });
     expect(adapters.size).toBe(0);
     expect(errors).toEqual(['Custom showcase adapter "jsonschema": the name is taken by a built-in showcase adapter']);
   });
 
   it('Lets only built-in showcase adapters use the shared Mermaid bundle', () => {
-    // No built-in showcase adapter uses it yet (jsonschema will, PLAN-P21 D832), so the names are given
-    expect(getShowcaseAdapterNames().filter((name) => usesMermaidBundle(name))).toEqual([]);
+    // Only jsonschema uses it (PLAN-P21 D832); other names are given to test the guard on custom showcase adapters
+    expect(getShowcaseAdapterNames().filter((name) => usesMermaidBundle(name))).toEqual(['jsonschema']);
     expect(usesMermaidBundle('html', ['html'])).toBe(true);
     expect(usesMermaidBundle('ts', ['html'])).toBe(false);
     expect(usesMermaidBundle('good', ['good'])).toBe(false);

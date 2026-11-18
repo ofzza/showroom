@@ -206,7 +206,7 @@ export async function build({ root, outDir, output, appDir = getAppDir(), mermai
   const session = createRunSession({ passEnv });
   let showcases: Awaited<ReturnType<typeof buildShowcases>>;
   try {
-    showcases = await buildShowcases({ root, host: result.host, configuration, trust: result.trusted, session, outDir });
+    showcases = await buildShowcases({ root, host: result.host, configuration, trust: result.trusted, session, outDir, mermaidDir });
   } finally {
     await session.dispose();
   }

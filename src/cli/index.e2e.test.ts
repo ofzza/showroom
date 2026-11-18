@@ -77,7 +77,7 @@ describe('cli (end to end)', () => {
       expect(stdout).toBe('');
       expect(stderr).toBe(
         [
-          'error: README.md:3: Unknown showcase adapter "nope"; the showcase adapters are: angular, cs, demo, html, react, ts',
+          'error: README.md:3: Unknown showcase adapter "nope"; the showcase adapters are: angular, cs, demo, html, jsonschema, react, ts',
           `error: README.md:11: A linked showcase's entry point "demos/demo.html" not found`,
           '',
         ].join('\n'),
