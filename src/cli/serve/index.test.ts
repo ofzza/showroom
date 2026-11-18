@@ -613,7 +613,9 @@ describe('cli/serve', () => {
     const code = await serve({ root: _fixture('unknown-stack'), output: { stdout: (text) => (stdout += text), stderr: (text) => (stderr += text) } });
     expect(code).toBe(1);
     expect(stdout).toBe('');
-    expect(stderr).toBe('error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript\n');
+    expect(stderr).toBe(
+      'error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript. A host repository whose stack has none gives "project" as an object holding its project information\n',
+    );
   });
 
   it('Checks with the overriding output folder, without serving when it fails', async () => {

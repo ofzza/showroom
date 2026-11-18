@@ -1,0 +1,15 @@
+{
+  "stack": "java",
+  "project": {
+    "name": "library",
+    "version": "1.2.3",
+    "description": "A Java library with no stack adapter",
+    "license": "MIT",
+    "author": "Example Author",
+    "homepage": "https://example.com/library",
+    "repository": "https://example.com/library.git"
+  },
+  "ignore": [".git", "node_modules", "target"],
+  "code": ["*.java"],
+  "customShowcaseAdapters": { "reporter": "./adapters/reporter.js" }
+}

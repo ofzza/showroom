@@ -43,7 +43,10 @@ describe('configuration', () => {
     });
 
     it('Requires a stack', () => {
-      expect(validateConfiguration({}).errors).toEqual(['showroom.json: "stack" is required']);
+      expect(validateConfiguration({}).errors).toEqual(['showroom.json: "stack" is required, unless "project" is an object holding the project information']);
+      expect(validateConfiguration({ project: 'package.json' }).errors).toEqual([
+        'showroom.json: "stack" is required, unless "project" is an object holding the project information',
+      ]);
     });
 
     it('Rejects a value that is not an object', () => {
@@ -75,7 +78,7 @@ describe('configuration', () => {
       ).toEqual([
         'showroom.json: "stack" must be a non-empty string',
         'showroom.json: "sourceRoot" must be a non-empty string',
-        'showroom.json: "project" must be a non-empty string',
+        'showroom.json: "project" must be a non-empty string (a project file\'s path) or an object (the project information)',
         'showroom.json: "outDir" must be a non-empty string',
         'showroom.json: "ignore" must be an array of strings',
         'showroom.json: "code" must be an array of strings',
@@ -106,6 +109,69 @@ describe('configuration', () => {
         'showroom.json: "showcaseViews" of "react": repeated view "demo"',
         'showroom.json: "showcaseViews" of "x": the view "none" can\'t be combined with other views',
       ]);
+    });
+  });
+
+  describe('validateConfiguration() of an object project', () => {
+    // The project information given in `showroom.json`, for a host repository whose stack has no stack adapter, and how it combines with `stack`
+    // (D865–D867, D874, D876).
+
+    it('Accepts an object project with every field, with and without a stack', () => {
+      const project = {
+        name: 'library',
+        version: '1.0.0',
+        description: 'A library',
+        license: 'MIT',
+        author: 'Someone',
+        homepage: 'https://example.com',
+        repository: 'https://example.com/library.git',
+      };
+      expect(validateConfiguration({ stack: 'java', project })).toEqual({ configuration: { stack: 'java', project }, errors: [] });
+      expect(validateConfiguration({ project: { name: 'library' } })).toEqual({ configuration: { project: { name: 'library' } }, errors: [] });
+      // The default name, given explicitly, is just another name
+      expect(validateConfiguration({ stack: 'custom', project: { name: 'library' } }).errors).toEqual([]);
+    });
+
+    it('Requires a name', () => {
+      expect(validateConfiguration({ project: {} }).errors).toEqual(['showroom.json: "project": "name" is required']);
+    });
+
+    it('Rejects fields that are not non-empty strings', () => {
+      expect(validateConfiguration({ project: { name: '', version: 1, author: { name: 'Someone' }, license: '' } }).errors).toEqual([
+        'showroom.json: "project": "name" must be a non-empty string',
+        'showroom.json: "project": "version" must be a non-empty string',
+        'showroom.json: "project": "author" must be a non-empty string',
+        'showroom.json: "project": "license" must be a non-empty string',
+      ]);
+    });
+
+    it('Rejects unknown keys, pointing top-level keys out', () => {
+      // A top-level key written inside the object is the likely mistake
+      expect(validateConfiguration({ project: { name: 'library', sourceRoot: 'src', authors: 'Someone' } }).errors).toEqual([
+        'showroom.json: "project": unknown key "sourceRoot"; "sourceRoot" is a top-level key of showroom.json',
+        'showroom.json: "project": unknown key "authors"',
+      ]);
+    });
+
+    it('Makes the stack optional even when the object is invalid', () => {
+      // Only the object's own errors show, not a missing stack too
+      expect(validateConfiguration({ project: { version: '1.0.0' } }).errors).toEqual(['showroom.json: "project": "name" is required']);
+    });
+
+    it("Refuses a built-in stack adapter's name, whatever its case", () => {
+      for (const stack of ['typescript', 'TypeScript', 'DOTNET']) {
+        expect(validateConfiguration({ stack, project: { name: 'library' } }).errors).toEqual([
+          `showroom.json: "stack" can't name the built-in stack adapter "${stack.toLowerCase()}" when "project" is an object: give "project" as a path for it, or name the stack otherwise`,
+        ]);
+      }
+    });
+
+    it('Rejects a value that is neither a path nor an object', () => {
+      for (const project of [[], null, 1, '']) {
+        expect(validateConfiguration({ stack: 'typescript', project }).errors).toEqual([
+          'showroom.json: "project" must be a non-empty string (a project file\'s path) or an object (the project information)',
+        ]);
+      }
     });
   });
 

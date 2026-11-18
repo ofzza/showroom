@@ -1,6 +1,6 @@
 # _`P22`_ Host repositories without a stack adapter
 
-approved 2026-11-18 (option chosen: "Approve and commit (Rec.)"), after its zero-context review (_`D873`_–_`D876`_)
+approved 2026-11-18 (option chosen: "Approve and commit (Rec.)"), after its zero-context review (_`D873`_–_`D876`_); implemented 2026-11-18 (option chosen: "Approve and commit (Rec.)")
 
 _`S18`_ (SPEC.md): `showroom.json`'s `project` may be an object holding the project information, and then no stack adapter is used; `stack` is then optional, names the stack for showcase adapters (`custom` when left out), and may not be a built-in stack adapter's name. One segment, with no child segments.
 

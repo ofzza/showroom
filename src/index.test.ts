@@ -13,6 +13,7 @@ import type {
   Configuration,
   HostInformation,
   LinkedFile,
+  ProjectInformation,
   Showcase,
   ShowcaseAdapter,
   ShowcaseBuildRequest,
@@ -63,10 +64,13 @@ describe('index', () => {
     expectTypeOf<CheckOptions['outDir']>().toEqualTypeOf<string | undefined>();
     expectTypeOf<CheckOptions['showcases']>().toEqualTypeOf<boolean | undefined>();
     expectTypeOf<CheckResult['host']>().toEqualTypeOf<HostInformation | undefined>();
-    expectTypeOf<Configuration['stack']>().toEqualTypeOf<string>();
+    expectTypeOf<Configuration['stack']>().toEqualTypeOf<string | undefined>();
     expectTypeOf<api.TypeScriptStackAdapter>().toExtend<StackAdapter>();
     expectTypeOf<api.DotNetStackAdapter>().toExtend<StackAdapter>();
-    expectTypeOf<Configuration['project']>().toEqualTypeOf<string | undefined>();
+    // An object project is the project information itself, for a host repository whose stack has no stack adapter (D865, D869)
+    expectTypeOf<Configuration['project']>().toEqualTypeOf<string | ProjectInformation | undefined>();
+    expectTypeOf<ShowcaseBuildRequest['project']>().toEqualTypeOf<string | ProjectInformation | undefined>();
+    expectTypeOf<ShowcaseCheckContext['project']>().toEqualTypeOf<string | ProjectInformation | undefined>();
     expectTypeOf<Parameters<StackAdapter['readProject']>[1]>().toEqualTypeOf<string | undefined>();
     expectTypeOf<CheckIssue['line']>().toEqualTypeOf<number | undefined>();
     expectTypeOf<Configuration['customShowcaseAdapters']>().toEqualTypeOf<Record<string, string> | undefined>();

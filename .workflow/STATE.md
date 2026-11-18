@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P22`_ host repositories without a stack adapter ([PLAN-P22-stackless.md](./PLAN-P22-stackless.md)), approved (_`D869`_–_`D876`_), for _`S18`_ (re-approved for _`R63`_). _`P21`_ is done.
+- **Stage:** implementation: _`P22`_ (done) host repositories without a stack adapter ([PLAN-P22-stackless.md](./PLAN-P22-stackless.md)), approved (_`D869`_–_`D876`_), for _`S18`_ (re-approved for _`R63`_). _`P21`_ is done.
 - **Next free:** _`D877`_, _`S19`_, _`P23`_, _`O144`_, _`L20`_, _`R64`_, _`H1`_, _`K32`_
-- **Working on:** _`P22`_, not started.
-- **Next step:** implement _`P22`_'s steps 1–5, then its checkpoint.
+- **Working on:** _`P22`_, implemented and committed; nothing in progress.
+- **Next step:** the user's choice of what comes next (e.g. pushing `adapters-extra`, merging it, or the next segment).
 
 ## Open questions
 
@@ -13,7 +13,7 @@
 
 ## Waiting on me
 
-- `./.workflow/.temp/review-p22/` (_`P22`_'s review record and snapshots), `p22-format/`, `s18-format/` (formatting backups) and `ci-s18.log`; ask before deleting them.
+- `./.workflow/.temp/review-p22/` (_`P22`_'s review record and snapshots), `p22-format/`, `s18-format/` (formatting backups), `p22-readme-ts/` (`README.md`'s samples, type checked), `p22-check/` (the served `stackless` copy), `ci-s18.log`, `ci-p22.log`, `serve-dogfood-p22.log`, `serve-p22-check.log`; ask before deleting them.
 - `./.workflow/.temp/publish-smoke/` (0.1.0-alpha.3's consumer smoke test) and `publish-alpha3-build.log`, `publish-alpha3-ci.log`; ask before deleting them.
 - `./.workflow/.temp/ci-d862.log`, `ci-docs.log` and `serve-review-p21.log`; ask before deleting them.
 - `./.workflow/.temp/p21.2-check/` (a fixture copy served, screenshots), `p21.2-format/` (formatting backups), `ci-p21.2.log`, `ci-p21.2-rest.log`, `serve-dogfood-p21.2.log`; ask before deleting them.
@@ -481,3 +481,4 @@
 - 2026-11-18: _`S18`_ (host repositories without a stack adapter, _`D865`_–_`D868`_) approved, with its Glossary changes in `CONTRIBUTE.md` (options chosen: "Approve and commit (Rec.)", "Accept (Rec.)"); _`D16`_, _`D487`_ and _`D22`_ (PLAN.md) changed by it.
 - 2026-11-18: _`P22`_'s zero-context review (1 reviewer; stray-write check clean): 10 findings; the user chose "Document it only" (#2), "Case-insensitive" (#7), "src/adapters/stack/resolve/ (Rec.)" (#1), "Apply all (Rec.)" (the rest), recorded as _`D873`_–_`D876`_; _`S18`_ revised (_`R63`_). Record in `./.workflow/.temp/review-p22/`.
 - 2026-11-18: _`P22`_ approved, and _`S18`_ re-approved for _`R63`_ (option chosen: "Approve and commit (Rec.)").
+- 2026-11-18: _`P22`_ implemented (option chosen: "Approve and commit (Rec.)"); `npm run ci` green; the fixture's `reporter` build result fixed after serving.

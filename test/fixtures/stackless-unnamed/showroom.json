@@ -1,0 +1,6 @@
+{
+  "project": { "name": "library" },
+  "ignore": [".git", "node_modules", "target"],
+  "code": ["*.java"],
+  "customShowcaseAdapters": { "reporter": "./adapters/reporter.js" }
+}

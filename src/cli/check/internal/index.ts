@@ -7,7 +7,7 @@
 import ignore, { type Ignore } from 'ignore';
 import { realpath } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
-import { getStackAdapter, type StackAdapter } from '../../../adapters/stack/index.js';
+import { resolveStack, type StackDefaults } from '../../../adapters/stack/resolve/index.js';
 import { DEFAULT_OUT_DIR, readConfiguration, type Configuration } from '../../../configuration/index.js';
 import type { CheckIssue, TrustRequest } from '../index.js';
 
@@ -62,14 +62,15 @@ function _escapePattern(path: string): string {
 // #region Ignore matcher
 
 /**
- * Creates the ignore matcher of a host repository: the stack adapter's `ignore` patterns, then the configuration's, then the output folder
- * @param adapter Stack adapter of the host repository
+ * Creates the ignore matcher of a host repository: the stack's `ignore` patterns (its stack adapter's, or none without one), then the
+ * configuration's, then the output folder
+ * @param defaults The stack's defaults (see resolveStack())
  * @param configuration Configuration of the host repository
  * @param outputFolder POSIX-style path of the output folder, relative to the host repository's root, if it is inside it
  * @returns Matcher of the ignored files and folders, tested against POSIX-style paths relative to the host repository's root (folders with a trailing `/`)
  */
-export function createIgnoreMatcher(adapter: StackAdapter, configuration: Configuration, outputFolder?: string): Ignore {
-  return ignore().add([...adapter.ignore, ...(configuration.ignore ?? []), ...(outputFolder ? [`/${_escapePattern(outputFolder)}/`] : [])]);
+export function createIgnoreMatcher(defaults: Pick<StackDefaults, 'ignore'>, configuration: Configuration, outputFolder?: string): Ignore {
+  return ignore().add([...defaults.ignore, ...(configuration.ignore ?? []), ...(outputFolder ? [`/${_escapePattern(outputFolder)}/`] : [])]);
 }
 
 /**
@@ -80,12 +81,12 @@ export function createIgnoreMatcher(adapter: StackAdapter, configuration: Config
  */
 export async function readIgnoreMatcher(root: string, outDir?: string): Promise<Ignore | undefined> {
   const { configuration } = await readConfiguration(root);
-  const adapter = configuration && getStackAdapter(configuration.stack);
-  if (!configuration || !adapter) {
+  const stack = configuration && resolveStack(configuration).stack;
+  if (!configuration || !stack) {
     return undefined;
   }
   const outputFolder = resolveOutputFolder(root, configuration, outDir);
-  return createIgnoreMatcher(adapter, configuration, 'error' in outputFolder ? undefined : outputFolder.relativePath);
+  return createIgnoreMatcher(stack.defaults, configuration, 'error' in outputFolder ? undefined : outputFolder.relativePath);
 }
 
 // #endregion

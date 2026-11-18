@@ -122,7 +122,11 @@ describe('cli/build', () => {
     it('Exits with 1, writing the issues, without building, when the check fails', async () => {
       const { output, written } = _capture();
       expect(await build({ root: _fixture('unknown-stack'), output })).toBe(1);
-      expect(written).toEqual({ stdout: '', stderr: 'error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript\n' });
+      expect(written).toEqual({
+        stdout: '',
+        stderr:
+          'error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript. A host repository whose stack has none gives "project" as an object holding its project information\n',
+      });
     });
 
     it('Exits with 1, without building, when the output folder holds anything but an earlier build', async () => {

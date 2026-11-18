@@ -4,6 +4,19 @@ All notable changes to `@ofzza/showroom`, by version as published to npm. This p
 
 ## Unreleased
 
+### Breaking changes
+
+- **`Configuration`'s `stack` is optional, and its `project` is `string | ProjectInformation`**, for host repositories without a stack adapter (below); code reading them from `readConfiguration()` or `validateConfiguration()` has to handle both.
+- **The showcase adapter interface's `ShowcaseBuildRequest.project` and `ShowcaseCheckContext.project` are `string | ProjectInformation`** (experimental): a copy of the object when `showroom.json` gives one.
+
+### Added
+
+- **Host repositories without a stack adapter** (e.g. a Java one): `showroom.json`'s `project` may be an object, the project information itself (`name`, required, `version`, `description`, `license`, `author`, `homepage`, `repository`), and then no stack adapter is used. `stack` is then optional, names the stack for custom showcase adapters (`custom` by default), and can't be a built-in stack adapter's name, in any case. There are no defaults: the source root is the root, and nothing is code or ignored unless `code` and `ignore` say so.
+
+### Changed
+
+- **An unknown `stack`'s error** now says that a host repository whose stack has no stack adapter gives `project` as an object.
+
 ## 0.1.0-alpha.3 (2026-11-18)
 
 ### Breaking changes

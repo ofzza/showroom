@@ -4,7 +4,8 @@
 
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { ShowcaseView } from '../host/index.js';
+import { getStackAdapterNames } from '../adapters/stack/index.js';
+import type { ProjectInformation, ShowcaseView } from '../host/index.js';
 import { checkShowcaseViews } from '../markdown/index.js';
 import { NAVIGATION_URL_SCHEMES, isAllowedNavigationUrl, isNavigationGlob, isNavigationUrl } from '../navigation/index.js';
 
@@ -20,18 +21,20 @@ export const CONFIGURATION_FILE_NAME = 'showroom.json';
  */
 export interface Configuration {
   /**
-   * Name of the stack adapter to use (e.g. `typescript`)
+   * Name of the stack adapter to use (e.g. `typescript`); required unless `project` is an object, when it names the host repository's stack instead
+   * (any name but a built-in stack adapter's, whatever its case; `custom` if left out), for showcase adapters
    */
-  stack: string;
+  stack?: string;
   /**
    * Source root directory, relative to the host repository's root; defaults to the stack adapter's
    */
   sourceRoot?: string;
   /**
    * Path of the file the stack adapter reads the project information from, relative to the host repository's root (e.g. a `.csproj`); defaults
-   * to the stack adapter's (`package.json` for `typescript`), and the `dotnet` stack adapter requires it
+   * to the stack adapter's (`package.json` for `typescript`), and the `dotnet` stack adapter requires it. Or the project information itself, as
+   * an object, for a host repository whose stack has no stack adapter: then none is used
    */
-  project?: string;
+  project?: string | ProjectInformation;
   /**
    * Output directory of the showroom, relative to the host repository's root; defaults to `./showroom`
    */
@@ -90,7 +93,7 @@ export type ConfigurationResult = { configuration: Configuration; errors: [] } |
 const _KEYS: Record<keyof Configuration, (value: unknown) => boolean> = {
   stack: (value) => typeof value === 'string' && value.length > 0,
   sourceRoot: (value) => typeof value === 'string' && value.length > 0,
-  project: (value) => typeof value === 'string' && value.length > 0,
+  project: (value) => (typeof value === 'string' && value.length > 0) || _isObject(value),
   outDir: (value) => typeof value === 'string' && value.length > 0,
   ignore: _isStringArray,
   code: _isStringArray,
@@ -110,7 +113,7 @@ const _KEYS: Record<keyof Configuration, (value: unknown) => boolean> = {
 const _EXPECTED: Record<keyof Configuration, string> = {
   stack: 'a non-empty string',
   sourceRoot: 'a non-empty string',
-  project: 'a non-empty string',
+  project: "a non-empty string (a project file's path) or an object (the project information)",
   outDir: 'a non-empty string',
   ignore: 'an array of strings',
   code: 'an array of strings',
@@ -119,6 +122,15 @@ const _EXPECTED: Record<keyof Configuration, string> = {
   showcaseViews: 'an object mapping showcase adapter names to a view or an array of views',
   navigation: 'an array of navigation items',
 };
+
+/**
+ * Checks if a value is a plain object (not null, not an array)
+ * @param value Value to check
+ * @returns True if the value is an object
+ */
+function _isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 /**
  * Checks if a value is an array of strings
@@ -138,6 +150,32 @@ function _isStringRecord(value: unknown): boolean {
   return (
     typeof value === 'object' && value !== null && !Array.isArray(value) && Object.values(value).every((item) => typeof item === 'string' && item.length > 0)
   );
+}
+
+/**
+ * Keys an object `project` may hold: the project information's
+ */
+const _PROJECT_KEYS: readonly (keyof ProjectInformation)[] = ['name', 'version', 'description', 'license', 'author', 'homepage', 'repository'];
+
+/**
+ * Checks an object `project`: the project information, `name` required, every key a non-empty string
+ * @param project The object to check
+ * @returns The problems found, each naming its key
+ */
+function _checkProject(project: Record<string, unknown>): string[] {
+  const problems: string[] = [];
+  for (const key of Object.keys(project)) {
+    if (!(_PROJECT_KEYS as readonly string[]).includes(key)) {
+      // A top-level key written inside the object is the likely mistake
+      problems.push(`"project": unknown key "${key}"${key in _KEYS ? `; "${key}" is a top-level key of ${CONFIGURATION_FILE_NAME}` : ''}`);
+    } else if (typeof project[key] !== 'string' || !project[key]) {
+      problems.push(`"project": "${key}" must be a non-empty string`);
+    }
+  }
+  if (!('name' in project)) {
+    problems.push('"project": "name" is required');
+  }
+  return problems;
 }
 
 /**
@@ -210,10 +248,21 @@ export function validateConfiguration(value: unknown): ConfigurationResult {
       }
     } else if (key === 'navigation') {
       errors.push(..._checkNavigation(record[key] as unknown[]).map((problem) => `${CONFIGURATION_FILE_NAME}: ${problem}`));
+    } else if (key === 'project' && _isObject(record[key])) {
+      errors.push(..._checkProject(record[key]).map((problem) => `${CONFIGURATION_FILE_NAME}: ${problem}`));
     }
   }
-  if (!('stack' in record)) {
-    errors.push(`${CONFIGURATION_FILE_NAME}: "stack" is required`);
+  // An object project, valid or not, makes the stack optional, and leaves no stack adapter to name (D867, D874, D876)
+  if (_isObject(record.project)) {
+    const stack = record.stack;
+    const builtIn = typeof stack === 'string' && getStackAdapterNames().find((name) => name.toLowerCase() === stack.toLowerCase());
+    if (builtIn) {
+      errors.push(
+        `${CONFIGURATION_FILE_NAME}: "stack" can't name the built-in stack adapter "${builtIn}" when "project" is an object: give "project" as a path for it, or name the stack otherwise`,
+      );
+    }
+  } else if (!('stack' in record)) {
+    errors.push(`${CONFIGURATION_FILE_NAME}: "stack" is required, unless "project" is an object holding the project information`);
   }
   return errors.length ? { errors } : { configuration: record as unknown as Configuration, errors: [] };
 }

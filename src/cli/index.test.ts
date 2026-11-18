@@ -60,7 +60,9 @@ describe('cli', () => {
       const { code, stdout, stderr } = await _run(['check', '--root', _fixture('unknown-stack')]);
       expect(code).toBe(1);
       expect(stdout).toBe('');
-      expect(stderr).toBe('error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript\n');
+      expect(stderr).toBe(
+        'error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript. A host repository whose stack has none gives "project" as an object holding its project information\n',
+      );
     });
 
     it('Overrides the output folder with --out-dir, relative to the current directory', async () => {
@@ -77,7 +79,9 @@ describe('cli', () => {
       expect(stderr).toMatch(/^warning: LICENCE: /);
       const failed = await _run(['check', '--quiet', '--root', _fixture('unknown-stack')]);
       expect(failed.code).toBe(1);
-      expect(failed.stderr).toBe('error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript\n');
+      expect(failed.stderr).toBe(
+        'error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript. A host repository whose stack has none gives "project" as an object holding its project information\n',
+      );
     });
 
     it("Fails on an --out-dir that is the host repository's root", async () => {
@@ -158,7 +162,9 @@ describe('cli', () => {
       const { code, stdout, stderr } = await _run(['check', '--showcases', '--root', _fixture('unknown-stack')]);
       expect(code).toBe(1);
       expect(stdout).toBe('');
-      expect(stderr).toBe('error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript\n');
+      expect(stderr).toBe(
+        'error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript. A host repository whose stack has none gives "project" as an object holding its project information\n',
+      );
     });
 
     it('Fails on an invalid port, before serving', async () => {
@@ -326,7 +332,9 @@ describe('cli', () => {
       const { code, stdout, stderr } = await _run(['serve', '--root', _fixture('unknown-stack'), '--port', '8080']);
       expect(code).toBe(1);
       expect(stdout).toBe('');
-      expect(stderr).toBe('error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript\n');
+      expect(stderr).toBe(
+        'error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript. A host repository whose stack has none gives "project" as an object holding its project information\n',
+      );
     });
 
     it('Passes --out-dir on to serve', async () => {
@@ -345,7 +353,9 @@ describe('cli', () => {
       const { code, stdout, stderr } = await _run(['build', '--root', _fixture('unknown-stack')]);
       expect(code).toBe(1);
       expect(stdout).toBe('');
-      expect(stderr).toBe('error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript\n');
+      expect(stderr).toBe(
+        'error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript. A host repository whose stack has none gives "project" as an object holding its project information\n',
+      );
     });
 
     it('Passes --out-dir on to build', async () => {

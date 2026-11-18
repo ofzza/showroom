@@ -62,6 +62,7 @@ src/
   adapters/stack/       The StackAdapter interface and the built-in stack adapters
     typescript/         The TypeScript stack adapter
     dotnet/             The .NET stack adapter
+    resolve/            Resolving the host repository's stack: its stack adapter, or none when showroom.json gives the project information
   adapters/showcase/    The ShowcaseAdapter interface (experimental)
     registry/           The built-in showcase adapters, and loading custom showcase adapters
     html/               The html showcase adapter
@@ -112,6 +113,7 @@ Every module lives in `src/`, as an `index.ts` + `index.test.ts` pair. `src/inde
 - the showroom's modules in `src/app/`, which are browser code;
 - `src/markdown/`, `src/navigation/`, `src/linked-files/`, `src/showcases/`, `src/frame/`, `src/vite/` and `src/testing/`;
 - the showcase adapter registry and the built-in showcase adapters;
+- the stack's resolution, `src/adapters/stack/resolve/`;
 - `src/cli/serve/`, `src/cli/build/` and `src/cli/check/internal/`, which only the command line uses.
 
 #### Overview
@@ -144,8 +146,8 @@ showroom.json, documentation files, code
 
 `showroom check` (and `check()`, `src/cli/check/`):
 
-- **Reads the host repository's `showroom.json`** (`src/configuration/`), and picks the stack adapter it names (`src/adapters/stack/`).
-- **Has the stack adapter read the project information**: from `package.json`, or from the file the configuration's `project` key names, which must be inside the host repository. The `dotnet` stack adapter requires it, and reads that project file and the nearest `Directory.Build.props` as XML, with `sax`, never running MSBuild.
+- **Reads the host repository's `showroom.json`** (`src/configuration/`), and resolves its stack (`src/adapters/stack/resolve/`): the stack adapter it names (`src/adapters/stack/`), or none when its `project` is an object, the project information itself, for a host repository whose stack has no stack adapter (the source root then the root, and no default patterns).
+- **Has the stack adapter read the project information**, unless `project` is an object, which is taken as it is: from `package.json`, or from the file the configuration's `project` key names, which must be inside the host repository. The `dotnet` stack adapter requires it, and reads that project file and the nearest `Directory.Build.props` as XML, with `sax`, never running MSBuild.
 - **Walks the host repository once**, skipping ignored files and the output folder, to collect the documentation files and the code file index. Each list of patterns (`ignore`, `code`, `documentation`) works like a `.gitignore` file, matched by the `ignore` package: the built-in patterns (for documentation), then the stack adapter's, then the configuration's.
 - **Scans the Markdown documentation files** (`.md`) with `src/markdown/` (`unified` with `remark-parse` and `remark-gfm`, as the showroom parses them): showcase markers in code fences' info strings and inline links' titles give the showcases and virtual files, whose names must not collide.
 - **Validates each showcase of a built-in showcase adapter** (plain parsing), and names the tools a build would load (an internal hook of the registry, `getTrustTools()`: the host's TypeScript, Angular's compiler, the CSS preprocessors), resolving them without loading anything.

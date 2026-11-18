@@ -4,7 +4,7 @@
  * adapters and the loading of custom ones are internal (`./registry/`), never re-exported.
  */
 
-import type { Showcase, ShowcaseView, VirtualFile } from '../../host/index.js';
+import type { ProjectInformation, Showcase, ShowcaseView, VirtualFile } from '../../host/index.js';
 
 // #region Validation
 
@@ -175,11 +175,13 @@ export interface ShowcaseBuildRequest {
    */
   scratchFolder: string;
   /**
-   * Path of the project file `showroom.json` configures (`project`), as written there; none if it configures none
+   * `showroom.json`'s `project`, as written there: the path of the project file, or the project information itself (a copy), for a host repository
+   * whose stack has no stack adapter; none if it configures none
    */
-  project?: string;
+  project?: string | ProjectInformation;
   /**
-   * Name of the stack adapter `showroom.json` configures (`stack`)
+   * Name of the host repository's stack: the stack adapter `showroom.json` configures (`stack`), or, when `project` is an object, the name `stack`
+   * gives, `custom` if it gives none
    */
   stack: string;
   /**
@@ -276,11 +278,13 @@ export interface ShowcaseBuildResult {
  */
 export interface ShowcaseCheckContext {
   /**
-   * Path of the project file `showroom.json` configures (`project`), as written there; none if it configures none
+   * `showroom.json`'s `project`, as written there: the path of the project file, or the project information itself (a copy), for a host repository
+   * whose stack has no stack adapter; none if it configures none
    */
-  project?: string;
+  project?: string | ProjectInformation;
   /**
-   * Name of the stack adapter `showroom.json` configures (`stack`)
+   * Name of the host repository's stack: the stack adapter `showroom.json` configures (`stack`), or, when `project` is an object, the name `stack`
+   * gives, `custom` if it gives none
    */
   stack: string;
 }

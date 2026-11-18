@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TypeScriptStackAdapter } from '../../../adapters/stack/typescript/index.js';
+import { NO_STACK_ADAPTER_DEFAULTS } from '../../../adapters/stack/resolve/index.js';
 import {
   createIgnoreMatcher,
   escapeControlCharacters,
@@ -26,8 +27,8 @@ function _fixture(name: string): string {
 }
 
 describe('cli/check/internal', () => {
-  // Tests the output folder's resolution (on paths alone: nothing is read), the ignore matcher, built from the TypeScript stack adapter and
-  // configurations (hand-made, or read from the fixture host repositories), the formatting of issues and the escaping of control characters (on
+  // Tests the output folder's resolution (on paths alone: nothing is read), the ignore matcher, built from the TypeScript stack adapter, or no
+  // stack adapter's defaults, and configurations (hand-made, or read from the fixture host repositories), the formatting of issues and the escaping of control characters (on
   // hand-written strings), and the custom showcase adapter modules (on the showcase-errors fixture).
 
   it("Ignores the stack adapter's patterns, then the configuration's", () => {
@@ -66,10 +67,27 @@ describe('cli/check/internal', () => {
     expect(createIgnoreMatcher(new TypeScriptStackAdapter(), { stack: 'typescript' }, 'a*b').ignores('aXb/')).toBe(false);
   });
 
+  it("Ignores nothing but the configuration's patterns and the output folder without a stack adapter", () => {
+    // Without a stack adapter, even .git is only ignored when the configuration says so (D866, D875)
+    const matcher = createIgnoreMatcher(NO_STACK_ADAPTER_DEFAULTS, { project: { name: 'library' }, ignore: ['target/'] }, 'showroom');
+    expect(matcher.ignores('target/')).toBe(true);
+    expect(matcher.ignores('showroom/')).toBe(true);
+    expect(matcher.ignores('.git/')).toBe(false);
+    expect(matcher.ignores('node_modules/')).toBe(false);
+  });
+
   it("Reads a host repository's ignore matcher", async () => {
     const matcher = await readIgnoreMatcher(_fixture('patterns'));
     expect(matcher?.ignores('vendor/drop/')).toBe(true);
     expect(matcher?.ignores('vendor/keep/')).toBe(false);
+  });
+
+  it('Reads the ignore matcher of a host repository without a stack adapter', async () => {
+    // serve's watcher relies on it, and would silently lose it if the stack weren't resolved (review 2026-11-18 #5)
+    const matcher = await readIgnoreMatcher(_fixture('stackless'));
+    expect(matcher?.ignores('target/')).toBe(true);
+    expect(matcher?.ignores('showroom/')).toBe(true);
+    expect(matcher?.ignores('src/')).toBe(false);
   });
 
   it("Reads the ignore matcher with the output folder, the override's if given, and without one that isn't allowed", async () => {

@@ -16,7 +16,7 @@ import {
   getTrustTools,
   loadCustomShowcaseAdapters,
 } from '../../adapters/showcase/registry/index.js';
-import { getStackAdapter, getStackAdapterNames } from '../../adapters/stack/index.js';
+import { getShowcaseProject, resolveStack } from '../../adapters/stack/resolve/index.js';
 import { readConfiguration, CONFIGURATION_FILE_NAME, type Configuration } from '../../configuration/index.js';
 import type {
   DocumentationFile,
@@ -230,20 +230,17 @@ export async function checkHost(root: string, options: CheckOptions, report: 'ch
     return fail();
   }
 
-  // Get the stack adapter
-  const adapter = getStackAdapter(configuration.stack);
-  if (!adapter) {
-    issues.push({
-      severity: 'error',
-      message: `Unknown stack "${configuration.stack}"; the stack adapters are: ${getStackAdapterNames().join(', ')}`,
-      path: CONFIGURATION_FILE_NAME,
-    });
+  // Resolve the stack: its stack adapter, or none with an object project
+  const { stack, error: stackError } = resolveStack(configuration);
+  if (!stack) {
+    issues.push({ severity: 'error', message: stackError, path: CONFIGURATION_FILE_NAME });
     return fail();
   }
+  const { adapter, defaults } = stack;
 
   // Resolve the project file the configuration names, which must be inside the host repository
   let projectFile: string | undefined;
-  if (configuration.project !== undefined) {
+  if (typeof configuration.project === 'string') {
     projectFile = _toPosix(relative(resolve(root), resolve(root, configuration.project)));
     if (projectFile === '..' || projectFile.startsWith('../') || isAbsolute(projectFile)) {
       issues.push({ severity: 'error', message: `Project "${configuration.project}" is outside the host repository`, path: CONFIGURATION_FILE_NAME });
@@ -251,16 +248,20 @@ export async function checkHost(root: string, options: CheckOptions, report: 'ch
     }
   }
 
-  // Read the project information
+  // Read the project information, or take the object project as it is, a copy of its validated fields (D865, D876)
   let project: ProjectInformation | undefined;
-  try {
-    project = await adapter.readProject(root, projectFile);
-  } catch (err) {
-    issues.push({ severity: 'error', message: (err as Error).message });
+  if (!adapter) {
+    project = { ...(configuration.project as ProjectInformation) };
+  } else {
+    try {
+      project = await adapter.readProject(root, projectFile);
+    } catch (err) {
+      issues.push({ severity: 'error', message: (err as Error).message });
+    }
   }
 
   // Resolve the source root
-  const sourceRoot = _toPosix(relative(resolve(root), resolve(root, configuration.sourceRoot ?? adapter.sourceRoot)));
+  const sourceRoot = _toPosix(relative(resolve(root), resolve(root, configuration.sourceRoot ?? defaults.sourceRoot)));
   if (sourceRoot === '..' || sourceRoot.startsWith('../') || isAbsolute(sourceRoot)) {
     issues.push({ severity: 'error', message: `Source root "${configuration.sourceRoot}" is outside the host repository`, path: CONFIGURATION_FILE_NAME });
     return fail();
@@ -278,18 +279,18 @@ export async function checkHost(root: string, options: CheckOptions, report: 'ch
   }
 
   // Walk the host repository
-  const ignored = createIgnoreMatcher(adapter, configuration, outputFolder.relativePath);
+  const ignored = createIgnoreMatcher(defaults, configuration, outputFolder.relativePath);
   const files = await _walk(root, '', ignored);
 
   // Collect the code file index
-  const codeMatcher = ignore().add([...adapter.code, ...(configuration.code ?? [])]);
+  const codeMatcher = ignore().add([...defaults.code, ...(configuration.code ?? [])]);
   const code = files.filter((path) => {
     if (sourceRoot && !path.startsWith(`${sourceRoot}/`)) return false;
     return codeMatcher.ignores(sourceRoot ? path.slice(sourceRoot.length + 1) : path);
   });
 
   // Collect the documentation files
-  const documentationMatcher = ignore().add([...BUILT_IN_DOCUMENTATION, ...adapter.documentation, ...(configuration.documentation ?? [])]);
+  const documentationMatcher = ignore().add([...BUILT_IN_DOCUMENTATION, ...defaults.documentation, ...(configuration.documentation ?? [])]);
   const candidates = files.filter((path) => documentationMatcher.ignores(path));
   const documentation: DocumentationFile[] = [];
   for (const path of _pickDuplicates(candidates, issues)) {
@@ -316,7 +317,7 @@ export async function checkHost(root: string, options: CheckOptions, report: 'ch
   }
   links.sort((a, b) => _compare(a.documentation, b.documentation) || a.line - b.line);
   await _checkVirtualFiles(root, virtualFiles, issues);
-  trusted = await _checkShowcases(root, configuration, showcases, virtualFiles, issues, options.trust ?? false, report);
+  trusted = await _checkShowcases(root, configuration, stack.name, showcases, virtualFiles, issues, options.trust ?? false, report);
   const included = await _checkIncludes(root, documentation, showcases, virtualFiles, outputFolder.relativePath, issues);
   await _checkLinks(root, links, issues);
   const linkedFiles = await _collectLinkedFiles(root, documentation, links, showcases, included, outputFolder.relativePath, issues);
@@ -404,6 +405,7 @@ async function _checkVirtualFiles(root: string, virtualFiles: VirtualFile[], iss
  * its showcase adapter's own.
  * @param root Path of the host repository's root
  * @param configuration Configuration of the host repository
+ * @param stack Name of the host repository's stack, which host checks are given
  * @param showcases Showcases, sorted by documentation file and line
  * @param virtualFiles Virtual files
  * @param issues Issues to add the errors to
@@ -414,6 +416,7 @@ async function _checkVirtualFiles(root: string, virtualFiles: VirtualFile[], iss
 async function _checkShowcases(
   root: string,
   configuration: Configuration,
+  stack: string,
   showcases: ScannedShowcase[],
   virtualFiles: VirtualFile[],
   issues: CheckIssue[],
@@ -516,7 +519,7 @@ async function _checkShowcases(
             await adapter.check(
               resolve(root),
               used.get(name)!.map((showcase) => ({ ...showcase })),
-              { ...(configuration.project === undefined ? {} : { project: configuration.project }), stack: configuration.stack },
+              { ...(configuration.project === undefined ? {} : { project: getShowcaseProject(configuration)! }), stack },
             ),
           );
           if ('problem' in result) {

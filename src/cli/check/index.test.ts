@@ -181,6 +181,62 @@ describe('cli/check', () => {
     });
   });
 
+  describe('Without a stack adapter', () => {
+    // The stackless and stackless-unnamed fixtures: a mock Java host repository, its project information given as an object `project`, so no
+    // stack adapter is used (D865); its `reporter` custom showcase adapter's host check reports the stack and project it is given as a warning.
+
+    const project = {
+      name: 'library',
+      version: '1.2.3',
+      description: 'A Java library with no stack adapter',
+      license: 'MIT',
+      author: 'Example Author',
+      homepage: 'https://example.com/library',
+      repository: 'https://example.com/library.git',
+    };
+
+    it('Takes the project information from the object', async () => {
+      const result = await check(_fixture('stackless'));
+      expect(result.passed).toBe(true);
+      expect(result.host?.project).toEqual(project);
+    });
+
+    it('Indexes the configured code files under the root, ignoring only what the configuration ignores', async () => {
+      // The source root is the root, and only `code` counts as code: never the adapter's .js or package.json; target/ is the configuration's
+      const { host } = await check(_fixture('stackless'));
+      expect(host?.code).toEqual(['src/main/java/com/example/library/Greeter.java']);
+      expect(host?.documentation.map(({ path }) => path)).toEqual(['README.md']);
+    });
+
+    it('Ignores nothing by default', async () => {
+      // Without a stack adapter, nothing is ignored unless the configuration says so (D866, D875)
+      const scratch = await copyFixture('stackless');
+      try {
+        await writeFile(
+          join(scratch.path, 'showroom.json'),
+          JSON.stringify({ stack: 'java', project: { name: 'library' }, customShowcaseAdapters: { reporter: './adapters/reporter.js' } }),
+        );
+        const { host } = await check(scratch.path);
+        expect(host?.code).toEqual([]);
+        expect(host?.documentation.map(({ path }) => path)).toEqual(['README.md', 'target/README.md']);
+      } finally {
+        await scratch.remove();
+      }
+    });
+
+    it('Gives showcase adapters the stack the configuration names, and the object project', async () => {
+      const result = await check(_fixture('stackless'), { trust: true });
+      expect(result.issues).toEqual([{ severity: 'warning', message: `Showcase adapter "reporter": stack "java", project ${JSON.stringify(project)}` }]);
+    });
+
+    it('Names the stack custom when the configuration names none', async () => {
+      const result = await check(_fixture('stackless-unnamed'), { trust: true });
+      expect(result.passed).toBe(true);
+      expect(result.host?.project).toEqual({ name: 'library' });
+      expect(result.issues).toEqual([{ severity: 'warning', message: 'Showcase adapter "reporter": stack "custom", project {"name":"library"}' }]);
+    });
+  });
+
   describe('Errors', () => {
     // A fixture per error: each fails the check, reports the error, and gives no host information.
 
@@ -188,7 +244,11 @@ describe('cli/check', () => {
       ['no-configuration', /^showroom\.json not found in /, 'showroom.json'],
       ['invalid-configuration', /^showroom\.json is not valid JSON: /, 'showroom.json'],
       ['wrong-configuration', /^showroom\.json: /, 'showroom.json'],
-      ['unknown-stack', /^Unknown stack "cobol"; the stack adapters are: dotnet, typescript$/, 'showroom.json'],
+      [
+        'unknown-stack',
+        /^Unknown stack "cobol"; the stack adapters are: dotnet, typescript\. A host repository whose stack has none gives "project" as an object holding its project information$/,
+        'showroom.json',
+      ],
       ['no-project', /^package\.json not found in /, undefined],
       ['no-source-root', /^Source root "lib" is not a directory$/, undefined],
       ['outside-source-root', /^Source root "\.\.\/minimal" is outside the host repository$/, 'showroom.json'],
@@ -205,7 +265,7 @@ describe('cli/check', () => {
         'showroom.json: "sourceRoot" must be a non-empty string',
         'showroom.json: "ignore" must be an array of strings',
         'showroom.json: unknown key "extra"',
-        'showroom.json: "stack" is required',
+        'showroom.json: "stack" is required, unless "project" is an object holding the project information',
       ]);
     });
   });

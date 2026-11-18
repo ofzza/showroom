@@ -19,6 +19,7 @@ import {
 } from '../adapters/showcase/registry/index.js';
 import type { ShownIssue } from '../app/host/index.js';
 import type { CheckIssue } from '../cli/check/index.js';
+import { CUSTOM_STACK_NAME, getShowcaseProject, resolveStack } from '../adapters/stack/resolve/index.js';
 import { resolveOutputFolder } from '../cli/check/internal/index.js';
 import { CONFIGURATION_FILE_NAME, type Configuration } from '../configuration/index.js';
 import { getFrameScript } from '../frame/index.js';
@@ -632,6 +633,8 @@ export async function buildShowcases({
   const absoluteRoot = resolve(root);
   const script = getFrameScript();
   const listed = configuration.customShowcaseAdapters ?? {};
+  // The configuration was checked already, so its stack resolves; the name is what showcase adapters are given
+  const stackName = resolveStack(configuration).stack?.name ?? CUSTOM_STACK_NAME;
   const watched = new Set(Object.values(listed).flatMap((path) => _getModulePath(absoluteRoot, path) ?? []));
   let mermaidHash: Promise<string | undefined> | undefined;
   const done = (): BuildShowcasesResult => ({ frames, recordings, errors, warnings, shownIssues, checks, issues, watched: [...watched].sort() });
@@ -716,8 +719,8 @@ export async function buildShowcases({
           hostVirtualFiles: [...host.virtualFiles],
           mode,
           scratchFolder,
-          ...(configuration.project === undefined ? {} : { project: configuration.project }),
-          stack: configuration.stack,
+          ...(configuration.project === undefined ? {} : { project: getShowcaseProject(configuration)! }),
+          stack: stackName,
           ...(adapter.hostCopy && hostCopy
             ? {
                 hostCopy: runSession.createShowcaseHostCopy(hostCopy, {
