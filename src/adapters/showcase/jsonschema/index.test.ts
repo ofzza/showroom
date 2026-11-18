@@ -21,6 +21,7 @@ import {
   listReferences,
   mapJsonSchema,
   MAX_DISPLAY_TEXT_LENGTH,
+  MIN_DIAGRAM_SCALE,
   MERMAID_MAX_EDGES,
   MERMAID_MAX_TEXT_SIZE,
   parseJsonSchema,
@@ -480,6 +481,8 @@ describe('adapters/showcase/jsonschema', () => {
       expect(page).toContain('\\u003c/script>');
       expect(_getSource(page)).toBe('classDiagram\nclass n0["#60;/script#62;"] </script>');
       expect(page).toContain(`import mermaid from "${MERMAID_SPECIFIER}";`);
+      // A diagram narrower than the frame is centred; a wider one starts at its left edge, and scrolls (PLAN-P21 D862)
+      expect(page).toContain('#showroom-diagram{width:100%;overflow-x:auto}#showroom-diagram svg{display:block;margin:0 auto}');
     });
 
     /**
@@ -488,11 +491,23 @@ describe('adapters/showcase/jsonschema', () => {
      * @param render What the fake Mermaid's render() does
      * @returns The fake objects, and a way to change the theme
      */
-    function _run(source: string, render: (id: string) => Promise<{ svg: string }> = async (id) => ({ svg: `<svg id="${id}"></svg>` })) {
+    function _run(
+      source: string,
+      render: (id: string) => Promise<{ svg: string }> = async (id) => ({ svg: `<svg id="${id}"></svg>` }),
+      { viewBox = '0 0 800 600', frameWidth = 1000 }: { viewBox?: string | null; frameWidth?: number } = {},
+    ) {
       const attributes = new Map<string, string>([[JSONSCHEMA_PAGE_CONSTANTS.themeAttribute, 'light']]);
       let observer: (() => void) | undefined;
-      const svg = { setAttribute: vi.fn(), style: {} as Record<string, string> };
-      const box = { innerHTML: '', querySelector: () => svg };
+      let resized: (() => void) | undefined;
+      const svgAttributes = new Map<string, string>([['height', '600'], ...(viewBox === null ? [] : [['viewBox', viewBox] as [string, string]])]);
+      const svg = {
+        attributes: svgAttributes,
+        getAttribute: (name: string) => svgAttributes.get(name) ?? null,
+        setAttribute: (name: string, value: string) => void svgAttributes.set(name, value),
+        removeAttribute: (name: string) => void svgAttributes.delete(name),
+        style: {} as Record<string, string>,
+      };
+      const box = { innerHTML: '', clientWidth: frameWidth, querySelector: () => svg };
       const body = { style: {} as Record<string, string> };
       const document = {
         documentElement: { getAttribute: (name: string) => attributes.get(name) ?? null },
@@ -506,17 +521,24 @@ describe('adapters/showcase/jsonschema', () => {
         }
         observe() {}
       }
-      vi.stubGlobal('window', { document, console, MutationObserver: FakeObserver });
+      const addEventListener = (type: string, listener: () => void) => {
+        if (type === 'resize') resized = listener;
+      };
+      vi.stubGlobal('window', { document, console, MutationObserver: FakeObserver, addEventListener });
       const mermaid = { initialize: vi.fn(), render: vi.fn((id: string) => render(id)) };
       const done = jsonSchemaPageScript(mermaid, JSONSCHEMA_PAGE_CONSTANTS);
       const setTheme = (theme: string) => {
         attributes.set(JSONSCHEMA_PAGE_CONSTANTS.themeAttribute, theme);
         observer!();
       };
-      return { done, mermaid, box, body, console, setTheme };
+      const resize = (width: number) => {
+        box.clientWidth = width;
+        resized!();
+      };
+      return { done, mermaid, box, body, console, svg, setTheme, resize };
     }
 
-    it("Draws in the theme's colours, with dagre and Mermaid's limits, fitted to the width", async () => {
+    it("Draws in the theme's colours, with dagre and Mermaid's limits", async () => {
       const { done, mermaid, box, body } = _run('classDiagram');
       await done;
       expect(mermaid.initialize).toHaveBeenCalledWith(
@@ -525,6 +547,25 @@ describe('adapters/showcase/jsonschema', () => {
       expect(mermaid.render).toHaveBeenCalledWith('showroom-diagram-0', 'classDiagram');
       expect(box.innerHTML).toBe('<svg id="showroom-diagram-0"></svg>');
       expect(body.style.background).toBe('#ffffff');
+    });
+
+    it('Draws a diagram at its natural size, never larger, shrunk to fit down to half its size, fitted again on resizes', async () => {
+      // A small schema in a wide frame stays small; a wide one shrinks to the frame, but never below MIN_DIAGRAM_SCALE, scrolling beyond
+      expect(MIN_DIAGRAM_SCALE).toBe(0.5);
+      const { done, svg, resize } = _run('classDiagram');
+      await done;
+      expect([svg.attributes.get('width'), svg.attributes.has('height'), svg.style.height, svg.style.maxWidth]).toEqual(['800', false, 'auto', 'none']);
+      resize(600);
+      expect(svg.attributes.get('width')).toBe('600');
+      resize(300);
+      expect(svg.attributes.get('width')).toBe('400');
+      // A viewBox written with commas, and none at all
+      const commas = _run('classDiagram', undefined, { viewBox: '0,0,500.4,10', frameWidth: 2000 });
+      await commas.done;
+      expect(commas.svg.attributes.get('width')).toBe('500');
+      const none = _run('classDiagram', undefined, { viewBox: null });
+      await none.done;
+      expect(none.svg.attributes.get('width')).toBe('100%');
     });
 
     it('Draws again once per theme change, with a fresh id each time', async () => {

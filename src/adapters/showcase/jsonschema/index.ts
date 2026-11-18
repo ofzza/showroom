@@ -66,6 +66,12 @@ export const LIGHT_BACKGROUND = '#ffffff';
 export const DARK_BACKGROUND = '#1b1b1b';
 
 /**
+ * Smallest factor a diagram wider than its showcase frame is shrunk by to fit its width; a wider one stays at this factor, and the frame scrolls
+ * sideways. A diagram is never drawn larger than its natural size.
+ */
+export const MIN_DIAGRAM_SCALE = 0.5;
+
+/**
  * Mermaid's special characters in a display text, each written as its character code (`#<code>;`), so that names and texts show as written: the
  * underscore too, as Mermaid reads a label's `__x__` as bold
  */
@@ -525,6 +531,10 @@ export interface JsonSchemaPageConstants {
    * See DARK_BACKGROUND
    */
   darkBackground: string;
+  /**
+   * See MIN_DIAGRAM_SCALE
+   */
+  minScale: number;
 }
 
 /**
@@ -539,6 +549,7 @@ export const JSONSCHEMA_PAGE_CONSTANTS: JsonSchemaPageConstants = {
   lightThemeVariables: LIGHT_THEME_VARIABLES,
   lightBackground: LIGHT_BACKGROUND,
   darkBackground: DARK_BACKGROUND,
+  minScale: MIN_DIAGRAM_SCALE,
 };
 
 /**
@@ -562,7 +573,8 @@ export interface JsonSchemaPageMermaid {
 /**
  * The page's script, run in the showcase frame as a module: it draws the diagram's source with Mermaid, in the theme the frame script sets on
  * `<html>` (Mermaid's `base` theme with LIGHT_THEME_VARIABLES, or its `dark` theme), with `layout: 'dagre'` (so elkjs is never asked for) and
- * Mermaid's limits, scaled to the frame's width; and draws it again, with a fresh id, whenever the theme changes, swapping the new drawing in at
+ * Mermaid's limits, at its natural size, shrunk to the frame's width down to MIN_DIAGRAM_SCALE (the frame scrolling sideways beyond), and fitted
+ * again when the frame is resized; and draws it again, with a fresh id, whenever the theme changes, swapping the new drawing in at
  * once. Draws run one after another. Mermaid's failures are reported with `console.error`, never drawn. It is inlined into the page as its source
  * text, so it references no outer names: everything it uses comes from `window`, Mermaid and its constants come from its arguments.
  * @param mermaid Mermaid
@@ -581,6 +593,23 @@ export function jsonSchemaPageScript(mermaid: JsonSchemaPageMermaid, constants: 
   }
   let count = 0;
   let drawn: string | undefined;
+
+  // Sizes the drawing: at its natural width (its viewBox's), never larger, shrunk to the frame's width down to the smallest factor, its height
+  // following its width
+  const fit = (): void => {
+    const element = box?.querySelector('svg');
+    if (!box || !element) return;
+    const natural = Number((element.getAttribute('viewBox') ?? '').trim().split(/[\s,]+/)[2]);
+    element.removeAttribute('height');
+    element.style.height = 'auto';
+    element.style.maxWidth = 'none';
+    if (!(natural > 0)) {
+      element.setAttribute('width', '100%');
+      return;
+    }
+    const width = Math.max(natural * constants.minScale, Math.min(natural, box.clientWidth || natural));
+    element.setAttribute('width', String(Math.round(width)));
+  };
   let queue: Promise<void> = Promise.resolve();
 
   // Draws the diagram in the current theme, unless it is drawn in it already
@@ -602,18 +631,14 @@ export function jsonSchemaPageScript(mermaid: JsonSchemaPageMermaid, constants: 
     try {
       const { svg } = await mermaid.render(`showroom-diagram-${count++}`, source);
       box.innerHTML = svg;
-      const element = box.querySelector('svg');
-      if (element) {
-        element.setAttribute('width', '100%');
-        element.style.maxWidth = '100%';
-        element.style.height = 'auto';
-      }
+      fit();
     } catch (err) {
       window.console.error(err);
     }
   };
   const schedule = (): Promise<void> => (queue = queue.then(draw));
   new window.MutationObserver(() => void schedule()).observe(root, { attributes: true, attributeFilter: [constants.themeAttribute] });
+  window.addEventListener('resize', fit);
   return schedule();
 }
 
@@ -635,7 +660,7 @@ function _scriptJson(value: unknown): string {
 export function getJsonSchemaPage(source: string): string {
   return (
     '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
-    `<style>html,body{margin:0}body{padding:8px}#${_DIAGRAM_ID}{width:100%}</style></head>` +
+    `<style>html,body{margin:0}body{padding:8px}#${_DIAGRAM_ID}{width:100%;overflow-x:auto}#${_DIAGRAM_ID} svg{display:block;margin:0 auto}</style></head>` +
     `<body><div id="${_DIAGRAM_ID}"></div>` +
     `<script type="application/json" id="${_SOURCE_ID}">${_scriptJson(source)}</script>` +
     `<script type="module">import mermaid from ${_scriptJson(JSONSCHEMA_MERMAID_SPECIFIER)};` +

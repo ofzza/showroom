@@ -2,8 +2,8 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P21`_ the `jsonschema` showcase adapter ([PLAN-P21-jsonschema.md](./PLAN-P21-jsonschema.md)), implemented; _`S17`_ re-approved for _`R60`_.
-- **Next free:** _`D862`_, _`S18`_, _`P22`_, _`O144`_, _`L20`_, _`R61`_, _`H1`_, _`K32`_
+- **Stage:** implementation: _`P21`_ the `jsonschema` showcase adapter ([PLAN-P21-jsonschema.md](./PLAN-P21-jsonschema.md)), implemented; _`S17`_ re-approved for _`R61`_.
+- **Next free:** _`D863`_, _`S18`_, _`P22`_, _`O144`_, _`L20`_, _`R62`_, _`H1`_, _`K32`_
 - **Working on:** _`P21.1`_ (the shared Mermaid bundle) implemented and committed; _`P21.2`_ (the `jsonschema` showcase adapter) implemented and committed; _`P21`_ is done.
 - **Next step:** the user's choice of what comes next (e.g. merging `adapters-extra`, or the next segment).
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/ci-d862.log` and `serve-review-p21.log`; ask before deleting them.
 - `./.workflow/.temp/p21.2-check/` (a fixture copy served, screenshots), `p21.2-format/` (formatting backups), `ci-p21.2.log`, `ci-p21.2-rest.log`, `serve-dogfood-p21.2.log`; ask before deleting them.
 - `./.workflow/.temp/p21.1-format/` (formatting backups) and `ci-p21.1.log`, `serve-dogfood-p21.1.log`; ask before deleting them.
 - `./.workflow/.temp/review-p21/` (the review's record, `REVIEW.md`, and its snapshots); ask before deleting it.
@@ -53,7 +54,7 @@
 
 ## Running
 
-- Nothing.
+- `showroom serve --trust` of this repository, at http://localhost:5390/ (log: `./.workflow/.temp/serve-review-p21.log`), for the user's review.
 
 ## History
 
@@ -470,3 +471,5 @@
 - 2026-11-18: _`P21.2`_'s implementation choices: _`D857`_ (option chosen: "B: in build(), with trust only"), _`D858`_ (option chosen: "A: import map (Rec.)"); _`S17`_ revised (_`R60`_).
 - 2026-11-18: _`P21.2`_ implemented: _`D859`_–_`D861`_ settled while implementing; _`K30`_ resolved; `npm run ci` green (after one test's expected list was updated, the rest of the tiers run again).
 - 2026-11-18: _`P21.2`_'s checkpoint: approved and committed, _`S17`_ re-approved for _`R60`_, _`K31`_ resolved (option chosen: "Approve and commit (Rec.)"); _`P21`_ implemented.
+- 2026-11-18: fast-path change _`D862`_ (a `jsonschema` diagram at its natural size, shrunk to fit down to half, options chosen: "0.5 (Rec.)", "Fast path (Rec.)"); _`S17`_ revised (_`R61`_).
+- 2026-11-18: _`D862`_'s checkpoint (with centring, the user: "Let's also center the diagram in the frame"): approved and committed, _`S17`_ re-approved for _`R61`_ (option chosen: "Approve and commit (Rec.)"); `npm run ci` green.
