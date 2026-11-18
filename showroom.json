@@ -11,7 +11,18 @@
       "items": [
         { "title": "Overview", "path": "/" },
         { "title": "Quick start", "path": "/#quick-start" },
-        { "title": "Showcases", "path": "/#showcases" },
+        {
+          "title": "Showcases",
+          "items": [
+            { "title": "Overview", "path": "/#showcases" },
+            { "title": "HTML", "path": "/#html-showcases" },
+            { "title": "TS", "path": "/#ts-showcases" },
+            { "title": "React", "path": "/#react-showcases" },
+            { "title": "Angular", "path": "/#angular-showcases" },
+            { "title": "C#", "path": "/#cs-showcases" },
+            { "title": "JSON Schema", "path": "/#jsonschema-showcases" }
+          ]
+        },
         { "title": "Troubleshooting", "path": "/#troubleshooting" }
       ]
     },

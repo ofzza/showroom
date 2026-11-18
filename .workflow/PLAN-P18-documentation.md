@@ -33,6 +33,10 @@ Applies the outcomes of the zero-context documentation review of 2026-11-16 (fou
 
 - _`D676`_ (`live`; changes _`D662`_, _`D671`_; the user's fast-path request after _`P18`_, 2026-11-16: "There is a `npm` link in the main README.md file already, we don't need it in the main menu and it looks out of place there. [...] let's drop it"): **This repository's navigation has no URL item**: the "npm" item is dropped; the anchor items stay.
 
+### After _`P18`_
+
+- _`D864`_ (`live`; a fast-path change, the user: "Under Showcases, each "language"'s showcase should have a sub header to find it more easily", then options chosen: "Group under a heading (Rec.)", "List in Jump to section (Rec.)", "List in the navigation"): **The built-in showcase adapters' sections are grouped and listed**: `README.md`'s Showcases gets a `### Built-in showcase adapters` heading, holding the built-in showcase adapters' table and each showcase adapter's section a level down (their ids unchanged); "Jump to section" lists them under Showcases; this repository's `showroom.json` navigation makes Usage › Showcases a group, its overview then one item per built-in showcase adapter.
+
 ## Open points
 
 - [x] _`O93`_ (resolved by _`D668`_ (SPEC-S13-navigation.md)) (From _`D662`_, found planning) _`D637`_ (SPEC-S13-navigation.md) warns about a documentation file listed twice, anchors or not, and this repository's check must pass without issues; `README.md` is already listed (`/`), and every other documentation file too, so an anchor item would list one twice.

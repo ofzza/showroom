@@ -23,6 +23,7 @@ Jump to section:
   - [Navigation](#navigation)
   - [Stack adapters](#stack-adapters)
   - [Showcases](#showcases)
+    - [Built-in showcase adapters](#built-in-showcase-adapters): [`html`](#html-showcases), [`ts`](#ts-showcases), [`react`](#react-showcases), [`angular`](#angular-showcases), [`cs`](#cs-showcases), [`jsonschema`](#jsonschema-showcases)
   - [Custom showcase adapters (experimental)](#custom-showcase-adapters-experimental)
   - [Linked files](#linked-files)
   - [The showroom](#the-showroom)
@@ -133,49 +134,15 @@ The command line is `showroom <command> [options]`, with three commands, [`check
 
 ## Trust
 
-A host repository's showcases, its custom showcase adapters and the tools its showcases are built with are its code. `showroom` runs that code only when **you trust the host repository**, by passing `--trust` to any command, or by answering yes when it asks. Trusting a host repository means running its code on your machine, with your rights: trust isn't a sandbox, it only decides whether the code runs. Under trust, `showroom`:
+A host repository's showcases, its custom showcase adapters and the tools its showcases are built with are its code: building its showroom runs that code on your machine, with your rights, and its showcases run in your browser. `showroom` runs none of it unless **you trust the repository**: pass `--trust` to any command, or answer yes when it asks (in a terminal, naming what would run; `--no-trust` runs without trust, without asking). Without trust, `showroom` still checks the documentation, and every showcase shows only its source.
 
-- loads the [custom showcase adapters](#custom-showcase-adapters-experimental) `showroom.json` lists, which every command does;
-- runs the showcase adapters' host checks, and loads the host's own tools from the host repository: its TypeScript, to type check `ts` and `react` showcases; Angular's compiler (with its Linker and Babel) and its TypeScript, for `angular` showcases; and a CSS preprocessor (`sass`, `sass-embedded`, `less`, `stylus`), when a showcase imports a stylesheet of its kind;
-- builds every showcase, `html` included, into its showcase frame, whose code runs in the browser, on the showroom's origin;
-- builds and runs [recorded showcases](#recorded-showcases) as programs on your machine, in a copy of the host repository, and publishes what they print.
-
-Without trust (neither flag, or `--no-trust`), none of it runs. `showroom` reads `showroom.json` and the documentation files, checks the links, the linked files, and the showcases' markers and the built-in showcase adapters' options, and builds no showcase:
-
-- Every showcase shows its source: its `source` view, and its `markdown` view where it has one, in place of its other views. Its header bar shows "Source only: not trusted" in place of its [status marks](#status-marks-and-issues), with an (i) icon whose tooltip says why. A `view=none` showcase stays hidden, and a linked showcase shown inline stays a link, its showcase sidebar showing its tabs.
-- `check` warns about each custom showcase adapter it didn't load and each host check it didn't run, naming how many showcases they have; `check --showcases`, `serve` and `build` warn once that the showcases weren't built, and once about the custom showcase adapters not loaded. None of them fails for lack of trust: `build` publishes a showroom of the showcases' sources.
-- `serve` sends the linked files a browser would run (`.html`, `.htm`, `.svg`, `.xml`, `.xhtml`) as plain text, so opening one shows its source.
-
-When the host repository has something to trust (a showcase, or a custom showcase adapter) and neither flag is given, `showroom` asks you, once `showroom.json` is read and the documentation files scanned, and before any of the host repository's code runs. The prompt, on `stderr`, names what would run, and defaults to no:
-
-```text
-showroom would run the host repository's code on this machine, with your rights:
-  custom showcase adapters: number-table (/home/me/host/examples/number-table/number-table.js)
-  tools, including: typescript (/home/me/host/node_modules/typescript)
-  12 showcases, built and run
-Only trust a repository whose code you would run yourself.
-Trust /home/me/host and run its code? [y/N]
-```
-
-Only `y` or `yes` (in any case) trusts it; anything else, or just Enter, doesn't, and Ctrl-C ends the command. The tools are named "including", as the bundler and its plugins may load more. A built-in showcase adapter that starts programs names them too (`programs: …`, by their real paths: the [`cs` showcase adapter](#cs-showcases)'s `dotnet`, and the SDK folders the host's `global.json` names inside the host repository), and the prompt says how many showcases would be [recorded](#recorded-showcases); a custom showcase adapter's programs and recorded showcases can't be named before it is loaded, which trust decides. `showroom` only asks when both its standard input and its standard error are a terminal: the answer is never read from a pipe (`yes | showroom …` answers nothing). With no terminal (e.g. in CI), it runs without trust, and warns so, and how to allow it; `--no-trust` runs without trust, without asking or warning (e.g. in scripts). Trust is decided once per command: `serve` keeps it for its whole session, and one that started with nothing to trust warns to restart it with `--trust` once a showcase appears. Nothing in the host repository can trust itself: no setting in `showroom.json`, and no environment variable. A trusted `serve` writes a notice to `stderr` whenever it loads a custom showcase adapter module that wasn't loaded yet in its session (e.g. one added to `showroom.json` while it runs). Every string from the host repository that `showroom` writes to the terminal (in the prompt, its notices and the issues) has its control characters shown escaped (e.g. `\x1b`), so none can rewrite what you read.
-
-### Reading a repository you don't trust
-
-Trust protects you from a host repository only while `showroom` comes from outside it. A `showroom` the repository installs itself (as a devDependency, or through `npx showroom` run inside it, which prefers the repository's own `node_modules/.bin/showroom`), its `.npmrc` and its npm scripts are the repository's code already. To read a repository you don't trust, don't install its dependencies, and run a `showroom` of your own from outside it, without `--trust`:
+Trust protects you only while `showroom` comes from outside the repository, as one the repository installs is its code already. To read a repository you don't trust, don't install its dependencies, and run `showroom` from elsewhere:
 
 ```sh
 $ cd ~ && npx --yes @ofzza/showroom serve --root ./path/to/their-repository
 ```
 
-### Trust in CI
-
-A trusted `showroom` in CI runs the host repository's code with the job's access:
-
-- keep secrets out of the step's environment, and check out with `actions/checkout`'s `persist-credentials: false`, or the job's token stays readable in `.git/config`;
-- never pass `--trust` in a workflow run by `pull_request_target`, or for pull requests from forks: it would run their code with the repository's access;
-- build in a job of its own that can only read the repository (`contents: read`), and deploy what it built from another job, as in [Publishing to GitHub Pages](#publishing-to-github-pages).
-
-A published showroom is its owner's site, visited as any other: `build` copies the linked files as they are (static hosting sends no headers), so a linked HTML page runs when opened, and a showroom on GitHub Pages (`https://<user>.github.io/<repo>/`) shares its origin with its owner's other project pages.
+In CI, a trusted `showroom` runs the repository's code with the job's access: keep secrets out of its step's environment, check out with `actions/checkout`'s `persist-credentials: false`, and never pass `--trust` in a `pull_request_target` workflow or for pull requests from forks ([Publishing to GitHub Pages](#publishing-to-github-pages) shows a workflow that builds in a job that can only read the repository).
 
 ## Configuration: `showroom.json`
 
@@ -447,17 +414,6 @@ Tabs show only the entry point and the included files, never what a showcase als
 | `[clock.css](./clock.css)`                                                    | A linked file: a link with a "code" icon, opening the showcase sidebar                                            |
 | ` ```ts ` + code (no marker)                                                  | An ordinary code block, highlighted, with line numbers                                                            |
 
-The built-in showcase adapters:
-
-| Showcase adapter | Entry point                                                                                                       | Options                | Needs from the host repository                                                                                                        |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `html`           | an `html` or `htm` code block, or an `.html` or `.htm` file                                                       | none                   | nothing                                                                                                                               |
-| `ts`             | a `ts`, `js`, `mts` or `mjs` code block (or `typescript`, `javascript`), or a `.ts`, `.mts`, `.js` or `.mjs` file | `typeCheck`, `allowJs` | the packages its showcases import, and `typescript` (5.x or 6.x) where they type check                                                |
-| `react`          | a `tsx` or `jsx` code block, or a `.tsx` or `.jsx` file                                                           | `typeCheck`, `allowJs` | `ts`'s, and `react` and `react-dom` 18 or later, with `@types/react` where they type check                                            |
-| `angular`        | a `ts` code block (or `typescript`), or a `.ts` file                                                              | `typeCheck`, `zone`    | the packages its showcases import, Angular 20 or later, its compiler's `typescript` (5.x or 6.x), and `zone.js` where they set `zone` |
-| `cs`             | a `cs` code block (or `csharp`, `c#`), or a `.cs` file                                                            | none                   | the .NET SDK 10 or later on the `PATH`, and the projects and packages its showcases reference                                         |
-| `jsonschema`     | a `json` code block, or a `.json` file                                                                            | none                   | nothing                                                                                                                               |
-
 ### Showcase views
 
 A **showcase block**, what a code block showcase or a linked showcase shown as a block is rendered as, shows its **showcase views**, stacked one below the other under its **header bar** (which holds its [status marks](#status-marks-and-issues) and the [code pane](#the-code-pane)'s button), in the order its marker's `view=` gives:
@@ -496,7 +452,20 @@ A virtual file with no showcase adapter takes `view=` too: `source`, the default
 
 A broken showcase is an error `showroom check` reports, with its documentation file and line: a broken marker, a marker anywhere else than after a code block's language or in an inline link's title, an unknown showcase adapter, options or an entry point the showcase adapter rejects, a virtual file's name that collides, a linked file that doesn't exist, an included file `check` rejects, `include=` with the view `none` on a showcase shown as a block, and a showcase adapter's missing host requirements (reported once per run by its host check, with no documentation file or line; a host check can also warn about the host repository).
 
-### `html` showcases
+### Built-in showcase adapters
+
+`showroom` comes with these showcase adapters; a host repository can add its own ([custom showcase adapters](#custom-showcase-adapters-experimental)):
+
+| Showcase adapter | Entry point                                                                                                       | Options                | Needs from the host repository                                                                                                        |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `html`           | an `html` or `htm` code block, or an `.html` or `.htm` file                                                       | none                   | nothing                                                                                                                               |
+| `ts`             | a `ts`, `js`, `mts` or `mjs` code block (or `typescript`, `javascript`), or a `.ts`, `.mts`, `.js` or `.mjs` file | `typeCheck`, `allowJs` | the packages its showcases import, and `typescript` (5.x or 6.x) where they type check                                                |
+| `react`          | a `tsx` or `jsx` code block, or a `.tsx` or `.jsx` file                                                           | `typeCheck`, `allowJs` | `ts`'s, and `react` and `react-dom` 18 or later, with `@types/react` where they type check                                            |
+| `angular`        | a `ts` code block (or `typescript`), or a `.ts` file                                                              | `typeCheck`, `zone`    | the packages its showcases import, Angular 20 or later, its compiler's `typescript` (5.x or 6.x), and `zone.js` where they set `zone` |
+| `cs`             | a `cs` code block (or `csharp`, `c#`), or a `.cs` file                                                            | none                   | the .NET SDK 10 or later on the `PATH`, and the projects and packages its showcases reference                                         |
+| `jsonschema`     | a `json` code block, or a `.json` file                                                                            | none                   | nothing                                                                                                                               |
+
+#### `html` showcases
 
 An `html` showcase's showcase frame holds:
 
@@ -524,7 +493,7 @@ See the rest in the example, each following the showroom's theme:
 - [comic digits](./examples/html/README.md#comic-digits) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#comic-digits));
 - [large figures](./examples/html/README.md#large-figures-and-displays) ([live](https://ofzza.github.io/showroom/#/examples/html/README.md#large-figures-and-displays)).
 
-### `ts` showcases
+#### `ts` showcases
 
 A `ts` showcase's entry point is a TypeScript or JavaScript module, which `showroom` bundles with its own Vite (no Vite, PostCSS or bundler configuration of the host repository is read) and runs in its showcase frame's page. The page holds an empty `<div id="root">`, the **showcase frame root**, for the showcase to write to, then the showcase's module, and no other content and no styles of its own beyond the browser's. What the showcase writes to the browser's console shows in its [console panel](#the-console-panel). A `ts` showcase is shown by its code and its console by default (its [showcase views](#showcase-views) `source,console`): one that renders into the page asks for a `demo` view.
 
@@ -550,7 +519,7 @@ Not supported for now: tsconfig `paths` aliases, and anything needing the host r
 
 `showroom serve` builds showcases in development mode (unminified, with inline source maps), and `build` and `check --showcases` in production mode (minified); `process.env.NODE_ENV`, `import.meta.env.MODE`, `import.meta.env.DEV` and `import.meta.env.PROD` follow the mode, as do packages' `development` and `production` conditions. Its options are `typeCheck` and `allowJs`, both booleans (see [Type checking](#type-checking)). A `tsx` or `jsx` entry point is the [`react` showcase adapter](#react-showcases)'s.
 
-#### Type checking
+##### Type checking
 
 Unless its `typeCheck` option is `false` (`showcase=ts({ typeCheck: false })`), a `ts` showcase is type checked once it bundles. Its type errors fail `check --showcases` and `build` as build errors do, and in `serve` they show in its status marks and issue list, beside its running showcase frame; each is at its file and line, as `type check: TS<code>: <message>` (in a code block, at its line in the documentation file). Unlike a build error, a type error leaves the built showcase frame usable:
 
@@ -561,7 +530,7 @@ Unless its `typeCheck` option is `false` (`showcase=ts({ typeCheck: false })`), 
 - **Two differences from the bundle**: type checking follows the host's own module resolution (e.g. under `node16` or `nodenext`, an extensionless import, which Vite bundles, is an error, TS2835), and applies the documentation folder's tsconfig to every file, where Vite's transform looks one up per file.
 - **JavaScript**: a `js` or `mjs` entry point is type checked with `allowJs`, so its TypeScript imports are checked (the entry point itself only with the tsconfig's `checkJs`). Importing a `.js` file without declarations is an error under `strict` (TS7016), as it is in the host's own code: the `allowJs` option (`showcase=ts({ allowJs: true })`) type checks that showcase with `allowJs`, leaving the tsconfig as it is.
 
-### `react` showcases
+#### `react` showcases
 
 A `react` showcase's entry point is a TSX or JSX module whose **default export is a component**, which `showroom` renders into the showcase frame root with the host repository's own React (`react-dom/client`'s `createRoot`), without `StrictMode`:
 
@@ -594,7 +563,7 @@ See the rest in the example, each type checked with the example's own `tsconfig.
 - [a memoized component](./examples/react/README.md#memoized-components) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#memoized-components));
 - [a `jsx` showcase](./examples/react/README.md#from-jsx) ([live](https://ofzza.github.io/showroom/#/examples/react/README.md#from-jsx)).
 
-### `angular` showcases
+#### `angular` showcases
 
 An `angular` showcase's entry point is a TypeScript module whose **default export is a standalone component**, which `showroom` compiles ahead of time with the host repository's own Angular compiler, and creates in the showcase frame root:
 
@@ -631,7 +600,7 @@ See the rest in the example, each type checked with the example's own `tsconfig.
 - [a virtual template](./examples/angular/README.md#a-shared-template) ([live](https://ofzza.github.io/showroom/#/examples/angular/README.md#a-shared-template)) the [next showcase](./examples/angular/README.md#composing) ([live](https://ofzza.github.io/showroom/#/examples/angular/README.md#composing)) names as its `templateUrl`;
 - [the `zone` option](./examples/angular/README.md#with-zonejs) ([live](https://ofzza.github.io/showroom/#/examples/angular/README.md#with-zonejs)).
 
-### `cs` showcases
+#### `cs` showcases
 
 A `cs` showcase is one C# file, built and run with the host's .NET SDK (10 or later, from the `PATH`) as a **file-based app**: a `.cs` file with top-level statements and no project of its own, whose references are `#:` directives at its top (`#:project <path>`, `#:package <name>@<version>`, `#:sdk`, `#:property <name>=<value>`). It is a [recorded showcase](#recorded-showcases): built and run in the host copy when the showcase is built, its output recorded, and shown by its code and its recorded output by default (its [showcase views](#showcase-views) `source,console`). A showcase uses the host's own code through a `#:project` directive naming its project file, or the folder holding it, relative to the showcase's file:
 
@@ -658,7 +627,7 @@ See the rest in the example:
 - [durations](./examples/cs/README.md#durations) ([live](https://ofzza.github.io/showroom/#/examples/cs/README.md#durations)), a code block showcase;
 - [rounding](./examples/cs/README.md#rounding) ([live](https://ofzza.github.io/showroom/#/examples/cs/README.md#rounding)), with a record and a `switch` expression.
 
-### `jsonschema` showcases
+#### `jsonschema` showcases
 
 A `jsonschema` showcase is one JSON Schema, drawn as a class diagram of its definitions and how they reference one another. `showroom` reads the schema with [`@ofzza/tsschema`](https://www.npmjs.com/package/@ofzza/tsschema) when the showcase is built, writes the diagram's [Mermaid](https://mermaid.js.org/) source, and its showcase frame only draws it, in the showroom's light or dark theme, at its natural size: never larger, and shrunk to fit the frame's width, down to half its size, beyond which the frame scrolls sideways; a smaller diagram is centred. Both come with `showroom`, so it needs nothing from the host repository, and runs nothing of it (it is still only built with [trust](#trust), as every showcase is). Its showcase frames share one copy of Mermaid, which `build` writes into the output folder's `mermaid/` folder (about 3.85 MB) only when it builds one.
 
@@ -1049,7 +1018,7 @@ The output is an `index.html`, its `assets/`, the showcase frames in `showcases/
 
 ## Publishing to GitHub Pages
 
-`showroom` only builds; publishing is up to the host repository. With `showroom` in its `devDependencies`, a GitHub Actions workflow like this one (e.g. `.github/workflows/showroom.yml`) builds and publishes the showroom on every push to `master`, once the repository's Settings › Pages › Source is set to "GitHub Actions". It builds with `--trust`, in a job that can only read the repository, and deploys from another (see [Trust in CI](#trust-in-ci)):
+`showroom` only builds; publishing is up to the host repository. With `showroom` in its `devDependencies`, a GitHub Actions workflow like this one (e.g. `.github/workflows/showroom.yml`) builds and publishes the showroom on every push to `master`, once the repository's Settings › Pages › Source is set to "GitHub Actions". It builds with `--trust`, in a job that can only read the repository, and deploys from another (see [Trust](#trust)):
 
 ```yaml
 name: Showroom
@@ -1105,7 +1074,7 @@ jobs:
 - `npm run build --if-present` builds the host's own package first, for showcases that import it by its name (through its `package.json`'s `exports`, pointing at its `dist/`); drop it if none does.
 - Without a lockfile (`package-lock.json`), drop `cache: npm`, and run `npm install` instead of `npm ci`.
 - Without `showroom` in `devDependencies`, run `npx --yes @ofzza/showroom build --trust` instead of `npx showroom build --trust`.
-- Run `npx showroom check --showcases --quiet --trust` in your CI workflow too, so a showcase that no longer builds is caught before a push to `master` publishes; check out with `persist-credentials: false` there too, and never with `--trust` for pull requests from forks (see [Trust in CI](#trust-in-ci)).
+- Run `npx showroom check --showcases --quiet --trust` in your CI workflow too, so a showcase that no longer builds is caught before a push to `master` publishes; check out with `persist-credentials: false` there too, and never with `--trust` for pull requests from forks (see [Trust](#trust)).
 
 This repository publishes its own showroom with [`.github/workflows/showroom.yml`](./.github/workflows/showroom.yml), this workflow but for two steps: its `npm ci` builds `showroom` already (its `prepare` script), so it has no build step, and it runs `node dist/cli/bin.js build --trust`, as a package's own `bin` isn't linked into its own `node_modules`.
 
