@@ -54,7 +54,7 @@
 
 ## Running
 
-- `showroom serve --trust` of this repository, at http://localhost:5390/ (log: `./.workflow/.temp/serve-review-p21.log`), for the user's review.
+- Nothing.
 
 ## History
 
