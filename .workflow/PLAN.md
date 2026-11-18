@@ -57,7 +57,7 @@ _`D14`_, _`D15`_ and _`D16`_ of the specification, as far as reading the host re
 #### Decisions
 
 - _`D21`_ (was C1; `live`): Glossary term **Host information** for the collected data, as proposed.
-- _`D22`_ (was C2; `live`): A stack adapter is a class implementing a `StackAdapter` interface (a base class may hold shared defaults). Only built-in stack adapters, selected by name, for now; custom ones loaded by path come later. New capabilities (e.g. showcases, _`K2`_) are added as optional members. Rejected: a plain object.
+- _`D22`_ (was C2; `live`, changed by _`D868`_ (SPEC.md)): A stack adapter is a class implementing a `StackAdapter` interface (a base class may hold shared defaults). Only built-in stack adapters, selected by name, for now; custom ones loaded by path come later. New capabilities (e.g. showcases, _`K2`_) are added as optional members. Rejected: a plain object.
 - _`D23`_ (was C3; `live`): Project information: `name` (required), and the optional `version`, `description`, `license`, `author`, `homepage`, `repository` (URL). More may be added later. Rejected: passing the raw project file along.
 - _`D24`_ (was C4; `live`): Accepted names: `README`, `LICENSE`/`LICENCE`, `CONTRIBUTE`/`CONTRIBUTING`.
 - _`D25`_ (was C5; `live`): Several matches in one folder: one is taken, by priority `.md`, then no extension, then `.txt`, with a warning.

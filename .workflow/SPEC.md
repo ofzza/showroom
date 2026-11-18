@@ -37,7 +37,7 @@ approved 2026-11-09
 
   3.  **An index of the code files** under a specified source root directory: their paths only, not their contents (_`D3`_). Which files count as code is set by patterns (e.g. `*.ts`, `*.cs`), from the selected stack adapter and the configuration (_`D10`_).
 - _`D15`_ (was must-have 3; `live`, refined and changed by _`D96`_ (SPEC-S6-showcases.md)): **Stack adapters.** Where different kinds of host repository (React, Angular, other languages and frameworks) need their own implementation, each one is a separate stack adapter implementing a common interface. The interface must leave room for the others. The first stack adapter is a **TypeScript stack adapter**: it reads `package.json` and treats TypeScript and JavaScript files as code, so it covers plain TypeScript and React libraries alike; a React-specific stack adapter comes with showcases (_`D1`_).
-- _`D16`_ (was must-have 4; `live`): **Configuration:** a mandatory JSON config file at the host repository's root, `showroom.json`, naming the stack adapter, plus a few CLI flags that override it (_`D5`_).
+- _`D16`_ (was must-have 4; `live`, changed by _`D865`_, _`D867`_): **Configuration:** a mandatory JSON config file at the host repository's root, `showroom.json`, naming the stack adapter, plus a few CLI flags that override it (_`D5`_).
 - _`D17`_ (was must-have 5; `live`): **Installation:** `showroom` can be installed with NPM globally, or locally in the host repository and run through `npx` (added by the user after approval, 2026-11-09).
 
 ### Ideas and later
@@ -176,7 +176,7 @@ approved 2026-11-15
 A stack adapter for .NET host repositories (e.g. `../dotnetschema`), which _`K3`_ (SPEC-pitfalls.md) and _`D69`_ (PLAN.md) left for later. Such a host runs `showroom` through `npx --package` (_`D69`_).
 
 - _`D486`_ (`live`; the user: "let plan out .NET/C# stack adapter next"; option chosen: "Accept all (Rec.)"): **A built-in `dotnet` stack adapter** for .NET host repositories, C#, F# and VB alike. Its name matches `../dotnetschema`'s existing configuration. Rejected: `csharp` (leaves F# and VB out).
-- _`D487`_ (`live`; refines _`D14`_; option chosen: "Always require it"): **`showroom.json` gets an optional, stack-neutral `project` key**: the path, relative to the host repository's root and inside it, of the file the stack adapter reads the project information from. The `typescript` stack adapter defaults it to `package.json`. The `dotnet` stack adapter requires it, naming a `.csproj`, `.fsproj` or `.vbproj`, and finds no project by itself: without it, the project information can't be read, with an error naming the key. Rejected: finding the project through the root's solution (`.slnx`/`.sln`) by its name, which guesses; and the solution's name with a root `Directory.Build.props`, which misses metadata kept in a project file (as `../dotnetschema` keeps it).
+- _`D487`_ (`live`, changed by _`D865`_; refines _`D14`_; option chosen: "Always require it"): **`showroom.json` gets an optional, stack-neutral `project` key**: the path, relative to the host repository's root and inside it, of the file the stack adapter reads the project information from. The `typescript` stack adapter defaults it to `package.json`. The `dotnet` stack adapter requires it, naming a `.csproj`, `.fsproj` or `.vbproj`, and finds no project by itself: without it, the project information can't be read, with an error naming the key. Rejected: finding the project through the root's solution (`.slnx`/`.sln`) by its name, which guesses; and the solution's name with a root `Directory.Build.props`, which misses metadata kept in a project file (as `../dotnetschema` keeps it).
 - _`D488`_ (`live`; option chosen: "Static XML (Rec.)"): **The `dotnet` stack adapter reads MSBuild files statically, as XML**, needing only Node, as `showroom` does (no .NET SDK):
   - only properties in `<PropertyGroup>`s, with no `Condition` on either, count;
   - the nearest `Directory.Build.props`, walking up from the project file's folder to the host repository's root (as MSBuild picks it), is read first, and the project file's properties override it;
@@ -227,6 +227,17 @@ approved 2026-11-17 (option chosen: "Approve and commit (Rec.)")
 approved 2026-11-17 (option chosen: "Approve and commit (Rec.)")
 
 [See The JSON Schema showcase adapter](./SPEC-S17-json-schema.md)
+
+## _`S18`_ Host repositories without a stack adapter
+
+approved 2026-11-18 (option chosen: "Approve and commit (Rec.)")
+
+A host repository whose stack has no built-in stack adapter (e.g. Java) can't be checked: `stack` must name one (_`D16`_), so its custom showcase adapters, however capable, never run. `showroom.json` lets such a host give what a stack adapter would supply itself.
+
+- _`D865`_ (`live`; changes _`D16`_, _`D487`_; the user: "an optional namespace in `showroo.json` which, if present: Provides all the information a stack adapter would; Causes the `showroom` to completely skip the StackAdapter step", then "I was thinking separate `project` property"; option chosen: "String or object (Rec.)"): **`showroom.json`'s `project` may be an object: the project information itself.** A string keeps _`D487`_'s meaning (the project file's path). With an object, no stack adapter is used at all: none is looked up, and nothing is read for the project information. Rejected: `stack` taking an object; a new top-level key; renaming the path key (breaks existing configurations).
+- _`D866`_ (`live`; option chosen: "Project info only (Rec.)"): **The object holds the project information only**: `name`, a required non-empty string; `version`, `description`, `license`, `author`, `homepage` and `repository`, optional strings; any other key is an error, as everywhere in `showroom.json`. `sourceRoot`, `ignore`, `code` and `documentation` stay top-level keys; with no stack adapter, the defaults they add to are empty: source root `.`, no ignored or code patterns, and no documentation patterns beyond the built-in ones, so the code file index is empty unless `code` is configured. Rejected: those keys inside the object too (two places for one setting).
+- _`D867`_ (`live`; changes _`D16`_; options chosen: "Optional name, given (Rec.)", "In `stack` (Rec.)"): **With an object `project`, `stack` is optional, and names the stack**: any non-empty name that isn't a built-in stack adapter's (e.g. `java`), which showcase adapters get as their request's and check context's `stack`; `custom` when it's left out. A built-in stack adapter's name together with an object `project` is an error. With a string `project`, or none, `stack` is still required and must name a built-in stack adapter, and the error for an unknown one mentions the object `project`. Rejected: a fixed name; the name inside the object.
+- _`D868`_ (`live`; changes _`D22`_ (PLAN.md); option chosen: "Supersede it"): **Stack adapters stay built-in**: the object `project` replaces _`D22`_'s custom stack adapters loaded by path, which aren't planned. Rejected: keeping them for later.
 
 ## Pitfalls
 

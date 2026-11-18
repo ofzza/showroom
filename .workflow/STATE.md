@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P21`_ the `jsonschema` showcase adapter ([PLAN-P21-jsonschema.md](./PLAN-P21-jsonschema.md)), implemented; _`S17`_ re-approved for _`R61`_.
-- **Next free:** _`D865`_, _`S18`_, _`P22`_, _`O144`_, _`L20`_, _`R63`_, _`H1`_, _`K32`_
-- **Working on:** _`P21.1`_ (the shared Mermaid bundle) implemented and committed; _`P21.2`_ (the `jsonschema` showcase adapter) implemented and committed; _`P21`_ is done.
-- **Next step:** the user's choice of what comes next (e.g. merging `adapters-extra`, or the next segment).
+- **Stage:** specification: _`S18`_ host repositories without a stack adapter (`./.workflow/SPEC.md`), approved as _`D865`_–_`D868`_. _`P21`_ is done.
+- **Next free:** _`D869`_, _`S19`_, _`P22`_, _`O144`_, _`L20`_, _`R63`_, _`H1`_, _`K32`_
+- **Working on:** nothing in progress.
+- **Next step:** _`S18`_'s plan segment, _`P22`_.
 
 ## Open questions
 
@@ -477,3 +477,4 @@
 - 2026-11-18: fast-path change _`D863`_, _`D864`_ (options chosen: "A: short + 2 cautions (Rec.)", "Group under a heading (Rec.)", "List in Jump to section (Rec.)", "List in the navigation"); _`S14`_ revised (_`R62`_).
 - 2026-11-18: _`D863`_, _`D864`_ committed and pushed by the user's `/ig-git commit --auto --push`, _`S14`_ re-approved for _`R62`_ by it; `npm run ci` green.
 - 2026-11-18: `@ofzza/showroom@0.1.0-alpha.3` published (`/ig-repo publish`), from `master`, under the `alpha` and `latest` dist-tags; `npm run ci` and the consumer smoke test passed; committed, tagged `v0.1.0-alpha.3`, pushed and released as a GitHub prerelease, as the user chose; working files in `./.workflow/.temp/publish-smoke/` and `publish-alpha3-*.log`.
+- 2026-11-18: _`S18`_ (host repositories without a stack adapter, _`D865`_–_`D868`_) approved, with its Glossary changes in `CONTRIBUTE.md` (options chosen: "Approve and commit (Rec.)", "Accept (Rec.)"); _`D16`_, _`D487`_ and _`D22`_ (PLAN.md) changed by it.
