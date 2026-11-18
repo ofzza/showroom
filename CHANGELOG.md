@@ -4,6 +4,8 @@ All notable changes to `@ofzza/showroom`, by version as published to npm. This p
 
 ## Unreleased
 
+## 0.1.0-alpha.3 (2026-11-18)
+
 ### Breaking changes
 
 - **`showroom` runs the host repository's code only when you trust it**: pass `--trust` to `check`, `serve` or `build` (or `trust: true` to `check()`). Without it, no custom showcase adapter is loaded, no host check runs, no tool is loaded from the host repository (its TypeScript, Angular's compiler, a CSS preprocessor), and no showcase is built, `html` included: every showcase shows its source, with a notice in place of its status marks, `check`, `serve` and `build` warn, and `build` publishes a showroom of the sources. Add `--trust` where you build or check your own repository, e.g. in CI (see README.md › Trust; its GitHub Pages recipe now builds and deploys in two jobs).
