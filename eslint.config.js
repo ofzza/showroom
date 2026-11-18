@@ -37,8 +37,8 @@ export default ts.config(
     },
   },
   {
-    // Match every file tsconfig.json includes, at any depth (`**/` also matches `src/` itself)
-    files: ['src/**/*.{ts,tsx}'],
+    // Match every file tsconfig.json includes, at any depth (`**/` also matches `src/` itself), and the Mermaid bundle's build
+    files: ['src/**/*.{ts,tsx}', 'build/**/*.ts'],
     languageOptions: {
       parserOptions: {
         project: './tsconfig.json',

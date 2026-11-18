@@ -5,8 +5,9 @@ yarn.lock
 npm-debug.log*
 *.tsbuildinfo
 
-# Build output
-/build/
+# Build output (`build/mermaid/` holds the Mermaid bundle's build, not its output)
+/build/*
+!/build/mermaid/
 /showroom/
 
 # Unit test / coverage reports

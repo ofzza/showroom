@@ -69,8 +69,8 @@ export default defineConfig({
       // The other test tiers, each told apart by its file name suffix: only executed, never type checked by Vitest (the `unit` project's `tsc` run
       // still reports type errors in them, as it checks the whole `tsconfig.json` program). Their OS temp folder is a folder of their own inside this
       // repository, so the temporary folders `showroom` makes stay there, created and removed by a global setup; the `e2e` and `serve` projects
-      // also compile the showroom once per run, for their builds and dev servers, and the `integration` and `e2e` projects install the fixtures that
-      // carry a lockfile, once per lockfile.
+      // also compile the showroom once per run, for their builds and dev servers; every one of them builds the shared Mermaid bundle once per hash of
+      // what builds it, and the `integration` and `e2e` projects install the fixtures that carry a lockfile, once per lockfile.
       ..._TIERS.map((tier) => ({
         test: {
           name: tier,
@@ -78,6 +78,7 @@ export default defineConfig({
           globalSetup: [
             'src/testing/setup/temporary-folder.ts',
             ...(tier === 'e2e' || tier === 'serve' ? ['src/testing/setup/app.ts'] : []),
+            'src/testing/setup/mermaid.ts',
             ...(tier === 'integration' || tier === 'e2e' ? ['src/testing/setup/installs.ts'] : []),
           ],
           env: _getTemporaryFolderEnv(tier),

@@ -1,7 +1,7 @@
 /**
  * Testing helpers, for the tests only (excluded from the build, never re-exported): scratch folders inside this repository's
  * `node_modules/.cache/showroom-tests/`, copies of the fixture host repositories in them, and the work of the test projects' global setups (the
- * temporary folder, the compiled showroom, and the installed fixtures), and the command line's input
+ * temporary folder, the compiled showroom, the shared Mermaid bundle, and the installed fixtures), and the command line's input
  */
 
 import { execFile } from 'node:child_process';
@@ -11,6 +11,7 @@ import { cp, mkdir, mkdtemp, readdir, readFile, rename, rm, stat, writeFile } fr
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { buildMermaid, getMermaidBuildHash, isMermaidBuilt } from '../../build/mermaid/index.js';
 import type { CliInput } from '../cli/index.js';
 
 declare module 'vitest' {
@@ -26,6 +27,10 @@ declare module 'vitest' {
      * Absolute paths of the installed fixtures (see installFixture()), by fixture name, in the `integration` and `e2e` projects
      */
     installedFixtures: Record<string, string>;
+    /**
+     * Absolute path of the shared Mermaid bundle's folder (see buildTestMermaid()), in the `integration`, `e2e` and `serve` projects
+     */
+    mermaidDir: string;
   }
 }
 
@@ -434,6 +439,25 @@ export async function compileApp(folder: string): Promise<string> {
   });
   await cp(join(REPOSITORY_ROOT, 'src', 'app', 'index.html'), join(folder, 'app', 'index.html'));
   return join(folder, 'app');
+}
+
+/**
+ * Builds the shared Mermaid bundle for the tests, once per hash of what builds it (see getMermaidBuildHash()): into
+ * `node_modules/.cache/showroom-tests/mermaid-<hash>/`, kept across runs while the hash is unchanged, so tests never depend on, or write to,
+ * `dist/`; older bundles are removed
+ * @param folder Absolute path of the folder holding the bundles; the tests replace it
+ * @returns Absolute path of the bundle's folder
+ */
+export async function buildTestMermaid(folder = SCRATCH_ROOT): Promise<string> {
+  const hash = await getMermaidBuildHash();
+  const path = join(folder, `mermaid-${hash}`);
+  if (await isMermaidBuilt(path, hash)) return path;
+  await mkdir(folder, { recursive: true });
+  for (const entry of await readdir(folder)) {
+    if (entry.startsWith('mermaid-')) await rm(join(folder, entry), { recursive: true, force: true });
+  }
+  await buildMermaid(path);
+  return path;
 }
 
 // #endregion

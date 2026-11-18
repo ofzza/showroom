@@ -1161,8 +1161,9 @@ console.log(code);
 
 Developing `showroom` needs Node.js 22.13 or later, or 24, and the .NET SDK 10 or later on the `PATH`, for the `cs` showcase adapter's tests and example. Setting up, the test tiers, and trying a change in the showroom are in [CONTRIBUTE.md](./CONTRIBUTE.md).
 
-- `npm run build` - cleans `dist/`, compiles `src/` into it with declarations, and copies the showroom's `index.html`; also run on `prepare`, so a local `npm install` builds too.
-- `npm run dev` - the same, in watch mode (restart it after changing `src/app/index.html`).
+- `npm run build` - cleans `dist/`, compiles `src/` into it with declarations, copies the showroom's `index.html`, and builds the shared Mermaid bundle into `dist/mermaid/`; also run on `prepare`, so a local `npm install` builds too.
+- `npm run dev` - the same, in watch mode (restart it after changing `src/app/index.html`); the Mermaid bundle is only built again when Mermaid's version or its build changed.
+- `npm run build-mermaid` - builds only the shared Mermaid bundle (`build/mermaid/`) into `dist/mermaid/`, which showcase frames drawing diagrams load.
 - `npm start` - runs the built command line; pass it arguments after `--`, e.g. `npm start -- check --root test/fixtures/minimal`.
 - `npm test` - runs every `test:*` script:
   - `npm run test:unit` - the unit tests, executed and type checked.

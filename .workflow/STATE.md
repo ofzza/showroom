@@ -3,9 +3,9 @@
 ## Next session: start here
 
 - **Stage:** planning: _`P21`_ the `jsonschema` showcase adapter ([PLAN-P21-jsonschema.md](./PLAN-P21-jsonschema.md)), approved for its split and _`P21.1`_; _`S17`_ re-approved for _`R59`_.
-- **Next free:** _`D855`_, _`S18`_, _`P22`_, _`O144`_, _`L20`_, _`R60`_, _`H1`_, _`K32`_
-- **Working on:** _`P21`_'s draft, its review applied (_`D847`_–_`D854`_): split into _`P21.1`_ (the shared Mermaid bundle, approved) and _`P21.2`_ (the adapter, draft).
-- **Next step:** implementing _`P21.1`_ (the shared Mermaid bundle); _`P21.2`_ is approved after _`P21.1`_'s checkpoint.
+- **Next free:** _`D857`_, _`S18`_, _`P22`_, _`O144`_, _`L20`_, _`R60`_, _`H1`_, _`K32`_
+- **Working on:** _`P21.1`_ (the shared Mermaid bundle) implemented and committed; _`P21.2`_ (the `jsonschema` showcase adapter) still draft.
+- **Next step:** approving _`P21.2`_, then implementing it.
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/p21.1-format/` (formatting backups) and `ci-p21.1.log`, `serve-dogfood-p21.1.log`; ask before deleting them.
 - `./.workflow/.temp/review-p21/` (the review's record, `REVIEW.md`, and its snapshots); ask before deleting it.
 - `./.workflow/.temp/questions-p21/` (_`P21`_'s choices, recorded as _`D832`_–_`D839`_) and `p21-format/` (formatting backups); ask before deleting them.
 - `./.workflow/.temp/spike-jsonschema/` (_`O130`_'s spike: its install, mapper, pages, bundles and `NOTES.md`; its conclusions are in _`P21`_'s evidence) and `p21-format/` (formatting backups); ask before deleting them.
@@ -462,3 +463,5 @@
 - 2026-11-17: _`P21`_'s zero-context review run: 2 reviewers (consistency; feasibility), 27 findings (1 blocker), no stray writes; triage in `./.workflow/.temp/review-p21/REVIEW.md`.
 - 2026-11-18: _`P21`_'s review triaged and applied: R1 (the user: "Is this something that's should be handled by `tsschema`? An issue or roadmap item?", then option chosen: "Own keywords + tsschema item"), R2, R3 and R4–R23 (options chosen: "build/mermaid/, checked (Rec.)", "Match build (Rec.)", "Apply all (Rec.)"): _`D847`_–_`D854`_; _`L18`_, _`L19`_ narrowed; _`K29`_–_`K31`_ taken by _`P21.1`_, _`P21.2`_.
 - 2026-11-18: _`P21`_'s split and _`P21.1`_ approved, and _`S17`_ re-approved for _`R59`_ (option chosen: "Split + P21.1, S17, commit (Rec.)").
+- 2026-11-18: _`P21.1`_ implemented: the `.gitignore` choice settled as _`D855`_ (option chosen: "Re-include build/mermaid/"), _`D856`_ settled while implementing; _`K29`_ resolved.
+- 2026-11-18: _`P21.1`_'s checkpoint: approved and committed (option chosen: "Approve and commit (Rec.)"); `npm run ci` green.

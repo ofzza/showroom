@@ -35,7 +35,23 @@ const _SHOWCASE_ADAPTERS: Record<string, () => ShowcaseAdapter> = {
 /**
  * Names of the showcase adapters planned as built-in ones, which custom showcase adapters can't take either
  */
-export const PLANNED_SHOWCASE_ADAPTER_NAMES: readonly string[] = [];
+export const PLANNED_SHOWCASE_ADAPTER_NAMES: readonly string[] = ['jsonschema'];
+
+/**
+ * Names of the built-in showcase adapters whose showcase frames load the shared Mermaid bundle; internal, never part of the showcase adapter
+ * interface, so custom showcase adapters can't use it
+ */
+const _MERMAID_SHOWCASE_ADAPTERS: readonly string[] = [];
+
+/**
+ * Checks if a built-in showcase adapter's showcase frames load the shared Mermaid bundle (see MERMAID_FOLDER)
+ * @param name Name of the showcase adapter
+ * @param names Names of the built-in showcase adapters that do; the registry's own if not given
+ * @returns True if it is built in, and its showcase frames load it
+ */
+export function usesMermaidBundle(name: string, names: readonly string[] = _MERMAID_SHOWCASE_ADAPTERS): boolean {
+  return Object.hasOwn(_SHOWCASE_ADAPTERS, name) && names.includes(name);
+}
 
 /**
  * Default showcase views of a showcase adapter that declares none (see ShowcaseAdapter's `defaultViews`)

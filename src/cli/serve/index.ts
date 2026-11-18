@@ -449,6 +449,10 @@ export interface ServeOptions {
    */
   appDir?: string;
   /**
+   * Folder of the shared Mermaid bundle (see getMermaidDir()); the package's if not given
+   */
+  mermaidDir?: string;
+  /**
    * Stops serving once aborted, as `SIGINT` and `SIGTERM` do; internal, for the tests, never set by the command line
    */
   signal?: AbortSignal;
@@ -556,6 +560,7 @@ export async function serve({
   outDir,
   output,
   appDir = getAppDir(),
+  mermaidDir,
   signal,
   onListening,
   trust = false,
@@ -661,6 +666,8 @@ export async function serve({
       getHost: current.getHost,
       getFrames: current.getFrames,
       getIssues: current.getIssues,
+      mermaidDir,
+      onMermaidMissing: (message) => output.stderr(formatIssues([{ severity: 'warning', message }])),
     });
     server = await createServer({
       ...configuration,

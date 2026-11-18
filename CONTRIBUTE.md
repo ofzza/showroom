@@ -84,7 +84,7 @@ src/
       internal/         The output folder, the ignore matcher and issue formatting, shared with serve and build
     serve/              showroom serve: Vite's dev server, building showcases, and updating the page on changes
     build/              showroom build: Vite's build, into the output folder
-  vite/                 The showroom's Vite configuration: the shown host information, the showcase frames and the linked files
+  vite/                 The showroom's Vite configuration: the shown host information, the showcase frames, the shared Mermaid bundle and the linked files
   testing/              Test helpers: scratch folders, fixture copies, and the test projects' global setups (never built)
   app/                  The showroom: React/FluentUI browser code, compiled to dist/app/ and bundled by Vite
     host/               The shown host information, and finding documentation files in it
@@ -101,6 +101,7 @@ src/
     showcases/          Placing showcase blocks and shown virtual files in rendered Markdown, their iframes (shown, or hidden), and the markdown and source views
     pages/              The home, documentation and not-found pages
     layout/             The header and the navigation (inline, or an overlay on narrow viewports), centered at a maximum width
+build/mermaid/          The shared Mermaid bundle's build: Mermaid bundled by Vite into dist/mermaid/, for showcase frames that draw diagrams (never compiled into dist/ itself)
 test/fixtures/          Fixture host repositories the tests run against
 examples/               README.md's own linked showcase's page, and the showcase adapter examples (html/, ts/, react/, angular/, cs/, number-table/)
 ```
@@ -199,7 +200,7 @@ The showroom (`src/app/`):
 - **Starts Vite's dev server** with the configuration in `src/vite/`:
   - Vite's root is the package's `dist/app/`, and its cache a fresh temporary folder; it reads no configuration file, PostCSS configuration, `.env` files or public folder, which it would otherwise look for from its root up, inside the host repository when `showroom` is installed in it;
   - a plugin serves the shown host information and the current issues as the virtual module;
-  - a middleware hands out the showcase frames from memory (ahead of Vite's own, at the paths `build` writes them to), another the linked files from the host repository (at `files/<path>`, and a 404 for anything else there);
+  - a middleware hands out the showcase frames from memory (ahead of Vite's own, at the paths `build` writes them to), another the shared Mermaid bundle from the package (at `mermaid/<path>`, only while a showcase frame uses it, and a 404 otherwise), another the linked files from the host repository (at `files/<path>`, and a 404 for anything else there);
   - React is aliased to `showroom`'s own copy.
 - **Watches the host repository** with the server's watcher, skipping what the `ignore` patterns skip. After a change, the host watcher (debounced) runs the check and, when it passes, builds every showcase again, as one run, then swaps the shown host information, the showcase frames and the issues together:
   - when anything but the showcases' updates (the URLs of the showcase frames and their tabs, the checks, the issues and the `build` status marks) changed, it invalidates the virtual module and fully reloads the page;
@@ -215,6 +216,7 @@ The showroom (`src/app/`):
 - **Builds every showcase** with `src/showcases/`, in production mode. Any error, of a build or of its checks, stops the build before the output folder is touched.
 - **Runs Vite's `build()`** with the same configuration as `serve`, and two plugins:
   - one emitting the showcase frames' files into `showcases/<documentation file's path>/<n>/`, only those a `demo` or `console` view loads (a showcase shown by its `markdown` or `source` view alone is built and checked, and that's all);
+  - another copying the shared Mermaid bundle into `mermaid/`, once, only when an emitted showcase frame uses it;
   - another copying the linked files into `files/<path>`.
 - **Leaves out the bundler's warnings about the showroom's own dependencies** (FluentUI's `'use client'` directives, and its single large chunk), as the host repository can't act on them.
 
@@ -284,6 +286,7 @@ The `cs` showcase adapter (`src/adapters/showcase/cs/`), the first built-in one 
 | The navigation                               | `src/configuration/` (validation), `src/navigation/` (`resolveNavigation()`), `src/app/navigation/`, `src/app/layout/`                                    | the same modules, `src/cli/check/`; `navigation`, `navigation-errors`                           |
 | `serve`'s reloads and events                 | `src/cli/serve/` (`createHostWatcher()`, `getShownChange()`), `src/vite/`, `src/app/main.ts`                                                              | `src/cli/serve/` (unit tests, and `index.serve.test.ts`), `src/vite/`                           |
 | `build`'s output                             | `src/cli/build/` (`getBuildConfiguration()`), `src/vite/`                                                                                                 | `src/cli/build/` (unit tests, and `index.e2e.test.ts`); `output-folder`, `out-dir-root`         |
+| The shared Mermaid bundle                    | `build/mermaid/` (its build), `src/vite/` (serving and copying it), `src/showcases/` (its URL from a page)                                                | `src/vite/` (unit tests, and `index.integration.test.ts`), `src/showcases/`                     |
 
 ### Tests
 
@@ -298,6 +301,7 @@ Where tests write:
 
 - **Fixtures** (`test/fixtures/<name>/`, one per area under test) are never written to. Tests copy fixtures, and create scratch folders, only inside `node_modules/.cache/showroom-tests/`, and remove them afterwards.
 - **Temporary folders**: the `integration`, `e2e` and `serve` tests also see a temporary folder of their own there as the system's temporary folder (`TMPDIR`, `TMP`, `TEMP`).
+- **The shared Mermaid bundle**: the `integration`, `e2e` and `serve` tests build it once into `node_modules/.cache/showroom-tests/mermaid-<hash>/`, kept until Mermaid's version or its build changes, so they never depend on `dist/mermaid/`.
 - **Installed fixtures**: a fixture host repository on an older React or Angular major than `showroom`'s own (`test/fixtures/showcase-react-18/`, `showcase-angular-20/`, `showcase-angular-21/`) carries a lockfile, and is installed with `npm ci` once per lockfile into `node_modules/.cache/showroom-tests/installs/` (by `test:integration` and `test:e2e`), so their first run, and every run after a lockfile changes, needs the npm registry.
 
 `npm run ci` runs the build, `showroom check --showcases --quiet` on this repository itself (with the command line just built), ESLint, Prettier and every test tier. GitHub Actions runs it on every pull request targeting, and every push to, `master` or `develop`, on Node 22 and 24. [AGENTS.md](./AGENTS.md) › Testing details what each module's tests cover.

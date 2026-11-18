@@ -150,6 +150,10 @@ export interface BuildOptions {
    */
   appDir?: string;
   /**
+   * Folder of the shared Mermaid bundle (see getMermaidDir()); the package's if not given
+   */
+  mermaidDir?: string;
+  /**
    * Whether the host repository's code may run, or the function deciding it, called by the check (see CheckOptions' `trust`); not trusted if not
    * given: the showroom is built with every showcase shown as its source
    */
@@ -167,7 +171,7 @@ export interface BuildOptions {
  * @param options Options of the command
  * @returns Exit code: 0 once built, 1 if the check fails, the output folder can't be emptied, a showcase doesn't build, or the build fails
  */
-export async function build({ root, outDir, output, appDir = getAppDir(), trust = false, passEnv = [] }: BuildOptions): Promise<number> {
+export async function build({ root, outDir, output, appDir = getAppDir(), mermaidDir, trust = false, passEnv = [] }: BuildOptions): Promise<number> {
   // Check the host repository first, deciding trust
   const result = await checkHost(root, { outDir, trust }, 'build');
   output.stderr(formatIssues(result.issues));
@@ -219,7 +223,19 @@ export async function build({ root, outDir, output, appDir = getAppDir(), trust 
   // Build, with Vite's cache in a fresh folder of its own, removed afterwards
   const cacheDir = await mkdtemp(join(tmpdir(), 'showroom-'));
   try {
-    await viteBuild(getBuildConfiguration({ appDir, cacheDir, hostRoot: root, getHost: () => host, getFrames: () => frames, outDir: outputFolder.path }));
+    const onMermaidMissing = (message: string) => output.stderr(formatIssues([{ severity: 'warning', message }]));
+    await viteBuild(
+      getBuildConfiguration({
+        appDir,
+        mermaidDir,
+        onMermaidMissing,
+        cacheDir,
+        hostRoot: root,
+        getHost: () => host,
+        getFrames: () => frames,
+        outDir: outputFolder.path,
+      }),
+    );
     await writeFile(join(outputFolder.path, OUTPUT_FOLDER_MARKER), OUTPUT_FOLDER_MARKER_CONTENT);
     output.stdout(`Built the showroom of ${escapeControlCharacters(host.project.name, false)} into ${escapeControlCharacters(outputFolder.path, false)}\n`);
     return 0;

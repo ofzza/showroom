@@ -1,14 +1,14 @@
 /**
  * The Vite configuration of the showroom, shared by `showroom serve` and `showroom build`: Vite's root is the application's folder inside
  * the package (`dist/app/`), the shown host information is served as a virtual module, the showcase frames are served from memory or emitted into
- * the build, the linked files are served from the host repository or copied into the build, and React is always `showroom`'s own copy. Internal: not
- * re-exported.
+ * the build, the shared Mermaid bundle is served from the package or copied into the build while a showcase frame uses it, the linked files are
+ * served from the host repository or copied into the build, and React is always `showroom`'s own copy. Internal: not re-exported.
  */
 
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Alias, InlineConfig, Plugin } from 'vite';
 import type { ShowcaseRecording } from '../adapters/showcase/index.js';
@@ -17,7 +17,15 @@ import type { HostInformation, LinkedFile, Showcase, ShowcaseView } from '../hos
 import { LINKED_FILES_FOLDER, getLanguage, getLinkedFileUrl } from '../linked-files/index.js';
 import { getRelativePath, getShowcaseSources } from '../markdown/index.js';
 import type { ShownHostInformation, ShownIssue, ShownTab, ShownTabSource } from '../app/host/index.js';
-import { HASH_PARAMETER, getShowcaseFrameHash, getShowcaseFrameUrl, type ShowcaseFrame } from '../showcases/index.js';
+import {
+  HASH_PARAMETER,
+  MERMAID_ENTRY_FILE,
+  MERMAID_FOLDER,
+  getMermaidDir,
+  getShowcaseFrameHash,
+  getShowcaseFrameUrl,
+  type ShowcaseFrame,
+} from '../showcases/index.js';
 
 // #region Shown host information
 
@@ -335,15 +343,16 @@ function _notFound(request: IncomingMessage, response: ServerResponse): void {
 }
 
 /**
- * Answers a request with a file's content, with `Cache-Control: no-store`
+ * Answers a request with a file's content, with `Cache-Control: no-store` unless told otherwise
  * @param request The request
  * @param response Its response
  * @param contentType Content type of the file
  * @param content Content of the file
+ * @param cacheControl Its `Cache-Control` header
  */
-function _send(request: IncomingMessage, response: ServerResponse, contentType: string, content: Uint8Array): void {
+function _send(request: IncomingMessage, response: ServerResponse, contentType: string, content: Uint8Array, cacheControl = 'no-store'): void {
   response.statusCode = 200;
-  response.setHeader('Cache-Control', 'no-store');
+  response.setHeader('Cache-Control', cacheControl);
   response.setHeader('X-Content-Type-Options', 'nosniff');
   response.setHeader('Content-Type', contentType);
   response.setHeader('Content-Length', content.byteLength);
@@ -390,6 +399,137 @@ export function createShowcaseFramesPlugin(getFrames: () => ReadonlyMap<string, 
         for (const file of frame.files) {
           this.emitFile({ type: 'asset', fileName: `${frame.folder}/${file.path}`, source: file.content });
         }
+      }
+    },
+  };
+}
+
+// #endregion
+
+// #region The shared Mermaid bundle
+
+/**
+ * `Cache-Control` header of the shared Mermaid bundle's chunks, whose names carry their content's hash
+ */
+export const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+
+/**
+ * Lists the files of the shared Mermaid bundle: every file of its folder, at any depth, but dotfiles (its stamp) and what dot folders hold
+ * @param mermaidDir Folder of the bundle
+ * @returns POSIX-style paths relative to the folder, sorted, or undefined if the bundle is missing (no entry point)
+ */
+export async function listMermaidFiles(mermaidDir: string): Promise<string[] | undefined> {
+  const entries = await readdir(mermaidDir, { recursive: true, withFileTypes: true }).catch(() => undefined);
+  const files = entries
+    ?.filter((entry) => entry.isFile())
+    .map((entry) => _relativePosix(mermaidDir, join(entry.parentPath, entry.name)))
+    .filter((path) => !path.split('/').some((segment) => segment.startsWith('.')))
+    .sort();
+  return files?.includes(MERMAID_ENTRY_FILE) ? files : undefined;
+}
+
+/**
+ * Gets a path relative to a folder, in POSIX style
+ * @param folder The folder
+ * @param path A path inside it
+ * @returns The relative path, with `/` separators
+ */
+function _relativePosix(folder: string, path: string): string {
+  return relative(folder, path).split(sep).join('/');
+}
+
+/**
+ * Checks if any showcase frame loads the shared Mermaid bundle
+ * @param frames The showcase frames
+ * @returns True if one does
+ */
+export function usesMermaid(frames: ReadonlyMap<string, Pick<ShowcaseFrame, 'mermaid'>>): boolean {
+  return [...frames.values()].some((frame) => frame.mermaid === true);
+}
+
+/**
+ * Represents the shared Mermaid bundle as the showroom's Vite configuration hands it out
+ */
+export interface MermaidBundle {
+  /**
+   * Folder of the bundle (see getMermaidDir())
+   */
+  mermaidDir: string;
+  /**
+   * Gets the showcase frames being served or built, by showcase id, to tell if any uses the bundle
+   */
+  getFrames: () => ReadonlyMap<string, ShowcaseFrame>;
+  /**
+   * Called once, the first time a showcase frame uses the bundle while its folder is missing (a compilation alone, without `npm run build`)
+   */
+  onMissing?: (message: string) => void;
+}
+
+/**
+ * Gets the warning of a missing shared Mermaid bundle
+ * @param mermaidDir Folder of the bundle
+ * @returns The warning's message
+ */
+export function getMissingMermaidMessage(mermaidDir: string): string {
+  return `The shared Mermaid bundle is missing from ${mermaidDir}, so showcases drawing diagrams won't draw them; build it with \`npm run build\``;
+}
+
+/**
+ * Creates the dev server's middleware serving the shared Mermaid bundle from its folder, read on every request, at the path `build` copies it to
+ * (`mermaid/<path>`), with `X-Content-Type-Options: nosniff`: its chunks `immutable` (see IMMUTABLE_CACHE_CONTROL), its entry point and its notices
+ * `no-store`. It answers every request in the bundle's folder: one of its files while a current showcase frame uses it, or a 404 (a missing file,
+ * a dotfile, a path leading out of it, or no showcase frame using it), so `serve` hands out nothing `build` doesn't emit; every other request goes on.
+ * @param bundle The bundle, its folder listed once (see listMermaidFiles())
+ * @param warnMissing Warns that the bundle is missing, at most once
+ * @returns The middleware
+ */
+export function createMermaidMiddleware({ mermaidDir, getFrames }: MermaidBundle, warnMissing: () => void = () => {}): Middleware {
+  let listing: Promise<string[] | undefined> | undefined;
+  return (request, response, next) => {
+    if (request.method !== 'GET' && request.method !== 'HEAD') return next();
+    const path = _getRequestPath(request);
+    if (path === undefined || !path.startsWith(`${MERMAID_FOLDER}/`)) return next();
+    if (!usesMermaid(getFrames())) return _notFound(request, response);
+    const file = path.slice(MERMAID_FOLDER.length + 1);
+    listing ??= listMermaidFiles(mermaidDir);
+    listing
+      .then(async (files) => {
+        if (!files) warnMissing();
+        // Only a listed file is read, so no path leads out of the folder
+        if (!files?.includes(file)) return _notFound(request, response);
+        const content = await readFile(join(mermaidDir, ...file.split('/')));
+        const cacheControl = file.includes('/') ? IMMUTABLE_CACHE_CONTROL : 'no-store';
+        _send(request, response, getContentType(file), content, cacheControl);
+      })
+      .catch(() => _notFound(request, response));
+  };
+}
+
+/**
+ * Creates the Vite plugin of the shared Mermaid bundle: in `serve`, its middleware hands it out from its folder, ahead of Vite's own; in `build`, it
+ * copies the folder's files into the build, once, at `mermaid/<path>`, only when a showcase frame emitted uses it, so that the build's
+ * `emptyOutDir` and its marker cover them. Either way, a missing bundle is warned of once (see MermaidBundle's `onMissing`).
+ * @param bundle The bundle
+ * @returns The Vite plugin
+ */
+export function createMermaidPlugin(bundle: MermaidBundle): Plugin {
+  let warned = false;
+  const warnMissing = () => {
+    if (warned) return;
+    warned = true;
+    bundle.onMissing?.(getMissingMermaidMessage(bundle.mermaidDir));
+  };
+  return {
+    name: 'showroom-mermaid',
+    configureServer(server) {
+      server.middlewares.use(createMermaidMiddleware(bundle, warnMissing));
+    },
+    async generateBundle() {
+      if (!usesMermaid(bundle.getFrames())) return;
+      const files = await listMermaidFiles(bundle.mermaidDir);
+      if (!files) return warnMissing();
+      for (const file of files) {
+        this.emitFile({ type: 'asset', fileName: `${MERMAID_FOLDER}/${file}`, source: await readFile(join(bundle.mermaidDir, ...file.split('/'))) });
       }
     },
   };
@@ -524,6 +664,14 @@ export interface ViteConfigurationOptions {
    * Gets the current issues the showroom shows (`serve`'s); none if not given
    */
   getIssues?: () => CheckIssue[];
+  /**
+   * Folder of the shared Mermaid bundle (see getMermaidDir()); the package's if not given
+   */
+  mermaidDir?: string;
+  /**
+   * Called once, with its warning, the first time a showcase frame uses the shared Mermaid bundle while its folder is missing; nothing if not given
+   */
+  onMermaidMissing?: (message: string) => void;
 }
 
 /**
@@ -533,7 +681,16 @@ export interface ViteConfigurationOptions {
  * @param options Options of the configuration
  * @returns Vite's inline configuration; `serve` and `build` add their own `server` and `build` options
  */
-export function getViteConfiguration({ appDir, cacheDir, hostRoot, getHost, getFrames = () => new Map(), getIssues }: ViteConfigurationOptions): InlineConfig {
+export function getViteConfiguration({
+  appDir,
+  cacheDir,
+  hostRoot,
+  getHost,
+  getFrames = () => new Map(),
+  getIssues,
+  mermaidDir = getMermaidDir(),
+  onMermaidMissing,
+}: ViteConfigurationOptions): InlineConfig {
   return {
     configFile: false,
     root: appDir,
@@ -547,6 +704,7 @@ export function getViteConfiguration({ appDir, cacheDir, hostRoot, getHost, getF
     plugins: [
       createHostPlugin(getHost, getIssues),
       createShowcaseFramesPlugin(getFrames),
+      createMermaidPlugin({ mermaidDir, getFrames, onMissing: onMermaidMissing }),
       createLinkedFilesPlugin(
         hostRoot,
         () => getHost().linkedFiles,

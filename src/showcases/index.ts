@@ -6,11 +6,17 @@
  */
 
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { ShowcaseAdapter, ShowcaseBuildFile, ShowcaseBuildIssue, ShowcaseConsoleLine, ShowcaseRecording } from '../adapters/showcase/index.js';
-import { createShowcaseAdapter, getShowcaseAdapterEnvironmentNames, loadCustomShowcaseAdapters } from '../adapters/showcase/registry/index.js';
+import {
+  createShowcaseAdapter,
+  getShowcaseAdapterEnvironmentNames,
+  loadCustomShowcaseAdapters,
+  usesMermaidBundle,
+} from '../adapters/showcase/registry/index.js';
 import type { ShownIssue } from '../app/host/index.js';
 import type { CheckIssue } from '../cli/check/index.js';
 import { resolveOutputFolder } from '../cli/check/internal/index.js';
@@ -42,6 +48,10 @@ export interface ShowcaseFrame {
    * POSIX-style paths, relative to the host repository's root, of the files the build read
    */
   reads: string[];
+  /**
+   * True if its page loads the shared Mermaid bundle (see MERMAID_FOLDER): only a built-in showcase adapter's can (see usesMermaidBundle())
+   */
+  mermaid?: boolean;
 }
 
 /**
@@ -91,6 +101,54 @@ export function getShowcaseFrameHash(files: readonly ShowcaseBuildFile[]): strin
 export function getShowcaseFrameUrl(frame: Pick<ShowcaseFrame, 'folder' | 'page' | 'files'>): string {
   const path = `${frame.folder}/${frame.page}`.split('/').map(encodeURIComponent).join('/');
   return `${path}?${HASH_PARAMETER}=${getShowcaseFrameHash(frame.files)}`;
+}
+
+// #endregion
+
+// #region The shared Mermaid bundle
+
+/**
+ * Name of the output folder's folder holding the shared Mermaid bundle, beside the showcase frames' folder: emitted by `build`, and served by
+ * `serve`, only while a showcase frame uses it
+ */
+export const MERMAID_FOLDER = 'mermaid';
+
+/**
+ * File name of the shared Mermaid bundle's entry point, which a showcase frame's page imports (`npm run build-mermaid` writes it)
+ */
+export const MERMAID_ENTRY_FILE = 'mermaid.js';
+
+/**
+ * Gets the folder of the shared Mermaid bundle inside the package: `dist/mermaid/`, beside the showroom's folder (see getAppDir()), which
+ * `npm run build` fills, but a compilation alone (`tsc`) doesn't
+ * @returns Path of the folder
+ */
+export function getMermaidDir(): string {
+  return fileURLToPath(new URL('../mermaid/', import.meta.url));
+}
+
+/**
+ * Gets the hash of the shared Mermaid bundle's entry point, which a page's URL of it carries, so a cached entry point never asks for chunks an
+ * upgrade removed
+ * @param mermaidDir Folder of the bundle
+ * @returns The hash (as getShowcaseFrameHash() gives it for the file alone), or undefined if the bundle is missing
+ */
+export async function getMermaidHash(mermaidDir: string): Promise<string | undefined> {
+  const content = await readFile(join(mermaidDir, MERMAID_ENTRY_FILE)).catch(() => undefined);
+  return content && getShowcaseFrameHash([{ path: MERMAID_ENTRY_FILE, content }]);
+}
+
+/**
+ * Gets the URL of the shared Mermaid bundle's entry point, relative to a showcase frame's page: up from the page's own folder (its showcase frame's
+ * folder, then the page's folders) to the output folder's root, so it works in `serve`, in `build` and under any base path
+ * @param showcase The showcase
+ * @param page POSIX-style path of its page among its showcase frame's files
+ * @param hash The hash of the bundle's entry point (see getMermaidHash())
+ * @returns The relative URL, with the hash as its query
+ */
+export function getMermaidUrl(showcase: Pick<Showcase, 'id' | 'documentation'>, page: string, hash: string): string {
+  const depth = getShowcaseFrameFolder(showcase).split('/').length + page.split('/').length - 1;
+  return `${'../'.repeat(depth)}${MERMAID_FOLDER}/${MERMAID_ENTRY_FILE}?${HASH_PARAMETER}=${hash}`;
 }
 
 // #endregion
@@ -668,7 +726,9 @@ export async function buildShowcases({
         if (failure) add({ severity: 'error', message: `The recording failed: it ${failure}`, check: RUNTIME_CHECK });
       } else if (page !== undefined && files !== undefined) {
         const scripted = files.map((file) => (file.path === page ? { path: file.path, content: insertFrameScript(file.content as string, script) } : file));
-        frames.set(showcase.id, { folder: getShowcaseFrameFolder(showcase), page, files: scripted, reads: checked.reads });
+        // Only a built-in showcase adapter's showcase frames may use the shared Mermaid bundle
+        const mermaid = !custom.adapters.has(showcase.adapter) && usesMermaidBundle(showcase.adapter);
+        frames.set(showcase.id, { folder: getShowcaseFrameFolder(showcase), page, files: scripted, reads: checked.reads, ...(mermaid ? { mermaid } : {}) });
       }
     }
   } finally {

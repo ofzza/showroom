@@ -2,23 +2,26 @@
  * Tests of the showroom's Vite configuration
  */
 
-import { describe, it, expect } from 'vitest';
+import { afterAll, beforeAll, describe, it, expect } from 'vitest';
 import { existsSync, readdirSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Alias, Plugin } from 'vite';
 import type { HostInformation, LinkedFile, ShowcaseView, VirtualFile } from '../host/index.js';
 import { LINKED_FILES_FOLDER } from '../linked-files/index.js';
-import { getShowcaseFrameHash, type ShowcaseFrame } from '../showcases/index.js';
+import { MERMAID_FOLDER, getMermaidDir, getShowcaseFrameHash, type ShowcaseFrame } from '../showcases/index.js';
+import { createScratchFolder, type ScratchFolder } from '../testing/index.js';
 import {
   HOST_MODULE_ID,
   RESOLVED_HOST_MODULE_ID,
   createHostPlugin,
   createLinkedFilesMiddleware,
   createLinkedFilesPlugin,
+  createMermaidMiddleware,
+  createMermaidPlugin,
   createShowcaseFramesMiddleware,
   createShowcaseFramesPlugin,
   getAppDir,
@@ -33,6 +36,10 @@ import {
   getTabFileHashes,
   getUntrustedViews,
   getViteConfiguration,
+  getMissingMermaidMessage,
+  IMMUTABLE_CACHE_CONTROL,
+  listMermaidFiles,
+  usesMermaid,
 } from './index.js';
 
 /**
@@ -648,6 +655,148 @@ describe('vite', () => {
     });
   });
 
+  describe('The shared Mermaid bundle', () => {
+    // Its plugin and middleware, called with fake requests, responses and plugin contexts, on a fake bundle written into a scratch folder: an entry
+    // point, notices, a chunk, the stamp and a file in a dot folder.
+
+    let scratch: ScratchFolder;
+    let bundle: string;
+    const using = new Map<string, ShowcaseFrame>([
+      ..._FRAMES,
+      ['README.md#3', { ..._FRAMES.get('README.md#1')!, folder: 'showcases/README.md/3', mermaid: true }],
+    ]);
+
+    beforeAll(async () => {
+      scratch = await createScratchFolder('mermaid-');
+      bundle = join(scratch.path, 'bundle');
+      await mkdir(join(bundle, 'chunks'), { recursive: true });
+      await mkdir(join(bundle, '.hidden'), { recursive: true });
+      await writeFile(join(bundle, 'mermaid.js'), 'export default 1;');
+      await writeFile(join(bundle, 'THIRD-PARTY-NOTICES.txt'), '# Licenses');
+      await writeFile(join(bundle, 'chunks', 'class-AB12.js'), 'export const a = 1;');
+      await writeFile(join(bundle, '.stamp'), '0123');
+      await writeFile(join(bundle, '.hidden', 'secret.js'), 'secret');
+      await writeFile(join(scratch.path, 'outside.js'), 'outside');
+    });
+
+    afterAll(async () => {
+      await scratch.remove();
+    });
+
+    /**
+     * Requests a path from the middleware, which answers once it has read the file
+     * @param url URL of the request
+     * @param options The method, the showcase frames, the bundle's folder, and the warning's callback
+     * @returns The response's status, headers and body, or `next` if the request went on
+     */
+    const request = (url: string, { method = 'GET', frames = using, dir = bundle, warn = () => {} } = {}) =>
+      new Promise<'next' | { statusCode: number; headers: Record<string, unknown>; body?: Buffer | string }>((resolve) => {
+        const response = { statusCode: 0, headers: {} as Record<string, unknown>, body: undefined as Buffer | string | undefined };
+        createMermaidMiddleware({ mermaidDir: dir, getFrames: () => frames }, warn)(
+          { url, method } as IncomingMessage,
+          {
+            set statusCode(code: number) {
+              response.statusCode = code;
+            },
+            setHeader: (name: string, value: unknown) => void (response.headers[name] = value),
+            end: (body?: Buffer | string) => resolve({ ...response, body }),
+          } as unknown as ServerResponse,
+          () => resolve('next'),
+        );
+      });
+
+    it('Lists its files, without dotfiles or what dot folders hold, and nothing without an entry point', async () => {
+      expect(await listMermaidFiles(bundle)).toEqual(['THIRD-PARTY-NOTICES.txt', 'chunks/class-AB12.js', 'mermaid.js']);
+      expect(await listMermaidFiles(join(bundle, 'chunks'))).toBeUndefined();
+      expect(await listMermaidFiles(join(scratch.path, 'missing'))).toBeUndefined();
+    });
+
+    it('Tells if a showcase frame uses it', () => {
+      expect(usesMermaid(_FRAMES)).toBe(false);
+      expect(usesMermaid(using)).toBe(true);
+    });
+
+    it('Serves its files while a showcase frame uses it, its chunks immutable, its entry point and notices never cached', async () => {
+      const entry = await request('/mermaid/mermaid.js?hash=0123abcd');
+      expect(entry).toMatchObject({
+        statusCode: 200,
+        headers: { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' },
+      });
+      expect(String((entry as { body: Buffer }).body)).toBe('export default 1;');
+      expect(await request('/mermaid/THIRD-PARTY-NOTICES.txt')).toMatchObject({
+        statusCode: 200,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+      });
+      expect(await request('/mermaid/chunks/class-AB12.js')).toMatchObject({ statusCode: 200, headers: { 'Cache-Control': IMMUTABLE_CACHE_CONTROL } });
+    });
+
+    it('Answers HEAD without a body', async () => {
+      expect(await request('/mermaid/mermaid.js', { method: 'HEAD' })).toMatchObject({ statusCode: 200, body: undefined });
+    });
+
+    it('Answers a missing file, a dotfile and a path leading out of its folder with a 404', async () => {
+      for (const url of ['/mermaid/missing.js', '/mermaid/.stamp', '/mermaid/.hidden/secret.js', '/mermaid/../outside.js', '/mermaid/%2E%2E/outside.js']) {
+        expect(await request(url), url).toMatchObject({ statusCode: 404, headers: { 'Cache-Control': 'no-store' } });
+      }
+    });
+
+    it('Answers every request in its folder with a 404 while no showcase frame uses it', async () => {
+      // serve hands out nothing build doesn't emit (D849 in .workflow/PLAN-P21-jsonschema.md)
+      expect(await request('/mermaid/mermaid.js', { frames: _FRAMES })).toMatchObject({ statusCode: 404 });
+    });
+
+    it('Passes every other request on', async () => {
+      expect(await request('/mermaid.js')).toBe('next');
+      expect(await request('/showcases/README.md/1/index.html')).toBe('next');
+      expect(await request('/mermaid/mermaid.js', { method: 'POST' })).toBe('next');
+    });
+
+    it('Warns once of a missing bundle, the first time a showcase frame uses it', async () => {
+      const warnings: string[] = [];
+      const missing = join(scratch.path, 'missing');
+      const plugin = createMermaidPlugin({ mermaidDir: missing, getFrames: () => using, onMissing: (message) => warnings.push(message) });
+      const used: ((...args: unknown[]) => void)[] = [];
+      (plugin.configureServer as (server: unknown) => void)({ middlewares: { use: (middleware: (...args: unknown[]) => void) => used.push(middleware) } });
+      expect(used).toHaveLength(1);
+      for (let index = 0; index < 2; index++) {
+        await new Promise<void>((resolve) =>
+          used[0]({ url: '/mermaid/mermaid.js', method: 'GET' }, { setHeader: () => {}, end: () => resolve() }, () => resolve()),
+        );
+      }
+      await _callWith({ emitFile: () => {} }, plugin, 'generateBundle');
+      expect(warnings).toEqual([getMissingMermaidMessage(missing)]);
+    });
+
+    it('Is emitted into the build once, only when a showcase frame emitted uses it', async () => {
+      const emitted: { fileName: string; source: Uint8Array }[] = [];
+      const context = { emitFile: (file: { fileName: string; source: Uint8Array }) => emitted.push(file) };
+      await _callWith(context, createMermaidPlugin({ mermaidDir: bundle, getFrames: () => _FRAMES }), 'generateBundle');
+      expect(emitted).toEqual([]);
+      // Two showcase frames use it, and it is emitted once, its notices with it
+      const twice = new Map([...using, ['README.md#4', { ...using.get('README.md#3')!, folder: 'showcases/README.md/4' }]]);
+      await _callWith(context, createMermaidPlugin({ mermaidDir: bundle, getFrames: () => twice }), 'generateBundle');
+      expect(emitted.map((file) => file.fileName)).toEqual([
+        `${MERMAID_FOLDER}/THIRD-PARTY-NOTICES.txt`,
+        `${MERMAID_FOLDER}/chunks/class-AB12.js`,
+        `${MERMAID_FOLDER}/mermaid.js`,
+      ]);
+      expect(String(emitted[2].source)).toBe('export default 1;');
+    });
+
+    it("Never hides one of the showroom's own modules", () => {
+      // In serve, the middleware answers every request in the bundle's folder, as for linked files. See AGENTS.md › The shared Mermaid bundle is
+      // handed out at `mermaid/<path>`
+      const folders = readdirSync(fileURLToPath(new URL('../app/', import.meta.url)), { withFileTypes: true }).filter((entry) => entry.isDirectory());
+      expect(folders.length).toBeGreaterThan(0);
+      expect(folders.map((entry) => entry.name)).not.toContain(MERMAID_FOLDER);
+    });
+
+    it("Finds the package's bundle beside the showroom's folder", () => {
+      // From `src/showcases/` this is `src/mermaid/`, which never exists, and from `dist/showcases/` it is `dist/mermaid/`
+      expect(resolve(getMermaidDir())).toBe(resolve(dirname(getAppDir()), 'mermaid'));
+    });
+  });
+
   describe('createHostPlugin', () => {
     // The plugin's hooks, called as Vite would.
 
@@ -720,7 +869,12 @@ describe('vite', () => {
     // Nothing Vite would otherwise look for from its root up, inside the host repository when showroom is installed in it (D746 in
     // .workflow/PLAN-P19-trust.md): no PostCSS configuration, no .env files, no public folder
     expect(configuration).toMatchObject({ css: { postcss: {} }, envDir: false, publicDir: false });
-    expect((configuration.plugins as Plugin[]).map((plugin) => plugin.name)).toEqual(['showroom-host', 'showroom-showcase-frames', 'showroom-linked-files']);
+    expect((configuration.plugins as Plugin[]).map((plugin) => plugin.name)).toEqual([
+      'showroom-host',
+      'showroom-showcase-frames',
+      'showroom-mermaid',
+      'showroom-linked-files',
+    ]);
     expect(configuration.resolve?.alias).toEqual(getReactAliases());
   });
 });

@@ -26,6 +26,7 @@ import {
   getTrustTools,
   loadCustomShowcaseAdapters,
   PLANNED_SHOWCASE_ADAPTER_NAMES,
+  usesMermaidBundle,
 } from './index.js';
 
 /**
@@ -59,9 +60,22 @@ describe('adapters/showcase/registry', () => {
     expect(getDefaultViews({ validate: () => ({ errors: [] }), build: async () => ({ reads: [] }) })).toEqual(['demo']);
   });
 
-  it('Reserves no planned built-in name once cs is built in', () => {
-    // See PLAN-P20 D781: cs was reserved until P20.2 built it in; a custom showcase adapter named cs is refused as a built-in name
-    expect(PLANNED_SHOWCASE_ADAPTER_NAMES).toEqual([]);
+  it('Reserves jsonschema as a planned built-in name, refused to custom showcase adapters', async () => {
+    // See PLAN-P21 D833: jsonschema is reserved from P21.1 until P21.2 builds it in (as cs was until P20.2, D781)
+    expect(PLANNED_SHOWCASE_ADAPTER_NAMES).toEqual(['jsonschema']);
+    expect(getShowcaseAdapterNames()).not.toContain('jsonschema');
+    const { adapters, errors } = await loadCustomShowcaseAdapters(_ROOT, { jsonschema: './adapters/good.js' });
+    expect(adapters.size).toBe(0);
+    expect(errors).toEqual(['Custom showcase adapter "jsonschema": the name is taken by a built-in showcase adapter']);
+  });
+
+  it('Lets only built-in showcase adapters use the shared Mermaid bundle', () => {
+    // No built-in showcase adapter uses it yet (jsonschema will, PLAN-P21 D832), so the names are given
+    expect(getShowcaseAdapterNames().filter((name) => usesMermaidBundle(name))).toEqual([]);
+    expect(usesMermaidBundle('html', ['html'])).toBe(true);
+    expect(usesMermaidBundle('ts', ['html'])).toBe(false);
+    expect(usesMermaidBundle('good', ['good'])).toBe(false);
+    expect(usesMermaidBundle('toString', ['toString'])).toBe(false);
   });
 
   it("Passes DOTNET_ROOT on to the cs showcase adapter's commands only", () => {

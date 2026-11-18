@@ -3,17 +3,23 @@
  * the shown issues
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { MERMAID_ENTRY_FILE as BUILT_MERMAID_ENTRY_FILE } from '../../build/mermaid/index.js';
 import { check } from '../cli/check/index.js';
 import { readConfiguration } from '../configuration/index.js';
 import type { Showcase, VirtualFile } from '../host/index.js';
-import { createCanaryHost } from '../testing/index.js';
+import { createCanaryHost, createScratchFolder, type ScratchFolder } from '../testing/index.js';
 import {
   buildShowcases,
   checkBuildResult,
   checkRecording,
   getBuildIssue,
   getBuildShowcasesIssues,
+  getMermaidHash,
+  getMermaidUrl,
+  MERMAID_ENTRY_FILE,
   getRecordingFailure,
   getShowcaseFrameFolder,
   getShowcaseFrameHash,
@@ -101,6 +107,36 @@ describe('showcases', () => {
       ).not.toBe(hash);
       // Each length is hashed, so moving text between a path and its content changes the hash
       expect(getShowcaseFrameHash([{ path: 'a', content: 'bc' }])).not.toBe(getShowcaseFrameHash([{ path: 'ab', content: 'c' }]));
+    });
+  });
+
+  describe('The shared Mermaid bundle', () => {
+    // Tests the URL a showcase frame's page loads the bundle's entry point by, on hand-written showcases and pages, and the entry point's hash, on a
+    // fake entry point written into a scratch folder.
+
+    let scratch: ScratchFolder | undefined;
+
+    afterEach(async () => {
+      await scratch?.remove();
+      scratch = undefined;
+    });
+
+    it("Reaches the bundle up from the page's own folder, with its hash", () => {
+      expect(getMermaidUrl({ id: 'README.md#1', documentation: 'README.md' }, 'index.html', '0123abcd')).toBe('../../../mermaid/mermaid.js?hash=0123abcd');
+      // A nested documentation file, and a nested page, each add a level
+      expect(getMermaidUrl({ id: 'docs/a b/c.md#2', documentation: 'docs/a b/c.md' }, 'index.html', 'h')).toBe('../../../../../mermaid/mermaid.js?hash=h');
+      expect(getMermaidUrl({ id: 'README.md#1', documentation: 'README.md' }, 'pages/x/index.html', 'h')).toBe('../../../../../mermaid/mermaid.js?hash=h');
+    });
+
+    it("Hashes the bundle's entry point, and gives none without one", async () => {
+      scratch = await createScratchFolder('mermaid-hash-');
+      expect(await getMermaidHash(scratch.path)).toBeUndefined();
+      await writeFile(join(scratch.path, MERMAID_ENTRY_FILE), 'export default 1;');
+      expect(await getMermaidHash(scratch.path)).toBe(getShowcaseFrameHash([{ path: MERMAID_ENTRY_FILE, content: 'export default 1;' }]));
+    });
+
+    it('Names the entry point as its build writes it', () => {
+      expect(MERMAID_ENTRY_FILE).toBe(BUILT_MERMAID_ENTRY_FILE);
     });
   });
 
