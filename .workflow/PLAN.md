@@ -312,6 +312,10 @@ None (_`D61`_).
 
 - _`P21`_ The `jsonschema` showcase adapter (approved 2026-11-18, for its split and _`P21.1`_): _`S17`_ (SPEC-S17-json-schema.md), in two child segments, _`P21.1`_ the shared Mermaid bundle, and _`P21.2`_ the `jsonschema` showcase adapter. [See The `jsonschema` showcase adapter](./PLAN-P21-jsonschema.md)
 
+## Host repositories without a stack adapter
+
+- _`P22`_ Host repositories without a stack adapter (approved 2026-11-18): _`S18`_ (SPEC.md), one segment. [See Host repositories without a stack adapter](./PLAN-P22-stackless.md)
+
 ## Known open issues
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: _`P9`_. Status: picked up by _`P9`_; resolved by _`D323`_ (SPEC.md), implemented by _`P9`_ 2026-11-13.
