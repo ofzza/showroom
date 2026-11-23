@@ -636,6 +636,19 @@ describe('cli/check', () => {
         'README.md:17: A showcase shown with the view "none" can\'t have "include=", as nothing would show its tabs',
       ]);
     });
+
+    it('Reports the overlays key where no demo view shows the showcase frame', async () => {
+      // The showcase-overlays fixture: overlays on a code block showcase, a linked showcase shown as a block and an inline one with a demo view
+      // pass; an inline one with no views (no defaults), a showcase whose view= has no demo, a ts showcase (whose default views have no demo) and a
+      // virtual file with no showcase adapter fail (D912, D925 in .workflow/SPEC-S19-overlays.md)
+      const result = await check(_fixture('showcase-overlays'), { trust: false });
+      expect(result.issues.filter(({ severity }) => severity === 'error').map(({ path, line, message }) => `${path}:${line}: ${message}`)).toEqual([
+        'README.md:23: A virtual file with no showcase adapter has no showcase frame, so it can\'t have the key "overlays"',
+        'README.md:13: A showcase without the view "demo" can\'t have "overlays", as nothing shows its showcase frame (its views: none)',
+        'README.md:15: A showcase without the view "demo" can\'t have "overlays", as nothing shows its showcase frame (its views: source, console)',
+        'README.md:19: A showcase without the view "demo" can\'t have "overlays", as nothing shows its showcase frame (its views: source, console)',
+      ]);
+    });
   });
 
   describe('Trust', () => {

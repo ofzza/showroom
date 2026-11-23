@@ -10,7 +10,21 @@ import { getShowcaseSources, scanMarkdown } from '../../markdown/index.js';
 import type { LoadedShowcase, ShownShowcase, ShownVirtualFile } from '../host/index.js';
 import { Markdown } from '../markdown/index.js';
 import { ThemeContext, type ThemeName } from '../theme/index.js';
-import { DEFAULT_FRAME_HEIGHT, ShowcaseFrame, getFenceInside, getShowcaseFrameTitle, remarkShowcaseFrames, splitShowcaseMarkdown } from './index.js';
+import {
+  DEFAULT_FRAME_HEIGHT,
+  OVERHANG_CLIP_WIDTH,
+  ShowcaseFrame,
+  getFenceInside,
+  getOverhangClipPath,
+  getOverhangStyle,
+  getRelayTargets,
+  getShowcaseFrameTitle,
+  getTopOverhang,
+  remarkShowcaseFrames,
+  splitShowcaseMarkdown,
+  type OverhangEntry,
+  type ShownOverhang,
+} from './index.js';
 
 /**
  * Path of the documentation file the tests render
@@ -237,6 +251,107 @@ describe('app/showcases', () => {
 
     it('Titles a showcase frame by its position and documentation file', () => {
       expect(getShowcaseFrameTitle({ ...showcase, id: 'README.md#12', documentation: 'README.md' })).toBe('Showcase 12 of README.md');
+    });
+
+    describe('Overlays over the page', () => {
+      // A showcase opted in (`overlays`) gets `overlays=1` in its URL; with an overhang (given as the starting one, as no message comes in the
+      // server-side rendering), its iframe is as high as its whole page, pulled back by negative margins, clipped, and its box raised (S19 and P25 in
+      // .workflow/). The registry, the relay and the stacking are checked in a browser by the user.
+
+      const box = { left: 0, top: 100, right: 200, bottom: 400 };
+      const below: ShownOverhang = { height: 400, offset: 0, flow: 111, boxes: [box], open: true };
+
+      /**
+       * Renders a showcase frame with an overhang to start with
+       * @param props The showcase's opt-in, and the showcase frame's properties
+       * @returns The rendered HTML
+       */
+      const renderOut = (props: { overlays?: boolean; initialOverhang?: ShownOverhang; overhang?: boolean; hidden?: boolean; minHeight?: number }) =>
+        renderToString(
+          <SSRProvider>
+            <FluentProvider theme={webLightTheme}>
+              <ThemeContext.Provider value="light">
+                <ShowcaseFrame
+                  showcase={props.overlays === false ? showcase : { ...showcase, overlays: true }}
+                  initialOverhang={props.initialOverhang ?? below}
+                  overhang={props.overhang}
+                  hidden={props.hidden}
+                  minHeight={props.minHeight}
+                />
+              </ThemeContext.Provider>
+            </FluentProvider>
+          </SSRProvider>,
+        );
+
+      it('Clips to the content and the overlays, as clockwise rectangles', () => {
+        expect(getOverhangClipPath(0, 111, [box])).toBe(`path('M0 0H${OVERHANG_CLIP_WIDTH}V111H0ZM0 100H200V400H0Z')`);
+        expect(getOverhangClipPath(40, 150, [])).toBe(`path('M0 40H${OVERHANG_CLIP_WIDTH}V150H0Z')`);
+      });
+
+      it('Pulls the iframe back by what reaches below and above its content, or leaves it when nothing does', () => {
+        expect(getOverhangStyle(below)).toEqual({ height: 400, marginTop: -0, marginBottom: -289, clipPath: getOverhangClipPath(0, 111, [box]), content: 111 });
+        const above = { left: 0, top: 0, right: 200, bottom: 100 };
+        expect(getOverhangStyle({ height: 211, offset: 100, flow: 211, boxes: [above], open: true })).toMatchObject({
+          height: 211,
+          marginTop: -100,
+          marginBottom: -0,
+          content: 111,
+        });
+        // A demo view's minimum height counts as content
+        expect(getOverhangStyle({ ...below, height: 60, flow: 20, boxes: [{ ...box, bottom: 60 }] }, 32)).toMatchObject({
+          height: 60,
+          marginBottom: -28,
+          content: 32,
+        });
+        expect(getOverhangStyle({ height: 111, offset: 0, flow: 111, boxes: [], open: true })).toBeUndefined();
+        expect(getOverhangStyle({ height: 30, offset: 0, flow: 20, boxes: [], open: true }, 32)).toBeUndefined();
+      });
+
+      it('Renders an opted-in showcase frame with its overlays out, its box raised', () => {
+        const html = renderOut({});
+        expect(html).toContain('&amp;theme=light&amp;overlays=1');
+        expect(html).toContain('height:400px');
+        expect(html).toContain('margin-bottom:-289px');
+        expect(html).toContain('clip-path:path(');
+        expect(html).toContain('data-overhang="1"');
+        expect(html).toContain('z-index:1');
+      });
+
+      it('Keeps its overlays in when not opted in, hidden, collapsed, or with nothing out', () => {
+        const optedOut = renderOut({ overlays: false });
+        expect(optedOut).not.toContain('overlays=1');
+        const hidden = renderOut({ hidden: true });
+        expect(hidden).not.toContain('overlays=1');
+        // Collapsed in the showcase sidebar: still opted in, its overlays kept in (D924)
+        const collapsed = renderOut({ overhang: false });
+        expect(collapsed).toContain('overlays=1');
+        const inside = renderOut({ initialOverhang: { height: 111, offset: 0, flow: 111, boxes: [], open: true } });
+        for (const html of [optedOut, hidden, collapsed, inside]) {
+          expect(html).not.toContain('margin-bottom');
+          expect(html).not.toContain('clip-path');
+          expect(html).not.toContain('data-overhang');
+          expect(html).not.toContain('z-index');
+        }
+      });
+
+      it('Relays presses to the opted-in showcase frames with an overlay open, other than the one pressed in', () => {
+        const frames = [1, 2, 3, 4].map(() => ({}) as HTMLIFrameElement);
+        const entries: OverhangEntry[] = [
+          { frame: frames[0], relay: true, open: true, raised: true, openedAt: 1 },
+          { frame: frames[1], relay: true, open: false, raised: false, openedAt: 0 },
+          { frame: frames[2], relay: false, open: true, raised: false, openedAt: 0 },
+          { frame: frames[3], relay: true, open: true, raised: false, openedAt: 2 },
+        ];
+        expect(getRelayTargets(entries).map(({ frame }) => frames.indexOf(frame))).toEqual([0, 3]);
+        expect(getRelayTargets(entries, frames[3]).map(({ frame }) => frames.indexOf(frame))).toEqual([0]);
+      });
+
+      it('Raises the showcase frame whose overlay opened last above the other raised ones', () => {
+        const entry = (openedAt: number, raised = true) => ({ frame: {} as HTMLIFrameElement, relay: true, open: true, raised, openedAt });
+        const entries = [entry(1), entry(3), entry(5, false), entry(2)];
+        expect(getTopOverhang(entries)).toBe(entries[1]);
+        expect(getTopOverhang([entry(1, false)])).toBeUndefined();
+      });
     });
   });
 });

@@ -147,6 +147,7 @@ export function getShownHostInformation(
       issues,
       buildMark: trusted && hasBuildMark(showcase, issues),
       ...(recording ? { recording } : {}),
+      ...(showcase.overlays ? { overlays: true as const } : {}),
     };
   });
   const virtualFiles = host.virtualFiles.flatMap(({ path, documentation, offset, views }) =>

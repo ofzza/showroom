@@ -299,6 +299,12 @@ describe('cli/serve', () => {
       expect(getShownChange(shown('a', ['u1']), update({ url: undefined, recording: { lines: [], dropped: 0, exitCode: 0 } }))).toBe('showcases');
     });
 
+    it('Reloads when a showcase opts into overlays or out of them', () => {
+      // The `overlays` key changes its showcase frame's URL (`overlays=1`, D923 in .workflow/PLAN-P25-overlay-overhang.md), so it is loaded again
+      const next = shown('a', ['u1']);
+      expect(getShownChange(next, { ...next, showcases: [{ ...next.showcases[0], overlays: true }] })).toBe('reload');
+    });
+
     it('Needs a full reload when anything else changed', () => {
       expect(getShownChange(shown('a', ['u1']), shown('b', ['u1']))).toBe('reload');
       expect(getShownChange(shown('a', ['u1']), shown('a', ['u1', 'u2']))).toBe('reload');

@@ -1,6 +1,6 @@
 # _`P25`_ Overlays over the page
 
-approved 2026-11-24 (option chosen: "Approve and commit (Rec.)"), after its zero-context review
+approved 2026-11-24 (option chosen: "Approve and commit (Rec.)"), after its zero-context review; implemented 2026-11-24 (option chosen: "Approve and commit")
 
 _`S19`_ (SPEC-S19-overlays.md): a showcase's open overlay is drawn over the page around its showcase frame, below or above it, without moving the page, and a press outside it reaches the showcase. One segment, with no child segments. It builds on _`P24`_'s measuring (PLAN-P24-overlays.md).
 

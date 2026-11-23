@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P25`_ overlays over the page ([PLAN-P25-overlay-overhang.md](./PLAN-P25-overlay-overhang.md)), approved, for _`S19`_ ([SPEC-S19-overlays.md](./SPEC-S19-overlays.md)).
+- **Stage:** implementation: _`P25`_ overlays over the page ([PLAN-P25-overlay-overhang.md](./PLAN-P25-overlay-overhang.md)) is implemented (2026-11-24), for _`S19`_; _`O145`_ (blox's checks) and _`K32`_ (Safari) wait.
 - **Next free:** _`D929`_, _`S20`_, _`P26`_, _`O146`_, _`L22`_, _`R67`_, _`H1`_, _`K33`_
-- **Working on:** _`P25`_, step 1 (the opt-in).
-- **Next step:** implement _`P25`_'s steps, then its checkpoint with the browser check.
+- **Working on:** nothing in progress.
+- **Next step:** the user's choice; blox's _`P4.2`_ waits for a release carrying _`P24`_ and _`P25`_ (`PUBLISH.md`, on the user's word).
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/spike-overlay-overhang/` (the spike, its conclusions in _`P25`_'s evidence), `review-p25/` (the review's record and snapshots), `p25-check/`, `p25-format/` (formatting backups), `ci-p25.log`, `p25-build.log`, `serve-p25-check.log`, `serve-dogfood-p25.log`; ask before deleting them.
 - `./.workflow/.temp/p24-check/` (the browser check's host), `p24-format/` (formatting backups), `ci-p24.log`, `p24-build.log`, `serve-p24-check.log`, `serve-dogfood-p24.log`; ask before deleting them.
 - `./.workflow/.temp/p23-migrate/` (the migration script, its file list and copies), `p23-check/` (the served `project-overrides` copy), `p23-format/` (formatting backups), `p23-readme-ts/` (`README.md`'s samples, type checked), `ci-p23.log`, `ci-o144.log`, `serve-check-p23.log`, `serve-dogfood-p23.log`; ask before deleting them.
 - `./.workflow/.temp/review-p23/` (_`P23`_'s review record, snapshots and formatting backups); ask before deleting it.
@@ -59,8 +60,6 @@
 - `./.workflow/.temp/showcase-views/NOTES.md` holds the settled showcase views discussion, the input for its specification segment; ask before deleting it.
 
 ## Running
-
-- The spike harness served by Python's `http.server` on port 5180 (`./.workflow/.temp/spike-overlay-overhang/`), kept for the user while the drafts are settled.
 
 - Nothing.
 
@@ -502,3 +501,4 @@
 - 2026-11-23: the drafts' choices settled: opt-in per showcase (the user's words, _`D911`_), "overlays (Rec.)", "An error (Rec.)", "Any open overlay (Rec.)", "Every frame reports (Rec.)", "Add both (Rec.)" (_`D911`_–_`D917`_); a zero-context review of _`S19`_ and _`P25`_ (1 reviewer), on the user's go-ahead ("One reviewer (Rec.)").
 - 2026-11-23: _`P25`_'s zero-context review run (1 reviewer; no stray writes; record in `./.workflow/.temp/review-p25/REVIEW.md`): 14 fixes and 2 skips; questions: "Neither (Rec.)" (#9), "An error (Rec.)" (#10), "Split + accept focus (Rec.)" (#12), "When its causes go (Rec.)" (#14a), "Latest opened on top (Rec.)" (#15), and #2 decided after the user's check ("I see no background leak"): the grid opens only while raised; recorded as _`D918`_–_`D928`_.
 - 2026-11-24: _`S19`_ and _`P25`_ approved, and _`P24`_ re-approved for _`R66`_ (option chosen: "Approve and commit (Rec.)").
+- 2026-11-24: _`P25`_ implemented; `npm run ci` green (`./.workflow/.temp/ci-p25.log`); approved after the browser check (option chosen: "Approve and commit").

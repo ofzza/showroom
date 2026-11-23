@@ -491,6 +491,57 @@ describe('app/code-pane', () => {
     });
   });
 
+  describe('Overlays over the page', () => {
+    // A block whose opted-in showcase frame starts with overlays out (its starting overhang, as no message comes in the server-side rendering) is
+    // raised over what follows it, and lets them out of its grid (D920 in .workflow/PLAN-P25-overlay-overhang.md); in the showcase sidebar, the
+    // sticky header bar stays above it, and a block whose views are collapsed keeps them in (D924).
+
+    const overhang = { height: 400, offset: 0, flow: 20, boxes: [{ left: 0, top: 10, right: 200, bottom: 400 }], open: true };
+    const opted: ShownShowcase = { ..._SHOWCASE, views: ['demo'], overlays: true };
+
+    /**
+     * Renders a block with its showcase frame's overhang to start with
+     * @param showcase The showcase
+     * @param initialState The code pane's state
+     * @param sidebar True to render it as the showcase sidebar shows it
+     * @returns The rendered HTML
+     */
+    const render = (showcase: ShownShowcase, initialState?: CodePaneState, sidebar = false) =>
+      renderToString(
+        <SSRProvider>
+          <FluentProvider theme={webLightTheme}>
+            <ShowcaseBlock
+              showcase={showcase}
+              documentation={[]}
+              initialState={initialState}
+              initialConsole={_ready()}
+              initialOverhang={overhang}
+              onClose={sidebar ? () => {} : undefined}
+            />
+          </FluentProvider>
+        </SSRProvider>,
+      );
+
+    it('Raises the block while its overlays are out, in every state of its code pane', () => {
+      for (const state of ['hidden', 'half'] as const) {
+        const html = render(opted, state);
+        expect(html).toMatch(/data-code-pane-state="[a-z]+"[^>]*style="[^"]*z-index:1/);
+        expect(html).toContain('data-overhang="1"');
+        expect(html).toContain('overlays=1');
+      }
+      expect(render({ ...opted, display: 'inline' }, 'half', true)).toContain('data-overhang="1"');
+    });
+
+    it('Keeps a block lowered when not opted in, and collapsed in the showcase sidebar', () => {
+      const optedOut = render({ ...opted, overlays: undefined }, 'hidden');
+      const collapsed = render({ ...opted, display: 'inline' }, 'sidebar', true);
+      for (const html of [optedOut, collapsed]) {
+        expect(html).not.toContain('data-overhang');
+        expect(html).not.toMatch(/data-code-pane-state="[a-z]+"[^>]*style="[^"]*z-index/);
+      }
+    });
+  });
+
   describe('Recorded showcases', () => {
     // A recorded showcase's block, rendered on the server with its recording: its console view, its runtime status mark, no showcase frame.
 

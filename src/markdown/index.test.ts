@@ -165,6 +165,35 @@ describe('markdown', () => {
       expect(parseShowcaseMarker('showcase file=a.css view=none').marker?.views).toEqual(['none']);
     });
 
+    it('Parses the overlays key', () => {
+      expect(parseShowcaseMarker('showcase overlays')).toEqual({ marker: { hasOptions: false, overlays: true } });
+      expect(parseShowcaseMarker('showcase=react block view=demo overlays').marker).toEqual({
+        adapter: 'react',
+        hasOptions: false,
+        display: 'block',
+        views: ['demo'],
+        overlays: true,
+      });
+      expect(parseShowcaseMarker('showcase overlays=yes').error).toMatch(/^The key "overlays" takes no value/);
+      expect(parseShowcaseMarker('showcase overlays=').error).toMatch(/^The key "overlays" takes no value/);
+      expect(parseShowcaseMarker('showcase overlays overlays').error).toMatch(/^Repeated key "overlays"/);
+      expect(parseShowcaseMarker('showcase Overlays').error).toMatch(/^Unknown key "Overlays"/);
+    });
+
+    it('Gives a showcase overlays only when its marker has the key', () => {
+      const scan = scanMarkdown(
+        'guide.md',
+        '```html showcase overlays\n<p>a</p>\n```\n\n[b](./b.html "showcase view=demo overlays")\n\n[c](./c.html "showcase block")',
+      );
+      expect(scan.errors).toEqual([]);
+      expect(scan.showcases.map(({ id, overlays }) => [id, overlays])).toEqual([
+        ['guide.md#1', true],
+        ['guide.md#2', true],
+        ['guide.md#3', undefined],
+      ]);
+      expect(scan.showcases[2]).not.toHaveProperty('overlays');
+    });
+
     it('Rejects misused view keys', () => {
       expect(parseShowcaseMarker('showcase view=').error).toMatch(/^The key "view" needs views/);
       expect(parseShowcaseMarker('showcase view').error).toMatch(/^The key "view" needs views/);
@@ -551,6 +580,9 @@ describe('markdown', () => {
       ]);
       expect(errors('```css showcase file=a.css include=markdown\n```')).toEqual([
         expect.stringMatching(/^A virtual file with no showcase adapter can't include files/),
+      ]);
+      expect(errors('```css showcase file=a.css overlays\n```')).toEqual([
+        'A virtual file with no showcase adapter has no showcase frame, so it can\'t have the key "overlays"',
       ]);
       // A block must be a paragraph's only content, apart from whitespace
       expect(errors('See [c](./c.html "showcase block").')).toEqual(['A linked showcase shown as a block must be alone in its paragraph']);

@@ -4,6 +4,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  OVERLAYS_PARAMETER,
+  createOutsidePointerMessage,
   CONSOLE_FLUSH_MS,
   CONSOLE_LEVELS,
   CONSOLE_MAX_LINE_LENGTH,
@@ -45,14 +47,36 @@ interface _FakeElement {
    */
   style: Record<string, string>;
   /**
-   * Its box, in pixels from the viewport's top
+   * Its box, in pixels from the viewport's top left: its top is its bottom less its height, and its left 0, unless given
    */
-  rect: { bottom: number; width: number; height: number };
+  rect: { bottom: number; width: number; height: number; top?: number; left?: number };
   /**
    * Gets its box, as layout would
    * @returns The box
    */
-  getBoundingClientRect: () => { bottom: number; width: number; height: number };
+  getBoundingClientRect: () => { top: number; left: number; right: number; bottom: number; width: number; height: number };
+  /**
+   * Checks if it holds an element, or is it
+   * @param other The element
+   * @returns True if it holds it
+   */
+  contains: (other: unknown) => boolean;
+  /**
+   * Records an event dispatched on it
+   * @param event The event
+   * @returns True
+   */
+  dispatchEvent: (event: unknown) => boolean;
+}
+
+/**
+ * Represents an event the stubbed `PointerEvent` and `MouseEvent` construct: its type and options
+ */
+class _FakeEvent {
+  public constructor(
+    public type: string,
+    public init: Record<string, unknown>,
+  ) {}
 }
 
 /**
@@ -151,8 +175,22 @@ interface _FakeFrame {
   /**
    * Dispatches an event to the document's listeners
    * @param type Type of the event
+   * @param event The event (an empty object by default)
    */
-  dispatchDocument: (type: string) => void;
+  dispatchDocument: (type: string, event?: unknown) => void;
+  /**
+   * `<body>`
+   */
+  body: _FakeElement;
+  /**
+   * Events dispatched on elements (by the frame script's replay), as their targets, types and options, in order
+   */
+  dispatched: { target: unknown; type: string; init: Record<string, unknown> }[];
+  /**
+   * Sets what `document.elementFromPoint()` answers
+   * @param find Gets the element at a point, or null
+   */
+  setElementFromPoint: (find: (x: number, y: number) => unknown) => void;
   /**
    * Types of the document's listeners added in the capture phase
    */
@@ -163,15 +201,17 @@ interface _FakeFrame {
  * Creates a stubbed showcase frame `window`: a `<body>` with one child, margins, elements added by hand, an optional parent, a ResizeObserver and a
  * MutationObserver that run their callbacks only when told to, and animation frames run by hand
  * @param options The URL's query, whether the frame has a parent other than itself, the document's ready state, and whether it has
- * `requestAnimationFrame`
+ * `requestAnimationFrame` and `PointerEvent`
  * @returns The stubbed frame and its handles
  */
-function _createFrame(options: { search?: string; parent?: boolean; readyState?: string; animationFrame?: boolean } = {}): _FakeFrame {
+function _createFrame(options: { search?: string; parent?: boolean; readyState?: string; animationFrame?: boolean; pointerEvent?: boolean } = {}): _FakeFrame {
   const posted: { message: unknown; origin: string }[] = [];
   const attributes = new Map<string, string>();
   const rootStyle: Record<string, string> = {};
   const listeners = new Map<string, ((event?: unknown) => void)[]>();
-  const documentListeners = new Map<string, (() => void)[]>();
+  const documentListeners = new Map<string, ((event?: unknown) => void)[]>();
+  const dispatched: { target: unknown; type: string; init: Record<string, unknown> }[] = [];
+  let elementFromPoint: (x: number, y: number) => unknown = () => null;
   const capturing: string[] = [];
   const observed: unknown[] = [];
   const mutationObserved: { target: unknown; options: unknown }[] = [];
@@ -181,9 +221,26 @@ function _createFrame(options: { search?: string; parent?: boolean; readyState?:
   const frames: (() => void)[] = [];
   const nextFrame = () => frames.splice(0).forEach((run) => run());
   // `<body>` holds its child, plus its own 2 px bottom padding, unless a test moves its bottom (e.g. text directly in it)
-  const body: Record<string, unknown> = {};
+  const body = {} as _FakeElement;
   const createElement = (parent: unknown, style: Record<string, string>, rect: _FakeElement['rect']): _FakeElement => {
-    const element: _FakeElement = { parentElement: parent, style, rect, getBoundingClientRect: () => element.rect };
+    const element: _FakeElement = {
+      parentElement: parent,
+      style,
+      rect,
+      getBoundingClientRect: () => {
+        const { bottom, width, height, top = bottom - height, left = 0 } = element.rect;
+        return { top, left, right: left + width, bottom, width, height };
+      },
+      contains: (other) => {
+        for (let node = other as _FakeElement | undefined; node; node = node.parentElement as _FakeElement | undefined) if (node === element) return true;
+        return false;
+      },
+      dispatchEvent: (event) => {
+        const { type, init } = event as _FakeEvent;
+        dispatched.push({ target: element, type, init });
+        return true;
+      },
+    };
     return element;
   };
   const child = createElement(body, {}, { bottom: 100.2, width: 300, height: 92.2 });
@@ -198,6 +255,15 @@ function _createFrame(options: { search?: string; parent?: boolean; readyState?:
       },
     },
     getBoundingClientRect: { value: () => ({ top: 8, bottom: bodyBottom ?? child.rect.bottom + 2 }) },
+    style: { value: {} },
+    contains: { value: (other: unknown) => other === body || elements.includes(other as _FakeElement) },
+    dispatchEvent: {
+      value: (event: unknown) => {
+        const { type, init } = event as _FakeEvent;
+        dispatched.push({ target: body, type, init });
+        return true;
+      },
+    },
   });
   const defaultStyle = {
     position: 'static',
@@ -218,7 +284,8 @@ function _createFrame(options: { search?: string; parent?: boolean; readyState?:
       documentElement: { setAttribute: (name: string, value: string) => attributes.set(name, value), style: rootStyle },
       body,
       readyState: options.readyState ?? 'interactive',
-      addEventListener: (type: string, listener: () => void, capture?: boolean) => {
+      elementFromPoint: (x: number, y: number) => elementFromPoint(x, y),
+      addEventListener: (type: string, listener: (event?: unknown) => void, capture?: boolean) => {
         documentListeners.set(type, [...(documentListeners.get(type) ?? []), listener]);
         if (capture === true) capturing.push(type);
       },
@@ -233,6 +300,10 @@ function _createFrame(options: { search?: string; parent?: boolean; readyState?:
     setTimeout: (callback: () => void, delay: number) => setTimeout(callback, delay),
     clearTimeout: (timer: ReturnType<typeof setTimeout> | undefined) => clearTimeout(timer),
     scrollY: 0,
+    innerWidth: 300,
+    innerHeight: 400,
+    MouseEvent: _FakeEvent,
+    ...(options.pointerEvent === false ? {} : { PointerEvent: _FakeEvent }),
     getComputedStyle: (element: unknown) =>
       element === body
         ? { ...defaultStyle, paddingBottom: '2px', borderBottomWidth: '0px', marginBottom: '8px' }
@@ -288,7 +359,10 @@ function _createFrame(options: { search?: string; parent?: boolean; readyState?:
     console,
     original,
     dispatch: (type, event) => listeners.get(type)?.forEach((listener) => listener(event)),
-    dispatchDocument: (type) => documentListeners.get(type)?.forEach((listener) => listener()),
+    dispatchDocument: (type, event = {}) => documentListeners.get(type)?.forEach((listener) => listener(event)),
+    body,
+    dispatched,
+    setElementFromPoint: (find) => void (elementFromPoint = find),
   };
 }
 
@@ -397,6 +471,31 @@ describe('frame', () => {
       expect(createThemeMessage('dark')).toEqual({ source: SHOWROOM_MESSAGE_SOURCE, type: 'theme', theme: 'dark' });
       expect(getThemedFrameUrl('showcases/README.md/1/index.html', 'light')).toBe('showcases/README.md/1/index.html?theme=light');
       expect(getThemedFrameUrl('showcases/README.md/1/index.html?hash=0123abcd', 'dark')).toBe('showcases/README.md/1/index.html?hash=0123abcd&theme=dark');
+      expect(getThemedFrameUrl('a/index.html?hash=1', 'dark', true)).toBe(`a/index.html?hash=1&theme=dark&${OVERLAYS_PARAMETER}=1`);
+      expect(getThemedFrameUrl('a/index.html', 'light', false)).toBe('a/index.html?theme=light');
+    });
+
+    it('Recognises an overhang and presses, and creates the message of a press outside', () => {
+      const resize = { source: FRAME_MESSAGE_SOURCE, type: 'resize', height: 400 };
+      const box = { left: 0, top: 100, right: 200, bottom: 400 };
+      expect(isFrameMessage({ ...resize, offset: 0, flow: 111, boxes: [box], open: true })).toBe(true);
+      expect(isFrameMessage({ ...resize, offset: -1 })).toBe(false);
+      expect(isFrameMessage({ ...resize, flow: Infinity })).toBe(false);
+      expect(isFrameMessage({ ...resize, boxes: [{ ...box, top: 'x' }] })).toBe(false);
+      expect(isFrameMessage({ ...resize, boxes: box })).toBe(false);
+      expect(isFrameMessage({ ...resize, open: 'yes' })).toBe(false);
+      const pointer = { source: FRAME_MESSAGE_SOURCE, type: 'pointer', phase: 'down', x: 1, y: 2 };
+      expect(isFrameMessage(pointer)).toBe(true);
+      expect(isFrameMessage({ ...pointer, phase: 'click' })).toBe(true);
+      expect(isFrameMessage({ ...pointer, phase: 'up' })).toBe(false);
+      expect(isFrameMessage({ ...pointer, x: NaN })).toBe(false);
+      expect(createOutsidePointerMessage('click', -5, 600)).toEqual({
+        source: SHOWROOM_MESSAGE_SOURCE,
+        type: 'outside-pointer',
+        phase: 'click',
+        x: -5,
+        y: 600,
+      });
     });
   });
 
@@ -636,7 +735,7 @@ describe('frame', () => {
       frame.dispatchDocument('animationend');
       frame.nextFrame();
       expect(_heights(frame)).toEqual([111, 250, 300, 350]);
-      expect(frame.capturing).toEqual(['transitionend', 'animationend']);
+      expect(frame.capturing).toEqual(['pointerdown', 'click', 'transitionend', 'animationend']);
     });
 
     it('Measures once per animation frame, however often it is asked', () => {
@@ -678,6 +777,242 @@ describe('frame', () => {
         frame.nextFrame();
       }
       expect(_heights(frame)).toEqual([111, 131, 151]);
+    });
+
+    it('Leaves out a backdrop filling the viewport inside a fixed layer, never a box filling it alone', () => {
+      // See PLAN-P25 D918: judged by its size alone, a showcase laid out absolutely, with nothing in flow, would fill the viewport it sizes, and
+      // shrink to its minimum height for good
+      const frame = _createFrame();
+      const layer = frame.addElement({ parent: 'body', style: { position: 'fixed' }, bottom: 400, height: 400, width: 300 });
+      frame.addElement({ parent: layer, style: { position: 'absolute' }, bottom: 400, height: 400, width: 300 });
+      _run(frame);
+      expect(_heights(frame)).toEqual([111]);
+      frame.addElement({ style: { position: 'absolute' }, bottom: 400, height: 400, width: 300 });
+      frame.mutate();
+      frame.nextFrame();
+      expect(_heights(frame)).toEqual([111, 400]);
+    });
+  });
+
+  describe('Overlays over the page', () => {
+    // A showcase frame opted in (`?overlays=1`) reports its overhang with its height, pushes its page down for overlays above its top, and replays
+    // presses outside it; every showcase frame reports its own presses (S19 and P25 in .workflow/). On the stubbed frame, `<body>`'s child ends at
+    // 100.2 px (its content's bottom 111 px), the viewport is 300 × 400 px, and layout after a push is moved by hand.
+
+    const resizes = (frame: _FakeFrame) => _messages(frame).filter((message) => message.type === 'resize');
+    const box = { left: 0, top: 100, right: 200, bottom: 400 };
+
+    it('Reports only its height when not opted in', () => {
+      const frame = _createFrame();
+      frame.child.style.position = 'relative';
+      frame.addElement({ style: { position: 'absolute' }, bottom: 400, height: 300 });
+      _run(frame);
+      expect(resizes(frame)).toEqual([{ source: FRAME_MESSAGE_SOURCE, type: 'resize', height: 400 }]);
+    });
+
+    it("Reports its content's bottom and the boxes of the overlays reaching out of it", () => {
+      const frame = _createFrame({ search: '?theme=dark&overlays=1' });
+      frame.child.style.position = 'relative';
+      _run(frame);
+      const panel = frame.addElement({ style: { position: 'absolute' }, bottom: 400, height: 300 });
+      frame.mutate();
+      frame.nextFrame();
+      frame.removeElement(panel);
+      frame.mutate();
+      frame.nextFrame();
+      const closed = { source: FRAME_MESSAGE_SOURCE, type: 'resize', height: 111, offset: 0, flow: 111, boxes: [], open: false };
+      expect(resizes(frame)).toEqual([closed, { ...closed, height: 400, boxes: [box], open: true }, closed]);
+    });
+
+    it('Posts whenever its overhang changes, the height or not', () => {
+      // See PLAN-P25 D919: an overlay opening inside the content changes only `open`, and one moving sideways only its box
+      const frame = _createFrame({ search: '?overlays=1' });
+      _run(frame);
+      frame.addElement({ style: { position: 'absolute' }, bottom: 100, height: 50 });
+      frame.mutate();
+      frame.nextFrame();
+      const panel = frame.addElement({ style: { position: 'absolute' }, bottom: 400, height: 300 });
+      frame.mutate();
+      frame.nextFrame();
+      panel.rect = { ...panel.rect, left: 50 };
+      frame.mutate();
+      frame.nextFrame();
+      frame.mutate();
+      frame.nextFrame();
+      expect(resizes(frame).map(({ height, open, boxes }) => [height, open, boxes])).toEqual([
+        [111, false, []],
+        [111, true, []],
+        [400, true, [box]],
+        [400, true, [{ ...box, left: 50, right: 250 }]],
+      ]);
+    });
+
+    it('Holds its height once growth stops, still reporting its overhang', () => {
+      // An overlay anchored to the viewport's bottom grows with the iframe: the guard holds the height, and the content's bottom never exceeds it
+      const frame = _createFrame({ search: '?overlays=1' });
+      _run(frame);
+      const layer = frame.addElement({ parent: 'body', style: { position: 'fixed' }, bottom: 111, height: 111 });
+      const panel = frame.addElement({ parent: layer, style: { position: 'absolute' }, bottom: 131, height: 50 });
+      for (let step = 1; step <= MAX_REPEATED_GROWTHS + 1; step++) {
+        panel.rect = { ...panel.rect, bottom: 111 + step * 20 };
+        frame.mutate();
+        frame.nextFrame();
+      }
+      expect(resizes(frame).map(({ height, boxes }) => [height, boxes?.[0]?.bottom])).toEqual([
+        [111, undefined],
+        [131, 131],
+        [151, 151],
+        [151, 171],
+        [151, 191],
+      ]);
+      // Content growing past the held height is reported at it
+      frame.setBottom(300);
+      frame.mutate();
+      frame.nextFrame();
+      expect(resizes(frame).at(-1)).toMatchObject({ height: 151, flow: 151 });
+      expect(resizes(frame).every(({ flow, height }) => flow! <= height)).toBe(true);
+    });
+
+    it('Pushes its page down for an overlay above its top, until what caused it closes', () => {
+      // See PLAN-P25 D907 and D926: the push only grows while what caused it shows (an overlay placed above its trigger moves down with the page,
+      // and would otherwise fit, be unpushed, and reach above again), and a permanent decoration never holds it; the page's own padding is kept
+      const frame = _createFrame({ search: '?overlays=1' });
+      frame.rootStyle.paddingTop = '4px';
+      const decoration = frame.addElement({ style: { position: 'absolute' }, bottom: 50, height: 20 });
+      const panel = frame.addElement({ style: { position: 'absolute' }, bottom: 0, height: 100 });
+      _run(frame);
+      expect(frame.rootStyle.paddingTop).toBe('104px');
+      expect(resizes(frame)).toEqual([]);
+      // The layout moves down by the push
+      frame.setBottom(200.2);
+      panel.rect = { ...panel.rect, bottom: 100 };
+      decoration.rect = { ...decoration.rect, bottom: 150 };
+      frame.nextFrame();
+      expect(resizes(frame)).toEqual([
+        {
+          source: FRAME_MESSAGE_SOURCE,
+          type: 'resize',
+          height: 211,
+          offset: 100,
+          flow: 211,
+          boxes: [{ left: 0, top: 0, right: 200, bottom: 100 }],
+          open: true,
+        },
+      ]);
+      frame.removeElement(panel);
+      frame.mutate();
+      frame.nextFrame();
+      expect(frame.rootStyle.paddingTop).toBe('4px');
+      frame.setBottom(100.2);
+      decoration.rect = { ...decoration.rect, bottom: 50 };
+      frame.nextFrame();
+      expect(resizes(frame).at(-1)).toEqual({ source: FRAME_MESSAGE_SOURCE, type: 'resize', height: 111, offset: 0, flow: 111, boxes: [], open: true });
+    });
+
+    it('Reports its real presses, opted in or not, and never a replayed one', () => {
+      // See PLAN-P25 D921: a replayed press reported would bounce between showcase frames
+      const frame = _createFrame();
+      _run(frame);
+      frame.dispatchDocument('pointerdown', { isTrusted: true, clientX: 5, clientY: 6 });
+      frame.dispatchDocument('click', { isTrusted: true, clientX: 5, clientY: 6 });
+      frame.dispatchDocument('pointerdown', { isTrusted: false, clientX: 1, clientY: 1 });
+      frame.dispatchDocument('click', { isTrusted: false, clientX: 1, clientY: 1 });
+      expect(_messages(frame).filter((message) => message.type === 'pointer')).toEqual([
+        { source: FRAME_MESSAGE_SOURCE, type: 'pointer', phase: 'down', x: 5, y: 6 },
+        { source: FRAME_MESSAGE_SOURCE, type: 'pointer', phase: 'click', x: 5, y: 6 },
+      ]);
+    });
+
+    describe('Replaying a press outside', () => {
+      // A press outside is replayed in two phases, on a safe target: the page itself, or a fixed layer's backdrop, never its content or an overlay,
+      // always at a point inside the viewport.
+
+      const press = (frame: _FakeFrame, phase: 'down' | 'click', x: number, y: number, source: unknown = frame.parent) =>
+        frame.dispatch('message', { source, data: createOutsidePointerMessage(phase, x, y) });
+      const events = (frame: _FakeFrame) =>
+        frame.dispatched.map(({ target, type, init }) => [target === frame.body ? 'body' : target, type, init.clientX, init.clientY]);
+      const open = (options: Parameters<typeof _createFrame>[0] = {}) => {
+        const frame = _createFrame({ search: '?overlays=1', ...options });
+        frame.child.style.position = 'relative';
+        const panel = frame.addElement({ style: { position: 'absolute' }, bottom: 400, height: 300 });
+        _run(frame);
+        return { frame, panel };
+      };
+
+      it('Replays the down phase at the press, and the click at its click, on the page', () => {
+        const { frame } = open();
+        // The press's own point is outside the viewport, and the first corner holds the page
+        frame.setElementFromPoint((_x, y) => (y > 111 ? frame.body : frame.child));
+        press(frame, 'down', 50, 500);
+        expect(events(frame)).toEqual([
+          ['body', 'pointerdown', 0, 399],
+          ['body', 'mousedown', 0, 399],
+        ]);
+        press(frame, 'click', 50, 500);
+        expect(events(frame).slice(2)).toEqual([
+          ['body', 'pointerup', 0, 399],
+          ['body', 'mouseup', 0, 399],
+          ['body', 'click', 0, 399],
+        ]);
+      });
+
+      it("Never presses the page's content or an overlay, falling back to <body>", () => {
+        const { frame, panel } = open();
+        frame.setElementFromPoint((x) => (x < 100 ? panel : frame.child));
+        press(frame, 'down', 10, 10);
+        expect(events(frame)).toEqual([
+          ['body', 'pointerdown', 0, 0],
+          ['body', 'mousedown', 0, 0],
+        ]);
+      });
+
+      it("Presses a fixed layer's backdrop at the press's own point", () => {
+        const { frame } = open();
+        const layer = frame.addElement({ parent: 'body', style: { position: 'fixed' }, bottom: 400, height: 400, width: 300 });
+        const backdrop = frame.addElement({ parent: layer, style: { position: 'absolute' }, bottom: 400, height: 400, width: 300 });
+        frame.mutate();
+        frame.nextFrame();
+        // A popover's paper in the same layer is an overlay: never pressed, though inside a fixed layer
+        const paper = frame.addElement({ parent: layer, style: { position: 'absolute' }, bottom: 300, height: 100 });
+        frame.mutate();
+        frame.nextFrame();
+        frame.setElementFromPoint((_x, y) => (y >= 200 && y < 300 ? paper : backdrop));
+        press(frame, 'down', 50, 250);
+        press(frame, 'click', 50, 250);
+        expect(events(frame).map(([target, , x, y]) => [target === backdrop, x, y])[0]).toEqual([true, 0, 399]);
+        frame.dispatched.length = 0;
+        frame.setElementFromPoint(() => backdrop);
+        press(frame, 'down', 50, 200);
+        press(frame, 'click', 50, 200);
+        expect(events(frame).map(([target, type, x, y]) => [target === backdrop, type, x, y])).toEqual(
+          ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].map((type) => [true, type, 50, 200]),
+        );
+      });
+
+      it('Replays mouse events alone without PointerEvent', () => {
+        const { frame } = open({ pointerEvent: false });
+        frame.setElementFromPoint(() => frame.body);
+        press(frame, 'down', 10, 300);
+        press(frame, 'click', 10, 300);
+        expect(events(frame).map(([, type]) => type)).toEqual(['mousedown', 'mouseup', 'click']);
+      });
+
+      it('Replays nothing when not opted in, with no overlay open, or from another window', () => {
+        const { frame } = open();
+        frame.setElementFromPoint(() => frame.body);
+        press(frame, 'down', 10, 300, {});
+        const closed = _createFrame({ search: '?overlays=1' });
+        _run(closed);
+        closed.setElementFromPoint(() => closed.body);
+        press(closed, 'down', 10, 300);
+        const out = _createFrame();
+        out.child.style.position = 'relative';
+        out.addElement({ style: { position: 'absolute' }, bottom: 400, height: 300 });
+        _run(out);
+        out.setElementFromPoint(() => out.body);
+        press(out, 'down', 10, 300);
+        expect([frame.dispatched, closed.dispatched, out.dispatched]).toEqual([[], [], []]);
+      });
     });
   });
 

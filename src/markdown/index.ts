@@ -204,12 +204,16 @@ export interface ShowcaseMarker {
    * Showcase views the `view` key lists, in its order, if the marker has one
    */
   views?: ShowcaseView[];
+  /**
+   * True if the marker has the `overlays` key
+   */
+  overlays?: true;
 }
 
 /**
  * Keys a showcase marker can have after its adapter and options
  */
-const _MARKER_KEYS = ['file', 'anchor', 'inline', 'block', 'include', 'view'];
+const _MARKER_KEYS = ['file', 'anchor', 'inline', 'block', 'include', 'view', 'overlays'];
 
 /**
  * Pattern of a showcase adapter's name
@@ -227,8 +231,8 @@ export function isShowcaseMarker(word: string): boolean {
 
 /**
  * Parses a showcase marker: `showcase`, `showcase=<adapter>` or `showcase=<adapter>(<JSON5 options>)`, followed by space-separated keys
- * (`file=<name>`; `inline` or `block`; `include=<path>,<path>`; `view=<view>,<view>`; `anchor=<name>` is reserved). Keys are checked on their own here; where each
- * may be used is the scan's to check
+ * (`file=<name>`; `inline` or `block`; `include=<path>,<path>`; `view=<view>,<view>`; `overlays`; `anchor=<name>` is reserved). Keys are checked on
+ * their own here; where each may be used is the scan's (and, for `overlays`, the views', `check`'s) to check
  * @param text The marker and its keys
  * @returns The marker, or the error that prevents parsing it
  */
@@ -287,6 +291,13 @@ export function parseShowcaseMarker(text: string): { marker: ShowcaseMarker; err
         return { error: `The keys "inline" and "block" can't be used together, in showcase marker ${quoted}` };
       }
       marker.display = key;
+      continue;
+    }
+    if (key === 'overlays') {
+      if (equals >= 0) {
+        return { error: `The key "overlays" takes no value in showcase marker ${quoted}` };
+      }
+      marker.overlays = true;
       continue;
     }
     if (key === 'include') {
@@ -570,6 +581,7 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
       include: include.paths,
       tabs: _getTabs(marker.tabs, include.paths),
       ...(kind === 'link' && marker.display !== 'block' ? { views: marker.views ?? ['none' as const] } : marker.views ? { views: marker.views } : {}),
+      ...(marker.overlays ? { overlays: true as const } : {}),
     });
   };
 
@@ -601,6 +613,9 @@ export function scanMarkdown(path: string, content: string): MarkdownScan {
       if (marker.file !== undefined && marker.adapter === undefined) {
         if (marker.include !== undefined) {
           return error(node, `A virtual file with no showcase adapter can't include files; only a showcase's marker can have an "include" key`);
+        }
+        if (marker.overlays) {
+          return error(node, `A virtual file with no showcase adapter has no showcase frame, so it can't have the key "overlays"`);
         }
         const built = marker.views?.find((view) => view === 'demo' || view === 'console');
         if (built) {

@@ -157,6 +157,11 @@ export interface Showcase {
    * showcase adapter, or else its showcase adapter's own; for a linked showcase shown inline, its marker's `view=`, or else `none` (no defaults)
    */
   views: ShowcaseView[];
+  /**
+   * True when its marker has the `overlays` key: its overlays (content placed outside its page's flow, e.g. a dropdown) are drawn over the page
+   * around its showcase frame instead of growing it; left out otherwise
+   */
+  overlays?: true;
 }
 
 /**

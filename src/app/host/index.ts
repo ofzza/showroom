@@ -166,6 +166,10 @@ export interface ShownShowcase {
    * A recorded showcase's recording, where it built: what its `console` view shows, and its `runtime` status mark is of (it has no showcase frame)
    */
   recording?: ShowcaseRecording;
+  /**
+   * True when the showcase's marker has the `overlays` key: its overlays are drawn over the page around its showcase frame; left out otherwise
+   */
+  overlays?: true;
 }
 
 /**

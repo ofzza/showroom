@@ -46,7 +46,7 @@ import {
   type ConsoleAction,
   type ConsoleState,
 } from '../console/index.js';
-import { MarkdownView, ShowcaseFrame, SourceView } from '../showcases/index.js';
+import { getOverhangStyle, MarkdownView, ShowcaseFrame, SourceView, type ShownOverhang } from '../showcases/index.js';
 
 // #region States
 
@@ -717,6 +717,9 @@ function _NotBuilt({ height }: { height: number }): ReactNode {
  */
 const _useStyles = makeStyles({
   container: { containerType: 'inline-size', margin: `${tokens.spacingVerticalM} 0` },
+  // Overlays out over the page: the block (a stacking context, as a container) raised over what follows it, its grid letting them out (D920)
+  containerOut: { position: 'relative' },
+  gridOut: { overflow: 'visible' },
   grid: {
     display: 'grid',
     gridTemplateColumns: 'minmax(0, 1fr)',
@@ -761,7 +764,8 @@ const _useStyles = makeStyles({
   // Its width given, as a container query's container (`inline-size`) never takes it from its content (D616)
   containerSidebar: { flex: '1 1 auto', width: '100%', minHeight: '0', height: '100%', margin: '0' },
   gridSidebar: { height: '100%', alignContent: 'start', overflowY: 'auto', border: 'none', borderRadius: '0' },
-  topSidebar: { position: 'sticky', top: '0', zIndex: 1, backgroundColor: tokens.colorNeutralBackground1 },
+  // Above a raised showcase frame's box (levels 1 and 2, D927)
+  topSidebar: { position: 'sticky', top: '0', zIndex: 3, backgroundColor: tokens.colorNeutralBackground1 },
   // Half, in the showcase sidebar: always stacked, the code pane below the views (D627), as high as its content, between the minimum and the maximum
   gridHalfSidebar: { gridTemplateColumns: 'minmax(0, 1fr)', gridTemplateRows: 'auto auto auto' },
   paneHalfSidebar: {
@@ -819,6 +823,10 @@ export interface ShowcaseBlockProps {
    * The console's state to start with (the tests' server-side rendering sets it); empty by default
    */
   initialConsole?: ConsoleState;
+  /**
+   * The overhang its showcase frame starts with, for a showcase opted into overlays over the page (the tests' server-side rendering sets it)
+   */
+  initialOverhang?: ShownOverhang;
 }
 
 /**
@@ -830,7 +838,7 @@ export interface ShowcaseBlockProps {
  * @param props Properties of the component
  * @returns The block
  */
-export function ShowcaseBlock({ showcase, documentation, initialState, initialConsole, onClose }: ShowcaseBlockProps): ReactNode {
+export function ShowcaseBlock({ showcase, documentation, initialState, initialConsole, initialOverhang, onClose }: ShowcaseBlockProps): ReactNode {
   const styles = _useStyles();
   const idPrefix = useId();
   const sidebar = onClose !== undefined;
@@ -850,6 +858,12 @@ export function ShowcaseBlock({ showcase, documentation, initialState, initialCo
     dispatchConsole(recording ? { type: 'recording', recording } : { type: 'start' });
   }, [recording, dispatchConsole]);
   const [lastHeight, setLastHeight] = useState<number>();
+  // Raised while its showcase frame's overlays are out over the page: at first, as its showcase frame starts out (the tests' rendering)
+  const [level, setLevel] = useState(() =>
+    initialOverhang && showcase.overlays && showcase.views.includes('demo') && !fill && getOverhangStyle(initialOverhang, SHOWCASE_BLOCK_FRAME_MIN_HEIGHT)
+      ? 1
+      : 0,
+  );
   const consoleView = useRef<HTMLDivElement>(null);
   const tabs = showcase.tabs;
   const index = Math.min(selected, tabs.length - 1);
@@ -871,6 +885,9 @@ export function ShowcaseBlock({ showcase, documentation, initialState, initialCo
         overlay={!showcase.views.includes('console')}
         hidden={hidden}
         onResize={setLastHeight}
+        overhang={!fill}
+        initialOverhang={initialOverhang}
+        onOverhang={setLevel}
       />
     );
   // The runtime status mark opens the console panel over the demo view, or shows the console view's first issue line
@@ -937,10 +954,10 @@ export function ShowcaseBlock({ showcase, documentation, initialState, initialCo
   );
   return (
     <div
-      className={mergeClasses(styles.container, sidebar && styles.containerSidebar)}
+      className={mergeClasses(styles.container, sidebar && styles.containerSidebar, level > 0 && styles.containerOut)}
       data-code-pane-state={state}
       data-showcase-sidebar={sidebar ? '' : undefined}
-      style={{ [_MIN_LINES_PROPERTY]: getCodePaneMinLines(text) } as CSSProperties}
+      style={{ [_MIN_LINES_PROPERTY]: getCodePaneMinLines(text), ...(level > 0 ? { zIndex: level } : {}) } as CSSProperties}
     >
       <div
         className={mergeClasses(
@@ -949,6 +966,7 @@ export function ShowcaseBlock({ showcase, documentation, initialState, initialCo
           state === 'half' && styles.gridHalf,
           state === 'half' && sidebar && styles.gridHalfSidebar,
           fill && styles.gridFill,
+          level > 0 && styles.gridOut,
         )}
       >
         <div className={mergeClasses(styles.top, sidebar && styles.topSidebar)}>

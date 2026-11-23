@@ -4,9 +4,9 @@
  * theme, with its console panel over it, or running hidden for a `console` view; and the `markdown` and `source` views
  */
 
-import { useCallback, useContext, useEffect, useRef, useState, type Dispatch, type ReactNode } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore, type Dispatch, type ReactNode } from 'react';
 import { makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
-import { createThemeMessage, getThemedFrameUrl, isFrameMessage } from '../../frame/index.js';
+import { createOutsidePointerMessage, createThemeMessage, getThemedFrameUrl, isFrameMessage, type OverhangBox, type PressPhase } from '../../frame/index.js';
 import { HighlightedCode, SegmentedCode, type CodeSegment, type LineMarkers } from '../code/index.js';
 import { getFetchedTabUrl, ShownTabView, useLinkedFileContent } from '../showcase-sidebar/index.js';
 import { ConsolePanel, getConsoleMinHeight, useConsole, type ConsoleAction, type ConsoleState } from '../console/index.js';
@@ -144,6 +144,210 @@ function _createVirtualFileNode(file: ShownVirtualFile): _Node {
 
 // #endregion
 
+// #region Overlays over the page
+
+/**
+ * Represents what a showcase frame opted into overlays over the page last reported of its overhang (S19 and P25 in .workflow/)
+ */
+export interface ShownOverhang {
+  /**
+   * Height of the whole page, overlays included, in pixels
+   */
+  height: number;
+  /**
+   * How far its page is pushed down for overlays reaching above its top, in pixels
+   */
+  offset: number;
+  /**
+   * Bottom of its in-flow content, the push included, in pixels
+   */
+  flow: number;
+  /**
+   * Boxes of its overlays reaching out of its content
+   */
+  boxes: OverhangBox[];
+  /**
+   * True if any overlay shows in it
+   */
+  open: boolean;
+}
+
+/**
+ * Width of the content's rectangle in a showcase frame's clip, in pixels: larger than any showcase frame, as its box clips it sideways anyway, so
+ * the clip never depends on the showcase frame's width (D922)
+ */
+export const OVERHANG_CLIP_WIDTH = 100000;
+
+/**
+ * Gets the clip of a showcase frame with overlays out: its content's rectangle and each overlay's box, as clockwise rectangles, whose union the
+ * nonzero rule fills; `clip-path` clips both painting and hit-testing, so only the overlays cover the page around the showcase frame
+ * @param top Top of the content, in the showcase frame's pixels (its push)
+ * @param bottom Bottom of the content
+ * @param boxes Boxes of the overlays reaching out of it
+ * @returns The `clip-path` value
+ */
+export function getOverhangClipPath(top: number, bottom: number, boxes: readonly OverhangBox[]): string {
+  const rectangle = (left: number, rectTop: number, right: number, rectBottom: number) => `M${left} ${rectTop}H${right}V${rectBottom}H${left}Z`;
+  const shapes = [rectangle(0, top, OVERHANG_CLIP_WIDTH, bottom), ...boxes.map((box) => rectangle(box.left, box.top, box.right, box.bottom))];
+  return `path('${shapes.join('')}')`;
+}
+
+/**
+ * Gets how a showcase frame's iframe lets its overlays out over the page: as high as its whole page, pulled up by its push and back by what reaches
+ * below its content, so it takes its content's height on the page, and clipped to its content and its overlays
+ * @param overhang The showcase frame's overhang
+ * @param minHeight Minimum height of its content, in pixels (a block's `demo` view's)
+ * @returns The iframe's height, margins and clip, and the height it takes on the page; or undefined when no overlay reaches out
+ */
+export function getOverhangStyle(
+  overhang: ShownOverhang,
+  minHeight = 0,
+): { height: number; marginTop: number; marginBottom: number; clipPath: string; content: number } | undefined {
+  const content = Math.max(overhang.flow - overhang.offset, minHeight);
+  const bottom = overhang.offset + content;
+  const height = Math.max(overhang.height, bottom);
+  if (overhang.offset <= 0 && height <= bottom) return undefined;
+  return {
+    height,
+    marginTop: -overhang.offset,
+    marginBottom: -(height - bottom),
+    clipPath: getOverhangClipPath(overhang.offset, bottom, overhang.boxes),
+    content,
+  };
+}
+
+/**
+ * Represents a showcase frame in the registry of overlays over the page: its iframe, whether presses outside are relayed to it (opted in and shown),
+ * whether an overlay shows in it, whether its overlays are out (its block raised), and when its overlay last opened
+ */
+export interface OverhangEntry {
+  /**
+   * Its iframe
+   */
+  frame: HTMLIFrameElement;
+  /**
+   * True if presses outside are relayed to it
+   */
+  relay: boolean;
+  /**
+   * True if an overlay shows in it
+   */
+  open: boolean;
+  /**
+   * True if its overlays are out over the page
+   */
+  raised: boolean;
+  /**
+   * Order in which its overlay last opened (higher is later)
+   */
+  openedAt: number;
+}
+
+/**
+ * Gets the showcase frames a press outside is relayed to: those relayed to, with an overlay open, other than the one pressed in
+ * @param entries The registered showcase frames
+ * @param except The showcase frame pressed in, if any
+ * @returns The showcase frames to relay the press to
+ */
+export function getRelayTargets(entries: Iterable<OverhangEntry>, except?: HTMLIFrameElement): OverhangEntry[] {
+  return [...entries].filter((entry) => entry.relay && entry.open && entry.frame !== except);
+}
+
+/**
+ * Gets the raised showcase frame whose overlay opened last, which is raised above the others (D927)
+ * @param entries The registered showcase frames
+ * @returns Its entry, or undefined when none is raised
+ */
+export function getTopOverhang<TEntry extends OverhangEntry>(entries: Iterable<TEntry>): TEntry | undefined {
+  let top: TEntry | undefined;
+  for (const entry of entries) if (entry.raised && (!top || entry.openedAt > top.openedAt)) top = entry;
+  return top;
+}
+
+/**
+ * The registry of showcase frames, on the page and in the showcase sidebar: an external store of the raised one on top, which also relays the
+ * showroom's own real presses to them, while any is registered
+ */
+const _registry = {
+  entries: new Map<object, OverhangEntry>(),
+  listeners: new Set<() => void>(),
+  top: undefined as object | undefined,
+  opened: 0,
+};
+
+/**
+ * Relays a press at a point of the showroom's viewport to every showcase frame it is outside of, in each one's own coordinates
+ * @param phase The press's phase
+ * @param x Horizontal position of the press in the showroom's viewport
+ * @param y Vertical position of the press in the showroom's viewport
+ * @param except The showcase frame pressed in, if any
+ */
+function _relay(phase: PressPhase, x: number, y: number, except?: HTMLIFrameElement): void {
+  for (const { frame } of getRelayTargets(_registry.entries.values(), except)) {
+    const rect = frame.getBoundingClientRect();
+    frame.contentWindow?.postMessage(createOutsidePointerMessage(phase, x - rect.left, y - rect.top), '*');
+  }
+}
+
+/**
+ * Relays the showroom's own real `pointerdown` as the `down` phase of a press outside every showcase frame
+ * @param event The event
+ */
+function _onShowroomPointerDown(event: PointerEvent): void {
+  if (event.isTrusted) _relay('down', event.clientX, event.clientY);
+}
+
+/**
+ * Relays the showroom's own real `click` as the `click` phase of a press outside every showcase frame
+ * @param event The event
+ */
+function _onShowroomClick(event: MouseEvent): void {
+  if (event.isTrusted) _relay('click', event.clientX, event.clientY);
+}
+
+/**
+ * Registers, updates or removes a showcase frame, notifying the components when the raised one on top changes, and listening to the showroom's
+ * presses while any is registered
+ * @param key The showcase frame's own key
+ * @param entry Its entry, or undefined to remove it
+ */
+function _register(key: object, entry: OverhangEntry | undefined): void {
+  const before = _registry.entries.size;
+  const previous = _registry.entries.get(key);
+  if (entry) {
+    // Its overlay opening is the latest
+    _registry.entries.set(key, { ...entry, openedAt: entry.open && !previous?.open ? ++_registry.opened : (previous?.openedAt ?? 0) });
+  } else {
+    _registry.entries.delete(key);
+  }
+  const after = _registry.entries.size;
+  if (!before && after) {
+    window.document.addEventListener('pointerdown', _onShowroomPointerDown, true);
+    window.document.addEventListener('click', _onShowroomClick, true);
+  } else if (before && !after) {
+    window.document.removeEventListener('pointerdown', _onShowroomPointerDown, true);
+    window.document.removeEventListener('click', _onShowroomClick, true);
+  }
+  const topEntry = getTopOverhang(_registry.entries.values());
+  const top = [..._registry.entries].find(([, value]) => value === topEntry)?.[0];
+  if (top !== _registry.top) {
+    _registry.top = top;
+    _registry.listeners.forEach((listener) => listener());
+  }
+}
+
+/**
+ * Subscribes to the raised showcase frame on top
+ * @param listener Called when it changes
+ * @returns Unsubscribes
+ */
+function _subscribe(listener: () => void): () => void {
+  _registry.listeners.add(listener);
+  return () => void _registry.listeners.delete(listener);
+}
+
+// #endregion
+
 // #region Showcase frame
 
 /**
@@ -163,8 +367,12 @@ const _useStyles = makeStyles({
     border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
     borderRadius: tokens.borderRadiusMedium,
     overflow: 'hidden',
+    // Its own formatting context, so the iframe's negative margins (overlays out) never collapse through it (D920)
+    display: 'flow-root',
   },
   boxBlock: { margin: '0', border: 'none', borderRadius: '0' },
+  // Overlays out over the page: let out above and below, still clipped sideways, the box raised over what follows it
+  boxOut: { overflowX: 'clip', overflowY: 'visible' },
   frame: { display: 'block', width: '100%', border: 'none', backgroundColor: 'transparent' },
   // Running hidden (a console view's): laid out at its real width and height, invisible, in a box with no height that clips it (D570)
   hiddenBox: { height: '0', overflow: 'hidden' },
@@ -215,9 +423,22 @@ export interface ShowcaseFrameProps {
    */
   hidden?: boolean;
   /**
-   * Called with each height the showcase frame reports (its block keeps the latest, for its "Not built" placeholder)
+   * Called with each height the showcase frame reports (its block keeps the latest, for its "Not built" placeholder): its content's height, without
+   * its overlays out, for a showcase opted into overlays over the page
    */
   onResize?: (height: number) => void;
+  /**
+   * False to keep its overlays in, and relay it no presses, while its views aren't shown (collapsed in the showcase sidebar); true by default
+   */
+  overhang?: boolean;
+  /**
+   * The overhang to start with, for a showcase opted into overlays over the page (the tests' server-side rendering sets it, as no message comes there)
+   */
+  initialOverhang?: ShownOverhang;
+  /**
+   * Called with the level its block is raised to while its overlays are out: 0 when none is, 1, or 2 for the one whose overlay opened last (D927)
+   */
+  onOverhang?: (level: number) => void;
 }
 
 /**
@@ -225,7 +446,10 @@ export interface ShowcaseFrameProps {
  * console panel over it (unless left out), in a box at least as high as the console panel needs; or hidden. Its URL is set with the theme of the
  * moment: at mount, and again when the showcase's URL changes (a rebuilt showcase frame in `serve`), keeping its height until the showcase frame
  * reports its new one; later themes are only posted to it, so a theme change never reloads it. Its console is cleared on every load (`start`), fed
- * its `console` messages, and told when it is `ready`.
+ * its `console` messages, and told when it is `ready`. Its real presses are relayed to the other showcase frames as presses outside them. Opted into
+ * overlays over the page (the showcase's `overlays`, shown), its URL says so, and its overlays reaching out of its content are drawn over the page
+ * around it (its iframe as high as its whole page, pulled back by negative margins, clipped to its content and its overlays, its box raised), and
+ * presses outside it are relayed to it.
  * @param props Properties of the component
  * @returns The showcase frame
  */
@@ -238,17 +462,23 @@ export function ShowcaseFrame({
   overlay = true,
   hidden = false,
   onResize,
+  overhang: shown = true,
+  initialOverhang,
+  onOverhang,
 }: ShowcaseFrameProps): ReactNode {
   const styles = _useStyles();
   const theme = useContext(ThemeContext);
   const frame = useRef<HTMLIFrameElement>(null);
-  const [loaded, setLoaded] = useState(() => ({ url: showcase.url, src: getThemedFrameUrl(showcase.url, theme) }));
-  if (loaded.url !== showcase.url) {
+  // A hidden showcase frame is never opted in (D912): nothing shows it
+  const overlays = showcase.overlays === true && !hidden;
+  const [loaded, setLoaded] = useState(() => ({ url: showcase.url, overlays, src: getThemedFrameUrl(showcase.url, theme, overlays) }));
+  if (loaded.url !== showcase.url || loaded.overlays !== overlays) {
     // Adjusting state while rendering, as React recommends for state derived from a changed prop
-    setLoaded({ url: showcase.url, src: getThemedFrameUrl(showcase.url, theme) });
+    setLoaded({ url: showcase.url, overlays, src: getThemedFrameUrl(showcase.url, theme, overlays) });
   }
   const src = loaded.src;
   const [height, setHeight] = useState<number>();
+  const [reported, setReported] = useState<ShownOverhang | undefined>(initialOverhang);
   const own = useConsole(initialConsole);
   const [consoleState, dispatchConsole] = console ?? own;
   const latestOnResize = useRef(onResize);
@@ -269,21 +499,53 @@ export function ShowcaseFrame({
     const listener = (event: MessageEvent) => {
       if (!frame.current || event.source !== frame.current.contentWindow || !isFrameMessage(event.data)) return;
       const message = event.data;
-      if (message.type === 'start') dispatchConsole({ type: 'start' });
-      else if (message.type === 'console') {
+      if (message.type === 'start') {
+        dispatchConsole({ type: 'start' });
+        setReported(undefined);
+      } else if (message.type === 'pointer') {
+        // A press inside it is outside every other showcase frame
+        const rect = frame.current.getBoundingClientRect();
+        _relay(message.phase, rect.left + message.x, rect.top + message.y, frame.current);
+      } else if (message.type === 'console') {
         const { lines, dropped, droppedWarnings, droppedErrors } = message;
         dispatchConsole({ type: 'lines', lines, dropped, droppedWarnings, droppedErrors, now: Date.now() });
       } else if (message.type === 'ready') {
         dispatchConsole({ type: 'ready' });
         sendTheme();
-      } else {
-        setHeight(message.height);
-        latestOnResize.current?.(message.height);
+      } else if (message.type === 'resize') {
+        const { height: reportedHeight, offset, flow, boxes, open } = message;
+        setHeight(reportedHeight);
+        const next = offset !== undefined && flow !== undefined ? { height: reportedHeight, offset, flow, boxes: boxes ?? [], open: open ?? false } : undefined;
+        setReported(next);
+        latestOnResize.current?.(next ? next.flow - next.offset : reportedHeight);
       }
     };
     window.addEventListener('message', listener);
     return () => window.removeEventListener('message', listener);
   }, [sendTheme, dispatchConsole]);
+
+  // Overlays out over the page, while shown; the block raised one level higher for the one whose overlay opened last
+  const out = overlays && shown && reported ? getOverhangStyle(reported, minHeight) : undefined;
+  const relayed = overlays && shown;
+  const open = relayed && (reported?.open ?? false);
+  const raised = out !== undefined;
+  const [key] = useState<object>(() => ({}));
+  useEffect(() => {
+    if (!frame.current) return;
+    _register(key, { frame: frame.current, relay: relayed, open, raised, openedAt: 0 });
+  }, [key, relayed, open, raised]);
+  useEffect(() => () => _register(key, undefined), [key]);
+  const top = useSyncExternalStore(
+    _subscribe,
+    () => _registry.top,
+    () => undefined,
+  );
+  const level = out ? (top === key ? 2 : 1) : 0;
+  const latestOnOverhang = useRef(onOverhang);
+  useEffect(() => {
+    latestOnOverhang.current = onOverhang;
+  }, [onOverhang]);
+  useEffect(() => latestOnOverhang.current?.(level), [level]);
 
   const consoleMinHeight = overlay && !hidden ? getConsoleMinHeight(consoleState) : 0;
   const iframe = (
@@ -295,8 +557,9 @@ export function ShowcaseFrame({
       // A hidden showcase frame is loaded at once, as nothing scrolls it into view
       loading={hidden ? undefined : 'lazy'}
       style={{
-        height: `${height ?? DEFAULT_FRAME_HEIGHT}px`,
+        height: `${out?.height ?? height ?? DEFAULT_FRAME_HEIGHT}px`,
         ...(minHeight === undefined ? {} : { minHeight: `${minHeight}px` }),
+        ...(out ? { marginTop: `${out.marginTop}px`, marginBottom: `${out.marginBottom}px`, clipPath: out.clipPath } : {}),
         colorScheme: theme,
       }}
       onLoad={sendTheme}
@@ -305,7 +568,11 @@ export function ShowcaseFrame({
   );
   if (hidden) return <div className={styles.hiddenBox}>{iframe}</div>;
   return (
-    <div className={mergeClasses(styles.box, block && styles.boxBlock)} style={consoleMinHeight ? { minHeight: `${consoleMinHeight}px` } : undefined}>
+    <div
+      className={mergeClasses(styles.box, block && styles.boxBlock, out && styles.boxOut)}
+      style={{ ...(consoleMinHeight ? { minHeight: `${consoleMinHeight}px` } : {}), ...(level ? { zIndex: level } : {}) }}
+      data-overhang={out ? level : undefined}
+    >
       {iframe}
       {overlay && <ConsolePanel state={consoleState} dispatch={dispatchConsole} />}
     </div>

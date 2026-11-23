@@ -338,6 +338,7 @@ The **showcase marker** is `showcase`, `showcase=<adapter>`, or `showcase=<adapt
     - Including a file only adds it: it is always available to the showcase's build (see each showcase adapter below), and a showcase still uses whatever else it uses, included or not.
     - Two bare words are tabs rather than files, placed where they are listed: `source`, the entry point's own tab (where `include=` doesn't list it, before the first included file, or last, so `include=markdown` puts the Markdown tab first), and `markdown`, a tab showing the showcase as written in its documentation file (as the `markdown` view does), e.g. `include=markdown,./theme.css`. A file of either name is written as a path (`./source`), and each may be listed once.
   - `view=<view>,<view>` lists a showcase's [showcase views](#showcase-views), how the showroom shows it: one or more of `markdown`, `source`, `demo` and `console`, in the order shown, or `none`. A repeated view, an empty one, an unknown one, and `none` with any other are errors, as is `include=` on a showcase shown as a block whose views are `none` (nothing would show its tabs). On a linked showcase shown inline, it names the views its showcase sidebar shows (none by default).
+  - `overlays` draws a showcase's [overlays over the page](#overlays-over-the-page) around its showcase frame, instead of growing it. It needs a `demo` view (a linked showcase shown inline's own `view=demo` too), so `check` reports it on a showcase without one, and on a virtual file with no showcase adapter.
   - `anchor=<name>` is reserved for later, and any other key is an error. Keys are case-sensitive, and a repeated key is an error.
 
 A **code block showcase** is a fenced code block with the marker right after its language, which stays first so that the block is still highlighted everywhere. Its code is the showcase's entry point. Here is one, live in this repository's showroom (on GitHub or npm, an ordinary code block): there, the button in its header bar shows its code, and the code pane's first tab, **Markdown**, shows the code block as written, marker included, as its marker lists it (`html showcase include=markdown`; the showcases below show theirs the same way, see [included files](#showcases)):
@@ -445,6 +446,7 @@ Tabs show only the entry point and the included files, never what a showcase als
 | ` ```ts showcase=ts view=source ` + code                                      | A `ts` showcase shown as an ordinary code block, still built and checked; its page is never loaded                |
 | ` ```html showcase view=markdown,demo,console ` + code                        | An `html` showcase shown by its Markdown, its showcase frame, then its console                                    |
 | ` ```css showcase file=theme.css view=none ` + code                           | A virtual file hidden in the showroom, still usable by showcases                                                  |
+| ` ```html showcase overlays ` + code                                          | An `html` showcase whose dropdowns and menus open over the page around it, instead of growing it                  |
 | `"showcaseViews": { "ts": "demo" }` in `showroom.json`                        | Every `ts` showcase without `view=` shown by its `demo` view                                                      |
 | `[Clock](./clock.html 'showcase')` within text                                | Shown inline (the default): a link opening the showcase sidebar, with its code pane alone                         |
 | `[Clock](./clock.html 'showcase inline')` within text                         | The same, said explicitly                                                                                         |
@@ -715,6 +717,78 @@ The showcase frame follows the showroom's light or dark theme: the script sets i
 </style>
 <span class="themed">2<b>.</b><i>71828</i></span>
 ```
+
+#### Overlays over the page
+
+An overlay is a showcase's content placed outside its page's flow: absolutely positioned, and showing, as a dropdown, a menu, a popover or a dialog's pane usually is. By default, an open overlay grows its showcase frame, pushing the page below it down until it closes. With the `overlays` key on its marker, a showcase's overlays are drawn over the page around its showcase frame instead, below it or above it, and the page never moves. Only the overlays cover the page: the text beside them stays visible, clickable and selectable. A press anywhere outside the showcase frame, on the showroom or in another showcase frame, is replayed in it as a press outside its overlays, so they close as they would on a press outside them: on its page, or on a backdrop (as Angular Material's menus close), never on its content; Escape pressed outside isn't passed on.
+
+Open the menu below, its marker `html showcase include=markdown overlays`, and see it cover this text; then press anywhere else:
+
+```html showcase include=markdown overlays
+<style>
+  .menu-host {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    font:
+      0.9em system-ui,
+      sans-serif;
+  }
+  .menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1;
+    margin: 4px 0 0;
+    padding: 4px 0;
+    list-style: none;
+    background: Canvas;
+    border: 1px solid GrayText;
+    border-radius: 4px;
+    box-shadow: 0 4px 16px #0004;
+  }
+  .menu li {
+    padding: 6px 16px;
+  }
+  .menu[hidden] {
+    display: none;
+  }
+</style>
+<div class="menu-host">
+  <button id="units">Units ▾</button>
+  <span>Distances are shown in <b id="unit">kilometres</b>.</span>
+  <ul class="menu" hidden>
+    <li>kilometres</li>
+    <li>miles</li>
+    <li>nautical miles</li>
+    <li>light years</li>
+    <li>parsecs</li>
+  </ul>
+</div>
+<script>
+  const menu = document.querySelector('.menu');
+  document.getElementById('units').addEventListener('click', (event) => {
+    event.stopPropagation();
+    menu.hidden = !menu.hidden;
+  });
+  menu.addEventListener('click', (event) => {
+    document.getElementById('unit').textContent = event.target.textContent;
+    menu.hidden = true;
+  });
+  document.addEventListener('click', (event) => {
+    if (!menu.contains(event.target)) menu.hidden = true;
+  });
+</script>
+```
+
+Its limits:
+
+- overlays are let out below and above the showcase frame only: one reaching past its left or right edge is still cut off there;
+- an overlay positioned `fixed` (e.g. floating-ui's `strategy: 'fixed'`) is never measured, so it is cut off at the showcase frame's edges;
+- while an overlay is out, an element fixed at the showcase frame's top or bottom edge (a toast) is hidden, as only the content and the overlays show;
+- an overlay of a page's last showcase may reach past the page's end, where the page scrolls further to show it;
+- it is checked in Chrome, Edge and Firefox, not yet in Safari.
 
 ### The console panel
 
@@ -1008,7 +1082,7 @@ The host information has this shape (types `HostInformation`, `ProjectInformatio
 ````
 
 - **Documentation files** have a `kind` of `readme`, `contribute`, `license`, or `other` for the files the `documentation` patterns add, and a Markdown one its first `heading` (left out when it has none).
-- **A showcase** has an `id` (its documentation file and its position there), the `line` and character `offset` of its entry point (the code block, or the link), its `kind` (`code-block` or `link`), how it is shown (`display`: `block`, or `inline` for a linked showcase without the `block` key), its showcase `adapter`, its `options` as the showcase adapter validated them (left out when there are none), the path of its `entry` point (a virtual file, or the linked file), the paths of its included files (`include`, in the marker's order, without its keywords; empty when it has none), its `tabs` in their order (`{ "kind": "source" }`, `{ "kind": "markdown" }`, or `{ "kind": "file", "path": … }` for an included file), and its showcase `views`, after the defaults (`none` for a linked showcase shown inline without `view=`).
+- **A showcase** has an `id` (its documentation file and its position there), the `line` and character `offset` of its entry point (the code block, or the link), its `kind` (`code-block` or `link`), how it is shown (`display`: `block`, or `inline` for a linked showcase without the `block` key), its showcase `adapter`, its `options` as the showcase adapter validated them (left out when there are none), the path of its `entry` point (a virtual file, or the linked file), the paths of its included files (`include`, in the marker's order, without its keywords; empty when it has none), its `tabs` in their order (`{ "kind": "source" }`, `{ "kind": "markdown" }`, or `{ "kind": "file", "path": … }` for an included file), its showcase `views`, after the defaults (`none` for a linked showcase shown inline without `view=`), and `overlays: true` when its marker has the `overlays` key (left out otherwise).
 - **A virtual file** has its `path`, whether `file=` `named` it (or its name was generated), the `showcase` whose entry point it is (its `id`; left out for a virtual file with no showcase adapter), its `views` (only for a virtual file with no showcase adapter: `source`, `markdown` or `none`), its `content`, and the `documentation` file, `line` and character `offset` of its code block.
 - **A linked file** has its `path`, its `size` in bytes, and whether it is `text` (UTF-8 with no NUL byte, and no larger than 1 MB, so the showroom shows it in the showcase sidebar).
 - **`navigation`** is there only when `showroom.json` configures one, resolved: each item a `page` (its `label`, its documentation file's `path`, empty for the home page, and its `anchor`, if any), a `url` (its `label` and `url`), or a `group` (its `label` and `items`), with patterns expanded.
@@ -1188,7 +1262,7 @@ console.log(code);
 - `getStackAdapter(name)` / `getStackAdapterNames()`: look up the built-in stack adapters, which implement the `StackAdapter` interface; `TypeScriptStackAdapter` is the `typescript` one, and `DotNetStackAdapter` the `dotnet` one. `readProject(root, project?)` reads the project information, from the file `project` names (relative to `root`) or the stack adapter's default (`defaultProject`, none for `dotnet`), as far as it gives it: its `name` too may be missing (`Partial<ProjectInformation>`), as `showroom.json`'s `project` can give it.
 - `main(args, output?, input?)`: runs the command line with the given arguments, resolving to its exit code; `USAGE` is its help text. `output` (`CliOutput`: `stdout` and `stderr` functions) defaults to the process's streams. `input` (`CliInput`) is what the [trust](#trust) prompt asks through: `isTerminal`, whether it may ask at all, and `ask(question)`, resolving to the line typed, `''` at the end of the input, or `null` on Ctrl-C (which ends the command with `130`); it defaults to the terminal on the process's standard input, never a pipe.
 - Constants: `CONFIGURATION_FILE_NAME` (`showroom.json`), `DEFAULT_OUT_DIR` (`./showroom`), and `BUILT_IN_DOCUMENTATION` (the built-in documentation patterns).
-- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase` (with its `views` and `tabs`), `ShowcaseTab` (`source`, `markdown`, or an included `file`), `ShowcaseKind`, `ShowcaseDisplay`, `ShowcaseView` (`markdown`, `source`, `demo`, `console` or `none`), `VirtualFile` (with its fence's `offset`, and its `views` when it has no showcase adapter), `LinkedFile`, `NavigationItem` (the resolved navigation, `HostInformation.navigation`), `Configuration`, `ProjectConfiguration` (its `project`), `NavigationEntry` (an item of its `navigation`), `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity`, `TrustRequest`, `CliOutput` and `CliInput`.
+- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase` (with its `views`, `tabs` and `overlays`), `ShowcaseTab` (`source`, `markdown`, or an included `file`), `ShowcaseKind`, `ShowcaseDisplay`, `ShowcaseView` (`markdown`, `source`, `demo`, `console` or `none`), `VirtualFile` (with its fence's `offset`, and its `views` when it has no showcase adapter), `LinkedFile`, `NavigationItem` (the resolved navigation, `HostInformation.navigation`), `Configuration`, `ProjectConfiguration` (its `project`), `NavigationEntry` (an item of its `navigation`), `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity`, `TrustRequest`, `CliOutput` and `CliInput`.
 - Experimental types, for [custom showcase adapters](#custom-showcase-adapters-experimental): `ShowcaseAdapter`, `ShowcaseValidation`, `ShowcaseHostCheck`, `ShowcaseCheckContext`, `ShowcaseProject`, `ShowcaseBuildRequest`, `ShowcaseBuildResult`, `ShowcaseBuildFile`, `ShowcaseBuildIssue`, and for [recorded showcases](#recorded-showcases) `ShowcaseHostCopyContent`, `ShowcaseHostCopy`, `ShowcaseRunOptions`, `ShowcaseRun`, `ShowcaseRecording` and `ShowcaseConsoleLine`.
 
 # Development

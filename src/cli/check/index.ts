@@ -568,7 +568,8 @@ async function _checkShowcases(
 }
 
 /**
- * Resolves a showcase's views: its marker's, or else the defaults given; a showcase shown as a block with the view `none` can't include files
+ * Resolves a showcase's views: its marker's, or else the defaults given; a showcase shown as a block with the view `none` can't include files, and
+ * one whose views have no `demo` can't have `overlays` (nothing shows its showcase frame)
  * @param showcase The showcase, given its views in place
  * @param defaults The default views: the configuration's for its showcase adapter, or else the showcase adapter's own
  * @param error Reports an error at the showcase
@@ -579,6 +580,11 @@ function _resolveViews(showcase: ScannedShowcase, defaults: ShowcaseView[], erro
   // A linked showcase shown inline shows its tabs in the showcase sidebar, whatever its views
   if (resolved.views.includes('none') && resolved.tabs.length > 1 && resolved.display === 'block') {
     error(`A showcase shown with the view "none" can't have "include=", as nothing would show its tabs`);
+    return undefined;
+  }
+  // Overlays are drawn over the page around a shown showcase frame: only a `demo` view shows one (an inline showcase's too, in the sidebar)
+  if (resolved.overlays && !resolved.views.includes('demo')) {
+    error(`A showcase without the view "demo" can't have "overlays", as nothing shows its showcase frame (its views: ${resolved.views.join(', ')})`);
     return undefined;
   }
   return resolved;

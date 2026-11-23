@@ -241,6 +241,13 @@ describe('vite', () => {
     expect(getShownHostInformation(_HOST, { frames: new Map(), recordings }).showcases[1].recording).toBeUndefined();
   });
 
+  it("Carries a showcase's overlays only when its marker has the key", () => {
+    const host = { ..._HOST, showcases: [{ ..._HOST.showcases[0], overlays: true as const }, _HOST.showcases[1]] };
+    const shown = getShownHostInformation(host, { frames: _FRAMES, trusted: true });
+    expect(shown.showcases.map(({ overlays }) => overlays)).toEqual([true, undefined]);
+    expect('overlays' in shown.showcases[1]).toBe(false);
+  });
+
   it('Shows every showcase as its source without trust, with nothing built', () => {
     const issue = { severity: 'error' as const, message: 'Broke', path: 'a.html' };
     const shown = getShownHostInformation(_HOST, {
