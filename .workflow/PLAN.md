@@ -315,6 +315,7 @@ None (_`D61`_).
 ## Host repositories without a stack adapter
 
 - _`P22`_ Host repositories without a stack adapter (approved 2026-11-18, implemented 2026-11-18): _`S18`_ (SPEC.md), one segment. [See Host repositories without a stack adapter](./PLAN-P22-stackless.md)
+- _`P23`_ Project overrides (approved 2026-11-23): _`S18`_ (SPEC.md) as revised by _`R64`_, one segment. [See Project overrides](./PLAN-P23-project-overrides.md)
 
 ## Known open issues
 
