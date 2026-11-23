@@ -1,0 +1,29 @@
+# _`S19`_ Overlays over the page
+
+approved 2026-11-24 (option chosen: "Approve and commit (Rec.)"), after its zero-context review
+
+A showcase's overlays (a dropdown, a menu, a popover, a dialog's pane) are shown whole since _`P24`_ (PLAN-P24-overlays.md), by growing the showcase frame while they are open, which pushes everything after it down the page and back. The user, 2026-11-23: "When the body size has changed due to absolutely positioned elements, we: Update the container iframe to match; Add a negative bottom-margin to the iframe of the same height diff value, to 'pull' the content below back into place; Make sure the iframe is drawn on top of the pulled-up content, so that the modal/dialog/what-ever being shown in the iframe looks like it is rendering above and over the content that was previously after the iframe". Settled with the spike of 2026-11-23 (`./.workflow/.temp/spike-overlay-overhang/NOTES.md`), whose conclusions are _`P25`_'s evidence (PLAN-P25-overlay-overhang.md).
+
+- _`D901`_ (`live`, refined by _`D911`_; the user's words above): **An open overlay is shown over the page, which doesn't move**: while a showcase's overlay reaches beyond its showcase frame's content, below it or above it, it is drawn over what is around the showcase frame (text, headings, other showcases) instead of pushing it away; the page keeps its layout as if no overlay were open, and closing the overlay changes nothing else. Only the overlay itself covers the page: everything beside it stays visible, clickable and selectable.
+- _`D902`_ (`live`, refined by _`D911`_, _`D913`_, _`D914`_; the user: "if clicking anywhere in the host page would send a message to the iframe(s) making them register that click on teh body element (outside the opened menu/dialog), so that clicking outside of the menu/dialog, even when captured by the host and not the actual iframe containing teh dialog/menu still registers as outside clik closing it."; Q3 of 2026-11-23, option chosen: "Clicks only"): **A press outside a showcase's open overlay reaches the showcase as one**: pressing anywhere outside a showcase frame with an open overlay, on the showroom or in another showcase frame, is replayed in that showcase frame as a press outside its overlays, so an overlay that closes on an outside press (or on its backdrop) closes. The replayed press never lands on the showcase's own content (a button, a link). Escape pressed outside a showcase frame isn't passed on. Rejected: passing Escape on too.
+- _`D903`_ (`live`; option chosen: "Top in P25, sides L20 (Rec.)"): **Below and above only**: an overlay is shown over the page where it reaches below or above its showcase frame's content; one reaching past the left or right edge is still cut off there (_`L20`_ (SPEC.md)). Rejected: below only; all four sides.
+- _`D904`_ (`live`; the user: "End of page is a real problem and I want to just not consider it for now. If need be, we can just force a bottom padding at the end of each showroom page."): **The end of a page isn't handled**: an overlay of a page's last showcase may reach past the page's end, where the page scrolls further to show it (_`L21`_ (SPEC.md)).
+
+### The opt-in, and the relay's reach
+
+The user, 2026-11-23, on whether it could be turned off: "Good idea. Let's make it an option per showcase, and let's make it an opt-in, not an opt-out. At least at first I see this as potentially sensitive to edge-cases and also not free in terms of extra messages and processing, so let's start with opt-in ..."
+
+- _`D911`_ (`live`; refines _`D901`_, _`D902`_; the user's words above; Q5, option chosen: "overlays (Rec.)"): **Overlays over the page are opted into per showcase**, with the `overlays` key on its showcase marker (a bare word, as `inline` and `block`, e.g. `html showcase overlays`). Without it, a showcase frame grows for its overlays, as _`P24`_ (PLAN-P24-overlays.md) made it, and receives no relayed presses. Rejected: always on; an opt-out; a `showroom.json` setting.
+- _`D912`_ (`live`, changed by _`D925`_; refines _`D911`_; Q6, option chosen: "An error (Rec.)"): **`overlays` where no showcase frame is shown is an error**: on a virtual file with no showcase adapter, and on a showcase whose views (after the defaults) have no `demo`, a recorded showcase among them. A linked showcase shown inline may have it, as its showcase sidebar shows its `demo` view. Rejected: a warning.
+- _`D913`_ (`live`, refined by _`D924`_ (PLAN-P25-overlay-overhang.md); refines _`D902`_; Q2, option chosen: "Any open overlay (Rec.)"): **An opted-in showcase receives relayed presses while any overlay shows in it**, reaching out of its showcase frame or not, so every open overlay closes on a press outside. A permanently shown absolutely positioned element (a decoration) counts as an overlay, so such a showcase receives a replayed press (on its page or a backdrop, never its content) on every press outside it. Rejected: only while an overlay reaches out.
+- _`D914`_ (`live`; refines _`D902`_; Q7, option chosen: "Every frame reports (Rec.)"): **A press in any showcase frame counts as outside the others**: every showcase frame, opted in or not, reports its own presses, so a press in a showcase that didn't opt in still closes an opted-in one's overlay. Rejected: only opted-in showcase frames reporting.
+
+### The review's outcomes
+
+From the zero-context review of 2026-11-23 (`./.workflow/.temp/review-p25/REVIEW.md`).
+
+- _`D925`_ (`live`; changes _`D912`_; review 2026-11-23 #10, option chosen: "An error (Rec.)"): **A linked showcase shown inline is judged by its views too**: `overlays` on one whose views have no `demo` (`view=source`, `view=none`, or no `view=`, as it has no defaults) is an error, as on any other showcase; D912's sentence allowing it on every inline showcase no longer holds.
+
+## Open points
+
+- None yet.

@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P24`_ overlays in showcase frames ([PLAN-P24-overlays.md](./PLAN-P24-overlays.md)) is implemented (2026-11-23); its open point _`O145`_ (blox's checks) waits for a release.
-- **Next free:** _`D901`_, _`S19`_, _`P25`_, _`O146`_, _`L20`_, _`R66`_, _`H1`_, _`K32`_
-- **Working on:** nothing in progress.
-- **Next step:** the user's choice; blox's _`P4.2`_ waits for a release carrying _`P24`_ (`PUBLISH.md`, on the user's word).
+- **Stage:** implementation: _`P25`_ overlays over the page ([PLAN-P25-overlay-overhang.md](./PLAN-P25-overlay-overhang.md)), approved, for _`S19`_ ([SPEC-S19-overlays.md](./SPEC-S19-overlays.md)).
+- **Next free:** _`D929`_, _`S20`_, _`P26`_, _`O146`_, _`L22`_, _`R67`_, _`H1`_, _`K33`_
+- **Working on:** _`P25`_, step 1 (the opt-in).
+- **Next step:** implement _`P25`_'s steps, then its checkpoint with the browser check.
 
 ## Open questions
 
@@ -59,6 +59,8 @@
 - `./.workflow/.temp/showcase-views/NOTES.md` holds the settled showcase views discussion, the input for its specification segment; ask before deleting it.
 
 ## Running
+
+- The spike harness served by Python's `http.server` on port 5180 (`./.workflow/.temp/spike-overlay-overhang/`), kept for the user while the drafts are settled.
 
 - Nothing.
 
@@ -495,3 +497,8 @@
 - 2026-11-23: _`P24`_ (overlays in showcase frames) drafted from blox's brief; its choices Q1–Q4 settled, all as recommended (options chosen: "Containing block (Rec.)", "Skip both (Rec.)", "Re-measure on end (Rec.)", "No review (Rec.)"), recorded as _`D894`_–_`D899`_.
 - 2026-11-23: _`P24`_ approved, and _`P4.2`_ re-approved for _`R65`_ (option chosen: "Approve and commit (Rec.)").
 - 2026-11-23: _`P24`_ implemented, with _`D900`_ found by its tests; `npm run ci` green (`./.workflow/.temp/ci-p24.log`); approved after the browser check (option chosen: "Approve and commit").
+- 2026-11-23: spike run: overlays overhanging a showcase frame (`./.workflow/.temp/spike-overlay-overhang/NOTES.md`): below, above and the outside-press relay worked in Chrome/Edge and Firefox (the user: "Everything looks great", "Works great! Even clicking in a different iframe closes a menu/dialog in the current iframe!", "Both cases in the spike that open up work perfectly!"); choices: "Draft spec + P25 (Rec.)", "Clicks only", "Top in P25, sides L20 (Rec.)".
+- 2026-11-23: _`S19`_ and _`P25`_ drafted (_`D901`_–_`D910`_), with _`R66`_ on _`P24`_, _`L20`_, _`L21`_ and _`K32`_.
+- 2026-11-23: the drafts' choices settled: opt-in per showcase (the user's words, _`D911`_), "overlays (Rec.)", "An error (Rec.)", "Any open overlay (Rec.)", "Every frame reports (Rec.)", "Add both (Rec.)" (_`D911`_–_`D917`_); a zero-context review of _`S19`_ and _`P25`_ (1 reviewer), on the user's go-ahead ("One reviewer (Rec.)").
+- 2026-11-23: _`P25`_'s zero-context review run (1 reviewer; no stray writes; record in `./.workflow/.temp/review-p25/REVIEW.md`): 14 fixes and 2 skips; questions: "Neither (Rec.)" (#9), "An error (Rec.)" (#10), "Split + accept focus (Rec.)" (#12), "When its causes go (Rec.)" (#14a), "Latest opened on top (Rec.)" (#15), and #2 decided after the user's check ("I see no background leak"): the grid opens only while raised; recorded as _`D918`_–_`D928`_.
+- 2026-11-24: _`S19`_ and _`P25`_ approved, and _`P24`_ re-approved for _`R66`_ (option chosen: "Approve and commit (Rec.)").
