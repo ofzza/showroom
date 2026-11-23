@@ -5,7 +5,7 @@
 - **Stage:** implementation: _`P23`_ project overrides ([PLAN-P23-project-overrides.md](./PLAN-P23-project-overrides.md)) is implemented (2026-11-23), for _`S18`_ as revised by _`R64`_.
 - **Next free:** _`D894`_, _`S19`_, _`P24`_, _`O145`_, _`L20`_, _`R65`_, _`H1`_, _`K32`_
 - **Working on:** nothing in progress.
-- **Next step:** the fast-path fix of _`O144`_ (PLAN-P23-project-overrides.md), chosen at _`P23`_'s checkpoint: `check()` strips `showroom.json: ` from the validation errors it gives that path.
+- **Next step:** none planned; the next segment of the plan, on the user's word.
 
 ## Open questions
 
@@ -13,7 +13,7 @@
 
 ## Waiting on me
 
-- `./.workflow/.temp/p23-migrate/` (the migration script, its file list and copies), `p23-check/` (the served `project-overrides` copy), `p23-format/` (formatting backups), `p23-readme-ts/` (`README.md`'s samples, type checked), `ci-p23.log`, `serve-check-p23.log`, `serve-dogfood-p23.log`; ask before deleting them.
+- `./.workflow/.temp/p23-migrate/` (the migration script, its file list and copies), `p23-check/` (the served `project-overrides` copy), `p23-format/` (formatting backups), `p23-readme-ts/` (`README.md`'s samples, type checked), `ci-p23.log`, `ci-o144.log`, `serve-check-p23.log`, `serve-dogfood-p23.log`; ask before deleting them.
 - `./.workflow/.temp/review-p23/` (_`P23`_'s review record, snapshots and formatting backups); ask before deleting it.
 - `./.workflow/.temp/s18-revision/` (formatting backups); ask before deleting it.
 - `./.workflow/.temp/review-p22/` (_`P22`_'s review record and snapshots), `p22-format/`, `s18-format/` (formatting backups), `p22-readme-ts/` (`README.md`'s samples, type checked), `p22-check/` (the served `stackless` copy), `ci-s18.log`, `ci-p22.log`, `serve-dogfood-p22.log`, `serve-p22-check.log`; ask before deleting them.
@@ -490,3 +490,4 @@
 - 2026-11-23: second stop and report: the same reviewer piped through `cut`; the stray-write check found no change; on the user's word (option chosen: "Check; finish the pass myself (Rec.)") it isn't resumed, the remaining documentation pass is done by hand; _`P23`_'s review run (2 reviewers), its record in `./.workflow/.temp/review-p23/REVIEW.md`.
 - 2026-11-23: _`P23`_ (project overrides, _`D883`_–_`D893`_) approved after its review (option chosen: "Approve and commit (Rec.)").
 - 2026-11-23: _`P23`_ implemented (option chosen: "Approve and commit (Rec.)"), with `installFixture()`'s fix ("Keep, same commit (Rec.)"); _`O144`_ to be a fast-path fix next ("Fast-path fix next (Rec.)").
+- 2026-11-23: fast-path fix of _`O144`_: `check()` no longer repeats `showroom.json: ` in the messages of the configuration's errors it gives that path; `npm run ci` green (`./.workflow/.temp/ci-o144.log`); approved (option chosen: "Approve and commit (Rec.)").

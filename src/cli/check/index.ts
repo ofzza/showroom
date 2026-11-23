@@ -217,7 +217,15 @@ export async function checkHost(root: string, options: CheckOptions, report: 'ch
   // Read the configuration
   const { configuration, errors } = await readConfiguration(root);
   if (!configuration) {
-    issues.push(...errors.map((message) => ({ severity: 'error' as const, message, path: CONFIGURATION_FILE_NAME })));
+    // The issue names showroom.json as its path, so its message doesn't again, as readConfiguration()'s errors do (O144)
+    const prefix = `${CONFIGURATION_FILE_NAME}: `;
+    issues.push(
+      ...errors.map((message) => ({
+        severity: 'error' as const,
+        message: message.startsWith(prefix) ? message.slice(prefix.length) : message,
+        path: CONFIGURATION_FILE_NAME,
+      })),
+    );
     return fail();
   }
 

@@ -25,6 +25,10 @@ All notable changes to `@ofzza/showroom`, by version as published to npm. This p
 
 - **No host check runs when the check has no project**: when the stack adapter can't read the project file, or the merged project has no name, `check` still reports every other issue, but runs no showcase adapter's host check.
 
+### Fixed
+
+- **`showroom.json`'s errors no longer name the file twice**: `check`, `serve` and `build` printed e.g. `error: showroom.json: showroom.json: unknown key "x"`, and now print `error: showroom.json: unknown key "x"`; `CheckIssue.message` no longer starts with `showroom.json: `, as its `path` names the file. `readConfiguration()`'s and `validateConfiguration()`'s `errors` keep it.
+
 ## 0.1.0-alpha.3 (2026-11-18)
 
 ### Breaking changes

@@ -345,10 +345,10 @@ describe('cli/check', () => {
     it.each([
       ['no-configuration', /^showroom\.json not found in /, 'showroom.json'],
       ['invalid-configuration', /^showroom\.json is not valid JSON: /, 'showroom.json'],
-      ['wrong-configuration', /^showroom\.json: /, 'showroom.json'],
+      ['wrong-configuration', /^"project": "sourceRoot" must be /, 'showroom.json'],
       [
         'unknown-stack',
-        /^showroom\.json: "project" has no "name", which a host repository without a stack adapter must give \("stack" "cobol" names no stack adapter; they are: dotnet, typescript\)$/,
+        /^"project" has no "name", which a host repository without a stack adapter must give \("stack" "cobol" names no stack adapter; they are: dotnet, typescript\)$/,
         'showroom.json',
       ],
       ['no-project', /^package\.json not found in /, undefined],
@@ -362,11 +362,13 @@ describe('cli/check', () => {
     });
 
     it('Reports every configuration error at once', async () => {
+      // Each names showroom.json as its path, and not again in its message (O144)
       const result = await check(_fixture('wrong-configuration'));
+      expect(result.issues.every(({ path }) => path === 'showroom.json')).toBe(true);
       expect(result.issues.map(({ message }) => message)).toEqual([
-        'showroom.json: "project": "sourceRoot" must be a non-empty string or null',
-        'showroom.json: "project": "ignore" must be an array of strings or null',
-        'showroom.json: unknown key "extra"',
+        '"project": "sourceRoot" must be a non-empty string or null',
+        '"project": "ignore" must be an array of strings or null',
+        'unknown key "extra"',
       ]);
     });
   });

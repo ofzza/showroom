@@ -125,7 +125,7 @@ describe('cli/build', () => {
       expect(written).toEqual({
         stdout: '',
         stderr:
-          'error: showroom.json: showroom.json: "project" has no "name", which a host repository without a stack adapter must give ("stack" "cobol" names no stack adapter; they are: dotnet, typescript)\n',
+          'error: showroom.json: "project" has no "name", which a host repository without a stack adapter must give ("stack" "cobol" names no stack adapter; they are: dotnet, typescript)\n',
       });
     });
 
