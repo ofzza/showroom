@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P23`_ project overrides ([PLAN-P23-project-overrides.md](./PLAN-P23-project-overrides.md)) is implemented (2026-11-23), for _`S18`_ as revised by _`R64`_.
-- **Next free:** _`D894`_, _`S19`_, _`P24`_, _`O145`_, _`L20`_, _`R65`_, _`H1`_, _`K32`_
-- **Working on:** nothing in progress.
-- **Next step:** none planned; the next segment of the plan, on the user's word.
+- **Stage:** implementation: _`P24`_ overlays in showcase frames ([PLAN-P24-overlays.md](./PLAN-P24-overlays.md)), approved (_`D894`_–_`D899`_), from blox's brief (`../blox/.workflow/.temp/showroom-overlays/BRIEF.md`). _`P23`_ is done.
+- **Next free:** _`D900`_, _`S19`_, _`P25`_, _`O146`_, _`L20`_, _`R66`_, _`H1`_, _`K32`_
+- **Working on:** _`P24`_, step 1 (the frame script).
+- **Next step:** implement _`P24`_'s steps, then its checkpoint with the browser check.
 
 ## Open questions
 
@@ -491,3 +491,5 @@
 - 2026-11-23: _`P23`_ (project overrides, _`D883`_–_`D893`_) approved after its review (option chosen: "Approve and commit (Rec.)").
 - 2026-11-23: _`P23`_ implemented (option chosen: "Approve and commit (Rec.)"), with `installFixture()`'s fix ("Keep, same commit (Rec.)"); _`O144`_ to be a fast-path fix next ("Fast-path fix next (Rec.)").
 - 2026-11-23: fast-path fix of _`O144`_: `check()` no longer repeats `showroom.json: ` in the messages of the configuration's errors it gives that path; `npm run ci` green (`./.workflow/.temp/ci-o144.log`); approved (option chosen: "Approve and commit (Rec.)").
+- 2026-11-23: _`P24`_ (overlays in showcase frames) drafted from blox's brief; its choices Q1–Q4 settled, all as recommended (options chosen: "Containing block (Rec.)", "Skip both (Rec.)", "Re-measure on end (Rec.)", "No review (Rec.)"), recorded as _`D894`_–_`D899`_.
+- 2026-11-23: _`P24`_ approved, and _`P4.2`_ re-approved for _`R65`_ (option chosen: "Approve and commit (Rec.)").

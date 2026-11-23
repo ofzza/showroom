@@ -317,6 +317,10 @@ None (_`D61`_).
 - _`P22`_ Host repositories without a stack adapter (approved 2026-11-18, implemented 2026-11-18): _`S18`_ (SPEC.md), one segment. [See Host repositories without a stack adapter](./PLAN-P22-stackless.md)
 - _`P23`_ Project overrides (approved 2026-11-23): _`S18`_ (SPEC.md) as revised by _`R64`_, one segment. [See Project overrides](./PLAN-P23-project-overrides.md)
 
+## Overlays in showcase frames
+
+- _`P24`_ Overlays in showcase frames (approved 2026-11-23): a showcase frame grows for open overlays (absolutely positioned content, fixed layers' content, portals), from blox's brief; changes _`D152`_ and _`D168`_ (PLAN-P4.2-showcase-frames.md), one segment. [See Overlays in showcase frames](./PLAN-P24-overlays.md)
+
 ## Known open issues
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: _`P9`_. Status: picked up by _`P9`_; resolved by _`D323`_ (SPEC.md), implemented by _`P9`_ 2026-11-13.
