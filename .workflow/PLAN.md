@@ -319,7 +319,7 @@ None (_`D61`_).
 
 ## Overlays in showcase frames
 
-- _`P24`_ Overlays in showcase frames (approved 2026-11-23): a showcase frame grows for open overlays (absolutely positioned content, fixed layers' content, portals), from blox's brief; changes _`D152`_ and _`D168`_ (PLAN-P4.2-showcase-frames.md), one segment. [See Overlays in showcase frames](./PLAN-P24-overlays.md)
+- _`P24`_ Overlays in showcase frames (approved 2026-11-23, implemented 2026-11-23): a showcase frame grows for open overlays (absolutely positioned content, fixed layers' content, portals), from blox's brief; changes _`D152`_ and _`D168`_ (PLAN-P4.2-showcase-frames.md), one segment. [See Overlays in showcase frames](./PLAN-P24-overlays.md)
 
 ## Known open issues
 

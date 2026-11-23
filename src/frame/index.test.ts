@@ -33,6 +33,29 @@ class _LoggedNode {
 }
 
 /**
+ * Represents an element of the stubbed frame's document, below `<body>`
+ */
+interface _FakeElement {
+  /**
+   * Its parent element (`<body>` itself for a child of `<body>`)
+   */
+  parentElement: unknown;
+  /**
+   * Its computed style, over the defaults of a static, visible element
+   */
+  style: Record<string, string>;
+  /**
+   * Its box, in pixels from the viewport's top
+   */
+  rect: { bottom: number; width: number; height: number };
+  /**
+   * Gets its box, as layout would
+   * @returns The box
+   */
+  getBoundingClientRect: () => { bottom: number; width: number; height: number };
+}
+
+/**
  * Represents a stubbed showcase frame `window`, and the handles a test drives it through
  */
 interface _FakeFrame {
@@ -76,9 +99,41 @@ interface _FakeFrame {
    */
   setChildMargin: (margin: number) => void;
   /**
-   * Calls the ResizeObserver's callback, as the browser would after a resize
+   * Calls the ResizeObserver's callback, as the browser would after a resize, then runs the animation frame it asked for
    */
   resize: () => void;
+  /**
+   * `<body>`'s only child at first
+   */
+  child: _FakeElement;
+  /**
+   * Adds an element, as the page would
+   * @param element Its parent (`<body>`'s child by default, or `body` for `<body>` itself), computed style and box
+   * @returns The element
+   */
+  addElement: (element: { parent?: _FakeElement | 'body'; style?: Record<string, string>; bottom: number; height?: number; width?: number }) => _FakeElement;
+  /**
+   * Removes an element, as the page would
+   * @param element The element
+   */
+  removeElement: (element: _FakeElement) => void;
+  /**
+   * Calls the MutationObserver's callback, as the browser would after the page changes
+   */
+  mutate: () => void;
+  /**
+   * Options and target the MutationObserver observes with, if any
+   */
+  mutationObserved: { target: unknown; options: unknown }[];
+  /**
+   * Runs the animation frame callbacks waiting
+   */
+  nextFrame: () => void;
+  /**
+   * Counts the measures run, as the walks over `<body>`'s elements
+   * @returns The number of measures
+   */
+  measures: () => number;
   /**
    * Dispatches an event to the window's listeners
    * @param type Type of the event
@@ -98,28 +153,63 @@ interface _FakeFrame {
    * @param type Type of the event
    */
   dispatchDocument: (type: string) => void;
+  /**
+   * Types of the document's listeners added in the capture phase
+   */
+  capturing: string[];
 }
 
 /**
- * Creates a stubbed showcase frame `window`: a `<body>` with one child, margins, an optional parent, and a ResizeObserver that runs its callback only
- * when told to
- * @param options The URL's query, whether the frame has a parent other than itself, and the document's ready state
+ * Creates a stubbed showcase frame `window`: a `<body>` with one child, margins, elements added by hand, an optional parent, a ResizeObserver and a
+ * MutationObserver that run their callbacks only when told to, and animation frames run by hand
+ * @param options The URL's query, whether the frame has a parent other than itself, the document's ready state, and whether it has
+ * `requestAnimationFrame`
  * @returns The stubbed frame and its handles
  */
-function _createFrame(options: { search?: string; parent?: boolean; readyState?: string } = {}): _FakeFrame {
+function _createFrame(options: { search?: string; parent?: boolean; readyState?: string; animationFrame?: boolean } = {}): _FakeFrame {
   const posted: { message: unknown; origin: string }[] = [];
   const attributes = new Map<string, string>();
   const rootStyle: Record<string, string> = {};
   const listeners = new Map<string, ((event?: unknown) => void)[]>();
   const documentListeners = new Map<string, (() => void)[]>();
+  const capturing: string[] = [];
   const observed: unknown[] = [];
-  let bottom = 100.2;
+  const mutationObserved: { target: unknown; options: unknown }[] = [];
   let bodyBottom: number | undefined;
-  let childMargin = 0;
   let callback: (() => void) | undefined;
-  const child = { getBoundingClientRect: () => ({ bottom }) };
+  let mutationCallback: (() => void) | undefined;
+  const frames: (() => void)[] = [];
+  const nextFrame = () => frames.splice(0).forEach((run) => run());
   // `<body>` holds its child, plus its own 2 px bottom padding, unless a test moves its bottom (e.g. text directly in it)
-  const body = { children: [child], getBoundingClientRect: () => ({ top: 8, bottom: bodyBottom ?? bottom + 2 }) };
+  const body: Record<string, unknown> = {};
+  const createElement = (parent: unknown, style: Record<string, string>, rect: _FakeElement['rect']): _FakeElement => {
+    const element: _FakeElement = { parentElement: parent, style, rect, getBoundingClientRect: () => element.rect };
+    return element;
+  };
+  const child = createElement(body, {}, { bottom: 100.2, width: 300, height: 92.2 });
+  let elements: _FakeElement[] = [child];
+  let measures = 0;
+  Object.defineProperties(body, {
+    children: { get: () => elements.filter((element) => element.parentElement === body) },
+    getElementsByTagName: {
+      value: (name: string) => {
+        measures++;
+        return name === '*' ? elements.slice() : [];
+      },
+    },
+    getBoundingClientRect: { value: () => ({ top: 8, bottom: bodyBottom ?? child.rect.bottom + 2 }) },
+  });
+  const defaultStyle = {
+    position: 'static',
+    display: 'block',
+    visibility: 'visible',
+    clip: 'auto',
+    overflowY: 'visible',
+    transform: 'none',
+    filter: 'none',
+    contain: 'none',
+    marginBottom: '0px',
+  };
   const parent: Record<string, unknown> = { postMessage: (message: unknown, origin: string) => posted.push({ message, origin }) };
   const original: [string, unknown[]][] = [];
   const console = Object.fromEntries(CONSOLE_LEVELS.map((level) => [level, (...values: unknown[]) => void original.push([level, values])]));
@@ -128,7 +218,10 @@ function _createFrame(options: { search?: string; parent?: boolean; readyState?:
       documentElement: { setAttribute: (name: string, value: string) => attributes.set(name, value), style: rootStyle },
       body,
       readyState: options.readyState ?? 'interactive',
-      addEventListener: (type: string, listener: () => void) => documentListeners.set(type, [...(documentListeners.get(type) ?? []), listener]),
+      addEventListener: (type: string, listener: () => void, capture?: boolean) => {
+        documentListeners.set(type, [...(documentListeners.get(type) ?? []), listener]);
+        if (capture === true) capturing.push(type);
+      },
     },
     location: { search: options.search ?? '' },
     URLSearchParams,
@@ -141,13 +234,24 @@ function _createFrame(options: { search?: string; parent?: boolean; readyState?:
     clearTimeout: (timer: ReturnType<typeof setTimeout> | undefined) => clearTimeout(timer),
     scrollY: 0,
     getComputedStyle: (element: unknown) =>
-      element === body ? { paddingBottom: '2px', borderBottomWidth: '0px', marginBottom: '8px' } : { marginBottom: `${childMargin}px` },
+      element === body
+        ? { ...defaultStyle, paddingBottom: '2px', borderBottomWidth: '0px', marginBottom: '8px' }
+        : { ...defaultStyle, ...(element as _FakeElement).style },
+    ...(options.animationFrame === false ? {} : { requestAnimationFrame: (run: () => void) => void frames.push(run) }),
     ResizeObserver: class {
       constructor(run: () => void) {
         callback = run;
       }
       observe(element: unknown) {
         if (!observed.includes(element)) observed.push(element);
+      }
+    },
+    MutationObserver: class {
+      constructor(run: () => void) {
+        mutationCallback = run;
+      }
+      observe(target: unknown, observeOptions: unknown) {
+        mutationObserved.push({ target, options: observeOptions });
       }
     },
     addEventListener: (type: string, listener: (event?: unknown) => void) => listeners.set(type, [...(listeners.get(type) ?? []), listener]),
@@ -160,10 +264,27 @@ function _createFrame(options: { search?: string; parent?: boolean; readyState?:
     rootStyle,
     parent,
     observed,
-    setBottom: (value) => void (bottom = value),
+    setBottom: (value) => void (child.rect.bottom = value),
     setBodyBottom: (value) => void (bodyBottom = value),
-    setChildMargin: (value) => void (childMargin = value),
-    resize: () => callback?.(),
+    setChildMargin: (value) => void (child.style.marginBottom = `${value}px`),
+    resize: () => {
+      callback?.();
+      nextFrame();
+    },
+    child,
+    addElement: ({ parent = child, style = {}, bottom, height = 100, width = 200 }) => {
+      const element = createElement(parent === 'body' ? body : parent, style, { bottom, height, width });
+      elements = [...elements, element];
+      return element;
+    },
+    removeElement: (element) => {
+      elements = elements.filter((item) => item !== element && item.parentElement !== element);
+    },
+    mutate: () => mutationCallback?.(),
+    mutationObserved,
+    nextFrame,
+    measures: () => measures,
+    capturing,
     console,
     original,
     dispatch: (type, event) => listeners.get(type)?.forEach((listener) => listener(event)),
@@ -218,8 +339,8 @@ function _heights(frame: _FakeFrame): number[] {
 
 describe('frame', () => {
   // Tests the message helpers on hand-written messages, and the frame script by running its inserted source text (getFrameScript()) with a
-  // stubbed `window`: its document, parent, console, ResizeObserver and listeners, driven by hand, and Vitest's fake timers for the console's
-  // batches.
+  // stubbed `window`: its document and elements, parent, console, ResizeObserver, MutationObserver, animation frames and listeners, driven by hand,
+  // and Vitest's fake timers for the console's batches.
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -281,7 +402,8 @@ describe('frame', () => {
 
   describe('Frame script', () => {
     // Runs the inserted script on a stubbed frame whose `<body>` has one child; by default, the height reported is the child's bottom plus `<body>`'s
-    // bottom padding (2 px) and margin (8 px), rounded up.
+    // bottom padding (2 px) and margin (8 px), rounded up. Overlays are elements added by hand, with their computed styles and boxes, measured at
+    // the next animation frame after the observers' callbacks or the document's events, which the tests call and run by hand.
 
     it('Is a self-contained script call, safe inside a <script> element', () => {
       // The function is inlined as source text, so it can't close over the module's names (see AGENTS.md › The frame script is self-contained)
@@ -353,6 +475,7 @@ describe('frame', () => {
       frame.resize();
       frame.setBottom(50);
       frame.dispatch('load');
+      frame.nextFrame();
       expect(_heights(frame)).toEqual([111, 310, 60]);
     });
 
@@ -406,6 +529,155 @@ describe('frame', () => {
         frame.resize();
       }
       expect(_heights(frame)).toEqual([111, 130, 160, 180, 220, 240]);
+    });
+
+    it('Measures an absolutely positioned panel below its trigger', () => {
+      // blox's brief: a 300 px dropdown below a 40 px trigger was cut off at the frame's bottom while only `<body>` and its children were measured
+      const frame = _createFrame();
+      frame.setBottom(48);
+      frame.child.style.position = 'relative';
+      const panel = frame.addElement({ style: { position: 'absolute' }, bottom: 348, height: 300 });
+      _run(frame);
+      expect(_heights(frame)).toEqual([348]);
+      expect(frame.observed).toContain(panel);
+    });
+
+    it('Grows when a panel opens, and shrinks back when it closes, removed or not displayed', () => {
+      const frame = _createFrame();
+      frame.setBottom(48);
+      frame.child.style.position = 'relative';
+      _run(frame);
+      const panel = frame.addElement({ style: { position: 'absolute' }, bottom: 348, height: 300 });
+      frame.mutate();
+      frame.nextFrame();
+      panel.style.display = 'none';
+      frame.mutate();
+      frame.nextFrame();
+      panel.style.display = 'block';
+      frame.mutate();
+      frame.nextFrame();
+      frame.removeElement(panel);
+      frame.mutate();
+      frame.nextFrame();
+      expect(_heights(frame)).toEqual([58, 348, 58, 348, 58]);
+      expect(frame.mutationObserved).toEqual([
+        { target: (frame.window.document as { body: unknown }).body, options: { childList: true, attributes: true, subtree: true } },
+      ]);
+    });
+
+    it("Measures a fixed layer's panel, never the layer itself", () => {
+      // Angular CDK's overlay container and MUI's modal root fill the viewport, and CDK's stays, empty, after its overlay closes: measuring the
+      // layer would keep the frame at its grown height
+      const frame = _createFrame();
+      _run(frame);
+      const layer = frame.addElement({ parent: 'body', style: { position: 'fixed' }, bottom: 111, height: 111 });
+      const panel = frame.addElement({ parent: layer, style: { position: 'absolute' }, bottom: 400, height: 300 });
+      frame.mutate();
+      frame.nextFrame();
+      // The iframe grew, and the layer with it
+      layer.rect = { bottom: 400, width: 300, height: 400 };
+      frame.removeElement(panel);
+      frame.mutate();
+      frame.nextFrame();
+      expect(_heights(frame)).toEqual([111, 400, 111]);
+    });
+
+    it('Skips a panel its containing block, or an ancestor above it, clips', () => {
+      const frame = _createFrame();
+      const scrolling = frame.addElement({ style: { position: 'relative', overflowY: 'auto' }, bottom: 100, height: 50 });
+      frame.addElement({ parent: scrolling, style: { position: 'absolute' }, bottom: 400 });
+      const clipping = frame.addElement({ style: { overflowY: 'hidden' }, bottom: 100, height: 50 });
+      const transformed = frame.addElement({ parent: clipping, style: { transform: 'translateX(1px)' }, bottom: 100, height: 50 });
+      frame.addElement({ parent: transformed, style: { position: 'absolute' }, bottom: 500 });
+      _run(frame);
+      expect(_heights(frame)).toEqual([111]);
+    });
+
+    it('Measures a panel escaping a clipping box below its containing block', () => {
+      // Overflow clips only what its box contains the containing block of: a dropdown in a scrolling card, positioned against something outside
+      // the card, shows whole
+      const frame = _createFrame();
+      frame.child.style.position = 'relative';
+      const card = frame.addElement({ style: { overflowY: 'auto' }, bottom: 100, height: 50 });
+      frame.addElement({ parent: card, style: { position: 'absolute' }, bottom: 400 });
+      // An absolutely positioned ancestor is skipped to its own containing block, and a fixed one escapes every clipping box above it
+      const wrapper = frame.addElement({ parent: card, style: { position: 'absolute' }, bottom: 100, height: 20 });
+      frame.addElement({ parent: wrapper, style: { position: 'absolute' }, bottom: 420 });
+      const outer = frame.addElement({ style: { position: 'relative', overflowY: 'hidden' }, bottom: 100, height: 50 });
+      const layer = frame.addElement({ parent: outer, style: { position: 'fixed' }, bottom: 100, height: 100 });
+      frame.addElement({ parent: layer, style: { position: 'absolute' }, bottom: 450 });
+      _run(frame);
+      expect(_heights(frame)).toEqual([450]);
+    });
+
+    it('Skips what shows nothing: hidden, visually hidden, or an empty box', () => {
+      // The visually hidden pattern (`clip`, 1×1 px) of Fluent UI, MUI, Angular CDK's live announcer and Tailwind's `sr-only`, and Fluent UI's
+      // portal node, which has no height
+      const frame = _createFrame();
+      frame.addElement({ style: { position: 'absolute', visibility: 'hidden' }, bottom: 400 });
+      frame.addElement({ style: { position: 'absolute', clip: 'rect(0px, 0px, 0px, 0px)' }, bottom: 400, height: 1, width: 1 });
+      frame.addElement({ parent: 'body', style: { position: 'absolute' }, bottom: 400, height: 0 });
+      _run(frame);
+      expect(_heights(frame)).toEqual([111]);
+    });
+
+    it('Measures again when a transition or an animation ends', () => {
+      // An overlay opening scaled down (MUI's Popover, Angular Material's menus) is measured at its first frame when it is added, and nothing
+      // observes a transform
+      const frame = _createFrame();
+      _run(frame);
+      const panel = frame.addElement({ style: { position: 'absolute' }, bottom: 250, height: 150 });
+      frame.mutate();
+      frame.nextFrame();
+      panel.rect = { bottom: 300, width: 200, height: 200 };
+      frame.dispatchDocument('transitionend');
+      frame.nextFrame();
+      panel.rect = { bottom: 350, width: 200, height: 250 };
+      frame.dispatchDocument('animationend');
+      frame.nextFrame();
+      expect(_heights(frame)).toEqual([111, 250, 300, 350]);
+      expect(frame.capturing).toEqual(['transitionend', 'animationend']);
+    });
+
+    it('Measures once per animation frame, however often it is asked', () => {
+      const frame = _createFrame();
+      _run(frame);
+      frame.setBottom(200);
+      frame.mutate();
+      frame.setBottom(300);
+      frame.mutate();
+      frame.dispatchDocument('transitionend');
+      expect(_heights(frame)).toEqual([111]);
+      expect(frame.measures()).toBe(1);
+      frame.nextFrame();
+      frame.nextFrame();
+      expect(_heights(frame)).toEqual([111, 310]);
+      expect(frame.measures()).toBe(2);
+    });
+
+    it('Measures on a timer where there is no requestAnimationFrame', () => {
+      const frame = _createFrame({ animationFrame: false });
+      _run(frame);
+      frame.setBottom(200);
+      frame.mutate();
+      frame.mutate();
+      expect(_heights(frame)).toEqual([111]);
+      vi.advanceTimersByTime(0);
+      expect(_heights(frame)).toEqual([111, 210]);
+    });
+
+    it("Stops reporting growth for an overlay anchored to the viewport's bottom", () => {
+      // An overlay placed against the window's bottom moves down each time the iframe grows: the guard on repeated growth stops it
+      const frame = _createFrame();
+      _run(frame);
+      const layer = frame.addElement({ parent: 'body', style: { position: 'fixed' }, bottom: 111, height: 111 });
+      const panel = frame.addElement({ parent: layer, style: { position: 'absolute' }, bottom: 131, height: 50 });
+      for (let step = 1; step <= MAX_REPEATED_GROWTHS + 2; step++) {
+        panel.rect = { ...panel.rect, bottom: 111 + step * 20 };
+        frame.mutate();
+        frame.nextFrame();
+      }
+      expect(_heights(frame)).toEqual([111, 131, 151]);
     });
   });
 

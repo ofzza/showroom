@@ -23,6 +23,7 @@ All notable changes to `@ofzza/showroom`, by version as published to npm. This p
 
 ### Changed
 
+- **A showcase frame grows for open overlays**: a dropdown, popover or menu, absolutely positioned (in place, in a portal, or in a fixed layer such as Angular CDK's overlay container or MUI's modal root), now counts toward the showcase frame's height while it is open, instead of being cut off at its bottom, and the showcase frame shrinks back when it closes. Fixed boxes, and anything hidden, visually hidden, empty or clipped, never count. An overlay that keeps itself within the window (MUI's `Popover`) still never grows it (see README.md).
 - **No host check runs when the check has no project**: when the stack adapter can't read the project file, or the merged project has no name, `check` still reports every other issue, but runs no showcase adapter's host check.
 
 ### Fixed

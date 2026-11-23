@@ -1,6 +1,6 @@
 # _`P24`_ Overlays in showcase frames
 
-approved 2026-11-23 (option chosen: "Approve and commit (Rec.)")
+approved 2026-11-23 (option chosen: "Approve and commit (Rec.)"); implemented 2026-11-23 (option chosen: "Approve and commit"), with _`D900`_
 
 From blox's brief (`../blox/.workflow/.temp/showroom-overlays/BRIEF.md`, blox's _`P4.2`_, _`O20`_, _`D131`_): the frame script measures only `<body>` and its children (_`D152`_, _`D168`_ (PLAN-P4.2-showcase-frames.md)), so content out of the normal flow never grows a showcase frame, and the showroom's box around the iframe clips it: an absolutely positioned dropdown, the content of a fixed layer (Angular CDK's overlay container, MUI's modal root) and a portal (Fluent UI's) are cut off at the frame's bottom. Opening one resizes neither `<body>` nor its children, so nothing re-measures either. One segment, with no child segments and no specification segment of its own (it changes _`P4.2`_'s decisions, not what the specification asks: a showcase frame as high as its content). Its choices were settled 2026-11-23 (Q1–Q4, all as recommended); no zero-context review (Q4).
 
@@ -20,6 +20,10 @@ From blox's brief (`../blox/.workflow/.temp/showroom-overlays/BRIEF.md`, blox's 
   - `src/frame/index.test.ts`: the stubbed `window` gets elements under `<body>` (each with its parent, computed style and rect), a `MutationObserver` and `requestAnimationFrame` driven by hand, and document listeners; a test each for the brief's checks (a 300 px panel below a 40 px trigger; the panel removed and set to `display: none`; a fixed full-viewport layer left in place, empty; a panel inside an `overflow: auto` box), a clipping ancestor below the containing block (_`D895`_), `visibility: hidden`, `clip` and an empty portal (_`D896`_), the end of a transition (_`D897`_), several changes in one animation frame measured once (_`D898`_), and the guard stopping an overlay anchored to the viewport's bottom; the existing height tests run their batched measures; the `describe`'s purpose comment;
   - `README.md` (the measured height, next to "Don't size a showcase to its viewport"; overlays that keep themselves within the window, e.g. MUI `Popover`'s `max-height`, never grow the frame, so a showcase lifts that limit in its theme), `CHANGELOG.md` (`## Unreleased` › Changed), `AGENTS.md` (the growth guard's gotcha, the frame script's tests in Testing); the Glossary's "Frame script" still holds;
   - the user checks the brief's checks, and an animated overlay, in a browser, on a scratch host repository served at the checkpoint.
+
+### From the implementation
+
+- _`D900`_ (`live`; refines _`D894`_, _`D896`_; found by the tests, listed at the checkpoint): **`<body>`'s fixed and absolutely positioned children are left out of _`D168`_'s children**: a fixed child (Angular CDK's overlay container is one) is never measured, and an absolutely positioned one (CDK's visually hidden live announcer is one) is measured as every other absolutely positioned element, so _`D896`_'s rules apply to it, and `<body>`'s padding and border aren't added below it.
 
 ## Steps
 

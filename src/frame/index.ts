@@ -263,9 +263,9 @@ export const FRAME_SCRIPT_CONSTANTS: FrameScriptConstants = {
  * (still calling the originals), uncaught errors and rejected promises, each formatted into a line at once, and posted in batches (`console`) at most
  * every CONSOLE_FLUSH_MS, and at once on `pagehide`. Values are formatted readably: strings as they are, an `Error` as its stack, objects and arrays
  * as indented JSON (`[Circular]` for cycles, `BigInt`s, `Map`s, `Set`s, DOM nodes and functions described), and anything else by `String()`. Once
- * the document is loaded, it posts `ready`, and `resize` whenever its content's height changes; growth by the same amount again and again stops
- * being reported. It is inlined into each showcase frame page as its source text, so it references no outer names: everything it uses comes from
- * `window`, and its constants from its argument.
+ * the document is loaded, it posts `ready`, and `resize` whenever its content's height changes, absolutely positioned content (overlays) included,
+ * re-measured at most once per animation frame; growth by the same amount again and again stops being reported. It is inlined into each showcase
+ * frame page as its source text, so it references no outer names: everything it uses comes from `window`, and its constants from its argument.
  * @param constants The frame script's constants
  */
 export function frameScript(constants: FrameScriptConstants): void {
@@ -408,9 +408,58 @@ export function frameScript(constants: FrameScriptConstants): void {
     if (data.source === constants.showroomSource && data.type === 'theme') applyTheme(data.theme);
   });
 
-  // Measures the content: the larger of `<body>`'s own bottom (which holds its text and in-flow content) plus its bottom margin, and the bottom of the
-  // lowest of its children plus that child's bottom margin (which may collapse through `<body>`'s) and `<body>`'s bottom padding and border
+  // Gets an element's computed style, once per measure
+  let styles = new Map<Element, CSSStyleDeclaration>();
+  const styleOf = (element: Element) => {
+    let style = styles.get(element);
+    if (!style) styles.set(element, (style = window.getComputedStyle(element)));
+    return style;
+  };
+
+  // Gets the containing block of an absolutely positioned element below `<body>`: its nearest ancestor that is positioned, transformed, filtered or
+  // contains its paint or layout; none where that is `<body>` or above
+  const containingBlock = (element: Element, body: HTMLElement): Element | null => {
+    for (let ancestor = element.parentElement; ancestor && ancestor !== body; ancestor = ancestor.parentElement) {
+      const style = styleOf(ancestor);
+      if (
+        style.position !== 'static' ||
+        (style.transform && style.transform !== 'none') ||
+        (style.filter && style.filter !== 'none') ||
+        /paint|layout|strict|content/.test(style.contain || '')
+      ) {
+        return ancestor;
+      }
+    }
+    return null;
+  };
+
+  // Checks if the browser clips an absolutely positioned element: an ancestor from its containing block upward, below `<body>` (whose overflow is
+  // the viewport's), whose vertical overflow isn't visible; an absolutely positioned ancestor goes on from its own containing block, and a fixed one
+  // escapes every ancestor above it
+  const isClipped = (element: Element, body: HTMLElement) => {
+    let ancestor = containingBlock(element, body);
+    while (ancestor && ancestor !== body) {
+      const style = styleOf(ancestor);
+      if (style.overflowY && style.overflowY !== 'visible') return true;
+      if (style.position === 'fixed') return false;
+      ancestor = style.position === 'absolute' ? containingBlock(ancestor, body) : ancestor.parentElement;
+    }
+    return false;
+  };
+
+  // Observes an element's size, once
   let observer: ResizeObserver | undefined;
+  const observed = new WeakSet<Element>();
+  const observe = (element: Element) => {
+    if (!observer || observed.has(element)) return;
+    observed.add(element);
+    observer.observe(element);
+  };
+
+  // Measures the content: the larger of `<body>`'s own bottom (which holds its text and in-flow content) plus its bottom margin, the bottom of the
+  // lowest of its children plus that child's bottom margin (which may collapse through `<body>`'s) and `<body>`'s bottom padding and border, and the
+  // bottom of the lowest absolutely positioned element (an overlay, a dropdown, a portal's content) that shows and isn't clipped. A fixed element's
+  // own box is never measured: it is placed against the viewport, so it never needs more room
   let last = -1;
   let lastGrowth = 0;
   let growths = 0;
@@ -418,15 +467,30 @@ export function frameScript(constants: FrameScriptConstants): void {
   const measure = () => {
     const body = window.document.body;
     if (!body) return;
-    const style = window.getComputedStyle(body);
+    styles = new Map();
+    const style = styleOf(body);
     const scroll = window.scrollY || 0;
     let bottom = body.getBoundingClientRect().bottom + (parseFloat(style.marginBottom) || 0);
     const below = (parseFloat(style.paddingBottom) || 0) + (parseFloat(style.borderBottomWidth) || 0);
     for (const child of Array.from(body.children)) {
-      observer?.observe(child);
-      const childBottom = child.getBoundingClientRect().bottom + (parseFloat(window.getComputedStyle(child).marginBottom) || 0);
+      // A fixed child is never measured, and an absolutely positioned one is measured below, as every other
+      const childStyle = styleOf(child);
+      if (childStyle.position === 'fixed' || childStyle.position === 'absolute') continue;
+      observe(child);
+      const childBottom = child.getBoundingClientRect().bottom + (parseFloat(childStyle.marginBottom) || 0);
       bottom = Math.max(bottom, childBottom + below);
     }
+    for (const element of Array.from(body.getElementsByTagName('*'))) {
+      const elementStyle = styleOf(element);
+      if (elementStyle.position !== 'absolute' || elementStyle.display === 'none' || elementStyle.visibility === 'hidden') continue;
+      // A clip is the visually hidden pattern, and an empty box shows nothing (a portal's own node)
+      if (elementStyle.clip && elementStyle.clip !== 'auto') continue;
+      const rect = element.getBoundingClientRect();
+      if (!(rect.width > 0 && rect.height > 0) || isClipped(element, body)) continue;
+      observe(element);
+      bottom = Math.max(bottom, rect.bottom);
+    }
+    styles = new Map();
     const height = Math.max(0, Math.ceil(bottom + scroll));
     if (height === last) return;
     // Growing by the same amount again and again means the content follows the iframe's own height: stop reporting growth then
@@ -447,15 +511,35 @@ export function frameScript(constants: FrameScriptConstants): void {
     post({ type: 'resize', height });
   };
 
-  // Starts once the document is loaded
+  // Asks for a measure, run once at the next animation frame however often it is asked for
+  let scheduled = false;
+  const schedule = () => {
+    if (scheduled) return;
+    scheduled = true;
+    const run = () => {
+      scheduled = false;
+      measure();
+    };
+    if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(run);
+    else window.setTimeout(run, 0);
+  };
+
+  // Starts once the document is loaded: measures at once, then again whenever a size changes, the page changes (an overlay opens by adding nodes,
+  // or changing classes and styles), a transition or an animation ends (an overlay opening scaled down), and on load
   const start = () => {
     post({ type: 'ready' });
-    if (typeof window.ResizeObserver === 'function' && window.document.body) {
-      observer = new window.ResizeObserver(measure);
-      observer.observe(window.document.body);
+    const body = window.document.body;
+    if (typeof window.ResizeObserver === 'function' && body) {
+      observer = new window.ResizeObserver(schedule);
+      observe(body);
     }
+    if (typeof window.MutationObserver === 'function' && body) {
+      new window.MutationObserver(schedule).observe(body, { childList: true, attributes: true, subtree: true });
+    }
+    window.document.addEventListener('transitionend', schedule, true);
+    window.document.addEventListener('animationend', schedule, true);
     measure();
-    window.addEventListener('load', measure);
+    window.addEventListener('load', schedule);
   };
   if (window.document.readyState === 'loading') {
     window.document.addEventListener('DOMContentLoaded', start);

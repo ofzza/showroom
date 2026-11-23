@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P24`_ overlays in showcase frames ([PLAN-P24-overlays.md](./PLAN-P24-overlays.md)), approved (_`D894`_–_`D899`_), from blox's brief (`../blox/.workflow/.temp/showroom-overlays/BRIEF.md`). _`P23`_ is done.
-- **Next free:** _`D900`_, _`S19`_, _`P25`_, _`O146`_, _`L20`_, _`R66`_, _`H1`_, _`K32`_
-- **Working on:** _`P24`_, step 1 (the frame script).
-- **Next step:** implement _`P24`_'s steps, then its checkpoint with the browser check.
+- **Stage:** implementation: _`P24`_ overlays in showcase frames ([PLAN-P24-overlays.md](./PLAN-P24-overlays.md)) is implemented (2026-11-23); its open point _`O145`_ (blox's checks) waits for a release.
+- **Next free:** _`D901`_, _`S19`_, _`P25`_, _`O146`_, _`L20`_, _`R66`_, _`H1`_, _`K32`_
+- **Working on:** nothing in progress.
+- **Next step:** the user's choice; blox's _`P4.2`_ waits for a release carrying _`P24`_ (`PUBLISH.md`, on the user's word).
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/p24-check/` (the browser check's host), `p24-format/` (formatting backups), `ci-p24.log`, `p24-build.log`, `serve-p24-check.log`, `serve-dogfood-p24.log`; ask before deleting them.
 - `./.workflow/.temp/p23-migrate/` (the migration script, its file list and copies), `p23-check/` (the served `project-overrides` copy), `p23-format/` (formatting backups), `p23-readme-ts/` (`README.md`'s samples, type checked), `ci-p23.log`, `ci-o144.log`, `serve-check-p23.log`, `serve-dogfood-p23.log`; ask before deleting them.
 - `./.workflow/.temp/review-p23/` (_`P23`_'s review record, snapshots and formatting backups); ask before deleting it.
 - `./.workflow/.temp/s18-revision/` (formatting backups); ask before deleting it.
@@ -493,3 +494,4 @@
 - 2026-11-23: fast-path fix of _`O144`_: `check()` no longer repeats `showroom.json: ` in the messages of the configuration's errors it gives that path; `npm run ci` green (`./.workflow/.temp/ci-o144.log`); approved (option chosen: "Approve and commit (Rec.)").
 - 2026-11-23: _`P24`_ (overlays in showcase frames) drafted from blox's brief; its choices Q1–Q4 settled, all as recommended (options chosen: "Containing block (Rec.)", "Skip both (Rec.)", "Re-measure on end (Rec.)", "No review (Rec.)"), recorded as _`D894`_–_`D899`_.
 - 2026-11-23: _`P24`_ approved, and _`P4.2`_ re-approved for _`R65`_ (option chosen: "Approve and commit (Rec.)").
+- 2026-11-23: _`P24`_ implemented, with _`D900`_ found by its tests; `npm run ci` green (`./.workflow/.temp/ci-p24.log`); approved after the browser check (option chosen: "Approve and commit").
