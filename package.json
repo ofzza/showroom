@@ -92,7 +92,7 @@
   "dependencies": {
     "@fluentui/react-components": "^9.75.1",
     "@fluentui/react-icons": "^2.0.345",
-    "@ofzza/tsschema": "0.1.0-alpha.7",
+    "@ofzza/tsschema": "0.1.0-alpha.8",
     "github-slugger": "^2.0.0",
     "ignore": "^7.0.14",
     "json5": "^2.2.3",
