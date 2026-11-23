@@ -90,9 +90,12 @@ describe('testing', () => {
       expect(await readFile(join(path, 'package-lock.json'), 'utf8')).toBe(await readFile(join(FIXTURES, 'showcase-react-18', 'package-lock.json'), 'utf8'));
       expect(existsSync(join(path, 'node_modules'))).toBe(true);
       expect(await readdir(scratch.path)).toEqual([basename(path)]);
-      // Installed already
+      // Installed already, its fixture files copied again, as one can change without its lockfile (e.g. its showroom.json, in P23)
+      await writeFile(join(path, 'showroom.json'), '{ "stale": true }');
       expect(await installFixture('showcase-react-18', run, scratch.path)).toBe(path);
       expect(runs).toHaveLength(1);
+      expect(await readFile(join(path, 'showroom.json'), 'utf8')).toBe(await readFile(join(FIXTURES, 'showcase-react-18', 'showroom.json'), 'utf8'));
+      expect(existsSync(join(path, 'node_modules'))).toBe(true);
     } finally {
       await scratch.remove();
     }

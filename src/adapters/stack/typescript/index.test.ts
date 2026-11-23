@@ -40,6 +40,10 @@ describe('adapters/stack/typescript', () => {
     it('Adds no documentation patterns', () => {
       expect(new TypeScriptStackAdapter().documentation).toEqual([]);
     });
+
+    it('Reads package.json by default', () => {
+      expect(new TypeScriptStackAdapter().defaultProject).toBe('package.json');
+    });
   });
 
   describe('readProject()', () => {
@@ -73,15 +77,16 @@ describe('adapters/stack/typescript', () => {
       await expect(new TypeScriptStackAdapter().readProject(_fixture('project-errors/not-object'))).rejects.toThrow('package.json must contain a JSON object');
     });
 
-    it('Fails when package.json has no name', async () => {
-      await expect(new TypeScriptStackAdapter().readProject(_fixture('project-errors/no-name'))).rejects.toThrow('package.json has no "name"');
+    it('Reads a project without a name', async () => {
+      // showroom.json's project can give the name, so check() requires it only once both are merged (D883)
+      expect(await new TypeScriptStackAdapter().readProject(_fixture('project-errors/no-name'))).toEqual({ version: '1.0.0' });
     });
 
     it('Reads the file the configuration names instead, naming it in its errors', async () => {
       // The fixtures' folder has no package.json of its own: each fixture's is read by the path the `project` key would give
       expect(await new TypeScriptStackAdapter().readProject(_fixture(''), 'minimal/package.json')).toMatchObject({ name: 'minimal-host' });
-      await expect(new TypeScriptStackAdapter().readProject(_fixture('project-errors'), 'no-name/package.json')).rejects.toThrow(
-        'no-name/package.json has no "name"',
+      await expect(new TypeScriptStackAdapter().readProject(_fixture('project-errors'), 'not-object/package.json')).rejects.toThrow(
+        'not-object/package.json must contain a JSON object',
       );
       await expect(new TypeScriptStackAdapter().readProject(_fixture('project-errors'), 'missing.json')).rejects.toThrow(/^missing\.json not found in /);
     });

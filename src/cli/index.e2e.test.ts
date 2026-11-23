@@ -180,7 +180,11 @@ describe('cli (end to end)', () => {
       );
       await rm(join(root, 'errors'), { recursive: true });
       const passed = await _run(['check', '--trust', '--showcases', '--quiet', '--root', root]);
-      expect(passed).toEqual({ code: 0, stdout: '', stderr: 'warning: Showcase adapter "node-run": 6 showcases, stack typescript, project none\n' });
+      expect(passed).toEqual({
+        code: 0,
+        stdout: '',
+        stderr: 'warning: Showcase adapter "node-run": 6 showcases, stack typescript, project showcase-recorded-host\n',
+      });
     });
 
     it("Passes --pass-env's names on to build steps, never to a recorded run", async () => {

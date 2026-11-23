@@ -1,1 +1,1 @@
-{ "stack": "typescript", "sourceRoot": ".", "showcaseViews": { "nowhere": "demo", "html": "none" } }
+{ "stack": "typescript", "project": { "sourceRoot": "." }, "showcaseViews": { "nowhere": "demo", "html": "none" } }

@@ -1,5 +1,8 @@
 {
-  "stack": "typescript", "sourceRoot": ".",
+  "stack": "typescript",
+  "project": {
+    "sourceRoot": "."
+  },
   "customShowcaseAdapters": {
     "good": "./adapters/good.js",
     "good-mjs": "adapters/good.mjs",

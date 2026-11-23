@@ -5,7 +5,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { getStackAdapterNames } from '../adapters/stack/index.js';
-import type { ProjectInformation, ShowcaseView } from '../host/index.js';
+import type { ShowcaseView } from '../host/index.js';
 import { checkShowcaseViews } from '../markdown/index.js';
 import { NAVIGATION_URL_SCHEMES, isAllowedNavigationUrl, isNavigationGlob, isNavigationUrl } from '../navigation/index.js';
 
@@ -21,36 +21,20 @@ export const CONFIGURATION_FILE_NAME = 'showroom.json';
  */
 export interface Configuration {
   /**
-   * Name of the stack adapter to use (e.g. `typescript`); required unless `project` is an object, when it names the host repository's stack instead
-   * (any name but a built-in stack adapter's, whatever its case; `custom` if left out), for showcase adapters
+   * Name of the host repository's stack: a built-in stack adapter's name (e.g. `typescript`, selected exactly as written) runs that stack adapter;
+   * any other name (`custom` if left out) runs none, and only names the stack for showcase adapters. A built-in stack adapter's name in another
+   * case is refused
    */
   stack?: string;
   /**
-   * Source root directory, relative to the host repository's root; defaults to the stack adapter's
+   * The project: the project file's path, the project information and the patterns, each overriding what the stack adapter gives (`null`
+   * unsetting it); without a stack adapter, the project information itself, `name` required
    */
-  sourceRoot?: string;
-  /**
-   * Path of the file the stack adapter reads the project information from, relative to the host repository's root (e.g. a `.csproj`); defaults
-   * to the stack adapter's (`package.json` for `typescript`), and the `dotnet` stack adapter requires it. Or the project information itself, as
-   * an object, for a host repository whose stack has no stack adapter: then none is used
-   */
-  project?: string | ProjectInformation;
+  project?: ProjectConfiguration;
   /**
    * Output directory of the showroom, relative to the host repository's root; defaults to `./showroom`
    */
   outDir?: string;
-  /**
-   * `.gitignore`-style patterns of files to ignore, appended to the stack adapter's
-   */
-  ignore?: string[];
-  /**
-   * `.gitignore`-style patterns of code files, relative to the source root, appended to the stack adapter's
-   */
-  code?: string[];
-  /**
-   * `.gitignore`-style patterns of documentation files, appended to the built-in ones and the stack adapter's
-   */
-  documentation?: string[];
   /**
    * Custom showcase adapters (experimental): paths of their JavaScript modules, relative to the host repository's root, by showcase adapter name
    */
@@ -67,6 +51,62 @@ export interface Configuration {
 }
 
 /**
+ * Represents `showroom.json`'s `project`: every field optional. With a stack adapter, each field overrides what it gives, and `null` unsets it (a
+ * pattern list's `null` drops the stack adapter's patterns); without one, `null` is the same as leaving a field out
+ */
+export interface ProjectConfiguration {
+  /**
+   * Path of the file the stack adapter reads the project information from, relative to the host repository's root (e.g. a `.csproj`); defaults
+   * to the stack adapter's (`package.json` for `typescript`), and the `dotnet` stack adapter requires it. Only a stack adapter reads it
+   */
+  path?: string | null;
+  /**
+   * Name of the project, replacing the stack adapter's; required without a stack adapter
+   */
+  name?: string | null;
+  /**
+   * Version of the project, replacing the stack adapter's
+   */
+  version?: string | null;
+  /**
+   * Short description of the project, replacing the stack adapter's
+   */
+  description?: string | null;
+  /**
+   * License identifier of the project (e.g. `MIT`), replacing the stack adapter's
+   */
+  license?: string | null;
+  /**
+   * Author of the project, replacing the stack adapter's
+   */
+  author?: string | null;
+  /**
+   * Homepage URL of the project, replacing the stack adapter's
+   */
+  homepage?: string | null;
+  /**
+   * Source repository URL of the project, replacing the stack adapter's
+   */
+  repository?: string | null;
+  /**
+   * Source root directory, relative to the host repository's root; defaults to the stack adapter's, and to the root (`.`) when `null` or without one
+   */
+  sourceRoot?: string | null;
+  /**
+   * `.gitignore`-style patterns of files to ignore, appended to the stack adapter's
+   */
+  ignore?: string[] | null;
+  /**
+   * `.gitignore`-style patterns of code files, relative to the source root, appended to the stack adapter's
+   */
+  code?: string[] | null;
+  /**
+   * `.gitignore`-style patterns of documentation files, appended to the built-in ones and the stack adapter's
+   */
+  documentation?: string[] | null;
+}
+
+/**
  * Represents an item of `showroom.json`'s `navigation`: a page, by its `path` (a documentation file's path, optionally followed by
  * `#<heading id>`; `/` for the home page; an absolute URL, `http:`, `https:`, `mailto:` or protocol-relative; or a `.gitignore`-style pattern standing for every documentation file it matches),
  * labelled by its `title` or else by its documentation file's first heading; or a group of items, captioned by its `title`
@@ -77,6 +117,15 @@ export type NavigationEntry = { title?: string; path: string; items?: undefined 
  * Default output directory of the showroom
  */
 export const DEFAULT_OUT_DIR = './showroom';
+
+/**
+ * Built-in documentation patterns, the start of the documentation pattern list: `README` anywhere, and `LICENSE` and `CONTRIBUTE` in the root, in UK
+ * and US spelling, with the `.md` or `.txt` extension or none. Matching is case-insensitive.
+ */
+export const BUILT_IN_DOCUMENTATION: readonly string[] = [
+  ...['README'].flatMap((name) => [name, `${name}.md`, `${name}.txt`]),
+  ...['LICENSE', 'LICENCE', 'CONTRIBUTE', 'CONTRIBUTING'].flatMap((name) => [`/${name}`, `/${name}.md`, `/${name}.txt`]),
+];
 
 /**
  * Represents the outcome of reading a configuration: either the configuration, or the errors that prevented reading it
@@ -92,12 +141,8 @@ export type ConfigurationResult = { configuration: Configuration; errors: [] } |
  */
 const _KEYS: Record<keyof Configuration, (value: unknown) => boolean> = {
   stack: (value) => typeof value === 'string' && value.length > 0,
-  sourceRoot: (value) => typeof value === 'string' && value.length > 0,
-  project: (value) => (typeof value === 'string' && value.length > 0) || _isObject(value),
+  project: _isObject,
   outDir: (value) => typeof value === 'string' && value.length > 0,
-  ignore: _isStringArray,
-  code: _isStringArray,
-  documentation: _isStringArray,
   customShowcaseAdapters: _isStringRecord,
   showcaseViews: (value) =>
     typeof value === 'object' &&
@@ -112,12 +157,8 @@ const _KEYS: Record<keyof Configuration, (value: unknown) => boolean> = {
  */
 const _EXPECTED: Record<keyof Configuration, string> = {
   stack: 'a non-empty string',
-  sourceRoot: 'a non-empty string',
-  project: "a non-empty string (a project file's path) or an object (the project information)",
+  project: 'an object',
   outDir: 'a non-empty string',
-  ignore: 'an array of strings',
-  code: 'an array of strings',
-  documentation: 'an array of strings',
   customShowcaseAdapters: 'an object mapping showcase adapter names to paths (non-empty strings)',
   showcaseViews: 'an object mapping showcase adapter names to a view or an array of views',
   navigation: 'an array of navigation items',
@@ -153,27 +194,72 @@ function _isStringRecord(value: unknown): boolean {
 }
 
 /**
- * Keys an object `project` may hold: the project information's
+ * Keys `project` may hold, each with what its value must be besides `null`: a non-empty string, or an array of strings
  */
-const _PROJECT_KEYS: readonly (keyof ProjectInformation)[] = ['name', 'version', 'description', 'license', 'author', 'homepage', 'repository'];
+const _PROJECT_KEYS: Record<keyof ProjectConfiguration, 'string' | 'list'> = {
+  path: 'string',
+  name: 'string',
+  version: 'string',
+  description: 'string',
+  license: 'string',
+  author: 'string',
+  homepage: 'string',
+  repository: 'string',
+  sourceRoot: 'string',
+  ignore: 'list',
+  code: 'list',
+  documentation: 'list',
+};
 
 /**
- * Checks an object `project`: the project information, `name` required, every key a non-empty string
+ * Checks `project`'s keys and their values: each key known, each value `null`, a non-empty string or an array of strings, as its key expects
  * @param project The object to check
  * @returns The problems found, each naming its key
  */
 function _checkProject(project: Record<string, unknown>): string[] {
   const problems: string[] = [];
-  for (const key of Object.keys(project)) {
-    if (!(_PROJECT_KEYS as readonly string[]).includes(key)) {
+  for (const [key, value] of Object.entries(project)) {
+    if (!Object.hasOwn(_PROJECT_KEYS, key)) {
       // A top-level key written inside the object is the likely mistake
       problems.push(`"project": unknown key "${key}"${key in _KEYS ? `; "${key}" is a top-level key of ${CONFIGURATION_FILE_NAME}` : ''}`);
-    } else if (typeof project[key] !== 'string' || !project[key]) {
-      problems.push(`"project": "${key}" must be a non-empty string`);
+    } else if (value === null) {
+      continue;
+    } else if (_PROJECT_KEYS[key as keyof ProjectConfiguration] === 'string' && (typeof value !== 'string' || !value)) {
+      problems.push(`"project": "${key}" must be a non-empty string or null`);
+    } else if (_PROJECT_KEYS[key as keyof ProjectConfiguration] === 'list' && !_isStringArray(value)) {
+      problems.push(`"project": "${key}" must be an array of strings or null`);
     }
   }
-  if (!('name' in project)) {
-    problems.push('"project": "name" is required');
+  return problems;
+}
+
+/**
+ * Checks what a host repository without a stack adapter must and can't give in `project` (D888, D893): a `name`, and no `path`
+ * @param record The configuration's value
+ * @returns The problems found
+ */
+function _checkWithoutStackAdapter(record: Record<string, unknown>): string[] {
+  const { stack, project } = record;
+  // A stack given but invalid is reported already, and a built-in stack adapter's name in another case is only refused
+  if (stack !== undefined && (typeof stack !== 'string' || !stack)) return [];
+  const names = getStackAdapterNames();
+  if (typeof stack === 'string') {
+    if (names.includes(stack)) return [];
+    const builtIn = names.find((name) => name.toLowerCase() === stack.toLowerCase());
+    if (builtIn) {
+      return [`"stack" "${stack}" names no stack adapter, as a stack adapter is selected by its name exactly as written: write "${builtIn}" for it`];
+    }
+  }
+  // A project that isn't an object is reported already
+  if (project !== undefined && !_isObject(project)) return [];
+  const reason =
+    stack === undefined
+      ? `"stack" is left out; the stack adapters are: ${names.join(', ')}`
+      : `"stack" "${stack as string}" names no stack adapter; they are: ${names.join(', ')}`;
+  const problems: string[] = [];
+  if (project?.path !== undefined && project.path !== null) problems.push(`"project": "path" is only read by a stack adapter (${reason})`);
+  if (project?.name === undefined || project.name === null) {
+    problems.push(`"project" has no "name", which a host repository without a stack adapter must give (${reason})`);
   }
   return problems;
 }
@@ -239,6 +325,11 @@ export function validateConfiguration(value: unknown): ConfigurationResult {
   for (const key of Object.keys(record)) {
     if (!(key in _KEYS)) {
       errors.push(`${CONFIGURATION_FILE_NAME}: unknown key "${key}"`);
+    } else if (key === 'project' && typeof record[key] === 'string') {
+      // The project file's path moved into the object (D879)
+      errors.push(
+        `${CONFIGURATION_FILE_NAME}: "project" must be an object; give the project file's path as "project": { "path": ${JSON.stringify(record[key])} }`,
+      );
     } else if (!_KEYS[key as keyof Configuration](record[key])) {
       errors.push(`${CONFIGURATION_FILE_NAME}: "${key}" must be ${_EXPECTED[key as keyof Configuration]}`);
     } else if (key === 'showcaseViews') {
@@ -248,22 +339,12 @@ export function validateConfiguration(value: unknown): ConfigurationResult {
       }
     } else if (key === 'navigation') {
       errors.push(..._checkNavigation(record[key] as unknown[]).map((problem) => `${CONFIGURATION_FILE_NAME}: ${problem}`));
-    } else if (key === 'project' && _isObject(record[key])) {
-      errors.push(..._checkProject(record[key]).map((problem) => `${CONFIGURATION_FILE_NAME}: ${problem}`));
+    } else if (key === 'project') {
+      errors.push(..._checkProject(record[key] as Record<string, unknown>).map((problem) => `${CONFIGURATION_FILE_NAME}: ${problem}`));
     }
   }
-  // An object project, valid or not, makes the stack optional, and leaves no stack adapter to name (D867, D874, D876)
-  if (_isObject(record.project)) {
-    const stack = record.stack;
-    const builtIn = typeof stack === 'string' && getStackAdapterNames().find((name) => name.toLowerCase() === stack.toLowerCase());
-    if (builtIn) {
-      errors.push(
-        `${CONFIGURATION_FILE_NAME}: "stack" can't name the built-in stack adapter "${builtIn}" when "project" is an object: give "project" as a path for it, or name the stack otherwise`,
-      );
-    }
-  } else if (!('stack' in record)) {
-    errors.push(`${CONFIGURATION_FILE_NAME}: "stack" is required, unless "project" is an object holding the project information`);
-  }
+  // Without a stack adapter, nothing reads a project file, and nothing gives a name (D877, D879, D881)
+  errors.push(..._checkWithoutStackAdapter(record).map((problem) => `${CONFIGURATION_FILE_NAME}: ${problem}`));
   return errors.length ? { errors } : { configuration: record as unknown as Configuration, errors: [] };
 }
 

@@ -100,13 +100,13 @@ describe('adapters/stack/dotnet', () => {
 
     it('Fails without a project', async () => {
       await expect(new DotNetStackAdapter().readProject(scratch.path)).rejects.toThrow(
-        'The dotnet stack adapter needs "project" in showroom.json: the path of a .csproj, .fsproj or .vbproj',
+        'The dotnet stack adapter needs "project": "path" in showroom.json: the path of a .csproj, .fsproj or .vbproj',
       );
     });
 
     it('Fails on a file that is not a project file', async () => {
       await expect(new DotNetStackAdapter().readProject(scratch.path, 'Numbers.slnx')).rejects.toThrow(
-        '"project" must be the path of a .csproj, .fsproj or .vbproj, not Numbers.slnx',
+        '"project": "path" must be the path of a .csproj, .fsproj or .vbproj, not Numbers.slnx',
       );
     });
 

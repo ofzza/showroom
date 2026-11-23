@@ -276,7 +276,7 @@ describe('cli/build (end to end)', () => {
     expect(existsSync(join(root, 'showroom'))).toBe(false);
     await rm(join(root, 'errors'), { recursive: true });
     const { code, stderr } = await run(root);
-    expect(stderr).toBe('warning: Showcase adapter "node-run": 6 showcases, stack typescript, project none\n');
+    expect(stderr).toBe('warning: Showcase adapter "node-run": 6 showcases, stack typescript, project showcase-recorded-host\n');
     expect(code).toBe(0);
     const out = join(root, 'showroom');
     expect(existsSync(join(out, 'showcases'))).toBe(false);

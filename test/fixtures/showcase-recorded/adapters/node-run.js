@@ -6,8 +6,8 @@ export default () => ({
   recorded: true,
   defaultViews: ['source', 'console'],
   hostCopy: { exclude: ['ignored/'], git: false },
-  // The host check is given the configured project and stack (PLAN-P20 D790 C20)
-  check: (_root, showcases, { project, stack }) => ({ errors: [], warnings: [`${showcases.length} showcases, stack ${stack}, project ${project ?? 'none'}`] }),
+  // The host check is given the configured project and stack (PLAN-P20 D790 C20), its name from the merged project (D891)
+  check: (_root, showcases, { project, stack }) => ({ errors: [], warnings: [`${showcases.length} showcases, stack ${stack}, project ${project.name}`] }),
   validate: (showcase) => (showcase.entry.endsWith('.mjs') ? { options: showcase.options, errors: [] } : { errors: ['node-run runs .mjs files'] }),
   build: async ({ showcase, hostCopy, virtualFiles }) => {
     const entry = posix.relative(posix.dirname(showcase.documentation), showcase.entry);

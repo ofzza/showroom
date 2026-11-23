@@ -9,7 +9,7 @@ import { check, type CheckOptions } from './check/index.js';
 import { escapeControlCharacters, formatIssues, formatTrustPrompt } from './check/internal/index.js';
 import { isValidEnvironmentName } from '../processes/index.js';
 
-export { BUILT_IN_DOCUMENTATION, check } from './check/index.js';
+export { check } from './check/index.js';
 export type { CheckIssue, CheckIssueSeverity, CheckOptions, CheckResult, TrustRequest } from './check/index.js';
 
 // #region Usage

@@ -1,7 +1,9 @@
 {
   "stack": "typescript",
-  "sourceRoot": "lib",
-  "ignore": ["vendor/*", "!vendor/keep"],
-  "code": ["!*.test.ts", "*.vue"],
-  "documentation": ["docs/*.md", "!lib/internal/README.md"]
+  "project": {
+    "sourceRoot": "lib",
+    "ignore": ["vendor/*", "!vendor/keep"],
+    "code": ["!*.test.ts", "*.vue"],
+    "documentation": ["docs/*.md", "!lib/internal/README.md"]
+  }
 }

@@ -1,1 +1,1 @@
-{ "stack": "typescript", "sourceRoot": ".", "documentation": ["solution/README.md"] }
+{ "stack": "typescript", "project": { "sourceRoot": ".", "documentation": ["solution/README.md"] } }

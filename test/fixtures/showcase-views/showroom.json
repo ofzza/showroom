@@ -1,5 +1,8 @@
 {
-  "stack": "typescript", "sourceRoot": ".",
+  "stack": "typescript",
+  "project": {
+    "sourceRoot": "."
+  },
   "customShowcaseAdapters": { "plain": "./adapters/plain.js", "bare": "./adapters/bare.js" },
   "showcaseViews": { "html": ["source", "demo"], "bare": "markdown" }
 }

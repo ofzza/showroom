@@ -1,0 +1,14 @@
+{
+  "stack": "dotnet",
+  "project": {
+    "path": "./App/App.csproj",
+    "name": "Renamed",
+    "description": null,
+    "homepage": "https://example.com/app",
+    "sourceRoot": "App",
+    "ignore": ["Generated/"],
+    "code": null,
+    "documentation": ["**/NOTES.md"]
+  },
+  "customShowcaseAdapters": { "reporter": "./adapters/reporter.js" }
+}

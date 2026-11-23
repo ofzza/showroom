@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Showcase, VirtualFile } from '../../../host/index.js';
 import { MERMAID_SPECIFIER } from '../../../showcases/index.js';
+import { createTestProject } from '../../../testing/index.js';
 import type { ShowcaseBuildRequest } from '../index.js';
 import {
   escapeDisplayText,
@@ -81,7 +82,17 @@ async function _build(content: string, name?: string) {
  * @returns The request
  */
 function _request(showcase: Showcase, virtualFiles: VirtualFile[], root: string): ShowcaseBuildRequest {
-  return { root, showcase, options: undefined, virtualFiles, hostVirtualFiles: virtualFiles, mode: 'production', scratchFolder: root, stack: 'typescript' };
+  return {
+    root,
+    showcase,
+    options: undefined,
+    virtualFiles,
+    hostVirtualFiles: virtualFiles,
+    mode: 'production',
+    scratchFolder: root,
+    project: createTestProject(),
+    stack: 'typescript',
+  };
 }
 
 /**

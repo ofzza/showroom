@@ -139,6 +139,40 @@ export interface ShowcaseHostCopy {
 
 // #endregion
 
+// #region Project
+
+/**
+ * Represents the project as showcase adapters are given it (experimental): `showroom.json`'s `project` merged with what the stack adapter gives,
+ * whichever gave each value. Paths are POSIX-style, relative to the host repository's root, `.` for the root
+ */
+export interface ShowcaseProject extends ProjectInformation {
+  /**
+   * Path of the file the stack adapter read the project information from; none without a stack adapter
+   */
+  path?: string;
+  /**
+   * Source root directory
+   */
+  sourceRoot: string;
+  /**
+   * `.gitignore`-style patterns of files to ignore: the stack adapter's (unless `showroom.json` drops them), then `showroom.json`'s; the output
+   * folder, which a run can change, isn't among them
+   */
+  ignore: string[];
+  /**
+   * `.gitignore`-style patterns of code files, relative to the source root: the stack adapter's (unless `showroom.json` drops them), then
+   * `showroom.json`'s
+   */
+  code: string[];
+  /**
+   * `.gitignore`-style patterns of documentation files: the built-in ones, the stack adapter's (unless `showroom.json` drops them), then
+   * `showroom.json`'s
+   */
+  documentation: string[];
+}
+
+// #endregion
+
 // #region Build
 
 /**
@@ -175,13 +209,12 @@ export interface ShowcaseBuildRequest {
    */
   scratchFolder: string;
   /**
-   * `showroom.json`'s `project`, as written there: the path of the project file, or the project information itself (a copy), for a host repository
-   * whose stack has no stack adapter; none if it configures none
+   * The project: the project information and settings, `showroom.json`'s `project` merged with what the stack adapter gives (a copy)
    */
-  project?: string | ProjectInformation;
+  project: ShowcaseProject;
   /**
-   * Name of the host repository's stack: the stack adapter `showroom.json` configures (`stack`), or, when `project` is an object, the name `stack`
-   * gives, `custom` if it gives none
+   * Name of the host repository's stack, `showroom.json`'s `stack`: a stack adapter's name, or any other name `stack` gives, `custom` if it gives
+   * none
    */
   stack: string;
   /**
@@ -278,13 +311,12 @@ export interface ShowcaseBuildResult {
  */
 export interface ShowcaseCheckContext {
   /**
-   * `showroom.json`'s `project`, as written there: the path of the project file, or the project information itself (a copy), for a host repository
-   * whose stack has no stack adapter; none if it configures none
+   * The project: the project information and settings, `showroom.json`'s `project` merged with what the stack adapter gives (a copy)
    */
-  project?: string | ProjectInformation;
+  project: ShowcaseProject;
   /**
-   * Name of the host repository's stack: the stack adapter `showroom.json` configures (`stack`), or, when `project` is an object, the name `stack`
-   * gives, `custom` if it gives none
+   * Name of the host repository's stack, `showroom.json`'s `stack`: a stack adapter's name, or any other name `stack` gives, `custom` if it gives
+   * none
    */
   stack: string;
 }

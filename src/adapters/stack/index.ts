@@ -37,13 +37,19 @@ export interface StackAdapter {
    */
   readonly documentation: readonly string[];
   /**
-   * Reads the host repository's project information
+   * Default path of the file the project information is read from, relative to the host repository's root (e.g. `package.json`); none if the
+   * stack adapter needs `showroom.json`'s `project.path`
+   */
+  readonly defaultProject?: string;
+  /**
+   * Reads the host repository's project information, as far as the project file gives it: `name` too may be missing, as `showroom.json`'s
+   * `project` can give it, and `showroom` requires it once both are merged
    * @param root Path of the host repository's root
-   * @param project Path of the file to read it from, relative to the root, as the configuration's `project` key sets it; the stack adapter's
+   * @param project Path of the file to read it from, relative to the root, as `showroom.json`'s `project.path` sets it; the stack adapter's
    * default if undefined
    * @returns Project information; throws an error explaining why it can't be read
    */
-  readProject(root: string, project?: string): Promise<ProjectInformation>;
+  readProject(root: string, project?: string): Promise<Partial<ProjectInformation>>;
 }
 
 // #endregion

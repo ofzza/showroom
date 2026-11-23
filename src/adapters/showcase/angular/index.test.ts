@@ -6,7 +6,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Showcase } from '../../../host/index.js';
-import { createScratchFolder, REPOSITORY_ROOT, type ScratchFolder } from '../../../testing/index.js';
+import { createScratchFolder, createTestProject, REPOSITORY_ROOT, type ScratchFolder } from '../../../testing/index.js';
 import { SHOWCASE_FRAME_ROOT_ID } from '../ts/index.js';
 import { ANGULAR_PACKAGES, NOT_A_STANDALONE_COMPONENT } from './compile/index.js';
 import { AngularShowcaseAdapter, getAngularMountModule, MINIMUM_ANGULAR_VERSION } from './index.js';
@@ -167,6 +167,7 @@ describe('adapters/showcase/angular', () => {
         hostVirtualFiles: [],
         mode: 'production',
         scratchFolder: scratch.path,
+        project: createTestProject(),
         stack: 'typescript',
       });
       expect(result).toEqual({

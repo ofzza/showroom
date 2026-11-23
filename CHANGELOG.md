@@ -6,16 +6,24 @@ All notable changes to `@ofzza/showroom`, by version as published to npm. This p
 
 ### Breaking changes
 
-- **`Configuration`'s `stack` is optional, and its `project` is `string | ProjectInformation`**, for host repositories without a stack adapter (below); code reading them from `readConfiguration()` or `validateConfiguration()` has to handle both.
-- **The showcase adapter interface's `ShowcaseBuildRequest.project` and `ShowcaseCheckContext.project` are `string | ProjectInformation`** (experimental): a copy of the object when `showroom.json` gives one.
+- **`showroom.json`'s `sourceRoot`, `ignore`, `code` and `documentation` moved into `project`**: at the top level, they are now unknown keys. Write `{ "stack": "typescript", "project": { "sourceRoot": "lib", "ignore": ["vendor/"] } }` where you wrote `{ "stack": "typescript", "sourceRoot": "lib", "ignore": ["vendor/"] }`.
+- **`showroom.json`'s `project` is an object only**: the project file's path is now its `path`. Write `"project": { "path": "src/App/App.csproj" }` where you wrote `"project": "src/App/App.csproj"`; a string is an error saying so.
+- **`stack` alone decides whether a stack adapter runs**: a stack adapter's name, exactly as written, runs it; any other name, or none, runs none. A name that is no stack adapter's is no longer an error by itself: without a stack adapter, `project` must give a `name`, and the error for a missing one says that `stack` names no stack adapter, listing them. A stack adapter's name in another case is still an error.
+- **`Configuration`** (`readConfiguration()`, `validateConfiguration()`): `stack` is optional, `project` is a `ProjectConfiguration` (below), and `sourceRoot`, `ignore`, `code` and `documentation` are gone from it.
+- **`StackAdapter.readProject()` resolves to `Partial<ProjectInformation>`**: a project file may give no `name`, as `showroom.json`'s `project` can; the `typescript` stack adapter no longer fails on a `package.json` without one, and `showroom` requires a name once both are merged.
+- **The showcase adapter interface's `ShowcaseBuildRequest.project` and `ShowcaseCheckContext.project` are a `ShowcaseProject`** (experimental), always given: the merged project, not `showroom.json`'s `project` as written.
+- **Error messages name the new keys**: `"project": "path" "<path>" is outside the host repository` (was `Project "<path>" is …`), `"project": "sourceRoot" "<path>" is outside the host repository` (was `Source root "<path>" is …`), and the `dotnet` stack adapter's `"project": "path"`.
 
 ### Added
 
-- **Host repositories without a stack adapter** (e.g. a Java one): `showroom.json`'s `project` may be an object, the project information itself (`name`, required, `version`, `description`, `license`, `author`, `homepage`, `repository`), and then no stack adapter is used. `stack` is then optional, names the stack for custom showcase adapters (`custom` by default), and can't be a built-in stack adapter's name, in any case. There are no defaults: the source root is the root, and nothing is code or ignored unless `code` and `ignore` say so.
+- **Project overrides**: `showroom.json`'s `project` overrides what the stack adapter gives, whichever stack adapter runs: `path`, the project information (`name`, `version`, `description`, `license`, `author`, `homepage`, `repository`), `sourceRoot`, and `ignore`, `code` and `documentation`, appended to the stack adapter's patterns. `null` unsets a value: a field is dropped, `sourceRoot` falls back to the root, and a pattern list drops the stack adapter's patterns. See README.md › Configuration › `project`.
+- **Host repositories without a stack adapter** (e.g. a Java one): with a `stack` naming no stack adapter (`custom` if left out), no stack adapter runs, and `project` gives the project information itself, `name` required. There are no defaults: the source root is the root, and nothing is code or ignored unless `project`'s `code` and `ignore` say so. See README.md › Without a stack adapter.
+- **`StackAdapter.defaultProject`**: the project file a stack adapter reads by default (`package.json` for `typescript`, none for `dotnet`).
+- **The types `ProjectConfiguration`** (`showroom.json`'s `project`) **and `ShowcaseProject`** (experimental: the merged project information, `path`, `sourceRoot`, and every pattern that applies, as showcase adapters get it).
 
 ### Changed
 
-- **An unknown `stack`'s error** now says that a host repository whose stack has no stack adapter gives `project` as an object.
+- **No host check runs when the check has no project**: when the stack adapter can't read the project file, or the merged project has no name, `check` still reports every other issue, but runs no showcase adapter's host check.
 
 ## 0.1.0-alpha.3 (2026-11-18)
 

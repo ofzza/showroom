@@ -7,9 +7,9 @@
     "license": "MIT",
     "author": "Example Author",
     "homepage": "https://example.com/library",
-    "repository": "https://example.com/library.git"
+    "repository": "https://example.com/library.git",
+    "ignore": [".git", "node_modules", "target"],
+    "code": ["*.java"]
   },
-  "ignore": [".git", "node_modules", "target"],
-  "code": ["*.java"],
   "customShowcaseAdapters": { "reporter": "./adapters/reporter.js" }
 }

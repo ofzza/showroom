@@ -5,7 +5,7 @@
 import ignore from 'ignore';
 import { open, readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
-import type { ShowcaseAdapter } from '../../adapters/showcase/index.js';
+import type { ShowcaseAdapter, ShowcaseCheckContext } from '../../adapters/showcase/index.js';
 import {
   checkHostCheckResult,
   createShowcaseAdapter,
@@ -16,7 +16,7 @@ import {
   getTrustTools,
   loadCustomShowcaseAdapters,
 } from '../../adapters/showcase/registry/index.js';
-import { getShowcaseProject, resolveStack } from '../../adapters/stack/resolve/index.js';
+import { getProjectSettings, getShowcaseProject, mergeProjectInformation, resolveStack } from '../../adapters/stack/resolve/index.js';
 import { readConfiguration, CONFIGURATION_FILE_NAME, type Configuration } from '../../configuration/index.js';
 import type {
   DocumentationFile,
@@ -161,15 +161,6 @@ export interface CheckResult {
 // #region Built-in documentation
 
 /**
- * Built-in documentation patterns, the start of the documentation pattern list: `README` anywhere, and `LICENSE` and `CONTRIBUTE` in the root, in UK
- * and US spelling, with the `.md` or `.txt` extension or none. Matching is case-insensitive.
- */
-export const BUILT_IN_DOCUMENTATION: readonly string[] = [
-  ...['README'].flatMap((name) => [name, `${name}.md`, `${name}.txt`]),
-  ...['LICENSE', 'LICENCE', 'CONTRIBUTE', 'CONTRIBUTING'].flatMap((name) => [`/${name}`, `/${name}.md`, `/${name}.txt`]),
-];
-
-/**
  * Documentation kinds of the built-in file names, by lower-case name without extension
  */
 const _KINDS: Record<string, DocumentationKind> = {
@@ -230,40 +221,50 @@ export async function checkHost(root: string, options: CheckOptions, report: 'ch
     return fail();
   }
 
-  // Resolve the stack: its stack adapter, or none with an object project
-  const { stack, error: stackError } = resolveStack(configuration);
-  if (!stack) {
-    issues.push({ severity: 'error', message: stackError, path: CONFIGURATION_FILE_NAME });
-    return fail();
-  }
-  const { adapter, defaults } = stack;
+  // Resolve the stack, and the project's settings: showroom.json's project over the stack's defaults (D877, D892)
+  const stack = resolveStack(configuration);
+  const settings = getProjectSettings(configuration, stack);
+  const configured = configuration.project ?? {};
 
-  // Resolve the project file the configuration names, which must be inside the host repository
-  let projectFile: string | undefined;
-  if (typeof configuration.project === 'string') {
-    projectFile = _toPosix(relative(resolve(root), resolve(root, configuration.project)));
-    if (projectFile === '..' || projectFile.startsWith('../') || isAbsolute(projectFile)) {
-      issues.push({ severity: 'error', message: `Project "${configuration.project}" is outside the host repository`, path: CONFIGURATION_FILE_NAME });
+  // Read the project information with the stack adapter, from its project file, which must be inside the host repository (D880)
+  let read: Awaited<ReturnType<NonNullable<typeof stack.adapter>['readProject']>> | undefined;
+  if (stack.adapter) {
+    if (settings.path !== undefined && _isOutside(root, settings.path)) {
+      issues.push({ severity: 'error', message: `"project": "path" "${configured.path}" is outside the host repository`, path: CONFIGURATION_FILE_NAME });
       return fail();
     }
-  }
-
-  // Read the project information, or take the object project as it is, a copy of its validated fields (D865, D876)
-  let project: ProjectInformation | undefined;
-  if (!adapter) {
-    project = { ...(configuration.project as ProjectInformation) };
-  } else {
     try {
-      project = await adapter.readProject(root, projectFile);
+      read = await stack.adapter.readProject(root, settings.path);
     } catch (err) {
       issues.push({ severity: 'error', message: (err as Error).message });
     }
   }
 
+  // Merge it with showroom.json's project, then require a name (D881, D883); without a stack adapter, the validation required it already
+  let project: ProjectInformation | undefined;
+  if (!stack.adapter || read) {
+    const merged = mergeProjectInformation(configuration, read);
+    if (merged.name !== undefined) {
+      project = { ...merged, name: merged.name };
+    } else {
+      issues.push({
+        severity: 'error',
+        message:
+          configured.name === null
+            ? `The project has no name: ${CONFIGURATION_FILE_NAME}'s "project" unsets it`
+            : `The project has no name: ${settings.path} gives none, and ${CONFIGURATION_FILE_NAME}'s "project" gives none`,
+      });
+    }
+  }
+
   // Resolve the source root
-  const sourceRoot = _toPosix(relative(resolve(root), resolve(root, configuration.sourceRoot ?? defaults.sourceRoot)));
-  if (sourceRoot === '..' || sourceRoot.startsWith('../') || isAbsolute(sourceRoot)) {
-    issues.push({ severity: 'error', message: `Source root "${configuration.sourceRoot}" is outside the host repository`, path: CONFIGURATION_FILE_NAME });
+  const sourceRoot = settings.sourceRoot === '.' ? '' : settings.sourceRoot;
+  if (_isOutside(root, settings.sourceRoot)) {
+    issues.push({
+      severity: 'error',
+      message: `"project": "sourceRoot" "${configured.sourceRoot}" is outside the host repository`,
+      path: CONFIGURATION_FILE_NAME,
+    });
     return fail();
   }
   if (!(await _isDirectory(join(root, sourceRoot)))) {
@@ -279,18 +280,18 @@ export async function checkHost(root: string, options: CheckOptions, report: 'ch
   }
 
   // Walk the host repository
-  const ignored = createIgnoreMatcher(defaults, configuration, outputFolder.relativePath);
+  const ignored = createIgnoreMatcher(settings, outputFolder.relativePath);
   const files = await _walk(root, '', ignored);
 
   // Collect the code file index
-  const codeMatcher = ignore().add([...defaults.code, ...(configuration.code ?? [])]);
+  const codeMatcher = ignore().add(settings.code);
   const code = files.filter((path) => {
     if (sourceRoot && !path.startsWith(`${sourceRoot}/`)) return false;
     return codeMatcher.ignores(sourceRoot ? path.slice(sourceRoot.length + 1) : path);
   });
 
   // Collect the documentation files
-  const documentationMatcher = ignore().add([...BUILT_IN_DOCUMENTATION, ...defaults.documentation, ...(configuration.documentation ?? [])]);
+  const documentationMatcher = ignore().add(settings.documentation);
   const candidates = files.filter((path) => documentationMatcher.ignores(path));
   const documentation: DocumentationFile[] = [];
   for (const path of _pickDuplicates(candidates, issues)) {
@@ -317,7 +318,9 @@ export async function checkHost(root: string, options: CheckOptions, report: 'ch
   }
   links.sort((a, b) => _compare(a.documentation, b.documentation) || a.line - b.line);
   await _checkVirtualFiles(root, virtualFiles, issues);
-  trusted = await _checkShowcases(root, configuration, stack.name, showcases, virtualFiles, issues, options.trust ?? false, report);
+  // Host checks are given the merged project, so none runs without one (D890)
+  const context = project && ((): ShowcaseCheckContext => ({ project: getShowcaseProject(configuration, stack, project), stack: stack.name }));
+  trusted = await _checkShowcases(root, configuration, context, showcases, virtualFiles, issues, options.trust ?? false, report);
   const included = await _checkIncludes(root, documentation, showcases, virtualFiles, outputFolder.relativePath, issues);
   await _checkLinks(root, links, issues);
   const linkedFiles = await _collectLinkedFiles(root, documentation, links, showcases, included, outputFolder.relativePath, issues);
@@ -405,7 +408,7 @@ async function _checkVirtualFiles(root: string, virtualFiles: VirtualFile[], iss
  * its showcase adapter's own.
  * @param root Path of the host repository's root
  * @param configuration Configuration of the host repository
- * @param stack Name of the host repository's stack, which host checks are given
+ * @param context Gets what host checks are given, a new object for each; none, and so no host check, without a merged project (D890)
  * @param showcases Showcases, sorted by documentation file and line
  * @param virtualFiles Virtual files
  * @param issues Issues to add the errors to
@@ -416,7 +419,7 @@ async function _checkVirtualFiles(root: string, virtualFiles: VirtualFile[], iss
 async function _checkShowcases(
   root: string,
   configuration: Configuration,
-  stack: string,
+  context: (() => ShowcaseCheckContext) | undefined,
   showcases: ScannedShowcase[],
   virtualFiles: VirtualFile[],
   issues: CheckIssue[],
@@ -511,7 +514,7 @@ async function _checkShowcases(
       }
 
       // The host requirements of the showcase adapters in use, given the showcases whose validation passed
-      for (const name of [...used.keys()].sort()) {
+      for (const name of context ? [...used.keys()].sort() : []) {
         try {
           const adapter = adapters.get(name)!;
           if (!adapter.check) continue;
@@ -519,7 +522,7 @@ async function _checkShowcases(
             await adapter.check(
               resolve(root),
               used.get(name)!.map((showcase) => ({ ...showcase })),
-              { ...(configuration.project === undefined ? {} : { project: getShowcaseProject(configuration)! }), stack },
+              context!(),
             ),
           );
           if ('problem' in result) {
@@ -978,6 +981,17 @@ function _priority(path: string): number {
  */
 function _compare(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/**
+ * Checks if a path, relative to the host repository's root, leads outside it
+ * @param root Path of the host repository's root
+ * @param path Path relative to the root
+ * @returns True if the path is outside the root
+ */
+function _isOutside(root: string, path: string): boolean {
+  const inside = _toPosix(relative(resolve(root), resolve(root, path)));
+  return inside === '..' || inside.startsWith('../') || isAbsolute(inside);
 }
 
 /**

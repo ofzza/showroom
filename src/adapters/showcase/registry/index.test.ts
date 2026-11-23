@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { Showcase } from '../../../host/index.js';
-import { copyFixture, createScratchFolder } from '../../../testing/index.js';
+import { copyFixture, createScratchFolder, createTestProject } from '../../../testing/index.js';
 import { CsShowcaseAdapter } from '../cs/index.js';
 import { HtmlShowcaseAdapter } from '../html/index.js';
 import { JsonSchemaShowcaseAdapter } from '../jsonschema/index.js';
@@ -89,7 +89,10 @@ describe('adapters/showcase/registry', () => {
     const { adapters, errors } = await loadCustomShowcaseAdapters(_ROOT, { good: './adapters/good.js', 'good-mjs': 'adapters/good.mjs' });
     expect(errors).toEqual([]);
     expect([...adapters.keys()]).toEqual(['good', 'good-mjs']);
-    expect(await adapters.get('good')!.check!(_ROOT, [], { stack: 'typescript' })).toEqual({ errors: ['good needs nothing, but says so'], warnings: [] });
+    expect(await adapters.get('good')!.check!(_ROOT, [], { project: createTestProject(), stack: 'typescript' })).toEqual({
+      errors: ['good needs nothing, but says so'],
+      warnings: [],
+    });
   });
 
   it('Loads the default views a custom showcase adapter declares', async () => {
@@ -113,7 +116,7 @@ describe('adapters/showcase/registry', () => {
     try {
       const listed = { good: './adapters/good.js' };
       const first = await loadCustomShowcaseAdapters(scratch.path, listed);
-      expect(await first.adapters.get('good')!.check!(scratch.path, [], { stack: 'typescript' })).toEqual({
+      expect(await first.adapters.get('good')!.check!(scratch.path, [], { project: createTestProject(), stack: 'typescript' })).toEqual({
         errors: ['good needs nothing, but says so'],
         warnings: [],
       });
@@ -122,7 +125,10 @@ describe('adapters/showcase/registry', () => {
         "export default () => ({ validate: (s) => ({ options: s.options, errors: [] }), check: () => ({ errors: ['edited'], warnings: [] }), build: async () => ({ errors: [{ message: 'x' }] }) });\n",
       );
       const second = await loadCustomShowcaseAdapters(scratch.path, listed);
-      expect(await second.adapters.get('good')!.check!(scratch.path, [], { stack: 'typescript' })).toEqual({ errors: ['edited'], warnings: [] });
+      expect(await second.adapters.get('good')!.check!(scratch.path, [], { project: createTestProject(), stack: 'typescript' })).toEqual({
+        errors: ['edited'],
+        warnings: [],
+      });
     } finally {
       await scratch.remove();
     }

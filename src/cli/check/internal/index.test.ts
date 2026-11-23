@@ -5,8 +5,8 @@
 import { describe, it, expect } from 'vitest';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { TypeScriptStackAdapter } from '../../../adapters/stack/typescript/index.js';
-import { NO_STACK_ADAPTER_DEFAULTS } from '../../../adapters/stack/resolve/index.js';
+import { getProjectSettings, resolveStack } from '../../../adapters/stack/resolve/index.js';
+import type { Configuration } from '../../../configuration/index.js';
 import {
   createIgnoreMatcher,
   escapeControlCharacters,
@@ -18,6 +18,15 @@ import {
 } from './index.js';
 
 /**
+ * Gets the project's settings of a configuration, whose `ignore` patterns the ignore matcher takes
+ * @param configuration A hand-written configuration
+ * @returns The project's settings
+ */
+function _settings(configuration: Configuration): ReturnType<typeof getProjectSettings> {
+  return getProjectSettings(configuration, resolveStack(configuration));
+}
+
+/**
  * Gets the path of a fixture host repository
  * @param name Name of the fixture
  * @returns Path of the fixture's root
@@ -27,16 +36,23 @@ function _fixture(name: string): string {
 }
 
 describe('cli/check/internal', () => {
-  // Tests the output folder's resolution (on paths alone: nothing is read), the ignore matcher, built from the TypeScript stack adapter, or no
-  // stack adapter's defaults, and configurations (hand-made, or read from the fixture host repositories), the formatting of issues and the escaping of control characters (on
+  // Tests the output folder's resolution (on paths alone: nothing is read), the ignore matcher, built from the project's settings of
+  // configurations (hand-made, or read from the fixture host repositories), the formatting of issues and the escaping of control characters (on
   // hand-written strings), and the custom showcase adapter modules (on the showcase-errors fixture).
 
   it("Ignores the stack adapter's patterns, then the configuration's", () => {
-    const matcher = createIgnoreMatcher(new TypeScriptStackAdapter(), { stack: 'typescript', ignore: ['vendor/', '!node_modules/keep/'] });
+    const matcher = createIgnoreMatcher(_settings({ stack: 'typescript', project: { ignore: ['vendor/', '!node_modules/keep/'] } }));
     expect(matcher.ignores('dist/')).toBe(true);
     expect(matcher.ignores('vendor/')).toBe(true);
     expect(matcher.ignores('docs/')).toBe(false);
-    expect(createIgnoreMatcher(new TypeScriptStackAdapter(), { stack: 'typescript' }).ignores('vendor/')).toBe(false);
+    expect(createIgnoreMatcher(_settings({ stack: 'typescript' })).ignores('vendor/')).toBe(false);
+  });
+
+  it("Drops the stack adapter's patterns when the configuration's ignore is null", () => {
+    // D881
+    const matcher = createIgnoreMatcher(_settings({ stack: 'typescript', project: { ignore: null } }), 'showroom');
+    expect(matcher.ignores('dist/')).toBe(false);
+    expect(matcher.ignores('showroom/')).toBe(true);
   });
 
   it('Resolves the output folder from the override, else the configuration, else ./showroom', () => {
@@ -57,19 +73,19 @@ describe('cli/check/internal', () => {
 
   it('Ignores the output folder, and nothing else, matching its name literally', () => {
     for (const outputFolder of ['showcase', 'docs/site', 'out[1]', 'a*b', '#x', '!y', 'trailing ']) {
-      const matcher = createIgnoreMatcher(new TypeScriptStackAdapter(), { stack: 'typescript' }, outputFolder);
+      const matcher = createIgnoreMatcher(_settings({ stack: 'typescript' }), outputFolder);
       expect(matcher.ignores(`${outputFolder}/`)).toBe(true);
       expect(matcher.ignores(`${outputFolder}/index.html`)).toBe(true);
       expect(matcher.ignores(`nested/${outputFolder}/`)).toBe(false);
     }
-    const matcher = createIgnoreMatcher(new TypeScriptStackAdapter(), { stack: 'typescript' }, 'out[1]');
+    const matcher = createIgnoreMatcher(_settings({ stack: 'typescript' }), 'out[1]');
     expect(matcher.ignores('out1/')).toBe(false);
-    expect(createIgnoreMatcher(new TypeScriptStackAdapter(), { stack: 'typescript' }, 'a*b').ignores('aXb/')).toBe(false);
+    expect(createIgnoreMatcher(_settings({ stack: 'typescript' }), 'a*b').ignores('aXb/')).toBe(false);
   });
 
   it("Ignores nothing but the configuration's patterns and the output folder without a stack adapter", () => {
     // Without a stack adapter, even .git is only ignored when the configuration says so (D866, D875)
-    const matcher = createIgnoreMatcher(NO_STACK_ADAPTER_DEFAULTS, { project: { name: 'library' }, ignore: ['target/'] }, 'showroom');
+    const matcher = createIgnoreMatcher(_settings({ project: { name: 'library', ignore: ['target/'] } }), 'showroom');
     expect(matcher.ignores('target/')).toBe(true);
     expect(matcher.ignores('showroom/')).toBe(true);
     expect(matcher.ignores('.git/')).toBe(false);
@@ -99,7 +115,8 @@ describe('cli/check/internal', () => {
     expect((await readIgnoreMatcher(_fixture('out-dir-root')))?.ignores('src/')).toBe(false);
   });
 
-  it('Reads no ignore matcher for an invalid configuration or an unknown stack', async () => {
+  it('Reads no ignore matcher for an invalid configuration', async () => {
+    // unknown-stack's stack names no stack adapter, and its project gives no name (D888)
     expect(await readIgnoreMatcher(_fixture('invalid-configuration'))).toBeUndefined();
     expect(await readIgnoreMatcher(_fixture('unknown-stack'))).toBeUndefined();
   });

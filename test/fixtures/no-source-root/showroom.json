@@ -1,1 +1,1 @@
-{ "stack": "typescript", "sourceRoot": "lib" }
+{ "stack": "typescript", "project": { "sourceRoot": "lib" } }

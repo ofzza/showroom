@@ -1,0 +1,13 @@
+{
+  "stack": "typescript",
+  "project": {
+    "name": "overridden",
+    "version": null,
+    "description": "Given by showroom.json",
+    "sourceRoot": "lib",
+    "ignore": null,
+    "code": ["*.vue"],
+    "documentation": ["docs/*.md"]
+  },
+  "customShowcaseAdapters": { "reporter": "./adapters/reporter.js" }
+}

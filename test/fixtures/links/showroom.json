@@ -1,1 +1,1 @@
-{ "stack": "typescript", "sourceRoot": ".", "documentation": ["docs/**/*"], "ignore": ["ignored/"] }
+{ "stack": "typescript", "project": { "sourceRoot": ".", "ignore": ["ignored/"], "documentation": ["docs/**/*"] } }

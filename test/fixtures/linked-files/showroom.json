@@ -1,1 +1,1 @@
-{ "stack": "typescript", "outDir": "out", "ignore": ["vendor/"] }
+{ "stack": "typescript", "project": { "ignore": ["vendor/"] }, "outDir": "out" }

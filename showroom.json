@@ -1,7 +1,9 @@
 {
   "stack": "typescript",
-  "ignore": [".workflow/*", "test/*"],
-  "documentation": ["CHANGELOG.md"],
+  "project": {
+    "ignore": [".workflow/*", "test/*"],
+    "documentation": ["CHANGELOG.md"]
+  },
   "customShowcaseAdapters": {
     "number-table": "./examples/number-table/number-table.js"
   },

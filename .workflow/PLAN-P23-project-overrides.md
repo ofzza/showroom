@@ -1,6 +1,6 @@
 # _`P23`_ Project overrides
 
-approved 2026-11-23 (option chosen: "Approve and commit (Rec.)"), after its zero-context review (_`D890`_–_`D893`_)
+approved 2026-11-23 (option chosen: "Approve and commit (Rec.)"), after its zero-context review (_`D890`_–_`D893`_); implemented 2026-11-23 (checkpoint option chosen: "Approve and commit (Rec.)"; the merge as three functions, `getProjectSettings()`, `mergeProjectInformation()` and `getShowcaseProject()`; no host check at all without a merged project, tested on scratch copies of `project-overrides`; and `installFixture()` refreshing a kept install's fixture files, kept: "Keep, same commit (Rec.)")
 
 _`S18`_ (SPEC.md), as revised by _`R64`_ (_`D877`_–_`D882`_): `showroom.json`'s `project` becomes an object only, holding the project file's `path`, the project information, `sourceRoot`, `ignore`, `code` and `documentation`; `stack` alone decides whether a stack adapter runs, and `project`'s fields override what it gives, `null` unsetting one; showcase adapters get the merged project. A breaking change of `showroom.json` and of the exported types. One segment, with no child segments.
 
@@ -58,4 +58,4 @@ These add to the steps below (review 2026-11-23 fixes F9, F12, F13, F14):
 
 ## Open points
 
-- None yet.
+- _`O144`_ (From _`P23`_ step 3, _`D893`_): **`showroom.json`'s validation errors are printed with the path twice** (`error: showroom.json: showroom.json: "project" has no "name", …`): `validateConfiguration()`'s messages start with `showroom.json: `, and `check()` also gives them `path: showroom.json`, which `formatIssues()` prints first. It was already so for every validation error (e.g. an unknown key), untested by the command line's tests; _`D893`_'s unknown-stack fixture now shows it in 6 of them, which assert the output as it is. Not fixed in _`P23`_ (a change to every validation error's output, outside its scope).

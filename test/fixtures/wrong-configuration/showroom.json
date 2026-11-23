@@ -1,1 +1,1 @@
-{ "sourceRoot": 1, "ignore": "x", "extra": true }
+{ "stack": "typescript", "project": { "sourceRoot": 1, "ignore": "x" }, "extra": true }

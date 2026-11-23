@@ -1,4 +1,6 @@
 {
   "stack": "typescript",
-  "sourceRoot": "."
+  "project": {
+    "sourceRoot": "."
+  }
 }

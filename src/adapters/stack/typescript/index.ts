@@ -16,14 +16,15 @@ export class TypeScriptStackAdapter implements StackAdapter {
   public readonly ignore: readonly string[] = ['.git', 'node_modules', 'dist', 'coverage'];
   public readonly code: readonly string[] = ['*.ts', '*.tsx', '*.mts', '*.cts', '*.js', '*.jsx', '*.mjs', '*.cjs'];
   public readonly documentation: readonly string[] = [];
+  public readonly defaultProject = 'package.json';
 
   /**
    * Reads the project information from the host repository's `package.json`, or the file the configuration names
    * @param root Path of the host repository's root
    * @param project Path of the `package.json`-shaped file to read, relative to the root; `package.json` if undefined
-   * @returns Project information; throws an error explaining why it can't be read
+   * @returns Project information, without `name` if the file gives none; throws an error explaining why it can't be read
    */
-  public async readProject(root: string, project: string = 'package.json'): Promise<ProjectInformation> {
+  public async readProject(root: string, project: string = this.defaultProject): Promise<Partial<ProjectInformation>> {
     // Read and parse the file
     let text: string;
     try {
@@ -40,11 +41,8 @@ export class TypeScriptStackAdapter implements StackAdapter {
     if (typeof json !== 'object' || json === null || Array.isArray(json)) {
       throw new Error(`${project} must contain a JSON object`);
     }
-    if (typeof json.name !== 'string' || !json.name) {
-      throw new Error(`${project} has no "name"`);
-    }
-    // Collect the project information
-    const information: ProjectInformation = { name: json.name };
+    // Collect the project information, leaving out a name that isn't a non-empty string
+    const information: Partial<ProjectInformation> = typeof json.name === 'string' && json.name ? { name: json.name } : {};
     for (const key of ['version', 'description', 'license', 'homepage'] as const) {
       if (typeof json[key] === 'string') information[key] = json[key];
     }

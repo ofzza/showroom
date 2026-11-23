@@ -5,6 +5,7 @@
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { Showcase, VirtualFile } from '../../../host/index.js';
+import { createTestProject } from '../../../testing/index.js';
 import type { ShowcaseAdapter, ShowcaseBuildRequest } from '../index.js';
 import { HtmlShowcaseAdapter, isHtmlPage, skipHtmlSpaceAndComments, wrapHtmlFragment } from './index.js';
 
@@ -90,6 +91,7 @@ describe('adapters/showcase/html', () => {
       hostVirtualFiles: virtualFiles,
       mode: 'production',
       scratchFolder: _ROOT,
+      project: createTestProject(),
       stack: 'typescript',
     });
     const virtual = (path: string, content: string, named = false): VirtualFile => ({

@@ -18,6 +18,7 @@ Jump to section:
   - [How it works](#how-it-works)
   - [Trust](#trust)
   - [Configuration: `showroom.json`](#configuration-showroomjson)
+    - [`project`](#project)
   - [Patterns](#patterns)
   - [Documentation files](#documentation-files)
   - [Navigation](#navigation)
@@ -77,7 +78,7 @@ In a TypeScript or JavaScript repository with a `package.json`:
    { "stack": "typescript" }
    ```
 
-   The `typescript` stack adapter reads the project information from `package.json` (whose `name` is required), and looks for code under `src/`: if your code isn't in `src/`, set `sourceRoot` too (e.g. `{ "stack": "typescript", "sourceRoot": "lib" }`), as a missing source root is an error.
+   The `typescript` stack adapter reads the project information from `package.json`, whose `name` is required unless `showroom.json`'s `project` gives one, and looks for code under `src/`: if your code isn't in `src/`, set `project`'s `sourceRoot` too (e.g. `{ "stack": "typescript", "project": { "sourceRoot": "lib" } }`), as a missing source root is an error.
 
 3. Add a first showcase to your `README.md`: a code block whose language, `html`, is followed by `showcase`:
 
@@ -152,33 +153,50 @@ Every host repository needs a `showroom.json` file in its root. Without it, `sho
 ```json
 {
   "stack": "typescript",
-  "sourceRoot": "src",
-  "ignore": ["examples"],
-  "code": ["!*.test.ts"],
-  "documentation": ["docs/*.md"]
+  "project": {
+    "sourceRoot": "src",
+    "ignore": ["examples"],
+    "code": ["!*.test.ts"],
+    "documentation": ["docs/*.md"]
+  }
 }
 ```
 
-| Key                      | Required | Default             | Meaning                                                                                                                                                                                                                                                                                 |
-| ------------------------ | -------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `stack`                  | yes      |                     | Name of the [stack adapter](#stack-adapters) to use. With an object `project` it's optional, and names the host repository's stack for showcase adapters instead (`custom` by default).                                                                                                 |
-| `sourceRoot`             | no       | the stack adapter's | Source root directory, relative to the host repository's root. Code files are only looked for under it. It must exist. With no stack adapter, the root.                                                                                                                                 |
-| `project`                | no       | the stack adapter's | File the project information is read from, relative to the host repository's root, and inside it. The `dotnet` stack adapter requires it. Or an object, the project information itself, for a host repository [without a stack adapter](#without-a-stack-adapter).                      |
-| `outDir`                 | no       | `./showroom`        | Output folder of `showroom build`, relative to the host repository's root. It must be inside the host repository, and isn't its root. Nothing in it is ever collected.                                                                                                                  |
-| `ignore`                 | no       | `[]`                | [Patterns](#patterns) of files to ignore, appended to the stack adapter's (none with no stack adapter).                                                                                                                                                                                 |
-| `code`                   | no       | `[]`                | [Patterns](#patterns) of code files, relative to the source root, appended to the stack adapter's (none with no stack adapter). The code file index is in `check`'s output and the [API](#api); the showroom doesn't show it yet.                                                       |
-| `documentation`          | no       | `[]`                | [Patterns](#patterns) of documentation files, appended to the built-in ones and the stack adapter's (none with no stack adapter).                                                                                                                                                       |
-| `customShowcaseAdapters` | no       | `{}`                | Experimental: [custom showcase adapters](#custom-showcase-adapters-experimental), as `{ "<name>": "<path>" }`.                                                                                                                                                                          |
-| `showcaseViews`          | no       | `{}`                | Default [showcase views](#showcase-views) by showcase adapter, in place of the showcase adapter's own, as `{ "<adapter>": "<view>" }` or `{ "<adapter>": ["<view>", "<view>"] }`. A name that is neither a built-in showcase adapter's nor one of `customShowcaseAdapters` is an error. |
-| `navigation`             | no       | the default one     | The showroom's [navigation](#navigation): its pages and groups, in their order, in place of the default one.                                                                                                                                                                            |
+| Key                      | Required | Default             | Meaning                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------ | -------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `stack`                  | no       | `custom`            | Name of the host repository's stack. A [stack adapter](#stack-adapters)'s name, exactly as written (`typescript`, `dotnet`), runs that stack adapter; any other name runs none, [without a stack adapter](#without-a-stack-adapter), and only names the stack for showcase adapters. A stack adapter's name in another case (e.g. `TypeScript`) is an error. |
+| `project`                | no       | the stack adapter's | The project: the project file, the project information, the source root and the patterns, each overriding what the stack adapter gives (see [`project`](#project)). Without a stack adapter, it must give the project's `name`.                                                                                                                              |
+| `outDir`                 | no       | `./showroom`        | Output folder of `showroom build`, relative to the host repository's root. It must be inside the host repository, and isn't its root. Nothing in it is ever collected.                                                                                                                                                                                       |
+| `customShowcaseAdapters` | no       | `{}`                | Experimental: [custom showcase adapters](#custom-showcase-adapters-experimental), as `{ "<name>": "<path>" }`.                                                                                                                                                                                                                                               |
+| `showcaseViews`          | no       | `{}`                | Default [showcase views](#showcase-views) by showcase adapter, in place of the showcase adapter's own, as `{ "<adapter>": "<view>" }` or `{ "<adapter>": ["<view>", "<view>"] }`. A name that is neither a built-in showcase adapter's nor one of `customShowcaseAdapters` is an error.                                                                      |
+| `navigation`             | no       | the default one     | The showroom's [navigation](#navigation): its pages and groups, in their order, in place of the default one.                                                                                                                                                                                                                                                 |
 
 Any other key is an error, which catches typos.
 
+### `project`
+
+`project` is an object; every key is optional. Each one overrides what the stack adapter gives, and `null` unsets it: the stack adapter's value is dropped, as if it gave none. Without a stack adapter, `null` is the same as leaving a key out.
+
+| Key                                                                             | Default             | Meaning                                                                                                                                                                                                                                                   |
+| ------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `path`                                                                          | the stack adapter's | File the stack adapter reads the project information from, relative to the host repository's root, and inside it (`package.json` for `typescript`; the `dotnet` stack adapter requires it). Without a stack adapter, nothing reads it, so it is an error. |
+| `name`, `version`, `description`, `license`, `author`, `homepage`, `repository` | the stack adapter's | The project information, each a string, in place of what the stack adapter reads. The project must end up with a `name`: `name: null`, or a project file without one and no `name` here, is an error.                                                     |
+| `sourceRoot`                                                                    | the stack adapter's | Source root directory, relative to the host repository's root. Code files are only looked for under it. It must exist. With `null`, or with no stack adapter, the root.                                                                                   |
+| `ignore`                                                                        | `[]`                | [Patterns](#patterns) of files to ignore, appended to the stack adapter's; `null` drops the stack adapter's.                                                                                                                                              |
+| `code`                                                                          | `[]`                | [Patterns](#patterns) of code files, relative to the source root, appended to the stack adapter's; `null` drops the stack adapter's. The code file index is in `check`'s output and the [API](#api); the showroom doesn't show it yet.                    |
+| `documentation`                                                                 | `[]`                | [Patterns](#patterns) of documentation files, appended to the built-in ones and the stack adapter's; `null` drops the stack adapter's, never the built-in ones.                                                                                           |
+
+E.g. a TypeScript library whose `package.json` has no `name`, whose code is in `lib/`, and which ignores nothing the stack adapter would:
+
+```json
+{ "stack": "typescript", "project": { "name": "my-library", "sourceRoot": "lib", "ignore": null } }
+```
+
 ## Patterns
 
-`ignore`, `code` and `documentation` are each a list of patterns that work like a `.gitignore` file:
+`project`'s `ignore`, `code` and `documentation` are each a list of patterns that work like a `.gitignore` file:
 
-- The stack adapter's patterns come first, and the configuration's are appended to them.
+- The stack adapter's patterns come first, and the configuration's are appended to them; a list given as `null` drops the stack adapter's (an empty list keeps them).
 - They're applied in order, and the last pattern matching a file wins. A pattern starting with `!` re-includes what an earlier one matched, e.g. `!dist` in `ignore` stops ignoring `dist`, or `!*.test.ts` in `code` drops test files from the code file index. As in `.gitignore`, a file can't be re-included if a folder it's in is ignored: ignore `vendor/*` and re-include `!vendor/keep`, rather than ignoring `vendor`.
 - A pattern with a `/` at its start or in its middle is anchored to the host repository's root (to the source root, for `code`). One without a `/`, or with a `/` only at its end, matches at any depth; a trailing `/` makes it match folders only (e.g. `build/` ignores every `build` folder, but no file named `build`).
 - Matching is case-insensitive.
@@ -194,7 +212,7 @@ Ignored files are left out of everything: the documentation files and the code f
 
 The stack adapter's and the configuration's `documentation` patterns can add more files, or remove these with `!` (e.g. `!README.txt`). If one folder holds several files of the same kind (e.g. `README.md` and `README.txt`), `showroom` keeps one of them, preferring `.md`, then no extension, then `.txt`, and reports a warning.
 
-Any other Markdown file (e.g. `docs/guide.md`) isn't a documentation file until a `documentation` pattern adds it (e.g. `"documentation": ["docs/*.md"]`): until then, it has no page, and a link to it opens its source in the [showcase sidebar](#the-showcase-sidebar), as a [linked file](#linked-files).
+Any other Markdown file (e.g. `docs/guide.md`) isn't a documentation file until a `documentation` pattern adds it (e.g. `"project": { "documentation": ["docs/*.md"] }`): until then, it has no page, and a link to it opens its source in the [showcase sidebar](#the-showcase-sidebar), as a [linked file](#linked-files).
 
 ## Navigation
 
@@ -205,7 +223,7 @@ With `navigation`, the showroom shows yours instead: a list of items, each a pag
 ```json
 {
   "stack": "typescript",
-  "documentation": ["docs/*.md"],
+  "project": { "documentation": ["docs/*.md"] },
   "navigation": [
     { "path": "/" },
     { "title": "Guide", "items": [{ "path": "docs/guide.md" }, { "title": "Installing", "path": "docs/guide.md#install" }] },
@@ -241,19 +259,19 @@ A documentation file can be listed more than once, under different anchors: e.g.
 
 ## Stack adapters
 
-A stack adapter handles one kind of host repository: it reads the project information and sets the default source root and patterns. The `stack` key selects one by name.
+A stack adapter handles one kind of host repository: it reads the project information and sets the default source root and patterns, which `showroom.json`'s [`project`](#project) can override. The `stack` key selects one by its name, exactly as written.
 
-| Stack adapter | Project information  | Source root | Code (`code`)                                                            | Ignored (`ignore`)                                      | Documentation (`documentation`) |
-| ------------- | -------------------- | ----------- | ------------------------------------------------------------------------ | ------------------------------------------------------- | ------------------------------- |
-| `typescript`  | `package.json`       | `src`       | `*.ts`, `*.tsx`, `*.mts`, `*.cts`, `*.js`, `*.jsx`, `*.mjs`, `*.cjs`     | `.git`, `node_modules`, `dist`, `coverage`              | none beyond the built-in ones   |
-| `dotnet`      | `project` (required) | `src`       | `*.cs`, `*.csx`, `*.fs`, `*.fsi`, `*.fsx`, `*.vb`, `*.razor`, `*.cshtml` | `.git`, `.vs`, `bin`, `obj`, `artifacts`, `TestResults` | none beyond the built-in ones   |
+| Stack adapter | Project information       | Source root | Code (`code`)                                                            | Ignored (`ignore`)                                      | Documentation (`documentation`) |
+| ------------- | ------------------------- | ----------- | ------------------------------------------------------------------------ | ------------------------------------------------------- | ------------------------------- |
+| `typescript`  | `package.json`            | `src`       | `*.ts`, `*.tsx`, `*.mts`, `*.cts`, `*.js`, `*.jsx`, `*.mjs`, `*.cjs`     | `.git`, `node_modules`, `dist`, `coverage`              | none beyond the built-in ones   |
+| `dotnet`      | `project.path` (required) | `src`       | `*.cs`, `*.csx`, `*.fs`, `*.fsi`, `*.fsx`, `*.vb`, `*.razor`, `*.cshtml` | `.git`, `.vs`, `bin`, `obj`, `artifacts`, `TestResults` | none beyond the built-in ones   |
 
-The `typescript` stack adapter reads the `name` (required), `version`, `description`, `license`, `author`, `homepage` and `repository` fields of `package.json`, or of the file `project` names.
+The `typescript` stack adapter reads the `name`, `version`, `description`, `license`, `author`, `homepage` and `repository` fields of `package.json`, or of the file `project.path` names.
 
-The `dotnet` stack adapter reads the project file `project` names (a `.csproj`, `.fsproj` or `.vbproj`; a repository can hold many, so it never picks one itself), for .NET host repositories in C#, F# or VB:
+The `dotnet` stack adapter reads the project file `project.path` names (a `.csproj`, `.fsproj` or `.vbproj`; a repository can hold many, so it never picks one itself), for .NET host repositories in C#, F# or VB:
 
 ```json
-{ "stack": "dotnet", "project": "src/MyLibrary/MyLibrary.csproj" }
+{ "stack": "dotnet", "project": { "path": "src/MyLibrary/MyLibrary.csproj" } }
 ```
 
 It reads the file as XML, with no .NET SDK, after the nearest `Directory.Build.props` (in the project file's folder, or the first folder above it, up to the host repository's root), whose properties the project file's override:
@@ -272,25 +290,31 @@ Only properties of `<PropertyGroup>`s directly in `<Project>` count, and only wh
 
 In a .NET host repository:
 
-- The source root is `src` by default, and must exist: set `sourceRoot` where the code isn't under `src/` (e.g. `"sourceRoot": "."`).
+- The source root is `src` by default, and must exist: set `project`'s `sourceRoot` where the code isn't under `src/` (e.g. `"project": { "path": "MyLibrary.csproj", "sourceRoot": "." }`).
 - `html` showcases need nothing from it, and [custom showcase adapters](#custom-showcase-adapters-experimental) need what they need.
 - `ts` showcases need the packages they import installed in its `node_modules`, and TypeScript to type check (a `package.json` with `typescript` in its `devDependencies`, installed), or `typeCheck: false`; `react` and `angular` showcases need their packages installed the same way (see [Showcases](#showcases)).
 - `cs` showcases need the .NET SDK 10 or later on the `PATH` (see [`cs` showcases](#cs-showcases)); reading the project information never does.
 
 ### Without a stack adapter
 
-A host repository whose stack has no stack adapter (e.g. a Java one) gives its project information in `showroom.json`: `project` is then an object, with the same fields the stack adapters read, `name` (required), `version`, `description`, `license`, `author`, `homepage` and `repository`, each a string. No stack adapter is used, and nothing is read for the project information:
+A host repository whose stack has no stack adapter (e.g. a Java one) names its stack otherwise, or leaves `stack` out, and gives its project information in `showroom.json`'s [`project`](#project): `name` (required), `version`, `description`, `license`, `author`, `homepage` and `repository`. No stack adapter runs, and nothing is read for the project information:
 
 ```json
 {
   "stack": "java",
-  "project": { "name": "my-library", "version": "1.2.0", "description": "A Java library", "license": "MIT" },
-  "ignore": [".git", "node_modules", "target"],
-  "code": ["*.java"]
+  "project": {
+    "name": "my-library",
+    "version": "1.2.0",
+    "description": "A Java library",
+    "license": "MIT",
+    "ignore": [".git", "node_modules", "target"],
+    "code": ["*.java"]
+  }
 }
 ```
 
-- `stack` is optional, and names the stack for [custom showcase adapters](#custom-showcase-adapters-experimental), which get it in their host check's `context` and build's request (`custom` if left out). It can't be a built-in stack adapter's name, in any case: to use one, give `project` as a path.
+- `stack` is optional, and names the stack for [custom showcase adapters](#custom-showcase-adapters-experimental), which get it in their host check's `context` and build's request (`custom` if left out). A mistyped stack adapter's name runs no stack adapter either: the missing `name`'s error, or `path`'s, then says that `stack` names no stack adapter.
+- `project` can't give a `path`, as nothing reads it.
 - There are no defaults: the source root is the host repository's root, nothing counts as code unless `code` says so, and nothing is ignored unless `ignore` says so, not even `.git` or `node_modules`. Set `ignore` as above: otherwise `.git` is walked, and every `README` under `node_modules` (e.g. a custom showcase adapter's dependencies) or a build's output (`target`) is a documentation file.
 - Showcases work as in any host repository: `html` showcases need nothing from it, custom showcase adapters bring what they need (e.g. one building and running Java), and the other built-in ones need what they always need (see [Showcases](#showcases)).
 
@@ -809,7 +833,8 @@ export default (): ShowcaseAdapter => ({
 - `recorded?: true` says that the adapter [records](#recorded-showcases) its showcases: its results carry a `recording` in place of `page` and `files`, its `defaultViews` must be given, without `demo`, and `view=demo` is an error on its showcases.
 - `hostCopy?: { exclude, git }` says that the adapter uses the [host copy](#recorded-showcases): what it leaves out (`exclude`, patterns in `.gitignore` syntax matched against paths relative to the root, e.g. `['bin/', 'obj/']`), and whether it copies `.git` (`git`). A file is copied when any adapter using the host copy copies it. `recorded` and `hostCopy` are independent: an adapter may build a showcase frame in the host copy, or record without it. Either one invalid fails loading the adapter.
 - `validate(showcase)` gets the `Showcase` with its options as the marker gives them, and returns, or resolves to, `{ options, errors: [] }` (the options as the adapter will use them) or `{ errors: [...] }`.
-- `check?(root, showcases, context)`, its **host check**, checks the host repository for what the adapter needs (e.g. a package installed), once per run when some showcase uses the adapter. It gets the `showcases` using the adapter whose validation passed, with their validated options, and the `context` (`ShowcaseCheckContext`: the `project` and the `stack` `showroom.json` configures, the `project` as written there, if any: a path, or a copy of the object [without a stack adapter](#without-a-stack-adapter), whose `stack` is the name `showroom.json` gives, `custom` by default), and returns, or resolves to, a `ShowcaseHostCheck`: `{ errors, warnings }`, two lists of messages, either of them empty. Errors (the host requirements that are missing) fail the check, warnings don't; `showroom` prefixes both with the adapter's name. Any other result, or a `check?()` that throws, is an error of the adapter.
+- The `project` a showcase adapter gets (`ShowcaseProject`, a copy) is the merged one, whichever of the stack adapter and `showroom.json`'s [`project`](#project) gave each value: the project information (`name` and the rest), `path` (the project file a stack adapter read, absent without one), `sourceRoot`, and `ignore`, `code` and `documentation`, every pattern that applies (the built-in documentation patterns among them, the output folder not). Paths are relative to the root, `.` for the root. A host check never runs when the check has no project (its project file can't be read, or it has no name).
+- `check?(root, showcases, context)`, its **host check**, checks the host repository for what the adapter needs (e.g. a package installed), once per run when some showcase uses the adapter. It gets the `showcases` using the adapter whose validation passed, with their validated options, and the `context` (`ShowcaseCheckContext`: the `project`, a `ShowcaseProject`, and the `stack`, the name `showroom.json` gives, `custom` by default), and returns, or resolves to, a `ShowcaseHostCheck`: `{ errors, warnings }`, two lists of messages, either of them empty. Errors (the host requirements that are missing) fail the check, warnings don't; `showroom` prefixes both with the adapter's name. Any other result, or a `check?()` that throws, is an error of the adapter.
 - `build(request)` builds one showcase, called by `showroom build`, `showroom serve` and `showroom check --showcases`, one showcase at a time. It gets a `ShowcaseBuildRequest`:
   - `root`: the host repository's absolute path;
   - `showcase`, and its validated `options`;
@@ -817,7 +842,7 @@ export default (): ShowcaseAdapter => ({
   - `hostVirtualFiles`: every virtual file of the host repository, for imports reaching other folders;
   - `mode`: the mode to build in, `development` in `serve`, `production` in `build` and `check --showcases`;
   - `scratchFolder`: an empty folder for tools that must write to disk, removed after the build;
-  - `project` and `stack`: what `showroom.json` configures, as the host check's `context` has them;
+  - `project` and `stack`: as the host check's `context` has them;
   - `hostCopy`, for an adapter declaring `hostCopy` (a `ShowcaseHostCopy`): its `root`, the host copy's absolute path, and `run(command, args, options)`, which runs a command there under the [limits](#recorded-showcases) and resolves to a `ShowcaseRun`: its `recording`, and its `stdout` and `stderr` as text (within the output's cap, paths into the host copy made relative to the root), for a build step's diagnostics. `command` is a name, resolved from the `PATH` outside the host repository and the host copy (never a path; `node` is the Node.js running `showroom`); not found, it rejects. `options` (`ShowcaseRunOptions`): `phase`, `build` (a build step: its time limit 300 s, and `--pass-env`'s variables) or `run` (the recorded run: 30 s); `cwd`, relative to the host copy's root, never outside it (the documentation file's folder by default); `timeLimit`, in milliseconds, no longer than its phase's; and `env`, variables of the adapter's own, under the ones `showroom` sets;
   - `showcaseFolder`, for an adapter declaring `hostCopy` or `recorded`: a folder of the showcase's own, kept across `serve`'s runs (e.g. for its build's output).
 
@@ -924,8 +949,8 @@ $ npx showroom check [--root <dir>] [--out-dir <dir>] [--showcases] [--quiet] [-
 
 Errors are:
 
-- a missing or invalid `showroom.json` (an unknown key, a value of the wrong type, `showcaseViews` naming no showcase adapter, an invalid [navigation](#navigation) item, a missing `stack`, an invalid object `project`, or one with a built-in stack adapter's name as `stack`), and an unknown `stack`;
-- project information that can't be read, or a `project` outside the host repository;
+- a missing or invalid `showroom.json` (an unknown key, a value of the wrong type, `showcaseViews` naming no showcase adapter, an invalid [navigation](#navigation) item, a `project` that isn't an object, a stack adapter's name in another case as `stack`, or, without a stack adapter, a `project` with no `name` or with a `path`);
+- project information that can't be read, a project with no name, or a `project.path` outside the host repository;
 - a source root that doesn't exist or is outside the host repository, and an output folder that is the host repository's root or outside it;
 - a [navigation](#navigation) path that leads to no documentation file;
 - a [broken showcase](#status-marks-and-issues), a failed [recording](#recorded-showcases) (with `--showcases`), `view=demo` on a recorded showcase (or `showcaseViews` giving its showcase adapter `demo`), an [included file](#showcases) that doesn't exist or isn't copied (in the output folder, or outside the host repository through a symbolic link), and a showcase adapter's missing host requirements;
@@ -1106,7 +1131,7 @@ This repository publishes its own showroom with [`.github/workflows/showroom.yml
 - **The host's own package doesn't resolve**: a showcase imports it by its name through its `package.json`'s `exports`, which usually point at its `dist/`: build it first (in CI too). See [`ts` showcases](#ts-showcases).
 - **A `Broken link` warning**: a relative link (or image) leads outside the host repository, or to nothing on disk, e.g. a build output not built where `showroom` runs. See [`showroom check`](#showroom-check) and [Linked files](#linked-files).
 - **`build` refuses to empty the output folder**: `error: Output folder "<path>" is not empty, and holds no .showroom file from an earlier build; empty or delete it, or choose another output folder`. `build` only empties a folder it built before; check `outDir`, then empty or delete the folder yourself. See [`showroom build`](#showroom-build).
-- **`Source root "src" is not a directory`**: the stack adapter looks for code under `src/` by default. Set `sourceRoot` to where your code is (e.g. `"sourceRoot": "lib"`, or `"."`). See [Configuration](#configuration-showroomjson).
+- **`Source root "src" is not a directory`**: the stack adapter looks for code under `src/` by default. Set `project`'s `sourceRoot` to where your code is (e.g. `"project": { "sourceRoot": "lib" }`, or `"."`). See [Configuration](#configuration-showroomjson).
 - **`check --showcases` fails in CI, while `serve` worked**: `serve` keeps serving a showcase that fails, showing its issues, where `check --showcases` and `build` fail on them; they also build in production mode, where `serve` builds in development mode. And CI may lack what your machine has: the dependencies installed, or the host's own package built. See [`showroom check`](#showroom-check) and [`ts` showcases](#ts-showcases).
 
 ## API
@@ -1144,10 +1169,10 @@ for (const showcase of result.host?.showcases ?? []) {
 // Reads and validates a host repository's showroom.json
 const { configuration, errors } = await readConfiguration('./path/to/host');
 
-// Looks up a built-in stack adapter by name, and reads the project information from the project file, unless showroom.json gives it as an object
+// Looks up a built-in stack adapter by name, and reads the project information from the project file, which showroom.json's project overrides
 const adapter = getStackAdapter(configuration?.stack ?? 'typescript');
-const project = typeof configuration?.project === 'object' ? configuration.project : await adapter?.readProject('./path/to/host', configuration?.project);
-console.log(getStackAdapterNames(), project, errors);
+const read = await adapter?.readProject('./path/to/host', configuration?.project?.path ?? adapter.defaultProject);
+console.log(getStackAdapterNames(), read?.name ?? configuration?.project?.name, errors);
 
 // Runs the command line, with its output and its trust prompt's input given
 const code = await main(
@@ -1159,12 +1184,12 @@ console.log(code);
 ```
 
 - `check(root, options?)`: checks a host repository and collects its host information; resolves to a `CheckResult` (`passed`, `host` when it passed, `issues`, each with its `severity`, `message`, the `path` and `line` it concerns, if any, and the `check` a showcase's issue belongs to, if any, e.g. `type check`, and `trusted`, whether the host repository's code was allowed to run). `options` (`CheckOptions`) overrides the configuration: `outDir`, absolute or relative to the current directory; `showcases: true` also builds every showcase, failing the check on any that doesn't build, or whose checks find errors; `trust` decides whether the host repository's code runs (see [Trust](#trust)): `false` by default, `true`, or a function called at most once, only when the host repository has something to trust, after `showroom.json` is read and the documentation files scanned and before any of its code runs, with a `TrustRequest` (the custom showcase adapter modules, by name and real path; the tools a build would load, by package name and real path, including TypeScript, Angular's compiler and the CSS preprocessors resolvable from the host repository, as the bundler and its plugins may load more; the `executables` the built-in showcase adapters would start, by name and real path; the number of showcases; and how many of them would be `recorded` by a built-in showcase adapter), resolving to the decision (a rejection means no trust); and `passEnv` names environment variables passed on to [recorded showcases](#recorded-showcases)' build steps, as `--pass-env` does.
-- `readConfiguration(root)` / `validateConfiguration(value)`: read and validate a `showroom.json`, resolving to either a `configuration` or `errors`. Its `stack` is optional, and its `project` a path or the project information (`string | ProjectInformation`), as [without a stack adapter](#without-a-stack-adapter).
-- `getStackAdapter(name)` / `getStackAdapterNames()`: look up the built-in stack adapters, which implement the `StackAdapter` interface; `TypeScriptStackAdapter` is the `typescript` one, and `DotNetStackAdapter` the `dotnet` one. `readProject(root, project?)` reads the project information, from the file `project` names (relative to `root`) or the stack adapter's default.
+- `readConfiguration(root)` / `validateConfiguration(value)`: read and validate a `showroom.json`, resolving to either a `configuration` or `errors`. Its `stack` is optional, and its `project` an object (`ProjectConfiguration`, see [`project`](#project)), each key a value or `null`.
+- `getStackAdapter(name)` / `getStackAdapterNames()`: look up the built-in stack adapters, which implement the `StackAdapter` interface; `TypeScriptStackAdapter` is the `typescript` one, and `DotNetStackAdapter` the `dotnet` one. `readProject(root, project?)` reads the project information, from the file `project` names (relative to `root`) or the stack adapter's default (`defaultProject`, none for `dotnet`), as far as it gives it: its `name` too may be missing (`Partial<ProjectInformation>`), as `showroom.json`'s `project` can give it.
 - `main(args, output?, input?)`: runs the command line with the given arguments, resolving to its exit code; `USAGE` is its help text. `output` (`CliOutput`: `stdout` and `stderr` functions) defaults to the process's streams. `input` (`CliInput`) is what the [trust](#trust) prompt asks through: `isTerminal`, whether it may ask at all, and `ask(question)`, resolving to the line typed, `''` at the end of the input, or `null` on Ctrl-C (which ends the command with `130`); it defaults to the terminal on the process's standard input, never a pipe.
 - Constants: `CONFIGURATION_FILE_NAME` (`showroom.json`), `DEFAULT_OUT_DIR` (`./showroom`), and `BUILT_IN_DOCUMENTATION` (the built-in documentation patterns).
-- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase` (with its `views` and `tabs`), `ShowcaseTab` (`source`, `markdown`, or an included `file`), `ShowcaseKind`, `ShowcaseDisplay`, `ShowcaseView` (`markdown`, `source`, `demo`, `console` or `none`), `VirtualFile` (with its fence's `offset`, and its `views` when it has no showcase adapter), `LinkedFile`, `NavigationItem` (the resolved navigation, `HostInformation.navigation`), `Configuration`, `NavigationEntry` (an item of its `navigation`), `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity`, `TrustRequest`, `CliOutput` and `CliInput`.
-- Experimental types, for [custom showcase adapters](#custom-showcase-adapters-experimental): `ShowcaseAdapter`, `ShowcaseValidation`, `ShowcaseHostCheck`, `ShowcaseCheckContext`, `ShowcaseBuildRequest`, `ShowcaseBuildResult`, `ShowcaseBuildFile`, `ShowcaseBuildIssue`, and for [recorded showcases](#recorded-showcases) `ShowcaseHostCopyContent`, `ShowcaseHostCopy`, `ShowcaseRunOptions`, `ShowcaseRun`, `ShowcaseRecording` and `ShowcaseConsoleLine`.
+- Types: `HostInformation`, `ProjectInformation`, `DocumentationFile`, `DocumentationKind`, `Showcase` (with its `views` and `tabs`), `ShowcaseTab` (`source`, `markdown`, or an included `file`), `ShowcaseKind`, `ShowcaseDisplay`, `ShowcaseView` (`markdown`, `source`, `demo`, `console` or `none`), `VirtualFile` (with its fence's `offset`, and its `views` when it has no showcase adapter), `LinkedFile`, `NavigationItem` (the resolved navigation, `HostInformation.navigation`), `Configuration`, `ProjectConfiguration` (its `project`), `NavigationEntry` (an item of its `navigation`), `ConfigurationResult`, `StackAdapter`, `CheckOptions`, `CheckResult`, `CheckIssue`, `CheckIssueSeverity`, `TrustRequest`, `CliOutput` and `CliInput`.
+- Experimental types, for [custom showcase adapters](#custom-showcase-adapters-experimental): `ShowcaseAdapter`, `ShowcaseValidation`, `ShowcaseHostCheck`, `ShowcaseCheckContext`, `ShowcaseProject`, `ShowcaseBuildRequest`, `ShowcaseBuildResult`, `ShowcaseBuildFile`, `ShowcaseBuildIssue`, and for [recorded showcases](#recorded-showcases) `ShowcaseHostCopyContent`, `ShowcaseHostCopy`, `ShowcaseRunOptions`, `ShowcaseRun`, `ShowcaseRecording` and `ShowcaseConsoleLine`.
 
 # Development
 

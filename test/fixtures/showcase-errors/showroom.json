@@ -1,5 +1,8 @@
 {
-  "stack": "typescript", "sourceRoot": ".",
-  "documentation": ["errors/*.md"],
+  "stack": "typescript",
+  "project": {
+    "sourceRoot": ".",
+    "documentation": ["errors/*.md"]
+  },
   "customShowcaseAdapters": { "needy": "./adapters/needy.js", "throwing": "./adapters/throwing.js", "broken": "./adapters/missing.js" }
 }

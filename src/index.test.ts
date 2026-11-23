@@ -13,12 +13,14 @@ import type {
   Configuration,
   HostInformation,
   LinkedFile,
+  ProjectConfiguration,
   ProjectInformation,
   Showcase,
   ShowcaseAdapter,
   ShowcaseBuildRequest,
   ShowcaseBuildResult,
   ShowcaseCheckContext,
+  ShowcaseProject,
   ShowcaseConsoleLine,
   ShowcaseHostCopy,
   ShowcaseHostCopyContent,
@@ -67,11 +69,19 @@ describe('index', () => {
     expectTypeOf<Configuration['stack']>().toEqualTypeOf<string | undefined>();
     expectTypeOf<api.TypeScriptStackAdapter>().toExtend<StackAdapter>();
     expectTypeOf<api.DotNetStackAdapter>().toExtend<StackAdapter>();
-    // An object project is the project information itself, for a host repository whose stack has no stack adapter (D865, D869)
-    expectTypeOf<Configuration['project']>().toEqualTypeOf<string | ProjectInformation | undefined>();
-    expectTypeOf<ShowcaseBuildRequest['project']>().toEqualTypeOf<string | ProjectInformation | undefined>();
-    expectTypeOf<ShowcaseCheckContext['project']>().toEqualTypeOf<string | ProjectInformation | undefined>();
+    // project is an object only, its fields overriding the stack adapter's, and showcase adapters get the merged project (D879, D882, D884)
+    expectTypeOf<Configuration['project']>().toEqualTypeOf<ProjectConfiguration | undefined>();
+    expectTypeOf<ProjectConfiguration['name']>().toEqualTypeOf<string | null | undefined>();
+    expectTypeOf<ProjectConfiguration['ignore']>().toEqualTypeOf<string[] | null | undefined>();
+    expectTypeOf<ShowcaseBuildRequest['project']>().toEqualTypeOf<ShowcaseProject>();
+    expectTypeOf<ShowcaseCheckContext['project']>().toEqualTypeOf<ShowcaseProject>();
+    expectTypeOf<ShowcaseProject>().toExtend<ProjectInformation>();
+    expectTypeOf<ShowcaseProject['path']>().toEqualTypeOf<string | undefined>();
+    expectTypeOf<ShowcaseProject['ignore']>().toEqualTypeOf<string[]>();
     expectTypeOf<Parameters<StackAdapter['readProject']>[1]>().toEqualTypeOf<string | undefined>();
+    // The project file may give no name, which showroom.json's project can (D883, D892)
+    expectTypeOf<Awaited<ReturnType<StackAdapter['readProject']>>>().toEqualTypeOf<Partial<ProjectInformation>>();
+    expectTypeOf<StackAdapter['defaultProject']>().toEqualTypeOf<string | undefined>();
     expectTypeOf<CheckIssue['line']>().toEqualTypeOf<number | undefined>();
     expectTypeOf<Configuration['customShowcaseAdapters']>().toEqualTypeOf<Record<string, string> | undefined>();
     expectTypeOf<HostInformation['showcases']>().toEqualTypeOf<Showcase[]>();

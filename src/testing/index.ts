@@ -1,7 +1,8 @@
 /**
  * Testing helpers, for the tests only (excluded from the build, never re-exported): scratch folders inside this repository's
  * `node_modules/.cache/showroom-tests/`, copies of the fixture host repositories in them, and the work of the test projects' global setups (the
- * temporary folder, the compiled showroom, the shared Mermaid bundle, and the installed fixtures), and the command line's input
+ * temporary folder, the compiled showroom, the shared Mermaid bundle, and the installed fixtures), the command line's input, and a showcase
+ * adapter's project
  */
 
 import { execFile } from 'node:child_process';
@@ -12,6 +13,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { buildMermaid, getMermaidBuildHash, isMermaidBuilt } from '../../build/mermaid/index.js';
+import type { ShowcaseProject } from '../adapters/showcase/index.js';
 import type { CliInput } from '../cli/index.js';
 
 declare module 'vitest' {
@@ -324,7 +326,7 @@ export async function createCanaryHost(): Promise<CanaryHost> {
     `import { writeFileSync } from 'node:fs';\nwriteFileSync(new URL('${path}ran-${name}', import.meta.url), '');\n`;
   const files: Record<string, string> = {
     'package.json': JSON.stringify({ name: 'canary', version: '1.0.0', type: 'module' }),
-    'showroom.json': JSON.stringify({ stack: 'typescript', sourceRoot: '.', customShowcaseAdapters: { canary: './canary.js' } }),
+    'showroom.json': JSON.stringify({ stack: 'typescript', project: { sourceRoot: '.' }, customShowcaseAdapters: { canary: './canary.js' } }),
     'canary.js': `${record('adapter', './')}export default () => ({ validate: () => ({ errors: [] }), build: async () => ({ reads: [] }) });\n`,
     'postcss.config.js': `${record('postcss', './')}export default { plugins: [] };\n`,
     'node_modules/sass/package.json': JSON.stringify({ name: 'sass', version: '1.0.0', type: 'module', main: 'index.js' }),
@@ -395,8 +397,9 @@ async function _runNpm(args: string[], cwd: string): Promise<void> {
 
 /**
  * Installs a fixture that carries a lockfile, once per lockfile: a copy of it, with its own `node_modules` from `npm ci`, kept in
- * `node_modules/.cache/showroom-tests/installs/` across runs while its lockfile is unchanged (so only its first install needs the npm registry);
- * older installs of the fixture are removed. Tests only read it, or copy it to change it.
+ * `node_modules/.cache/showroom-tests/installs/` across runs while its lockfile is unchanged (so only its first install needs the npm registry),
+ * its fixture files copied over it again on each call, as they can change without the lockfile; older installs of the fixture are removed. Tests
+ * only read it, or copy it to change it.
  * @param name Name of the fixture, a folder in `test/fixtures/` holding a `package-lock.json`
  * @param run Runs `npm` (see NpmRunner); the tests replace it
  * @param folder Absolute path of the folder holding the installs; the tests replace it
@@ -408,7 +411,11 @@ export async function installFixture(name: string, run: NpmRunner = _runNpm, fol
     () => true,
     () => false,
   );
-  if (installed) return path;
+  if (installed) {
+    // The fixture's own files, never its node_modules, which the fixture has none of
+    await cp(join(FIXTURES, name), path, { recursive: true, force: true });
+    return path;
+  }
   await mkdir(folder, { recursive: true });
   for (const entry of await readdir(folder)) {
     if (entry.startsWith(`${name}-`)) await rm(join(folder, entry), { recursive: true, force: true });
@@ -496,6 +503,27 @@ export function createCliInput(terminal = false, answers: (string | null)[] = []
         return left.length ? left.shift()! : '';
       },
     },
+  };
+}
+
+// #endregion
+
+// #region Showcase project
+
+/**
+ * Creates a minimal project, as showcase adapters are given it, for hand-built build requests and host check contexts: a `typescript` host's,
+ * with its defaults
+ * @param name Name of the project
+ * @returns The project, a new object on each call
+ */
+export function createTestProject(name = 'host'): ShowcaseProject {
+  return {
+    name,
+    path: 'package.json',
+    sourceRoot: 'src',
+    ignore: ['.git', 'node_modules', 'dist', 'coverage'],
+    code: ['*.ts', '*.tsx', '*.mts', '*.cts', '*.js', '*.jsx', '*.mjs', '*.cjs'],
+    documentation: [],
   };
 }
 

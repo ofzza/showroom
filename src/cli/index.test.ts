@@ -61,7 +61,7 @@ describe('cli', () => {
       expect(code).toBe(1);
       expect(stdout).toBe('');
       expect(stderr).toBe(
-        'error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript. A host repository whose stack has none gives "project" as an object holding its project information\n',
+        'error: showroom.json: showroom.json: "project" has no "name", which a host repository without a stack adapter must give ("stack" "cobol" names no stack adapter; they are: dotnet, typescript)\n',
       );
     });
 
@@ -80,7 +80,7 @@ describe('cli', () => {
       const failed = await _run(['check', '--quiet', '--root', _fixture('unknown-stack')]);
       expect(failed.code).toBe(1);
       expect(failed.stderr).toBe(
-        'error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript. A host repository whose stack has none gives "project" as an object holding its project information\n',
+        'error: showroom.json: showroom.json: "project" has no "name", which a host repository without a stack adapter must give ("stack" "cobol" names no stack adapter; they are: dotnet, typescript)\n',
       );
     });
 
@@ -163,7 +163,7 @@ describe('cli', () => {
       expect(code).toBe(1);
       expect(stdout).toBe('');
       expect(stderr).toBe(
-        'error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript. A host repository whose stack has none gives "project" as an object holding its project information\n',
+        'error: showroom.json: showroom.json: "project" has no "name", which a host repository without a stack adapter must give ("stack" "cobol" names no stack adapter; they are: dotnet, typescript)\n',
       );
     });
 
@@ -333,7 +333,7 @@ describe('cli', () => {
       expect(code).toBe(1);
       expect(stdout).toBe('');
       expect(stderr).toBe(
-        'error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript. A host repository whose stack has none gives "project" as an object holding its project information\n',
+        'error: showroom.json: showroom.json: "project" has no "name", which a host repository without a stack adapter must give ("stack" "cobol" names no stack adapter; they are: dotnet, typescript)\n',
       );
     });
 
@@ -354,7 +354,7 @@ describe('cli', () => {
       expect(code).toBe(1);
       expect(stdout).toBe('');
       expect(stderr).toBe(
-        'error: showroom.json: Unknown stack "cobol"; the stack adapters are: dotnet, typescript. A host repository whose stack has none gives "project" as an object holding its project information\n',
+        'error: showroom.json: showroom.json: "project" has no "name", which a host repository without a stack adapter must give ("stack" "cobol" names no stack adapter; they are: dotnet, typescript)\n',
       );
     });
 

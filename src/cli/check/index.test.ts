@@ -3,12 +3,14 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { readFile, realpath, symlink, writeFile } from 'node:fs/promises';
+import { readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LINKED_FILE_SIDEBAR_LIMIT } from '../../linked-files/index.js';
 import { copyFixture, createCanaryHost, createScratchFolder } from '../../testing/index.js';
-import { BUILT_IN_DOCUMENTATION, check, checkHost, type TrustRequest } from './index.js';
+import { DotNetStackAdapter, TypeScriptStackAdapter } from '../../adapters/stack/index.js';
+import { BUILT_IN_DOCUMENTATION } from '../../configuration/index.js';
+import { check, checkHost, type TrustRequest } from './index.js';
 
 /**
  * Gets the path of a fixture host repository
@@ -155,10 +157,10 @@ describe('cli/check', () => {
     it('Fails on a project outside the host repository, without reading it', async () => {
       const scratch = await copyFixture('dotnet');
       try {
-        await writeFile(join(scratch.path, 'showroom.json'), JSON.stringify({ stack: 'dotnet', project: '../Other/Other.csproj' }));
+        await writeFile(join(scratch.path, 'showroom.json'), JSON.stringify({ stack: 'dotnet', project: { path: '../Other/Other.csproj' } }));
         expect(await check(scratch.path)).toEqual({
           passed: false,
-          issues: [{ severity: 'error', message: 'Project "../Other/Other.csproj" is outside the host repository', path: 'showroom.json' }],
+          issues: [{ severity: 'error', message: '"project": "path" "../Other/Other.csproj" is outside the host repository', path: 'showroom.json' }],
           trusted: false,
         });
       } finally {
@@ -173,7 +175,7 @@ describe('cli/check', () => {
         const result = await check(scratch.path);
         expect(result.passed).toBe(false);
         expect(result.issues).toEqual([
-          { severity: 'error', message: 'The dotnet stack adapter needs "project" in showroom.json: the path of a .csproj, .fsproj or .vbproj' },
+          { severity: 'error', message: 'The dotnet stack adapter needs "project": "path" in showroom.json: the path of a .csproj, .fsproj or .vbproj' },
         ]);
       } finally {
         await scratch.remove();
@@ -182,8 +184,9 @@ describe('cli/check', () => {
   });
 
   describe('Without a stack adapter', () => {
-    // The stackless and stackless-unnamed fixtures: a mock Java host repository, its project information given as an object `project`, so no
-    // stack adapter is used (D865); its `reporter` custom showcase adapter's host check reports the stack and project it is given as a warning.
+    // The stackless and stackless-unnamed fixtures: a mock Java host repository, its project information given in `project`, with a `stack`
+    // naming no stack adapter or none, so no stack adapter is used (D877); its `reporter` custom showcase adapter's host check reports the stack
+    // and project it is given as a warning.
 
     const project = {
       name: 'library',
@@ -224,16 +227,115 @@ describe('cli/check', () => {
       }
     });
 
-    it('Gives showcase adapters the stack the configuration names, and the object project', async () => {
+    it('Gives showcase adapters the stack the configuration names, and the merged project', async () => {
+      // The project's settings follow its information, with no path, as no stack adapter read one (D882, D886)
+      const settings = { sourceRoot: '.', ignore: ['.git', 'node_modules', 'target'], code: ['*.java'], documentation: [...BUILT_IN_DOCUMENTATION] };
       const result = await check(_fixture('stackless'), { trust: true });
-      expect(result.issues).toEqual([{ severity: 'warning', message: `Showcase adapter "reporter": stack "java", project ${JSON.stringify(project)}` }]);
+      expect(result.issues).toEqual([
+        { severity: 'warning', message: `Showcase adapter "reporter": stack "java", project ${JSON.stringify({ ...project, ...settings })}` },
+      ]);
     });
 
     it('Names the stack custom when the configuration names none', async () => {
       const result = await check(_fixture('stackless-unnamed'), { trust: true });
       expect(result.passed).toBe(true);
       expect(result.host?.project).toEqual({ name: 'library' });
-      expect(result.issues).toEqual([{ severity: 'warning', message: 'Showcase adapter "reporter": stack "custom", project {"name":"library"}' }]);
+      const given = {
+        name: 'library',
+        sourceRoot: '.',
+        ignore: ['.git', 'node_modules', 'target'],
+        code: ['*.java'],
+        documentation: [...BUILT_IN_DOCUMENTATION],
+      };
+      expect(result.issues).toEqual([{ severity: 'warning', message: `Showcase adapter "reporter": stack "custom", project ${JSON.stringify(given)}` }]);
+    });
+  });
+
+  describe('Project overrides', () => {
+    // The project-overrides fixture (typescript: a package.json without a name, project giving it, unsetting the version, replacing the source
+    // root, dropping the stack adapter's ignore patterns and adding code and documentation patterns) and project-overrides-dotnet (a .csproj by
+    // path, its description unset, its code patterns dropped), each with the reporter custom showcase adapter reporting the project it is given;
+    // and scratch copies of the first for the name's errors (D881–D883, D889, D890).
+
+    it("Overrides the stack adapter's project information, taking the name from showroom.json", async () => {
+      const result = await check(_fixture('project-overrides'), { trust: true });
+      expect(result.passed).toBe(true);
+      expect(result.host?.project).toEqual({ name: 'overridden', description: 'Given by showroom.json', license: 'MIT' });
+    });
+
+    it('Indexes the code and documentation files by the merged patterns and source root', async () => {
+      const { host } = await check(_fixture('project-overrides'));
+      expect(host?.code).toEqual(['lib/index.ts', 'lib/view.vue']);
+      expect(host?.documentation.map(({ path }) => path)).toEqual(['README.md', 'docs/guide.md']);
+    });
+
+    it("Gives showcase adapters the merged project, its path the stack adapter's default", async () => {
+      const result = await check(_fixture('project-overrides'), { trust: true });
+      const project = {
+        name: 'overridden',
+        description: 'Given by showroom.json',
+        license: 'MIT',
+        path: 'package.json',
+        sourceRoot: 'lib',
+        ignore: [],
+        code: [...new TypeScriptStackAdapter().code, '*.vue'],
+        documentation: [...BUILT_IN_DOCUMENTATION, 'docs/*.md'],
+      };
+      expect(result.issues).toEqual([{ severity: 'warning', message: `Showcase adapter "reporter": stack "typescript", project ${JSON.stringify(project)}` }]);
+    });
+
+    it("Overrides a .NET project's information and patterns, reading its project file by path", async () => {
+      const result = await check(_fixture('project-overrides-dotnet'), { trust: true });
+      expect(result.passed).toBe(true);
+      const information = { name: 'Renamed', version: '1.0.0', author: 'Jane Doe', homepage: 'https://example.com/app' };
+      expect(result.host?.project).toEqual(information);
+      // code: null drops the stack adapter's code patterns; Generated/ is ignored by showroom.json, bin/ by the stack adapter
+      expect(result.host?.code).toEqual([]);
+      expect(result.host?.documentation.map(({ path }) => path)).toEqual(['App/NOTES.md', 'README.md']);
+      const project = {
+        ...information,
+        path: 'App/App.csproj',
+        sourceRoot: 'App',
+        ignore: [...new DotNetStackAdapter().ignore, 'Generated/'],
+        code: [],
+        documentation: [...BUILT_IN_DOCUMENTATION, '**/NOTES.md'],
+      };
+      expect(result.issues).toEqual([{ severity: 'warning', message: `Showcase adapter "reporter": stack "dotnet", project ${JSON.stringify(project)}` }]);
+    });
+
+    it('Fails when neither the project file nor showroom.json gives a name, running no host check', async () => {
+      const scratch = await copyFixture('project-overrides');
+      try {
+        const configuration = JSON.parse(await readFile(join(scratch.path, 'showroom.json'), 'utf8'));
+        delete configuration.project.name;
+        await writeFile(join(scratch.path, 'showroom.json'), JSON.stringify(configuration));
+        // Every other issue is still collected, but the reporter's host check, given no project, doesn't run (D890)
+        expect(await check(scratch.path, { trust: true })).toEqual({
+          passed: false,
+          issues: [{ severity: 'error', message: `The project has no name: package.json gives none, and showroom.json's "project" gives none` }],
+          trusted: true,
+        });
+        configuration.project.name = null;
+        await writeFile(join(scratch.path, 'showroom.json'), JSON.stringify(configuration));
+        expect((await check(scratch.path, { trust: true })).issues).toEqual([
+          { severity: 'error', message: `The project has no name: showroom.json's "project" unsets it` },
+        ]);
+      } finally {
+        await scratch.remove();
+      }
+    });
+
+    it("Fails when the stack adapter can't read the project file, even with every field given, running no host check", async () => {
+      // A stack adapter that is named must run (D880)
+      const scratch = await copyFixture('project-overrides');
+      try {
+        await rm(join(scratch.path, 'package.json'));
+        const result = await check(scratch.path, { trust: true });
+        expect(result.passed).toBe(false);
+        expect(result.issues).toEqual([{ severity: 'error', message: expect.stringMatching(/^package\.json not found in /) }]);
+      } finally {
+        await scratch.remove();
+      }
     });
   });
 
@@ -246,12 +348,12 @@ describe('cli/check', () => {
       ['wrong-configuration', /^showroom\.json: /, 'showroom.json'],
       [
         'unknown-stack',
-        /^Unknown stack "cobol"; the stack adapters are: dotnet, typescript\. A host repository whose stack has none gives "project" as an object holding its project information$/,
+        /^showroom\.json: "project" has no "name", which a host repository without a stack adapter must give \("stack" "cobol" names no stack adapter; they are: dotnet, typescript\)$/,
         'showroom.json',
       ],
       ['no-project', /^package\.json not found in /, undefined],
       ['no-source-root', /^Source root "lib" is not a directory$/, undefined],
-      ['outside-source-root', /^Source root "\.\.\/minimal" is outside the host repository$/, 'showroom.json'],
+      ['outside-source-root', /^"project": "sourceRoot" "\.\.\/minimal" is outside the host repository$/, 'showroom.json'],
     ])('Fails on %s', async (name, message, path) => {
       const result = await check(_fixture(name));
       expect(result.passed).toBe(false);
@@ -262,10 +364,9 @@ describe('cli/check', () => {
     it('Reports every configuration error at once', async () => {
       const result = await check(_fixture('wrong-configuration'));
       expect(result.issues.map(({ message }) => message)).toEqual([
-        'showroom.json: "sourceRoot" must be a non-empty string',
-        'showroom.json: "ignore" must be an array of strings',
+        'showroom.json: "project": "sourceRoot" must be a non-empty string or null',
+        'showroom.json: "project": "ignore" must be an array of strings or null',
         'showroom.json: unknown key "extra"',
-        'showroom.json: "stack" is required, unless "project" is an object holding the project information',
       ]);
     });
   });
@@ -837,7 +938,9 @@ describe('cli/check', () => {
     it('Passes the fixture, giving the host check the configured project and stack', async () => {
       const result = await check(fileURLToPath(new URL('../../../test/fixtures/showcase-recorded', import.meta.url)), { trust: true });
       expect(result.passed).toBe(true);
-      expect(result.issues).toEqual([{ severity: 'warning', message: 'Showcase adapter "node-run": 11 showcases, stack typescript, project none' }]);
+      expect(result.issues).toEqual([
+        { severity: 'warning', message: 'Showcase adapter "node-run": 11 showcases, stack typescript, project showcase-recorded-host' },
+      ]);
       expect(result.host!.showcases[0].views).toEqual(['source', 'console']);
     });
 

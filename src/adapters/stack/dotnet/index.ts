@@ -52,14 +52,14 @@ export class DotNetStackAdapter implements StackAdapter {
    * @param project Path of the project file (`.csproj`, `.fsproj` or `.vbproj`), relative to the root; required
    * @returns Project information; throws an error explaining why it can't be read
    */
-  public async readProject(root: string, project?: string): Promise<ProjectInformation> {
+  public async readProject(root: string, project?: string): Promise<Partial<ProjectInformation>> {
     // Check the project file's path
     if (project === undefined) {
-      throw new Error(`The dotnet stack adapter needs "project" in showroom.json: the path of a ${_listExtensions()}`);
+      throw new Error(`The dotnet stack adapter needs "project": "path" in showroom.json: the path of a ${_listExtensions()}`);
     }
     const extension = extname(project);
     if (!_PROJECT_EXTENSIONS.includes(extension.toLowerCase())) {
-      throw new Error(`"project" must be the path of a ${_listExtensions()}, not ${project}`);
+      throw new Error(`"project": "path" must be the path of a ${_listExtensions()}, not ${project}`);
     }
     const projectPath = resolve(root, project);
     const projectName = basename(projectPath, extension);

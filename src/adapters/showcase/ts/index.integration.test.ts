@@ -9,7 +9,7 @@ import { check } from '../../../cli/check/index.js';
 import { readConfiguration } from '../../../configuration/index.js';
 import { getFrameScript } from '../../../frame/index.js';
 import { buildShowcases, type ShowcaseFrame } from '../../../showcases/index.js';
-import { createScratchFolder, FIXTURES } from '../../../testing/index.js';
+import { createScratchFolder, createTestProject, FIXTURES } from '../../../testing/index.js';
 import { buildTsShowcase } from './index.js';
 import { resolveTypeScript } from './typecheck/index.js';
 
@@ -287,6 +287,7 @@ describe('adapters/showcase/ts (integration)', () => {
             hostVirtualFiles: host.virtualFiles,
             mode: 'development',
             scratchFolder: scratch.path,
+            project: createTestProject(),
             stack: 'typescript',
           },
           plugins,

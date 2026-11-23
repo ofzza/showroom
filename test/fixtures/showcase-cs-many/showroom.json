@@ -1,1 +1,1 @@
-{ "stack": "dotnet", "project": "src/Numbers/Numbers.csproj" }
+{ "stack": "dotnet", "project": { "path": "src/Numbers/Numbers.csproj" } }
