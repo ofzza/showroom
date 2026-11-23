@@ -33,7 +33,7 @@ jobs:
           cache: npm
 
       # The .NET SDK 10, for the cs showcase adapter's tests and showcase adapter example (SPEC-S16 D718)
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
 
