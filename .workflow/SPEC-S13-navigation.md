@@ -1,7 +1,8 @@
 # _`S13`_ The navigation
 
-implemented 2026-11-16 (_`P17`_); approved 2026-11-16 (option chosen: "Approve and commit (Rec.)"); the Glossary term "Navigation" accepted ("Add as proposed (Rec.)"), added with the implementation; revised 2026-11-16 (_`R49`_), re-approved 2026-11-16 with _`P18`_ (option chosen: "Approve and commit (Rec.)"); revised 2026-11-17 (_`R56`_), re-approved 2026-11-17 with _`P19`_ (option chosen: "Approve and commit (Rec.)")
+implemented 2026-11-16 (_`P17`_); approved 2026-11-16 (option chosen: "Approve and commit (Rec.)"); the Glossary term "Navigation" accepted ("Add as proposed (Rec.)"), added with the implementation; revised 2026-11-16 (_`R49`_), re-approved 2026-11-16 with _`P18`_ (option chosen: "Approve and commit (Rec.)"); revised 2026-11-17 (_`R56`_), re-approved 2026-11-17 with _`P19`_ (option chosen: "Approve and commit (Rec.)"); revised 2026-11-24 (_`R67`_); re-approved 2026-11-24, with _`P26`_
 
+- _`R67`_ 2026-11-24: a group may start collapsed (`"collapsed": true`), expanding when the current page is one of its items (_`D638`_ changed), caused by _`D929`_, _`D930`_.
 - _`R56`_ 2026-11-17: an absolute URL item's scheme must be `http:`, `https:` or `mailto:`, caused by _`D758`_ (PLAN-P19-trust.md).
 - _`R49`_ 2026-11-16: a documentation file listed again under another anchor is no longer warned about, and the item whose anchor the route names is the current one, caused by _`D668`_.
 
@@ -29,9 +30,16 @@ Customizing the showroom's navigation from `showroom.json`: titles, grouping, or
 
 ### In the showroom
 
-- _`D638`_ (`live`; Q7, option chosen: "Any depth, collapsible (Rec.)"; rejected: two levels at most, static captions): **Groups nest to any depth**, each level indented; a group is collapsible, expanded at first, and the group holding the current page is kept expanded; the same in the narrow layout's overlay drawer.
+- _`D638`_ (`live`, changed by _`D929`_; Q7, option chosen: "Any depth, collapsible (Rec.)"; rejected: two levels at most, static captions): **Groups nest to any depth**, each level indented; a group is collapsible, expanded at first, and the group holding the current page is kept expanded; the same in the narrow layout's overlay drawer.
 - _`D639`_ (`live`; changes _`D42`_ (PLAN.md), departing from the user's proposal ("exactly as it is now") at the user's own request (Q9); Q12, option chosen: "Keep fixed labels (Rec.)"; Q13, option chosen: "Heading, path on clash (Rec.)"; rejected: the first heading for every item, the first heading always, with or without the path as a tooltip): **The default navigation** (no `navigation` property) keeps _`D42`_'s items and order, but labels each documentation file other than the home page, CONTRIBUTING and LICENSE (whose labels stay fixed) by its first heading, or its path when it has none; an item whose label another item also has is labelled by its path instead; every documentation file's item shows its path as its tooltip.
 - _`D640`_ (`live`; the agent's draft, following `README.md` › `showroom serve`): **A change to `navigation` applies in `serve` without a restart**, as any change to `showroom.json` does.
+
+### Groups collapsed at first
+
+The user, 2026-11-24: "For `showroom.json` `navigation` configuration items that are groups (ones with `items`), I would like to add an additional, optional "`collapsed: boolean`" property that will control the default collapsed/expanded state for that group in the menu."
+
+- _`D929`_ (`live`; changes _`D638`_; the user's words above; Q1, option chosen: "Expand on its page (Rec.)"; Q3, option chosen: "Allowed (Rec.)"): **A group may start collapsed**: an optional `collapsed` boolean on a group (`items`); with `true`, the group starts collapsed in the navigation (and in the narrow layout's overlay drawer), and expands, as a group the user collapsed does, once the current page is one of its items (on load, or by navigating), so the open page is never hidden; `false`, or no `collapsed`, starts it expanded, as before. Rejected: staying collapsed while one of its pages is open; refusing `false`.
+- _`D930`_ (`live`; refines _`D929`_; Q2, option chosen: "An error (Rec.)"): **`collapsed` misused is an error**, named by the item's position as the navigation's other errors: on an item that isn't a group (a page, or a URL), or with a value that isn't a boolean. Rejected: a warning.
 
 ## Open points
 

@@ -322,6 +322,10 @@ None (_`D61`_).
 - _`P24`_ Overlays in showcase frames (approved 2026-11-23, implemented 2026-11-23): a showcase frame grows for open overlays (absolutely positioned content, fixed layers' content, portals), from blox's brief; changes _`D152`_ and _`D168`_ (PLAN-P4.2-showcase-frames.md), one segment. [See Overlays in showcase frames](./PLAN-P24-overlays.md)
 - _`P25`_ Overlays over the page (approved 2026-11-24, implemented 2026-11-24): _`S19`_ (SPEC-S19-overlays.md), an open overlay drawn over the page around its showcase frame, below or above, without moving it, and presses outside it relayed; one segment. [See Overlays over the page](./PLAN-P25-overlay-overhang.md)
 
+## Navigation groups collapsed at first
+
+- _`P26`_ Navigation groups collapsed at first (approved 2026-11-24): _`S13`_ (SPEC-S13-navigation.md) as revised by _`R67`_, a `navigation` group's optional `collapsed`; one segment. [See Navigation groups collapsed at first](./PLAN-P26-collapsed-groups.md)
+
 ## Known open issues
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: _`P9`_. Status: picked up by _`P9`_; resolved by _`D323`_ (SPEC.md), implemented by _`P9`_ 2026-11-13.

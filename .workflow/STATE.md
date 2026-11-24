@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P25`_ overlays over the page ([PLAN-P25-overlay-overhang.md](./PLAN-P25-overlay-overhang.md)) is implemented (2026-11-24), for _`S19`_; _`O145`_ (blox's checks) and _`K32`_ (Safari) wait.
-- **Next free:** _`D929`_, _`S20`_, _`P26`_, _`O146`_, _`L22`_, _`R67`_, _`H1`_, _`K33`_
-- **Working on:** nothing in progress.
-- **Next step:** the user's choice; blox's _`P4.2`_ waits for a release carrying _`P24`_ and _`P25`_ (`PUBLISH.md`, on the user's word).
+- **Stage:** implementation: _`P26`_ navigation groups collapsed at first ([PLAN-P26-collapsed-groups.md](./PLAN-P26-collapsed-groups.md)), approved, for _`S13`_ re-approved for _`R67`_.
+- **Next free:** _`D934`_, _`S20`_, _`P27`_, _`O146`_, _`L22`_, _`R68`_, _`H1`_, _`K33`_
+- **Working on:** _`P26`_, step 1.
+- **Next step:** implement _`P26`_'s steps, then its checkpoint.
 
 ## Open questions
 
@@ -61,6 +61,7 @@
 
 ## Running
 
+- `showroom serve` of this repository (port 5173), at the user's request.
 - Nothing.
 
 ## History
@@ -502,3 +503,5 @@
 - 2026-11-23: _`P25`_'s zero-context review run (1 reviewer; no stray writes; record in `./.workflow/.temp/review-p25/REVIEW.md`): 14 fixes and 2 skips; questions: "Neither (Rec.)" (#9), "An error (Rec.)" (#10), "Split + accept focus (Rec.)" (#12), "When its causes go (Rec.)" (#14a), "Latest opened on top (Rec.)" (#15), and #2 decided after the user's check ("I see no background leak"): the grid opens only while raised; recorded as _`D918`_–_`D928`_.
 - 2026-11-24: _`S19`_ and _`P25`_ approved, and _`P24`_ re-approved for _`R66`_ (option chosen: "Approve and commit (Rec.)").
 - 2026-11-24: _`P25`_ implemented; `npm run ci` green (`./.workflow/.temp/ci-p25.log`); approved after the browser check (option chosen: "Approve and commit").
+- 2026-11-24: _`P26`_ drafted from the user's request (a navigation group's `collapsed`); choices: "Expand on its page (Rec.)", "An error (Rec.)", "Allowed (Rec.)", "S13 decision + P26 (Rec.)" (_`D929`_–_`D932`_, _`R67`_ on _`S13`_).
+- 2026-11-24: _`P26`_ (with _`D933`_, at the user's word) approved, and _`S13`_ re-approved for _`R67`_ (option chosen: "Approve and commit (Rec.)").
