@@ -92,15 +92,23 @@ $ ls showroom/index.html
    $ npm publish
    ```
 
-   A prerelease version (`x.y.z-alpha.n`, `-beta.n`, `-rc.n`) is rejected with "You must specify a tag using --tag when publishing a prerelease version". Publish it under its prerelease identifier, so that `latest` stays reserved for stable releases:
+   A prerelease version (`x.y.z-alpha.n`, `-beta.n`, `-rc.n`) is rejected with "You must specify a tag using --tag when publishing a prerelease version". Publish it under its prerelease identifier:
 
    ```sh
    $ npm publish --tag alpha
    ```
 
-   If the account uses 2FA for publishing, also pass `--otp=<code>`. `prepublishOnly` runs before the upload, so use a freshly generated code.
+   `latest` is for stable releases only once a stable release exists. Until then (while no stable release is tagged `latest`), also point `latest` at each new prerelease, so that `npm install @ofzza/showroom` installs the newest version:
 
-6. **Verify the release**: `npm view @ofzza/showroom version` prints the new version, and installing `@ofzza/showroom@<version>` into a fresh project works. For a prerelease, check `npm view @ofzza/showroom dist-tags` instead, since `version` follows `latest`. Right after a package's _first_ publish, the registry may keep answering 404 for a while, because a 404 fetched before the publish stays cached. The tarball at `https://registry.npmjs.org/@ofzza/showroom/-/showroom-<version>.tgz` is available immediately and can be installed directly to verify.
+   ```sh
+   $ npm dist-tag add @ofzza/showroom@<version> latest
+   ```
+
+   From the first stable release on, `latest` only ever moves to a stable release, and prereleases are published under their identifier only.
+
+   If the account uses 2FA for publishing, also pass `--otp=<code>`, to `npm dist-tag add` too. `prepublishOnly` runs before the upload, so use a freshly generated code.
+
+6. **Verify the release**: `npm view @ofzza/showroom dist-tags` shows the new version on its tags (`latest` included, before the first stable release), and installing `@ofzza/showroom@<version>` into a fresh project works. Right after a package's _first_ publish, the registry may keep answering 404 for a while, because a 404 fetched before the publish stays cached. The tarball at `https://registry.npmjs.org/@ofzza/showroom/-/showroom-<version>.tgz` is available immediately and can be installed directly to verify.
 
 7. **Switch back to `develop`** to continue work:
 

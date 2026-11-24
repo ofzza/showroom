@@ -507,3 +507,5 @@
 - 2026-11-24: _`P26`_ drafted from the user's request (a navigation group's `collapsed`); choices: "Expand on its page (Rec.)", "An error (Rec.)", "Allowed (Rec.)", "S13 decision + P26 (Rec.)" (_`D929`_–_`D932`_, _`R67`_ on _`S13`_).
 - 2026-11-24: _`P26`_ (with _`D933`_, at the user's word) approved, and _`S13`_ re-approved for _`R67`_ (option chosen: "Approve and commit (Rec.)").
 - 2026-11-24: _`P26`_ implemented; `npm run ci` green (`./.workflow/.temp/ci-p26.log`); approved after the browser check (option chosen: "Approve and commit").
+- 2026-11-24: `0.1.0-alpha.4` published to npm under `alpha`, with `latest` pointed at it at the user's request; GitHub prerelease created.
+- 2026-11-24: Fast-path change: `PUBLISH.md` points `latest` at each new prerelease while no stable release exists, at the user's request ("Yes, please update PUBLISH.md").
