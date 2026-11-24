@@ -4,6 +4,8 @@ All notable changes to `@ofzza/showroom`, by version as published to npm. This p
 
 ## Unreleased
 
+## 0.1.0-alpha.4 (2026-11-24)
+
 ### Breaking changes
 
 - **`showroom.json`'s `sourceRoot`, `ignore`, `code` and `documentation` moved into `project`**: at the top level, they are now unknown keys. Write `{ "stack": "typescript", "project": { "sourceRoot": "lib", "ignore": ["vendor/"] } }` where you wrote `{ "stack": "typescript", "sourceRoot": "lib", "ignore": ["vendor/"] }`.
