@@ -57,6 +57,10 @@ export type ShownNavigationItem =
        * The group's items
        */
       items: ShownNavigationItem[];
+      /**
+       * True when the group starts collapsed (`showroom.json`'s `collapsed`); left out otherwise
+       */
+      collapsed?: true;
     };
 
 /**
@@ -102,7 +106,8 @@ export function getNavigationItems(documentation: DocumentationFile[], navigatio
   if (navigation) {
     const show = (items: NavigationItem[]): ShownNavigationItem[] =>
       items.map((item) => {
-        if (item.kind === 'group') return { kind: 'group', label: item.label, items: show(item.items) };
+        if (item.kind === 'group')
+          return { kind: 'group', label: item.label, items: show(item.items), ...(item.collapsed ? { collapsed: true as const } : {}) };
         if (item.kind === 'url') return { kind: 'url', label: item.label, href: item.url };
         return item.path ? page(item.label, item.path, item.anchor) : home(item.label, item.anchor);
       });

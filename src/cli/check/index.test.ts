@@ -894,6 +894,7 @@ describe('cli/check', () => {
         {
           kind: 'group',
           label: 'Examples',
+          collapsed: true,
           items: [
             { kind: 'page', label: 'Three first', path: 'examples/three/README.md' },
             { kind: 'page', label: 'One', path: 'examples/one/README.md' },

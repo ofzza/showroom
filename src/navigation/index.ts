@@ -177,7 +177,7 @@ export function resolveNavigation(entries: readonly NavigationEntry[], host: Nav
       const at = `${position}${index + 1}`;
       if (item.items) {
         const children = resolve(item.items, `${at}.`);
-        return children.length ? [{ kind: 'group', label: item.title, items: children }] : [];
+        return children.length ? [{ kind: 'group', label: item.title, items: children, ...(item.collapsed ? { collapsed: true as const } : {}) }] : [];
       }
       if (isNavigationUrl(item.path)) return [{ kind: 'url', label: item.title ?? item.path, url: item.path }];
       const { path, anchor } = _splitPagePath(item.path);

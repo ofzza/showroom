@@ -128,6 +128,22 @@ describe('navigation', () => {
       expect(resolveNavigation([{ title: 'Empty', items: [{ path: 'nothing/*' }] }], _HOST).items).toEqual([]);
     });
 
+    it("Carries a group's collapsed only when true, at any depth", () => {
+      const { items } = resolveNavigation(
+        [{ title: 'Outer', collapsed: true, items: [{ title: 'Inner', collapsed: false, items: [{ path: 'LICENSE' }] }] }],
+        _HOST,
+      );
+      expect(items).toEqual([
+        {
+          kind: 'group',
+          label: 'Outer',
+          collapsed: true,
+          items: [{ kind: 'group', label: 'Inner', items: [{ kind: 'page', label: 'LICENSE', path: 'LICENSE' }] }],
+        },
+      ]);
+      expect(items[0].kind === 'group' && items[0].items[0]).not.toHaveProperty('collapsed');
+    });
+
     it('Nests groups', () => {
       const { items } = resolveNavigation([{ title: 'Outer', items: [{ title: 'Inner', items: [{ path: 'LICENSE' }] }] }], _HOST);
       expect(items).toEqual([

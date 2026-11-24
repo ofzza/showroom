@@ -74,7 +74,12 @@ describe('app/navigation', () => {
     it('Shows pages, anchors, URLs and nested groups', () => {
       const navigation: NavigationItem[] = [
         { kind: 'page', label: 'Home', path: '', anchor: 'usage' },
-        { kind: 'group', label: 'Docs', items: [{ kind: 'group', label: 'Deeper', items: [{ kind: 'page', label: 'Guide', path: 'docs/guide.md' }] }] },
+        {
+          kind: 'group',
+          label: 'Docs',
+          collapsed: true,
+          items: [{ kind: 'group', label: 'Deeper', items: [{ kind: 'page', label: 'Guide', path: 'docs/guide.md' }] }],
+        },
         { kind: 'url', label: 'npm', url: 'https://npmjs.com' },
       ];
       expect(getNavigationItems([_file('README.md', 'readme')], navigation)).toEqual([
@@ -82,6 +87,7 @@ describe('app/navigation', () => {
         {
           kind: 'group',
           label: 'Docs',
+          collapsed: true,
           items: [
             {
               kind: 'group',

@@ -215,15 +215,16 @@ export interface NavigationGroupProps {
 }
 
 /**
- * Renders a navigation group: its caption, a button collapsing and expanding it, and its items, indented. It starts expanded, and expands again
- * whenever the current item changes to one of its items; collapsing it keeps it collapsed until then
+ * Renders a navigation group: its caption, a button collapsing and expanding it, and its items, indented. It starts expanded (or collapsed, with
+ * `collapsed`, as if collapsed with no current item), and expands again whenever the current item changes to one of its items; collapsing it keeps
+ * it collapsed until then
  * @param props Properties of the component
  * @returns The rendered group
  */
 export function NavigationGroup({ group, current, onNavigate }: NavigationGroupProps): ReactNode {
   const styles = _useStyles();
   // The current item when the group was collapsed, or null while it is expanded (no effect needed: it is derived on rendering)
-  const [collapsedOn, setCollapsedOn] = useState<{ page?: string } | null>(null);
+  const [collapsedOn, setCollapsedOn] = useState<{ page?: string } | null>(() => (group.kind === 'group' && group.collapsed ? {} : null));
   const expanded = isNavigationGroupExpanded(group, collapsedOn, current);
   return (
     <>

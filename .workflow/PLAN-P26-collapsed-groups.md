@@ -1,6 +1,6 @@
 # _`P26`_ Navigation groups collapsed at first
 
-approved 2026-11-24 (option chosen: "Approve and commit (Rec.)")
+approved 2026-11-24 (option chosen: "Approve and commit (Rec.)"); implemented 2026-11-24 (option chosen: "Approve and commit"); its misuses tested in `src/configuration/`'s error list instead of the `navigation-errors` fixture (_`D932`_), as an invalid `showroom.json` stops `check` before the navigation is judged
 
 _`S13`_ (SPEC-S13-navigation.md) as revised by _`R67`_: a `navigation` group's optional `collapsed` (_`D929`_, _`D930`_). One segment, with no child segments; its choices were settled 2026-11-24 (Q1–Q4, all as recommended).
 

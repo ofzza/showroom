@@ -90,6 +90,17 @@ describe('app/layout', () => {
     expect(html.match(/aria-expanded="true"/g)).toHaveLength(2);
   });
 
+  it('Shows a group collapsed at first, unless it holds the current page', () => {
+    // See D929 (SPEC-S13-navigation.md): a collapsed group still shows the open page
+    const navigation = _GROUPED.map((item) => (item.kind === 'group' ? { ...item, collapsed: true as const } : item));
+    const html = _render({ name: 'p' }, undefined, 'light', navigation);
+    expect(html).toMatch(/<button[^>]*aria-expanded="false"[^>]*>.*Guides<\/button>/s);
+    expect(html).not.toContain('Install');
+    const current = _render({ name: 'p' }, '#/docs/guide.md', 'light', navigation);
+    expect(current).toMatch(/<button[^>]*aria-expanded="true"[^>]*>.*Guides<\/button>/s);
+    expect(current).toContain('Install');
+  });
+
   it("Marks a page by its route, whatever its item's anchor", () => {
     const html = _render({ name: 'p' }, '#/docs/guide.md', 'light', _GROUPED);
     expect(html).toMatch(/<a [^>]*aria-current="page"[^>]*>Install<\/a>/);

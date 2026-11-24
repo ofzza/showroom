@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P26`_ navigation groups collapsed at first ([PLAN-P26-collapsed-groups.md](./PLAN-P26-collapsed-groups.md)), approved, for _`S13`_ re-approved for _`R67`_.
+- **Stage:** implementation: _`P26`_ navigation groups collapsed at first ([PLAN-P26-collapsed-groups.md](./PLAN-P26-collapsed-groups.md)) is implemented (2026-11-24); _`P25`_ is done; _`O145`_ (blox's checks) and _`K32`_ (Safari) wait.
 - **Next free:** _`D934`_, _`S20`_, _`P27`_, _`O146`_, _`L22`_, _`R68`_, _`H1`_, _`K33`_
-- **Working on:** _`P26`_, step 1.
-- **Next step:** implement _`P26`_'s steps, then its checkpoint.
+- **Working on:** nothing in progress.
+- **Next step:** the user's choice; blox's _`P4.2`_ waits for a release carrying _`P24`_ and _`P25`_ (`PUBLISH.md`, on the user's word).
 
 ## Open questions
 
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/p26-format/` (formatting backups), `ci-p26.log`, `p26-build.log`, `serve-dogfood-p26.log`; ask before deleting them.
 - `./.workflow/.temp/spike-overlay-overhang/` (the spike, its conclusions in _`P25`_'s evidence), `review-p25/` (the review's record and snapshots), `p25-check/`, `p25-format/` (formatting backups), `ci-p25.log`, `p25-build.log`, `serve-p25-check.log`, `serve-dogfood-p25.log`; ask before deleting them.
 - `./.workflow/.temp/p24-check/` (the browser check's host), `p24-format/` (formatting backups), `ci-p24.log`, `p24-build.log`, `serve-p24-check.log`, `serve-dogfood-p24.log`; ask before deleting them.
 - `./.workflow/.temp/p23-migrate/` (the migration script, its file list and copies), `p23-check/` (the served `project-overrides` copy), `p23-format/` (formatting backups), `p23-readme-ts/` (`README.md`'s samples, type checked), `ci-p23.log`, `ci-o144.log`, `serve-check-p23.log`, `serve-dogfood-p23.log`; ask before deleting them.
@@ -61,7 +62,7 @@
 
 ## Running
 
-- `showroom serve` of this repository (port 5173), at the user's request.
+- `showroom serve` of this repository (port 5173), at the user's request; stopped only when the user says so.
 - Nothing.
 
 ## History
@@ -505,3 +506,4 @@
 - 2026-11-24: _`P25`_ implemented; `npm run ci` green (`./.workflow/.temp/ci-p25.log`); approved after the browser check (option chosen: "Approve and commit").
 - 2026-11-24: _`P26`_ drafted from the user's request (a navigation group's `collapsed`); choices: "Expand on its page (Rec.)", "An error (Rec.)", "Allowed (Rec.)", "S13 decision + P26 (Rec.)" (_`D929`_–_`D932`_, _`R67`_ on _`S13`_).
 - 2026-11-24: _`P26`_ (with _`D933`_, at the user's word) approved, and _`S13`_ re-approved for _`R67`_ (option chosen: "Approve and commit (Rec.)").
+- 2026-11-24: _`P26`_ implemented; `npm run ci` green (`./.workflow/.temp/ci-p26.log`); approved after the browser check (option chosen: "Approve and commit").

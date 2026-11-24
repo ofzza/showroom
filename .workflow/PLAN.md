@@ -324,7 +324,7 @@ None (_`D61`_).
 
 ## Navigation groups collapsed at first
 
-- _`P26`_ Navigation groups collapsed at first (approved 2026-11-24): _`S13`_ (SPEC-S13-navigation.md) as revised by _`R67`_, a `navigation` group's optional `collapsed`; one segment. [See Navigation groups collapsed at first](./PLAN-P26-collapsed-groups.md)
+- _`P26`_ Navigation groups collapsed at first (approved 2026-11-24, implemented 2026-11-24): _`S13`_ (SPEC-S13-navigation.md) as revised by _`R67`_, a `navigation` group's optional `collapsed`; one segment. [See Navigation groups collapsed at first](./PLAN-P26-collapsed-groups.md)
 
 ## Known open issues
 

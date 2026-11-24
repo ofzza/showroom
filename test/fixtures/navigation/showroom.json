@@ -12,10 +12,11 @@
     },
     {
       "title": "Examples",
+      "collapsed": true,
       "items": [
         { "title": "Three first", "path": "examples/three/README.md" },
         { "path": "examples/*/README.md" },
-        { "title": "More", "items": [{ "path": "LICENSE" }] }
+        { "title": "More", "collapsed": false, "items": [{ "path": "LICENSE" }] }
       ]
     },
     { "title": "Contributing", "path": "CONTRIBUTING.md" },

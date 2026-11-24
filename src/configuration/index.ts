@@ -109,9 +109,12 @@ export interface ProjectConfiguration {
 /**
  * Represents an item of `showroom.json`'s `navigation`: a page, by its `path` (a documentation file's path, optionally followed by
  * `#<heading id>`; `/` for the home page; an absolute URL, `http:`, `https:`, `mailto:` or protocol-relative; or a `.gitignore`-style pattern standing for every documentation file it matches),
- * labelled by its `title` or else by its documentation file's first heading; or a group of items, captioned by its `title`
+ * labelled by its `title` or else by its documentation file's first heading; or a group of items, captioned by its `title`, collapsed at first with
+ * `collapsed: true` (expanded once the current page is one of its items)
  */
-export type NavigationEntry = { title?: string; path: string; items?: undefined } | { title: string; items: NavigationEntry[]; path?: undefined };
+export type NavigationEntry =
+  | { title?: string; path: string; items?: undefined; collapsed?: undefined }
+  | { title: string; items: NavigationEntry[]; path?: undefined; collapsed?: boolean };
 
 /**
  * Default output directory of the showroom
@@ -267,7 +270,7 @@ function _checkWithoutStackAdapter(record: Record<string, unknown>): string[] {
 /**
  * Keys a navigation item may hold
  */
-const _NAVIGATION_KEYS = ['title', 'path', 'items'];
+const _NAVIGATION_KEYS = ['title', 'path', 'items', 'collapsed'];
 
 /**
  * Checks the items of a navigation, and of its groups, each named by its position (e.g. `"navigation" item 2.1`, the first item of the second)
@@ -284,9 +287,11 @@ function _checkNavigation(items: unknown[], position = ''): string[] {
     const record = item as Record<string, unknown>;
     const unknown = Object.keys(record).filter((key) => !_NAVIGATION_KEYS.includes(key));
     if (unknown.length) return problem(`unknown key ${unknown.map((key) => `"${key}"`).join(', ')}`);
-    const { title, path, items: children } = record;
+    const { title, path, items: children, collapsed } = record;
     if (title !== undefined && (typeof title !== 'string' || !title.trim())) return problem('"title" must be a non-empty string');
     if (path !== undefined && children !== undefined) return problem('a page ("path") or a group ("items"), not both');
+    if (collapsed !== undefined && children === undefined) return problem('"collapsed" is only for a group ("items")');
+    if (collapsed !== undefined && typeof collapsed !== 'boolean') return problem('"collapsed" must be true or false');
     if (children !== undefined) {
       if (!Array.isArray(children) || !children.length) return problem('"items" must be a non-empty array of navigation items');
       if (title === undefined) return problem('a group needs a "title"');

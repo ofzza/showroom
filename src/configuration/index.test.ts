@@ -237,6 +237,9 @@ describe('configuration', () => {
         { title: 'Nested', items: [{ path: 'a.md' }, { title: 'Deeper', items: [{ path: 3 }] }] },
         { title: 'Script', path: 'JavaScript:alert(1)' },
         { title: 'Data', path: 'data:text/html,<p>hi</p>' },
+        { path: 'a.md', collapsed: true },
+        { title: 'Npm', path: 'https://www.npmjs.com', collapsed: false },
+        { title: 'Group', items: [{ path: 'b.md' }], collapsed: 'yes' },
       ];
       expect(validateConfiguration({ stack: 'typescript', navigation }).errors).toEqual([
         'showroom.json: "navigation" item 1: must be an object',
@@ -253,7 +256,15 @@ describe('configuration', () => {
         'showroom.json: "navigation" item 12.2.1: "path" must be a non-empty string',
         'showroom.json: "navigation" item 13: a URL must be "http:", "https:", "mailto:" or protocol-relative ("//")',
         'showroom.json: "navigation" item 14: a URL must be "http:", "https:", "mailto:" or protocol-relative ("//")',
+        'showroom.json: "navigation" item 15: "collapsed" is only for a group ("items")',
+        'showroom.json: "navigation" item 16: "collapsed" is only for a group ("items")',
+        'showroom.json: "navigation" item 17: "collapsed" must be true or false',
       ]);
+    });
+
+    it("Accepts a group's collapsed, true or false, at any depth", () => {
+      const navigation = [{ title: 'Shut', collapsed: true, items: [{ path: 'a.md' }, { title: 'Open', collapsed: false, items: [{ path: 'b.md' }] }] }];
+      expect(validateConfiguration({ stack: 'typescript', navigation })).toEqual({ configuration: { stack: 'typescript', navigation }, errors: [] });
     });
 
     it("Accepts a navigation item's URL of an allowed scheme, in any case, or protocol-relative", () => {
