@@ -117,7 +117,7 @@ describe('app/showcases', () => {
       const html = _render('[a](a.html "showcase") and [b](b.html "showcase")\n\n- item [c](c.html "showcase")\n\n## Demo [d](d.html "showcase")');
       expect(html).not.toContain('<iframe');
       expect(html).toMatch(/<li>item /);
-      expect(html).toMatch(/<h2 id="demo-d">/);
+      expect(html).toMatch(/<h2 id="demo-d"/);
     });
 
     it('Skips a showcase whose offset matches no fence or link, and those of other documentation files', () => {

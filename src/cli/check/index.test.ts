@@ -875,8 +875,8 @@ describe('cli/check', () => {
   });
 
   describe('Navigation', () => {
-    // showroom.json's navigation, resolved on the navigation fixture (pages, an anchor, a URL, nested groups, a pattern skipping a file listed
-    // explicitly, the home page, a file left out) and judged on the navigation-errors fixture (every error and warning).
+    // showroom.json's navigation, resolved on the navigation fixture (pages, an anchor, a URL, nested groups, a group's collapsed passed down and
+    // overridden, a pattern skipping a file listed explicitly, the home page, a file left out) and judged on the navigation-errors fixture (every error and warning).
 
     it('Resolves the navigation into the host information', async () => {
       const { passed, host } = await check(_fixture('navigation'));
@@ -897,8 +897,15 @@ describe('cli/check', () => {
           collapsed: true,
           items: [
             { kind: 'page', label: 'Three first', path: 'examples/three/README.md' },
-            { kind: 'page', label: 'One', path: 'examples/one/README.md' },
-            { kind: 'page', label: 'Two', path: 'examples/two/README.md' },
+            {
+              kind: 'group',
+              label: 'The others',
+              collapsed: true,
+              items: [
+                { kind: 'page', label: 'One', path: 'examples/one/README.md' },
+                { kind: 'page', label: 'Two', path: 'examples/two/README.md' },
+              ],
+            },
             { kind: 'group', label: 'More', items: [{ kind: 'page', label: 'LICENSE', path: 'LICENSE' }] },
           ],
         },

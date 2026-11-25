@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { DocumentationFile } from '../host/index.js';
+import type { DocumentationFile, NavigationItem } from '../host/index.js';
 import { isNavigationGlob, isNavigationUrl, NAVIGATION_HOME_PATH, resolveNavigation, type NavigationHost } from './index.js';
 
 /**
@@ -142,6 +142,50 @@ describe('navigation', () => {
         },
       ]);
       expect(items[0].kind === 'group' && items[0].items[0]).not.toHaveProperty('collapsed');
+    });
+
+    it("Passes a group's collapsed down to the groups that set none, at any depth", () => {
+      // See D934 (SPEC-S13-navigation.md): an explicit collapsed, true or false, decides it for the group and the groups below it
+      const leaf = { path: 'LICENSE' };
+      const { items } = resolveNavigation(
+        [
+          {
+            title: 'Collapsed',
+            collapsed: true,
+            items: [
+              { title: 'Inherits collapsed', items: [leaf] },
+              {
+                title: 'Expanded',
+                collapsed: false,
+                items: [
+                  { title: 'Inherits expanded', items: [leaf] },
+                  { title: 'Collapsed again', collapsed: true, items: [{ title: 'Inherits collapsed again', items: [leaf] }] },
+                ],
+              },
+            ],
+          },
+          { title: 'Top level', items: [{ title: 'Inherits the default', items: [leaf] }] },
+        ],
+        _HOST,
+      );
+      const states: Record<string, boolean> = {};
+      const walk = (list: NavigationItem[]): void =>
+        list.forEach((item) => {
+          if (item.kind !== 'group') return;
+          states[item.label] = item.collapsed === true;
+          walk(item.items);
+        });
+      walk(items);
+      expect(states).toEqual({
+        Collapsed: true,
+        'Inherits collapsed': true,
+        Expanded: false,
+        'Inherits expanded': false,
+        'Collapsed again': true,
+        'Inherits collapsed again': true,
+        'Top level': false,
+        'Inherits the default': false,
+      });
     });
 
     it('Nests groups', () => {

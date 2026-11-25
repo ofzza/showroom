@@ -48,7 +48,7 @@ describe('app', () => {
     const html = _render();
     // The README opens with its own title, which replaces the project's name
     expect(html).not.toMatch(/<h1 [^>]*>my-library<\/h1>/);
-    expect(html).toContain('<h1 id="welcome">Welcome</h1>');
+    expect(html).toMatch(/<h1 id="welcome"[^>]*><a [^>]*>.*?<\/a>Welcome<\/h1>/);
     expect(html).toMatch(/<a [^>]*href="#\/docs\/guide.md"[^>]*>guide<\/a>/);
     expect(html).toMatch(/<a [^>]*aria-current="page"[^>]*>README<\/a>|<a [^>]*href="#\/"[^>]*aria-current="page"[^>]*>/);
   });
@@ -60,13 +60,13 @@ describe('app', () => {
 
   it("Shows a documentation file's page", () => {
     const html = _render('#/docs/guide.md#install');
-    expect(html).toContain('<h1 id="guide">Guide</h1>');
-    expect(html).toContain('<h2 id="install">Install</h2>');
+    expect(html).toMatch(/<h1 id="guide"[^>]*><a [^>]*>.*?<\/a>Guide<\/h1>/);
+    expect(html).toMatch(/<h2 id="install"[^>]*><a [^>]*>.*?<\/a>Install<\/h2>/);
     expect(html).not.toContain('<h1 id="welcome">');
   });
 
   it("Shows the home page for the root README's own route", () => {
-    expect(_render('#/README.md')).toContain('<h1 id="welcome">Welcome</h1>');
+    expect(_render('#/README.md')).toMatch(/<h1 id="welcome"[^>]*><a [^>]*>.*?<\/a>Welcome<\/h1>/);
   });
 
   it('Shows the not-found page for any other route', () => {
@@ -134,7 +134,7 @@ describe('app', () => {
       </SSRProvider>,
     ).replaceAll('<!-- -->', '');
     expect(withIssues).toContain('1 error');
-    expect(withIssues.indexOf('Broke')).toBeLessThan(withIssues.indexOf('<h1 id="welcome">'));
+    expect(withIssues.indexOf('Broke')).toBeLessThan(withIssues.indexOf('<h1 id="welcome"'));
   });
 
   describe('Updates', () => {

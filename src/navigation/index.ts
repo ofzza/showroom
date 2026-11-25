@@ -122,7 +122,8 @@ interface _PagePath {
 /**
  * Resolves `showroom.json`'s `navigation`: each page's path matched to a documentation file as a route is (case-insensitively, `/` and the root
  * `README` naming the home page), labelled by its `title` or its documentation file's first heading (else its path); each pattern expanded into a page
- * per documentation file it matches, in path order, skipping those the navigation lists explicitly anywhere, and those an earlier pattern took
+ * per documentation file it matches, in path order, skipping those the navigation lists explicitly anywhere, and those an earlier pattern took; each group
+ * collapsed at first by its own `collapsed`, or else as its parent group is (expanded at the top level)
  * @param entries The navigation, as validated
  * @param host What the resolution reads about the host repository
  * @returns The resolved items, and the issues found
@@ -172,12 +173,14 @@ export function resolveNavigation(entries: readonly NavigationEntry[], host: Nav
     return { kind: 'page', label, path: key, ...(anchor !== undefined ? { anchor } : {}) };
   };
   const taken = new Set<string>();
-  const resolve = (items: readonly NavigationEntry[], position: string): NavigationItem[] =>
+  // A group's collapsed is its own, or else its parent group's, passed down (D934)
+  const resolve = (items: readonly NavigationEntry[], position: string, parentCollapsed: boolean): NavigationItem[] =>
     items.flatMap((item, index): NavigationItem[] => {
       const at = `${position}${index + 1}`;
       if (item.items) {
-        const children = resolve(item.items, `${at}.`);
-        return children.length ? [{ kind: 'group', label: item.title, items: children, ...(item.collapsed ? { collapsed: true as const } : {}) }] : [];
+        const collapsed = item.collapsed ?? parentCollapsed;
+        const children = resolve(item.items, `${at}.`, collapsed);
+        return children.length ? [{ kind: 'group', label: item.title, items: children, ...(collapsed ? { collapsed: true as const } : {}) }] : [];
       }
       if (isNavigationUrl(item.path)) return [{ kind: 'url', label: item.title ?? item.path, url: item.path }];
       const { path, anchor } = _splitPagePath(item.path);
@@ -196,7 +199,7 @@ export function resolveNavigation(entries: readonly NavigationEntry[], host: Nav
       }
       return [page(file, at, item.title, anchor)];
     });
-  const resolved = resolve(entries, '');
+  const resolved = resolve(entries, '', false);
 
   // The documentation files left out
   for (const file of documentation) {

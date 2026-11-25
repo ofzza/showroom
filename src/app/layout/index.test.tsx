@@ -101,6 +101,16 @@ describe('app/layout', () => {
     expect(current).toContain('Install');
   });
 
+  it('Keeps a nested group collapsed, as resolved, when its parent expands for the current page', () => {
+    // See D934 (SPEC-S13-navigation.md): resolveNavigation() passes a collapsed group's state down, and each group expands only for its own items
+    const collapse = (items: ShownNavigationItem[]): ShownNavigationItem[] =>
+      items.map((item) => (item.kind === 'group' ? { ...item, collapsed: true as const, items: collapse(item.items) } : item));
+    const html = _render({ name: 'p' }, '#/docs/guide.md', 'light', collapse(_GROUPED));
+    expect(html).toMatch(/<button[^>]*aria-expanded="true"[^>]*>.*Guides<\/button>/s);
+    expect(html).toMatch(/<button[^>]*aria-expanded="false"[^>]*>.*Deeper<\/button>/s);
+    expect(html).not.toContain('>Deep<');
+  });
+
   it("Marks a page by its route, whatever its item's anchor", () => {
     const html = _render({ name: 'p' }, '#/docs/guide.md', 'light', _GROUPED);
     expect(html).toMatch(/<a [^>]*aria-current="page"[^>]*>Install<\/a>/);

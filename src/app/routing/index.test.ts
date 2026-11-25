@@ -2,9 +2,9 @@
  * Tests of the showroom's hash router
  */
 
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import type { DocumentationFile } from '../../host/index.js';
-import { formatRoute, getDocumentationRoute, parseRoute, resolveRoute, scrollToAnchor } from './index.js';
+import { formatRoute, getDocumentationRoute, parseRoute, replaceRoute, resolveRoute, scrollToAnchor } from './index.js';
 
 /**
  * Creates a documentation file with empty content
@@ -105,5 +105,28 @@ describe('app/routing', () => {
   it('Does nothing when scrolling outside a browser', () => {
     // Guards the server-side rendering the tests rely on: `window` is undefined here
     expect(() => scrollToAnchor('a')).not.toThrow();
+  });
+
+  describe('replaceRoute', () => {
+    // A heading's link (D938, PLAN-P27-collapsed-inherited.md): tested with a stubbed `window`, as there is no DOM in the tests
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('Replaces the URL without adding to the history, and tells useHash() through a hashchange event', () => {
+      const replaceState = vi.fn();
+      const dispatchEvent = vi.fn();
+      vi.stubGlobal('HashChangeEvent', class extends Event {});
+      vi.stubGlobal('window', { history: { state: { kept: true }, replaceState }, dispatchEvent });
+      replaceRoute('#/docs/guide.md#install');
+      expect(replaceState).toHaveBeenCalledWith({ kept: true }, '', '#/docs/guide.md#install');
+      expect(dispatchEvent).toHaveBeenCalledTimes(1);
+      expect(dispatchEvent.mock.calls[0][0].type).toBe('hashchange');
+    });
+
+    it('Does nothing outside a browser', () => {
+      expect(() => replaceRoute('#/')).not.toThrow();
+    });
   });
 });

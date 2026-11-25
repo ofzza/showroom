@@ -15,7 +15,7 @@
       "collapsed": true,
       "items": [
         { "title": "Three first", "path": "examples/three/README.md" },
-        { "path": "examples/*/README.md" },
+        { "title": "The others", "items": [{ "path": "examples/*/README.md" }] },
         { "title": "More", "collapsed": false, "items": [{ "path": "LICENSE" }] }
       ]
     },

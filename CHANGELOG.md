@@ -4,6 +4,14 @@ All notable changes to `@ofzza/showroom`, by version as published to npm. This p
 
 ## Unreleased
 
+### Added
+
+- **Every heading links to itself**: hovering a heading in the showroom shows a link icon in front of it, and clicking the icon or the heading puts the heading's address in the URL (e.g. `#/docs/guide.md#install`), without adding to the browser's history, so it can be copied and survives a reload (see README.md › The showroom).
+
+### Changed
+
+- **A navigation group's `collapsed` passes down**: a group without `collapsed` now starts as its parent group does, instead of always expanded, so `"collapsed": true` collapses the groups below it too; a group's own `"collapsed": false` expands it, and the groups below it that set none. The resolved `NavigationItem`'s group gets `collapsed: true` when it starts collapsed either way (see README.md › Navigation).
+
 ## 0.1.0-alpha.4 (2026-11-24)
 
 ### Breaking changes

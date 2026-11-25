@@ -110,7 +110,7 @@ export interface ProjectConfiguration {
  * Represents an item of `showroom.json`'s `navigation`: a page, by its `path` (a documentation file's path, optionally followed by
  * `#<heading id>`; `/` for the home page; an absolute URL, `http:`, `https:`, `mailto:` or protocol-relative; or a `.gitignore`-style pattern standing for every documentation file it matches),
  * labelled by its `title` or else by its documentation file's first heading; or a group of items, captioned by its `title`, collapsed at first with
- * `collapsed: true` (expanded once the current page is one of its items)
+ * `collapsed: true` (expanded once the current page is one of its items), and starting as its parent group does when it has no `collapsed`
  */
 export type NavigationEntry =
   | { title?: string; path: string; items?: undefined; collapsed?: undefined }

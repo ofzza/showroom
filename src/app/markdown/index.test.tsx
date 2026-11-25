@@ -9,7 +9,7 @@ import type { DocumentationFile, LinkedFile } from '../../host/index.js';
 import type { ShownShowcase } from '../host/index.js';
 import { COLOURED_TOKEN_CLASSES, UNCOLOURED_TOKEN_CLASSES } from '../code/index.js';
 import { scanMarkdown } from '../../markdown/index.js';
-import { Markdown, UNRESOLVED_LINK_TOOLTIP } from './index.js';
+import { HEADING_LINK_LABEL, Markdown, UNRESOLVED_LINK_TOOLTIP } from './index.js';
 
 /**
  * Linked files the rendered documentation files link to
@@ -52,9 +52,38 @@ describe('app/markdown', () => {
 
   it('Gives headings GitHub-compatible ids', () => {
     const html = _render('# Getting started\n\n## Install & run\n\n## Install & run');
-    expect(html).toContain('<h1 id="getting-started">');
-    expect(html).toContain('<h2 id="install--run">');
-    expect(html).toContain('<h2 id="install--run-1">');
+    expect(html).toContain('<h1 id="getting-started"');
+    expect(html).toContain('<h2 id="install--run"');
+    expect(html).toContain('<h2 id="install--run-1"');
+  });
+
+  it('Links every heading to itself, by its page and id, with a link icon before its text', () => {
+    // See D938 (PLAN-P27-collapsed-inherited.md): the icon is a link to the heading's route, so it can be copied or opened in a new tab
+    const html = _render('# Guide\n\n## Install\n\n## Install\n\n###### Deep', 'docs/guide.md');
+    const headings = [...html.matchAll(/<(h[1-6]) id="([^"]*)"[^>]*><a ([^>]*)>(.*?)<\/a>([^<]*)<\/h[1-6]>/g)];
+    expect(headings.map(([, level, id, , , text]) => [level, id, text])).toEqual([
+      ['h1', 'guide', 'Guide'],
+      ['h2', 'install', 'Install'],
+      ['h2', 'install-1', 'Install'],
+      ['h6', 'deep', 'Deep'],
+    ]);
+    headings.forEach(([, , id, attributes, icon]) => {
+      expect(attributes).toContain(`href="#/docs/guide.md#${id}"`);
+      expect(attributes).toContain(`aria-label="${HEADING_LINK_LABEL}"`);
+      expect(icon).toMatch(/^<svg [^>]*aria-hidden="true"/);
+    });
+  });
+
+  it("Links the root README's headings to the home page's route", () => {
+    const file: DocumentationFile = { path: 'README.md', kind: 'readme', extension: '.md', content: '## Usage' };
+    const html = renderToString(
+      <SSRProvider>
+        <FluentProvider theme={webLightTheme}>
+          <Markdown file={file} documentation={[file]} />
+        </FluentProvider>
+      </SSRProvider>,
+    );
+    expect(html).toMatch(/<h2 id="usage"[^>]*><a href="#\/#usage"/);
   });
 
   it('Gives headings the ids the Markdown scan gives them', () => {

@@ -195,6 +195,18 @@ export function useHash(): string {
 }
 
 /**
+ * Replaces the URL's hash with a route, without adding to the history, and tells useHash() (`replaceState()` fires no `hashchange`)
+ * @param route The route, a URL hash (see formatRoute())
+ */
+export function replaceRoute(route: string): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  window.history.replaceState(window.history.state, '', route);
+  window.dispatchEvent(new HashChangeEvent('hashchange'));
+}
+
+/**
  * Scrolls to a heading by its id, or to the top of the page without one
  * @param anchor Id of the heading
  */

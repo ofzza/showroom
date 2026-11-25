@@ -3,8 +3,8 @@
 ## Next session: start here
 
 - **Stage:** implementation: _`P26`_ navigation groups collapsed at first ([PLAN-P26-collapsed-groups.md](./PLAN-P26-collapsed-groups.md)) is implemented (2026-11-24); _`P25`_ is done; _`O145`_ (blox's checks) and _`K32`_ (Safari) wait.
-- **Next free:** _`D937`_, _`S20`_, _`P28`_, _`O146`_, _`L22`_, _`R69`_, _`H1`_, _`K33`_
-- **Working on:** _`P27`_ navigation groups' `collapsed` passed down ([PLAN-P27-collapsed-inherited.md](./PLAN-P27-collapsed-inherited.md)), approved 2026-11-25; implementing.
+- **Next free:** _`D939`_, _`S20`_, _`P28`_, _`O146`_, _`L22`_, _`R69`_, _`H1`_, _`K33`_
+- **Working on:** _`P27`_ navigation groups' `collapsed` passed down ([PLAN-P27-collapsed-inherited.md](./PLAN-P27-collapsed-inherited.md)), implemented 2026-11-25, with _`D937`_ (the README overlays example) and _`D938`_ (heading links) folded in.
 - **Next step:** the user's choice; blox's _`P4.2`_ waits for a release carrying _`P24`_ and _`P25`_ (`PUBLISH.md`, on the user's word).
 
 ## Open questions
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/p27-format/` (formatting backups), `p27-check/` (the served nested-groups copy), `ci-p27.log`, `serve-dogfood-p27.log`, `serve-p27-check.log`; ask before deleting them.
 - `./.workflow/.temp/p26-format/` (formatting backups), `ci-p26.log`, `p26-build.log`, `serve-dogfood-p26.log`; ask before deleting them.
 - `./.workflow/.temp/spike-overlay-overhang/` (the spike, its conclusions in _`P25`_'s evidence), `review-p25/` (the review's record and snapshots), `p25-check/`, `p25-format/` (formatting backups), `ci-p25.log`, `p25-build.log`, `serve-p25-check.log`, `serve-dogfood-p25.log`; ask before deleting them.
 - `./.workflow/.temp/p24-check/` (the browser check's host), `p24-format/` (formatting backups), `ci-p24.log`, `p24-build.log`, `serve-p24-check.log`, `serve-dogfood-p24.log`; ask before deleting them.
@@ -62,8 +63,8 @@
 
 ## Running
 
-- `showroom serve` of this repository (port 5173), at the user's request; stopped only when the user says so.
-- Nothing.
+- `showroom serve` of this repository (port 5173, PID 1789672, started 2026-11-24 before _`P27`_, so its process runs the code from before _`P27`_), at the user's request; stopped only when the user says so.
+- `showroom serve` of this repository (http://localhost:5176/, `serve-dogfood-p27.log`) and of `p27-check/host` (http://localhost:5175/, `serve-p27-check.log`), started 2026-11-25 at the user's request, kept running across tasks until the user agrees to shut them down (stopped only while a CI run rebuilds `dist/`).
 
 ## History
 
@@ -511,3 +512,4 @@
 - 2026-11-24: Fast-path change: `PUBLISH.md` points `latest` at each new prerelease while no stable release exists, at the user's request ("Yes, please update PUBLISH.md").
 - 2026-11-25: _`P27`_ drafted from the user's request (a group's `collapsed` passed down); choices: "In resolveNavigation (Rec.)", "S13 decision + P27 (Rec.)" (_`D934`_–_`D936`_, _`R68`_ on _`S13`_).
 - 2026-11-25: _`P27`_ approved, and _`S13`_ re-approved for _`R68`_ (option chosen: "Approve and commit (Rec.)").
+- 2026-11-25: _`P27`_ implemented, with _`D937`_ (`README.md`'s overlays example: a second menu opening upwards, hover, console lines) and _`D938`_ (every heading linking to itself) folded in at the user's word; `npm run ci` green (`./.workflow/.temp/ci-p27.log`); approved after the browser check (option chosen: "Approve and commit").

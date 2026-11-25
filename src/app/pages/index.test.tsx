@@ -52,7 +52,8 @@ describe('app/pages', () => {
         expect(html).toContain(text);
       }
       expect(html).toMatch(/<a [^>]*href="https:\/\/example.com"[^>]*>https:\/\/example.com<\/a>/);
-      expect(html.indexOf('<h1 id="welcome">Welcome</h1>')).toBeLessThan(html.indexOf('A library'));
+      expect(html.search(/<h1 id="welcome"[^>]*>.*?Welcome<\/h1>/)).toBeGreaterThan(-1);
+      expect(html.search(/<h1 id="welcome"/)).toBeLessThan(html.indexOf('A library'));
       expect(html.indexOf('Jane Doe')).toBeLessThan(html.indexOf('Hello.'));
     });
 
@@ -117,7 +118,7 @@ describe('app/pages', () => {
       const guide: DocumentationFile = { path: 'docs/guide.md', kind: 'other', extension: '.md', content: '## Install' };
       const html = _render(<DocumentationPage file={guide} documentation={[guide]} />);
       expect(html).toContain('docs/guide.md');
-      expect(html).toContain('<h2 id="install">Install</h2>');
+      expect(html).toMatch(/<h2 id="install"[^>]*><a [^>]*>.*?<\/a>Install<\/h2>/);
     });
 
     it('Shows any other file as plain text, escaped', () => {

@@ -246,7 +246,7 @@ With `navigation`, the showroom shows yours instead: a list of items, each a pag
 
   A `path` can't start with `!`: unlike the other patterns, the navigation's only add pages.
 
-- A **group** has a `title`, its caption, and `items`, a non-empty list of items, groups included, to any depth. Each group starts expanded, or collapsed with `"collapsed": true` (`false`, the default, may be written out), and its caption collapses and expands it; the group holding the current item expands again whenever the current item changes, so a group collapsed at first still shows the open page. A group whose items all lead nowhere (e.g. a pattern that matches nothing) is left out.
+- A **group** has a `title`, its caption, and `items`, a non-empty list of items, groups included, to any depth. Each group starts expanded, or collapsed with `"collapsed": true`. A group without `collapsed` starts as its parent group does (a top-level one expanded), so `"collapsed": true` collapses the groups below it too, unless one of them sets `"collapsed": false`, which expands it and, again, the groups below it that set none. Its caption collapses and expands it; the group holding the current item expands again whenever the current item changes, so a group collapsed at first still shows the open page. A group whose items all lead nowhere (e.g. a pattern that matches nothing) is left out.
 
 A documentation file can be listed more than once, under different anchors: e.g. `README.md` as the home page, `/`, and again as `/#install`. The navigation highlights one item as the current one: of the items of the page shown, the one whose anchor the address names, else the first without an anchor, else the first. A documentation file the navigation doesn't list is left out of it, but its page still opens from a link or by its address, with no item highlighted as the current one.
 
@@ -726,18 +726,20 @@ The showcase frame follows the showroom's light or dark theme: the script sets i
 
 An overlay is a showcase's content placed outside its page's flow: absolutely positioned, and showing, as a dropdown, a menu, a popover or a dialog's pane usually is. By default, an open overlay grows its showcase frame, pushing the page below it down until it closes. With the `overlays` key on its marker, a showcase's overlays are drawn over the page around its showcase frame instead, below it or above it, and the page never moves. Only the overlays cover the page: the text beside them stays visible, clickable and selectable. A press anywhere outside the showcase frame, on the showroom or in another showcase frame, is replayed in it as a press outside its overlays, so they close as they would on a press outside them: on its page, or on a backdrop (as Angular Material's menus close), never on its content; Escape pressed outside isn't passed on.
 
-Open the menu below, its marker `html showcase include=markdown overlays`, and see it cover this text; then press anywhere else:
+Open a menu below, its marker `html showcase include=markdown overlays`, and see it cover this text ("Units" opens downwards, "Precision" upwards); then press anywhere else, or open the other one. Choosing an item logs it to the console, so its line shows in the console panel over the showcase frame while the menu closes:
 
 ```html showcase include=markdown overlays
 <style>
   .menu-host {
-    position: relative;
     display: flex;
     align-items: center;
     gap: 0.5em;
     font:
       0.9em system-ui,
       sans-serif;
+  }
+  .menu-anchor {
+    position: relative;
   }
   .menu {
     position: absolute;
@@ -747,6 +749,7 @@ Open the menu below, its marker `html showcase include=markdown overlays`, and s
     margin: 4px 0 0;
     padding: 4px 0;
     list-style: none;
+    white-space: nowrap;
     background: Canvas;
     border: 1px solid GrayText;
     border-radius: 4px;
@@ -754,34 +757,61 @@ Open the menu below, its marker `html showcase include=markdown overlays`, and s
   }
   .menu li {
     padding: 6px 16px;
+    cursor: pointer;
+  }
+  .menu li:hover {
+    background: Highlight;
+    color: HighlightText;
+  }
+  .menu.up {
+    top: auto;
+    bottom: 100%;
+    margin: 0 0 4px;
   }
   .menu[hidden] {
     display: none;
   }
 </style>
 <div class="menu-host">
-  <button id="units">Units ▾</button>
-  <span>Distances are shown in <b id="unit">kilometres</b>.</span>
-  <ul class="menu" hidden>
-    <li>kilometres</li>
-    <li>miles</li>
-    <li>nautical miles</li>
-    <li>light years</li>
-    <li>parsecs</li>
-  </ul>
+  <span class="menu-anchor">
+    <button data-menu="unit">Units ▾</button>
+    <ul class="menu" id="unit-menu" hidden>
+      <li>kilometres</li>
+      <li>miles</li>
+      <li>nautical miles</li>
+      <li>light years</li>
+      <li>parsecs</li>
+    </ul>
+  </span>
+  <span class="menu-anchor">
+    <button data-menu="precision">Precision ▾</button>
+    <ul class="menu up" id="precision-menu" hidden>
+      <li>0 decimals</li>
+      <li>1 decimal</li>
+      <li>2 decimals</li>
+    </ul>
+  </span>
+  <span>Distances are shown in <b id="unit">kilometres</b>, to <b id="precision">1 decimal</b>.</span>
 </div>
 <script>
-  const menu = document.querySelector('.menu');
-  document.getElementById('units').addEventListener('click', (event) => {
-    event.stopPropagation();
-    menu.hidden = !menu.hidden;
-  });
-  menu.addEventListener('click', (event) => {
-    document.getElementById('unit').textContent = event.target.textContent;
-    menu.hidden = true;
+  const menus = [...document.querySelectorAll('.menu')];
+  const closeMenus = (except) => menus.forEach((menu) => (menu.hidden = menu !== except || !menu.hidden));
+  document.querySelectorAll('[data-menu]').forEach((button) => {
+    const name = button.dataset.menu;
+    const menu = document.getElementById(`${name}-menu`);
+    button.addEventListener('click', (event) => {
+      event.stopPropagation();
+      closeMenus(menu);
+    });
+    menu.addEventListener('click', (event) => {
+      if (event.target.tagName !== 'LI') return;
+      document.getElementById(name).textContent = event.target.textContent;
+      console.log(`${button.textContent.replace(' ▾', '')}: ${event.target.textContent}`);
+      closeMenus();
+    });
   });
   document.addEventListener('click', (event) => {
-    if (!menu.contains(event.target)) menu.hidden = true;
+    if (!menus.some((menu) => menu.contains(event.target))) closeMenus();
   });
 </script>
 ```
@@ -990,7 +1020,7 @@ Escape, the close button, or a click on the dimmed page beside it closes it.
 
 The showroom is the same in `showroom serve` and in what `showroom build` builds:
 
-- **Pages and addresses**: a page per documentation file, its address in the URL's hash (e.g. `#/docs/guide.md`), and a home page (`#/`) with the project information and the root `README` (when the `README` opens with a level-1 heading, that heading is the home page's title, and the project information follows it). A heading's address is its page's, then `#` and its id (e.g. `#/docs/guide.md#install`), the ids GitHub gives headings. The header holds the project's name and version, and the theme toggle.
+- **Pages and addresses**: a page per documentation file, its address in the URL's hash (e.g. `#/docs/guide.md`), and a home page (`#/`) with the project information and the root `README` (when the `README` opens with a level-1 heading, that heading is the home page's title, and the project information follows it). A heading's address is its page's, then `#` and its id (e.g. `#/docs/guide.md#install`), the ids GitHub gives headings (a repeated heading's ids get `-1`, `-2`, … appended). Every heading links to itself: hovering it shows a link icon in front of it (on wide screens), and clicking the icon or the heading puts its address in the URL, so it can be copied, and a reload opens the page at it. The header holds the project's name and version, and the theme toggle.
 - **The navigation**: the [navigation](#navigation) lists the pages, the default one or the one `showroom.json` configures, and stays in view as a page scrolls.
 - **The theme**: the header's toggle switches between light and dark. It starts from the browser's preference (`prefers-color-scheme`), and remembers your choice in that browser. Showcase frames follow it (see [Showcase frames](#showcase-frames)).
 - **Markdown**: `.md` files are rendered as GitHub-flavoured Markdown, with the same heading ids as on GitHub; other documentation files are shown as plain text. In Markdown:
@@ -1089,7 +1119,7 @@ The host information has this shape (types `HostInformation`, `ProjectInformatio
 - **A showcase** has an `id` (its documentation file and its position there), the `line` and character `offset` of its entry point (the code block, or the link), its `kind` (`code-block` or `link`), how it is shown (`display`: `block`, or `inline` for a linked showcase without the `block` key), its showcase `adapter`, its `options` as the showcase adapter validated them (left out when there are none), the path of its `entry` point (a virtual file, or the linked file), the paths of its included files (`include`, in the marker's order, without its keywords; empty when it has none), its `tabs` in their order (`{ "kind": "source" }`, `{ "kind": "markdown" }`, or `{ "kind": "file", "path": … }` for an included file), its showcase `views`, after the defaults (`none` for a linked showcase shown inline without `view=`), and `overlays: true` when its marker has the `overlays` key (left out otherwise).
 - **A virtual file** has its `path`, whether `file=` `named` it (or its name was generated), the `showcase` whose entry point it is (its `id`; left out for a virtual file with no showcase adapter), its `views` (only for a virtual file with no showcase adapter: `source`, `markdown` or `none`), its `content`, and the `documentation` file, `line` and character `offset` of its code block.
 - **A linked file** has its `path`, its `size` in bytes, and whether it is `text` (UTF-8 with no NUL byte, and no larger than 1 MB, so the showroom shows it in the showcase sidebar).
-- **`navigation`** is there only when `showroom.json` configures one, resolved: each item a `page` (its `label`, its documentation file's `path`, empty for the home page, and its `anchor`, if any), a `url` (its `label` and `url`), or a `group` (its `label` and `items`, and `collapsed: true` when it starts collapsed, left out otherwise), with patterns expanded.
+- **`navigation`** is there only when `showroom.json` configures one, resolved: each item a `page` (its `label`, its documentation file's `path`, empty for the home page, and its `anchor`, if any), a `url` (its `label` and `url`), or a `group` (its `label` and `items`, and `collapsed: true` when it starts collapsed, by its own `collapsed` or its parent group's, left out otherwise), with patterns expanded.
 
 Paths are POSIX-style and relative to the host repository's root. Documentation files and linked files are sorted by path, showcases and virtual files by documentation file and line.
 

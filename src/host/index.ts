@@ -235,8 +235,8 @@ export interface LinkedFile {
 
 /**
  * Represents an item of the navigation as `showroom.json`'s `navigation` resolves: a page, a documentation file's (its `path`; empty for the home
- * page), opened at its `anchor` heading if it has one; an absolute URL; or a group of items, `collapsed` at first when `showroom.json` says so
- * (left out otherwise)
+ * page), opened at its `anchor` heading if it has one; an absolute URL; or a group of items, `collapsed` at first when `showroom.json` says so for
+ * it, or, saying nothing for it, for its parent group (left out otherwise)
  */
 export type NavigationItem =
   | { kind: 'page'; label: string; path: string; anchor?: string }
