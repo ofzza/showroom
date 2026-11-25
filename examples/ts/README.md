@@ -8,7 +8,7 @@
 
 ## A countdown
 
-A linked showcase, shown as a block: [`demo/countdown.ts`](./demo/countdown.ts) imports the library like any module would, and writes into the showcase frame root, `#root`. A `ts` showcase shows its code and its console by default; this one asks for its `demo` view instead (`view=demo`), its showcase frame, with its code a click away. What it logs fades in at the bottom of its showcase frame, and the console panel's counter, in the showcase frame's bottom-right corner, opens it.
+A linked showcase, shown as a block: [`demo/countdown.ts`](./demo/countdown.ts) imports the library like any module would, and writes into the showcase frame root, `#root`. A `ts` showcase shows its code and its console by default; this one asks for its `demo` view instead (`view=demo`), its showcase frame, with its code a click away. What it logs shows briefly in its header bar, and the `>_ runtime` status mark, or the line itself, opens the console panel.
 
 [A countdown to the new year](./demo/countdown.ts 'showcase=ts block view=demo include=markdown')
 

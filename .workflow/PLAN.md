@@ -329,7 +329,7 @@ None (_`D61`_).
 
 ## The console in the header bar
 
-- _`P28`_ The console in the header bar (approved 2026-11-25): _`S12`_ (SPEC-S12-showcase-views.md) as revised by _`R69`_, the console panel's counter dropped and its fading lines moved into the header bar; one segment. [See The console in the header bar](./PLAN-P28-console-header.md)
+- _`P28`_ The console in the header bar (approved 2026-11-25, implemented 2026-11-25): _`S12`_ (SPEC-S12-showcase-views.md) as revised by _`R69`_, the console panel's counter dropped and its fading lines moved into the header bar; one segment. [See The console in the header bar](./PLAN-P28-console-header.md)
 
 ## Known open issues
 

@@ -3,8 +3,8 @@
 ## Next session: start here
 
 - **Stage:** implementation: _`P26`_ navigation groups collapsed at first ([PLAN-P26-collapsed-groups.md](./PLAN-P26-collapsed-groups.md)) is implemented (2026-11-24); _`P25`_ is done; _`O145`_ (blox's checks) and _`K32`_ (Safari) wait.
-- **Next free:** _`D946`_, _`S20`_, _`P29`_, _`O146`_, _`L22`_, _`R70`_, _`H1`_, _`K33`_
-- **Working on:** _`P28`_ the console in the header bar ([PLAN-P28-console-header.md](./PLAN-P28-console-header.md)), drafted with _`D939`_–_`D943`_ and _`R69`_ on _`S12`_; approved 2026-11-25; implementing.
+- **Next free:** _`D947`_, _`S20`_, _`P29`_, _`O146`_, _`L22`_, _`R70`_, _`H1`_, _`K33`_
+- **Working on:** _`P28`_ the console in the header bar ([PLAN-P28-console-header.md](./PLAN-P28-console-header.md)), drafted with _`D939`_–_`D943`_ and _`R69`_ on _`S12`_; implemented 2026-11-25.
 - **Next step:** the user's choice; blox's _`P4.2`_ waits for a release carrying _`P24`_ and _`P25`_ (`PUBLISH.md`, on the user's word).
 
 ## Open questions
@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/p28-format/` (formatting backups), `ci-p28.log`, `serve-dogfood-p28.log`; ask before deleting them.
 - `./.workflow/.temp/p27-format/` (formatting backups), `p27-check/` (the served nested-groups copy), `ci-p27.log`, `serve-dogfood-p27.log`, `serve-p27-check.log`; ask before deleting them.
 - `./.workflow/.temp/p26-format/` (formatting backups), `ci-p26.log`, `p26-build.log`, `serve-dogfood-p26.log`; ask before deleting them.
 - `./.workflow/.temp/spike-overlay-overhang/` (the spike, its conclusions in _`P25`_'s evidence), `review-p25/` (the review's record and snapshots), `p25-check/`, `p25-format/` (formatting backups), `ci-p25.log`, `p25-build.log`, `serve-p25-check.log`, `serve-dogfood-p25.log`; ask before deleting them.
@@ -64,7 +65,7 @@
 ## Running
 
 - `showroom serve` of this repository (port 5173, PID 1789672, started 2026-11-24 before _`P27`_, so its process runs the code from before _`P27`_), at the user's request; stopped only when the user says so.
-- `showroom serve` of this repository (http://localhost:5176/, `serve-dogfood-p27.log`) and of `p27-check/host` (http://localhost:5175/, `serve-p27-check.log`), started 2026-11-25 at the user's request, kept running across tasks until the user agrees to shut them down (stopped only while a CI run rebuilds `dist/`).
+- `showroom serve` of this repository (http://localhost:5176/, `serve-dogfood-p28.log`) and of `p27-check/host` (http://localhost:5175/, `serve-p27-check.log`), started 2026-11-25 at the user's request, kept running across tasks until the user agrees to shut them down (stopped only while a CI run rebuilds `dist/`).
 
 ## History
 
@@ -515,3 +516,4 @@
 - 2026-11-25: _`P27`_ implemented, with _`D937`_ (`README.md`'s overlays example: a second menu opening upwards, hover, console lines) and _`D938`_ (every heading linking to itself) folded in at the user's word; `npm run ci` green (`./.workflow/.temp/ci-p27.log`); approved after the browser check (option chosen: "Approve and commit").
 - 2026-11-25: _`S12`_ revised (_`R69`_, _`D939`_–_`D943`_) and _`P28`_ drafted from the user's console redesign; choices: "Separate line count (Rec.)", "Newest only (Rec.)", "Only without a console view (Rec.)", "No, header only (Rec.)", and the `>_` prefix at the user's word.
 - 2026-11-25: _`P28`_ approved, and _`S12`_ re-approved for _`R69`_ (option chosen: "Approve and commit (Rec.)").
+- 2026-11-25: _`P28`_ implemented, with _`D946`_ (the `runtime` mark toggling the console panel) from the checkpoint; `npm run ci` green (`./.workflow/.temp/ci-p28.log`); approved after the browser check (option chosen: "Approve and commit").

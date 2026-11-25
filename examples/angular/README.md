@@ -14,7 +14,7 @@ A linked showcase, shown as a block, its code a click away: [`demo/stopwatch.ts`
 
 ## Counters
 
-A code block showcase, importing the library by relative paths from this documentation file's folder. Its signal inputs set each counter's start, step and bounds, and its `changed` output logs to the console: what it logs fades in at the bottom of its showcase frame, and the console panel's counter, in the showcase frame's bottom-right corner, opens it.
+A code block showcase, importing the library by relative paths from this documentation file's folder. Its signal inputs set each counter's start, step and bounds, and its `changed` output logs to the console: what it logs shows briefly in its header bar, and the `>_ runtime` status mark, or the line itself, opens the console panel.
 
 ```ts showcase=angular include=markdown
 import { Component } from '@angular/core';

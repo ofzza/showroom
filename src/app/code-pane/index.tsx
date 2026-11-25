@@ -39,6 +39,7 @@ import { isBuiltShowcase, isLoadedShowcase, type ShownIssue, type ShownShowcase 
 import {
   CONSOLE_LINE_ATTRIBUTE,
   CONSOLE_VIEW_HEIGHT,
+  ConsoleHeaderLine,
   ConsoleView,
   getFirstIssueLine,
   getRecordingConsole,
@@ -156,8 +157,8 @@ export const CODE_PANE_MIN_LINES = 6;
 export const CODE_PANE_MAX_LINES = MAX_CODE_LINES;
 
 /**
- * Minimum height of a block's `demo` view, in pixels: a console panel's counter's row (`src/app/console/`), as the cycling button sits in the header
- * bar (D576)
+ * Minimum height of a block's `demo` view, in pixels (D576, PLAN-P15.4-views.md): the console's counter that once set it is gone (D939,
+ * SPEC-S12-showcase-views.md), and an empty `demo` view keeps a visible box
  */
 export const SHOWCASE_BLOCK_FRAME_MIN_HEIGHT = 32;
 
@@ -239,6 +240,11 @@ export interface StatusMark {
    * True on a `runtime` status mark of a recording, recorded when the showcase was built
    */
   recorded?: true;
+  /**
+   * On a `runtime` status mark, the number of lines logged since the page's load (dropped ones included), or recorded; 0 while pending (D939,
+   * SPEC-S12-showcase-views.md)
+   */
+  lines?: number;
 }
 
 /**
@@ -250,6 +256,11 @@ export const BUILD_MARK_NAME = 'build';
  * Name of the page's status mark at run time
  */
 export const RUNTIME_MARK_NAME = 'runtime';
+
+/**
+ * Prefix of the `runtime` status mark's text, saying that it is about the console during the run (D940, SPEC-S12-showcase-views.md)
+ */
+export const RUNTIME_MARK_PREFIX = '>_';
 
 /**
  * Gets a status from numbers of errors and warnings
@@ -275,8 +286,8 @@ function _getIssuesStatus(issues: readonly ShownIssue[]): Pick<StatusMark, 'stat
 /**
  * Gets a showcase's status marks, in order: `build`, where it shows one (see ShownShowcase's `buildMark`), from the issues naming no check; one per
  * check its build ran, from that check's issues, but `runtime`; and `runtime`, where its page runs (it builds, and a `demo` or `console` view loads
- * it), from its console's warnings and errors since the page's load, pending until the page has loaded; or where it has a recording, from the
- * recording, whatever its views
+ * it), from its console's warnings and errors since the page's load, with its number of lines, pending until the page has loaded; or where it has a
+ * recording, from the recording (the program's own lines, not the showroom's end line), whatever its views
  * @param showcase The shown showcase
  * @param console The state of its console
  * @returns The status marks
@@ -291,12 +302,13 @@ export function getStatusMarks(showcase: ShownShowcase, console: ConsoleState): 
   }
   if (showcase.recording !== undefined) {
     const recorded = console.recorded ? console : getRecordingConsole(showcase.recording);
-    marks.push({ kind: 'runtime', name: RUNTIME_MARK_NAME, ..._getStatus(recorded.errorCount, recorded.warningCount), recorded: true });
+    const lines = showcase.recording.lines.length + showcase.recording.dropped;
+    marks.push({ kind: 'runtime', name: RUNTIME_MARK_NAME, ..._getStatus(recorded.errorCount, recorded.warningCount), recorded: true, lines });
     return marks;
   }
   if (isLoadedShowcase(showcase)) {
     const status = console.ready ? _getStatus(console.errorCount, console.warningCount) : ({ status: 'pending', count: 0 } as const);
-    marks.push({ kind: 'runtime', name: RUNTIME_MARK_NAME, ...status });
+    marks.push({ kind: 'runtime', name: RUNTIME_MARK_NAME, ...status, lines: console.ready ? console.count : 0 });
   }
   return marks;
 }
@@ -307,15 +319,6 @@ export function getStatusMarks(showcase: ShownShowcase, console: ConsoleState): 
 const _STATUS_SYMBOLS: Record<StatusMarkStatus, string> = { passed: '✓', warning: '⚠', error: '✗', pending: '…' };
 
 /**
- * Gets a status mark's text, as it reads: its name, its status's symbol, and on ⚠ and ✗ the number (e.g. `type check ✗ 3`, `runtime …`)
- * @param mark The status mark
- * @returns The text
- */
-export function getStatusMarkText(mark: StatusMark): string {
-  return `${mark.name} ${_STATUS_SYMBOLS[mark.status]}${mark.count ? ` ${mark.count}` : ''}`;
-}
-
-/**
  * Says an amount of something, in the singular or plural
  * @param amount The amount
  * @param word The word, in the singular
@@ -323,6 +326,27 @@ export function getStatusMarkText(mark: StatusMark): string {
  */
 function _plural(amount: number, word: string): string {
   return `${amount} ${word}${amount === 1 ? '' : 's'}`;
+}
+
+/**
+ * Gets the `runtime` status mark's line count, as its text ends: ` · <n> lines` once anything is logged, nothing otherwise (D939,
+ * SPEC-S12-showcase-views.md)
+ * @param mark The status mark
+ * @returns The text
+ */
+export function getStatusMarkLines(mark: StatusMark): string {
+  return mark.lines ? ` · ${_plural(mark.lines, 'line')}` : '';
+}
+
+/**
+ * Gets a status mark's text, as it reads: its name (`runtime`'s after its `>_` prefix), its status's symbol, on ⚠ and ✗ the number, and `runtime`'s
+ * line count (e.g. `type check ✗ 3`, `>_ runtime ✓ · 12 lines`, `>_ runtime …`)
+ * @param mark The status mark
+ * @returns The text
+ */
+export function getStatusMarkText(mark: StatusMark): string {
+  const prefix = mark.kind === 'runtime' ? `${RUNTIME_MARK_PREFIX} ` : '';
+  return `${prefix}${mark.name} ${_STATUS_SYMBOLS[mark.status]}${mark.count ? ` ${mark.count}` : ''}${getStatusMarkLines(mark)}`;
 }
 
 /**
@@ -342,16 +366,18 @@ export function isStatusMarkButton(mark: StatusMark, consoleView = true): boolea
  * @param mark The status mark
  * @param expanded True while the issue list is expanded
  * @param consoleView True if the showcase has a `console` view, which the `runtime` status mark scrolls to its first issue line
+ * @param consoleOpen True while the console panel is open over the `demo` view, which the `runtime` status mark then closes (D946,
+ * PLAN-P28-console-header.md)
  * @returns The label (e.g. `type check: 3 errors. Hide the issues`)
  */
-export function getStatusMarkLabel(mark: StatusMark, expanded: boolean, consoleView: boolean): string {
+export function getStatusMarkLabel(mark: StatusMark, expanded: boolean, consoleView: boolean, consoleOpen = false): string {
   const status =
     mark.status === 'pending' ? 'loading' : mark.status === 'passed' ? 'passed' : _plural(mark.count, mark.status === 'error' ? 'error' : 'warning');
   if (mark.kind === 'runtime') {
     const issue = mark.status === 'error' ? 'error' : mark.status === 'warning' ? 'warning' : undefined;
-    const recorded = mark.recorded ? ', recorded when built' : '';
+    const recorded = `${mark.lines ? `, ${_plural(mark.lines, 'line')}` : ''}${mark.recorded ? ', recorded when built' : ''}`;
     if (mark.recorded && !consoleView) return `${mark.name}: ${status}${recorded}`;
-    return `${mark.name}: ${status}${recorded}. ${consoleView ? (issue ? `Show the first ${issue} in the console` : 'Show the console') : 'Open the console'}`;
+    return `${mark.name}: ${status}${recorded}. ${consoleView ? (issue ? `Show the first ${issue} in the console` : 'Show the console') : consoleOpen ? 'Close the console' : 'Open the console'}`;
   }
   return `${mark.name}: ${status}${isStatusMarkButton(mark) ? `. ${expanded ? 'Hide' : 'Show'} the issues` : ''}`;
 }
@@ -360,7 +386,8 @@ export function getStatusMarkLabel(mark: StatusMark, expanded: boolean, consoleV
  * Styles of the header bar's status marks and the issue list
  */
 const _useMarkStyles = makeStyles({
-  marks: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: tokens.spacingHorizontalXS, flex: '1 1 auto', minWidth: '0' },
+  marks: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: tokens.spacingHorizontalXS, flex: '0 1 auto', minWidth: '0' },
+  prefix: { fontFamily: tokens.fontFamilyMonospace, color: tokens.colorNeutralForeground3 },
   mark: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -453,12 +480,14 @@ function _StatusMarks({ showcase, console, expanded, listId, onToggle, onRuntime
   return (
     <div className={styles.marks}>
       {getStatusMarks(showcase, console).map((mark) => {
-        const label = getStatusMarkLabel(mark, expanded, consoleView);
+        const label = getStatusMarkLabel(mark, expanded, consoleView, console.open);
         const content = (
           <>
+            {mark.kind === 'runtime' && <span className={styles.prefix}>{RUNTIME_MARK_PREFIX}</span>}
             {mark.name}
             {mark.status === 'pending' ? ' …' : <_StatusIcon status={mark.status} className={styles[mark.status]} />}
             {mark.count ? mark.count : null}
+            {getStatusMarkLines(mark) || null}
           </>
         );
         const key = `${mark.kind}:${mark.name}`;
@@ -471,6 +500,8 @@ function _StatusMarks({ showcase, console, expanded, listId, onToggle, onRuntime
           );
         }
         const toggles = mark.kind !== 'runtime';
+        // The runtime mark toggles the console panel over the demo view (D946, PLAN-P28-console-header.md)
+        const togglesConsole = mark.kind === 'runtime' && !consoleView;
         return (
           <Button
             key={key}
@@ -480,7 +511,7 @@ function _StatusMarks({ showcase, console, expanded, listId, onToggle, onRuntime
             title={label}
             aria-label={label}
             data-status-mark={mark.status}
-            {...(toggles ? { 'aria-expanded': expanded, 'aria-controls': listId } : {})}
+            {...(toggles ? { 'aria-expanded': expanded, 'aria-controls': listId } : togglesConsole ? { 'aria-expanded': console.open } : {})}
             onClick={toggles ? onToggle : onRuntime}
           >
             {content}
@@ -606,7 +637,7 @@ export function IssueList({ showcase, id }: { showcase: ShownShowcase; id?: stri
  * Styles of the header bar and the "Not built" placeholder
  */
 const _useBarStyles = makeStyles({
-  // The status marks on its left, the cycling button (a block's) at its right end
+  // The status marks on its left, then the console's line (D941), the cycling button (a block's) at its right end
   bar: {
     display: 'flex',
     alignItems: 'center',
@@ -643,6 +674,10 @@ export interface HeaderBarProps {
    */
   onRuntime: () => void;
   /**
+   * What sits after the status marks, taking the room left before its right end: the console's line (`ConsoleHeaderLine`), if anything
+   */
+  line?: ReactNode;
+  /**
    * What sits at its right end (a block's cycling button, and in the showcase sidebar its close button), if anything
    */
   end?: ReactNode;
@@ -653,12 +688,12 @@ export interface HeaderBarProps {
 }
 
 /**
- * Renders a showcase's header bar, its status marks (or without trust, the trust notice) on its left and what is given at its right end, and its
- * issue list under it while expanded
+ * Renders a showcase's header bar, its status marks (or without trust, the trust notice) on its left, the console's line after them, and what is
+ * given at its right end, and its issue list under it while expanded
  * @param props Properties of the component
  * @returns The header bar and the issue list
  */
-export function HeaderBar({ showcase, console, onRuntime, end, trusted = true }: HeaderBarProps): ReactNode {
+export function HeaderBar({ showcase, console, onRuntime, line, end, trusted = true }: HeaderBarProps): ReactNode {
   const styles = _useBarStyles();
   const listId = useId();
   const [expanded, toggle] = useIssueList(showcase.issues.length);
@@ -670,6 +705,7 @@ export function HeaderBar({ showcase, console, onRuntime, end, trusted = true }:
         ) : (
           <_TrustNotice />
         )}
+        {trusted && line}
         {end && <div className={styles.end}>{end}</div>}
       </div>
       {expanded && showcase.issues.length > 0 && <IssueList showcase={showcase} id={listId} />}
@@ -764,8 +800,9 @@ const _useStyles = makeStyles({
   // Its width given, as a container query's container (`inline-size`) never takes it from its content (D616)
   containerSidebar: { flex: '1 1 auto', width: '100%', minHeight: '0', height: '100%', margin: '0' },
   gridSidebar: { height: '100%', alignContent: 'start', overflowY: 'auto', border: 'none', borderRadius: '0' },
-  // Above a raised showcase frame's box (levels 1 and 2, D927)
+  // Above a raised showcase frame's box (levels 1 and 2, D927), but below it while its overlays are out, so they cover the header bar (D943)
   topSidebar: { position: 'sticky', top: '0', zIndex: 3, backgroundColor: tokens.colorNeutralBackground1 },
+  topSidebarOut: { zIndex: 0 },
   // Half, in the showcase sidebar: always stacked, the code pane below the views (D627), as high as its content, between the minimum and the maximum
   gridHalfSidebar: { gridTemplateColumns: 'minmax(0, 1fr)', gridTemplateRows: 'auto auto auto' },
   paneHalfSidebar: {
@@ -890,9 +927,9 @@ export function ShowcaseBlock({ showcase, documentation, initialState, initialCo
         onOverhang={setLevel}
       />
     );
-  // The runtime status mark opens the console panel over the demo view, or shows the console view's first issue line
+  // The runtime status mark opens and closes the console panel over the demo view (D946), or shows the console view's first issue line
   const onRuntime = () => {
-    if (!showcase.views.includes('console')) return shared[1]({ type: 'open' });
+    if (!showcase.views.includes('console')) return shared[1]({ type: shared[0].open ? 'close' : 'open' });
     const log = consoleView.current?.querySelector<HTMLElement>('[role="log"]');
     const id = getFirstIssueLine(shared[0]);
     log?.focus({ preventScroll: true });
@@ -969,11 +1006,16 @@ export function ShowcaseBlock({ showcase, documentation, initialState, initialCo
           level > 0 && styles.gridOut,
         )}
       >
-        <div className={mergeClasses(styles.top, sidebar && styles.topSidebar)}>
+        <div
+          className={mergeClasses(styles.top, sidebar && styles.topSidebar, sidebar && level > 0 && styles.topSidebarOut)}
+          data-header-bar-level={sidebar ? (level > 0 ? 0 : 3) : undefined}
+        >
           <HeaderBar
             showcase={showcase}
             console={shared}
             onRuntime={onRuntime}
+            // The console's line, where the console panel opens over the demo view (with a console view, the lines are in view)
+            line={!showcase.views.includes('console') && <ConsoleHeaderLine state={shared[0]} dispatch={shared[1]} />}
             trusted={trusted}
             end={
               (cycling || hide || close) && (

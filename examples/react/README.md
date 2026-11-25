@@ -14,7 +14,7 @@ A linked showcase, shown as a block, its code a click away: [`demo/Stopwatch.tsx
 
 ## Counters
 
-A code block showcase, importing the library by relative paths from this documentation file's folder. Its props set each counter's start, step and bounds; what it logs fades in at the bottom of its showcase frame, and the console panel's counter, in the showcase frame's bottom-right corner, opens it.
+A code block showcase, importing the library by relative paths from this documentation file's folder. Its props set each counter's start, step and bounds; what it logs shows briefly in its header bar, and the `>_ runtime` status mark, or the line itself, opens the console panel.
 
 ```tsx showcase=react include=markdown
 import { Counter } from './src/Counter.js';

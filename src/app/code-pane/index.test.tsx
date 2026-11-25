@@ -223,12 +223,39 @@ describe('app/code-pane', () => {
   });
 
   describe('Status marks', () => {
-    // Which status marks a showcase gets, with what text and label, and which are buttons; and the header bar rendered on the server with them.
+    // Which status marks a showcase gets, with what text and label, and which are buttons; and the header bar rendered on the server with them, and
+    // with the console's line.
+
+    it("Places the console's line after the status marks and before the buttons, only where the console opens over the demo view", () => {
+      // See D941 (SPEC-S12-showcase-views.md): with a console view, the lines are in view, so the header bar shows none
+      const state = { ..._ready(), lines: [{ level: 'warn' as const, text: 'careful', id: 0, time: 0, quiet: false }], count: 1, next: 1 };
+      const html = _render(_SHOWCASE, undefined, state);
+      const line = html.indexOf('data-console-header-line="warn"');
+      expect(line).toBeGreaterThan(html.indexOf('data-status-mark="passed"'));
+      expect(line).toBeLessThan(html.indexOf(`aria-label="${CODE_PANE_BUTTON_LABELS.hidden}"`));
+      expect(_render({ ..._SHOWCASE, views: ['demo', 'console'] }, undefined, state)).not.toContain('data-console-header-line');
+      expect(_render(_SHOWCASE, undefined, _ready())).not.toContain('data-console-header-line');
+    });
 
     it('Gets the build mark, one per check, and runtime, from the issues and the console', () => {
-      expect(getStatusMarks(_ISSUES, _ready(2, 0)).map(getStatusMarkText)).toEqual(['build ⚠ 1', 'type check ✗ 2', 'runtime ⚠ 2']);
-      expect(getStatusMarks(_SHOWCASE, _ready()).map(getStatusMarkText)).toEqual(['build ✓', 'runtime ✓']);
-      expect(getStatusMarks(_SHOWCASE, _ready(1, 3)).at(-1)).toEqual({ kind: 'runtime', name: 'runtime', status: 'error', count: 3 });
+      expect(getStatusMarks(_ISSUES, _ready(2, 0)).map(getStatusMarkText)).toEqual(['build ⚠ 1', 'type check ✗ 2', '>_ runtime ⚠ 2']);
+      expect(getStatusMarks(_SHOWCASE, _ready()).map(getStatusMarkText)).toEqual(['build ✓', '>_ runtime ✓']);
+      expect(getStatusMarks(_SHOWCASE, _ready(1, 3)).at(-1)).toEqual({ kind: 'runtime', name: 'runtime', status: 'error', count: 3, lines: 0 });
+    });
+
+    it('Counts the lines logged on the runtime mark, after its state, once anything is logged', () => {
+      // See D939, D940 (SPEC-S12-showcase-views.md): the console's counter is gone, so the runtime mark says how much was logged
+      const logged = (count: number, warnings = 0, errors = 0) => getStatusMarks(_SHOWCASE, { ..._ready(warnings, errors), count }).at(-1)!;
+      expect(getStatusMarkText(logged(12))).toBe('>_ runtime ✓ · 12 lines');
+      expect(getStatusMarkText(logged(1))).toBe('>_ runtime ✓ · 1 line');
+      expect(getStatusMarkText(logged(12, 2))).toBe('>_ runtime ⚠ 2 · 12 lines');
+      expect(getStatusMarkText(logged(12, 0, 1))).toBe('>_ runtime ✗ 1 · 12 lines');
+      expect(getStatusMarkLabel(logged(12, 0, 1), false, false)).toBe('runtime: 1 error, 12 lines. Open the console');
+      // Nothing while loading, whatever came before the page was ready
+      expect(getStatusMarkText(getStatusMarks(_SHOWCASE, { ...INITIAL_CONSOLE_STATE, count: 3 }).at(-1)!)).toBe('>_ runtime …');
+      expect(_render(_SHOWCASE, undefined, { ..._ready(), count: 12 })).toMatch(
+        /data-status-mark="passed"[^>]*><span [^>]*>&gt;_<\/span>runtime<svg[^]*?<\/svg> · 12 lines<\/button>/,
+      );
     });
 
     it("Gives a jsonschema block build and runtime, and only build when its diagram doesn't build", () => {
@@ -238,13 +265,13 @@ describe('app/code-pane', () => {
         tabs: [{ label: 'JSON', path: 'README.showcase-1.json', language: 'json', source: { kind: 'virtual', content: '{}' } }],
       };
       const warning = { severity: 'warning' as const, message: 'The diagram is empty', path: 'README.showcase-1.json' };
-      expect(getStatusMarks({ ...jsonschema, issues: [warning] }, _ready()).map(getStatusMarkText)).toEqual(['build ⚠ 1', 'runtime ✓']);
+      expect(getStatusMarks({ ...jsonschema, issues: [warning] }, _ready()).map(getStatusMarkText)).toEqual(['build ⚠ 1', '>_ runtime ✓']);
       const error = { severity: 'error' as const, message: "The schema isn't valid JSON", path: 'README.showcase-1.json', line: 3 };
       expect(getStatusMarks({ ...jsonschema, issues: [error], url: undefined }, _ready()).map(getStatusMarkText)).toEqual(['build ✗ 1']);
     });
 
     it('Reads runtime pending until the page is ready', () => {
-      expect(getStatusMarks(_SHOWCASE, INITIAL_CONSOLE_STATE).map(getStatusMarkText)).toEqual(['build ✓', 'runtime …']);
+      expect(getStatusMarks(_SHOWCASE, INITIAL_CONSOLE_STATE).map(getStatusMarkText)).toEqual(['build ✓', '>_ runtime …']);
     });
 
     it("Leaves out an html showcase's build mark, and runtime where the page doesn't run", () => {
@@ -266,6 +293,17 @@ describe('app/code-pane', () => {
       expect(getStatusMarkLabel({ ...runtime, status: 'pending' }, true, false)).toBe('runtime: loading. Open the console');
     });
 
+    it('Toggles the console panel over the demo view with the runtime mark, saying which it does', () => {
+      // See D946 (PLAN-P28-console-header.md): a second click closes it; with a console view, it still shows the view's first issue line
+      const runtime = getStatusMarks(_SHOWCASE, _ready()).at(-1)!;
+      expect(getStatusMarkLabel(runtime, false, false, true)).toBe('runtime: passed. Close the console');
+      expect(getStatusMarkLabel(runtime, false, true, true)).toBe('runtime: passed. Show the console');
+      const open = _render(_SHOWCASE, undefined, { ..._ready(), open: true });
+      expect(open).toMatch(/<button [^>]*aria-label="runtime: passed. Close the console"[^>]*aria-expanded="true"/);
+      expect(_render(_SHOWCASE, undefined, _ready())).toMatch(/<button [^>]*aria-label="runtime: passed. Open the console"[^>]*aria-expanded="false"/);
+      expect(_render({ ..._SHOWCASE, views: ['demo', 'console'] }, undefined, _ready())).not.toMatch(/aria-label="runtime[^"]*"[^>]*aria-expanded/);
+    });
+
     it('Renders the marks on the header bar, before the cycling button: a passed one as text, the others as buttons toggling the issue list', () => {
       const html = _render(_ISSUES, undefined, _ready());
       const bar = html.slice(0, html.indexOf(`aria-label="${CODE_PANE_BUTTON_LABELS.hidden}"`));
@@ -274,7 +312,9 @@ describe('app/code-pane', () => {
       expect(bar).toMatch(/<button [^>]*aria-label="runtime: passed. Open the console"/);
       expect(_render(_SHOWCASE, undefined, _ready())).toMatch(/<span [^>]*aria-label="build: passed"[^>]*data-status-mark="passed">build<svg/);
       // Pending, greyed, with no icon
-      expect(_render(_SHOWCASE)).toMatch(/aria-label="runtime: loading. Open the console"[^>]*data-status-mark="pending"[^>]*>runtime …</);
+      expect(_render(_SHOWCASE)).toMatch(
+        /aria-label="runtime: loading. Open the console"[^>]*data-status-mark="pending"[^>]*><span [^>]*>&gt;_<\/span>runtime …</,
+      );
     });
   });
 
@@ -493,8 +533,9 @@ describe('app/code-pane', () => {
 
   describe('Overlays over the page', () => {
     // A block whose opted-in showcase frame starts with overlays out (its starting overhang, as no message comes in the server-side rendering) is
-    // raised over what follows it, and lets them out of its grid (D920 in .workflow/PLAN-P25-overlay-overhang.md); in the showcase sidebar, the
-    // sticky header bar stays above it, and a block whose views are collapsed keeps them in (D924).
+    // raised over what follows it, and lets them out of its grid (D920 in .workflow/PLAN-P25-overlay-overhang.md); in the showcase sidebar, its
+    // overlays cover the sticky header bar while they are out (D943 in .workflow/SPEC-S12-showcase-views.md), and a block whose views are collapsed
+    // keeps them in (D924).
 
     const overhang = { height: 400, offset: 0, flow: 20, boxes: [{ left: 0, top: 10, right: 200, bottom: 400 }], open: true };
     const opted: ShownShowcase = { ..._SHOWCASE, views: ['demo'], overlays: true };
@@ -532,6 +573,13 @@ describe('app/code-pane', () => {
       expect(render({ ...opted, display: 'inline' }, 'half', true)).toContain('data-overhang="1"');
     });
 
+    it("Lowers the showcase sidebar's sticky header bar under the showcase frame while its overlays are out", () => {
+      // See D943 (SPEC-S12-showcase-views.md): the overlays cover the header bar, its console line included; above it otherwise, as content scrolls
+      expect(render({ ...opted, display: 'inline' }, 'half', true)).toContain('data-header-bar-level="0"');
+      expect(render({ ...opted, display: 'inline', overlays: undefined }, 'half', true)).toContain('data-header-bar-level="3"');
+      expect(render(opted, 'half')).not.toContain('data-header-bar-level');
+    });
+
     it('Keeps a block lowered when not opted in, and collapsed in the showcase sidebar', () => {
       const optedOut = render({ ...opted, overlays: undefined }, 'hidden');
       const collapsed = render({ ...opted, display: 'inline' }, 'sidebar', true);
@@ -559,14 +607,15 @@ describe('app/code-pane', () => {
 
     it('Has one runtime status mark, from the recording, saying it was recorded when built', () => {
       const marks = getStatusMarks(recorded, INITIAL_CONSOLE_STATE);
-      expect(marks.map(getStatusMarkText)).toEqual(['build ✓', 'compile ✓', 'runtime ✓']);
-      const failed = getStatusMarks({ ...recorded, recording: { ...recording, exitCode: 2 } }, INITIAL_CONSOLE_STATE).at(-1)!;
-      expect(getStatusMarkText(failed)).toBe('runtime ✗ 1');
-      expect(getStatusMarkLabel(failed, false, true)).toBe('runtime: 1 error, recorded when built. Show the first error in the console');
+      // Its line count is the program's own lines, dropped ones included, not the showroom's end line
+      expect(marks.map(getStatusMarkText)).toEqual(['build ✓', 'compile ✓', '>_ runtime ✓ · 1 line']);
+      const failed = getStatusMarks({ ...recorded, recording: { ...recording, exitCode: 2, dropped: 2 } }, INITIAL_CONSOLE_STATE).at(-1)!;
+      expect(getStatusMarkText(failed)).toBe('>_ runtime ✗ 1 · 3 lines');
+      expect(getStatusMarkLabel(failed, false, true)).toBe('runtime: 1 error, 3 lines, recorded when built. Show the first error in the console');
       // Without a console view, it is plain text (PLAN-P20 D784)
       expect(isStatusMarkButton(failed, false)).toBe(false);
-      expect(getStatusMarkLabel(failed, false, false)).toBe('runtime: 1 error, recorded when built');
-      expect(_render({ ...recorded, views: ['source'] })).toMatch(/role="img" data-status-mark="passed">runtime/);
+      expect(getStatusMarkLabel(failed, false, false)).toBe('runtime: 1 error, 3 lines, recorded when built');
+      expect(_render({ ...recorded, views: ['source'] })).toMatch(/role="img" data-status-mark="passed"><span [^>]*>&gt;_<\/span>runtime/);
     });
 
     it('Shows "Not built" in its console view when it has no recording', () => {

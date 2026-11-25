@@ -10,21 +10,19 @@ import { ShowcaseBlock } from '../code-pane/index.js';
 import type { LoadedShowcase } from '../host/index.js';
 import { ShowcaseFrame } from '../showcases/index.js';
 import {
-  CONSOLE_FADING_LINES,
   CONSOLE_LINE_FADE_MS,
   CONSOLE_LINE_SHOWN_MS,
   CONSOLE_PANEL_HEIGHT,
-  CONSOLE_ROW_HEIGHT,
+  ConsoleHeaderLine,
   ConsolePanel,
   ConsoleView,
   INITIAL_CONSOLE_STATE,
   getConsoleMinHeight,
   getConsoleTitle,
-  getCounterLabel,
-  getCounterText,
   getDroppedText,
-  getFadingLines,
   getFirstIssueLine,
+  getHeaderLine,
+  getHeaderLineLabel,
   getNextFadeTime,
   isScrolledToBottom,
   NO_OUTPUT_TEXT,
@@ -95,15 +93,15 @@ const _SHOWCASE: LoadedShowcase = {
 };
 
 describe('app/console', () => {
-  // Tests the console panel's state as a pure function of the showcase frame's messages and the user's actions (updateConsole()), the fading lines
-  // and their timing computed from the state's time, the texts, and the console panel rendered on the server with a given state, alone and over a
-  // showcase frame, inline and in a block (effects don't run there, so no timer ticks and nothing is focused).
+  // Tests the console panel's state as a pure function of the showcase frame's messages and the user's actions (updateConsole()), the header bar's
+  // line and its timing computed from the state's time, the texts, and the console panel and the header bar's line rendered on the server with a
+  // given state, alone, over a showcase frame and in a block (effects don't run there, so no timer ticks and nothing is focused).
 
   describe('State', () => {
     // Tests updateConsole() on hand-written batches.
 
     it('Starts empty and closed', () => {
-      expect(INITIAL_CONSOLE_STATE).toMatchObject({ lines: [], dropped: 0, count: 0, errors: 0, open: false, autoOpened: false });
+      expect(INITIAL_CONSOLE_STATE).toMatchObject({ lines: [], dropped: 0, count: 0, open: false });
     });
 
     it('Adds batches, numbering their lines and noting their time', () => {
@@ -125,24 +123,12 @@ describe('app/console', () => {
       expect(state).toMatchObject({ dropped: 6, count: CONSOLE_MAX_LINES + 6 });
     });
 
-    it('Counts error lines as unseen while closed, until opened', () => {
-      let state = _apply([_lines([{ level: 'error', text: 'x' }, 'y', { level: 'error', text: 'z' }])]);
-      expect(state.errors).toBe(2);
-      state = _apply([{ type: 'open' }, _lines([{ level: 'error', text: 'seen' }])], state);
-      expect(state).toMatchObject({ open: true, errors: 0 });
-      state = _apply([{ type: 'close' }, _lines([{ level: 'error', text: 'unseen' }])], state);
-      expect(state).toMatchObject({ open: false, errors: 1, count: 5 });
-    });
-
-    it('Opens by itself on the first uncaught error of a load only', () => {
-      // D563: later ones only turn the counter red, until the next load
+    it('Never opens by itself, not even on an uncaught error', () => {
+      // See D942 (SPEC-S12-showcase-views.md): the runtime status mark and the header bar's line say it; only the user opens the console panel
       const uncaught: ConsoleLine = { level: 'error', text: 'Uncaught Error: x', uncaught: true };
-      let state = _apply([_lines(['a', uncaught])]);
-      expect(state).toMatchObject({ open: true, autoOpened: true, errors: 0 });
-      state = _apply([{ type: 'close' }, _lines([uncaught])], state);
-      expect(state).toMatchObject({ open: false, errors: 1 });
-      state = _apply([{ type: 'start' }, _lines([uncaught])], state);
-      expect(state).toMatchObject({ open: true, count: 1 });
+      const state = _apply([_lines(['a', uncaught])]);
+      expect(state).toMatchObject({ open: false, errorCount: 1, count: 2 });
+      expect(updateConsole(state, { type: 'open' }).open).toBe(true);
     });
 
     it('Starts afresh on every load', () => {
@@ -150,15 +136,15 @@ describe('app/console', () => {
       expect(state).toEqual(INITIAL_CONSOLE_STATE);
     });
 
-    it("Counts a load's warnings and errors, dropped ones included, apart from the unseen errors", () => {
-      // The runtime status mark's numbers (D592, .workflow/PLAN-P15.5-status-marks.md): opening the console panel clears only the unseen errors
+    it("Counts a load's warnings and errors, dropped ones included", () => {
+      // The runtime status mark's numbers (D592, .workflow/PLAN-P15.5-status-marks.md)
       const lines: ConsoleLine[] = [
         { level: 'warn', text: 'w' },
         { level: 'error', text: 'e' },
         { level: 'error', text: 'Uncaught', uncaught: true },
       ];
       let state = _apply([{ type: 'lines', lines, dropped: 5, droppedWarnings: 2, droppedErrors: 1, now: _T0 }]);
-      expect(state).toMatchObject({ warningCount: 3, errorCount: 3, errors: 0, open: true });
+      expect(state).toMatchObject({ warningCount: 3, errorCount: 3, open: false });
       // Lines the console panel drops past CONSOLE_MAX_LINES stay counted
       state = _apply([_lines(Array.from({ length: CONSOLE_MAX_LINES }, (_, index) => String(index)))], state);
       expect(state.lines.some((entry) => entry.level !== 'log')).toBe(false);
@@ -189,52 +175,53 @@ describe('app/console', () => {
     });
   });
 
-  describe('Fading lines', () => {
-    // Tests which lines fade at the bottom of a showcase frame, at the state's time, and when they change next.
+  describe('Header line', () => {
+    // Tests which line the header bar shows, at the state's time, and when it changes next (D941, SPEC-S12-showcase-views.md).
 
-    it('Shows the newest lines, each for a while, then fading, then gone', () => {
-      let state = _apply([_lines(['1', '2', '3', '4']), _lines(['5'], _T0 + 1000)]);
-      const texts = () => getFadingLines(state).map(({ entry, faded }) => `${entry.text}${faded ? ' (faded)' : ''}`);
-      expect(texts()).toEqual(['3', '4', '5']);
-      expect(CONSOLE_FADING_LINES).toBe(3);
-      expect(getNextFadeTime(state)).toBe(_T0 + CONSOLE_LINE_SHOWN_MS);
-      state = updateConsole(state, { type: 'tick', now: _T0 + CONSOLE_LINE_SHOWN_MS });
-      expect(texts()).toEqual(['1 (faded)', '2 (faded)', '3 (faded)', '4 (faded)', '5'].slice(-3));
+    it('Shows the newest line for a while, then fading, then gone, a newer line replacing it', () => {
+      let state = _apply([_lines(['1', '2']), _lines(['3'], _T0 + 1000)]);
+      const text = () => {
+        const line = getHeaderLine(state);
+        return line && `${line.entry.text}${line.faded ? ' (faded)' : ''}`;
+      };
+      expect(text()).toBe('3');
       expect(getNextFadeTime(state)).toBe(_T0 + 1000 + CONSOLE_LINE_SHOWN_MS);
-      state = updateConsole(state, { type: 'tick', now: _T0 + CONSOLE_LINE_SHOWN_MS + CONSOLE_LINE_FADE_MS });
-      expect(texts()).toEqual(['5 (faded)']);
+      state = updateConsole(state, { type: 'tick', now: _T0 + 1000 + CONSOLE_LINE_SHOWN_MS });
+      expect(text()).toBe('3 (faded)');
+      expect(getNextFadeTime(state)).toBe(_T0 + 1000 + CONSOLE_LINE_SHOWN_MS + CONSOLE_LINE_FADE_MS);
       state = updateConsole(state, { type: 'tick', now: _T0 + 1000 + CONSOLE_LINE_SHOWN_MS + CONSOLE_LINE_FADE_MS });
-      expect(texts()).toEqual([]);
+      expect(text()).toBeUndefined();
       expect(getNextFadeTime(state)).toBeUndefined();
+      state = _apply([_lines(['4'], _T0 + 10_000)], state);
+      expect(text()).toBe('4');
     });
 
-    it('Shows none while open, and never the lines from before it was opened, or that came while it was open', () => {
+    it('Shows none while open, and never a line from before it was opened, or that came while it was open', () => {
       let state = _apply([_lines(['before']), { type: 'open' }]);
-      expect(getFadingLines(state)).toEqual([]);
-      state = _apply([_lines(['while open'], _T0 + 10), { type: 'close' }, _lines(['after'], _T0 + 20)], state);
-      expect(getFadingLines(state).map(({ entry }) => entry.text)).toEqual(['after']);
+      expect(getHeaderLine(state)).toBeUndefined();
+      state = _apply([_lines(['while open'], _T0 + 10), { type: 'close' }], state);
+      expect(getHeaderLine(state)).toBeUndefined();
+      state = _apply([_lines(['after'], _T0 + 20)], state);
+      expect(getHeaderLine(state)?.entry.text).toBe('after');
     });
   });
 
   describe('Texts and heights', () => {
-    // Tests the counter's text and label, the title, the dropped line, and the least height of a showcase frame's box.
+    // Tests the header bar's line's label, the title, the dropped line, and the least height of a showcase frame's box.
 
-    it('Says the count and the unseen errors', () => {
+    it("Says the header bar's line's first line, the title and the dropped line", () => {
       const state = _apply([_lines(['a', { level: 'error', text: 'b' }])]);
-      expect(getCounterText(state)).toBe('>_ 2 · 1 error');
-      expect(getCounterLabel(state)).toBe('Open the console: 2 lines, 1 error');
-      expect(getCounterText(_apply([_lines(['a'])]))).toBe('>_ 1');
-      expect(getCounterLabel(_apply([_lines(['a'])]))).toBe('Open the console: 1 line');
+      expect(getHeaderLineLabel({ level: 'log', text: 'first\nsecond' })).toBe('Open the console: first');
       expect(getConsoleTitle(state)).toBe('Console · 2 lines');
       expect(getDroppedText(1)).toBe('… 1 earlier line dropped');
       expect(getDroppedText(3)).toBe('… 3 earlier lines dropped');
     });
 
-    it("Grows the showcase frame's box to the counter's row once anything is logged, and to the open console panel", () => {
-      // D565: a short showcase frame shown inline holds the counter; D531: opening the console panel grows the box to fit it
+    it("Grows the showcase frame's box only for the open console panel", () => {
+      // D531: opening the console panel grows the box to fit it; D939 (SPEC-S12-showcase-views.md): no counter, so nothing while it is closed
       expect(getConsoleMinHeight(INITIAL_CONSOLE_STATE)).toBe(0);
       const logged = _apply([_lines(['a'])]);
-      expect(getConsoleMinHeight(logged)).toBe(CONSOLE_ROW_HEIGHT);
+      expect(getConsoleMinHeight(logged)).toBe(0);
       // D576: no room left at the top, in a block or not, as the cycling button sits in the header bar
       expect(getConsoleMinHeight(updateConsole(logged, { type: 'open' }))).toBe(CONSOLE_PANEL_HEIGHT);
     });
@@ -249,22 +236,24 @@ describe('app/console', () => {
   });
 
   describe('Console panel', () => {
-    // Renders ConsolePanel, ShowcaseFrame and ShowcaseBlock on the server with a given state.
+    // Renders ConsolePanel, ConsoleHeaderLine, ShowcaseFrame and ShowcaseBlock on the server with a given state.
 
     const dispatch = () => undefined;
 
-    it('Renders nothing while nothing is logged', () => {
+    it('Renders nothing while closed, whatever is logged', () => {
+      // See D939 (SPEC-S12-showcase-views.md): no counter and no fading lines over the showcase frame
       expect(_render(<ConsolePanel state={INITIAL_CONSOLE_STATE} dispatch={dispatch} />)).toBe(_render(null));
+      expect(_render(<ConsolePanel state={_apply([_lines(['a', { level: 'error', text: 'b' }])])} dispatch={dispatch} />)).toBe(_render(null));
     });
 
-    it('Renders the fading lines by their first line, and the counter, closed', () => {
-      const state = _apply([_lines(['first\nsecond', { level: 'error', text: 'oops' }])]);
-      const html = _render(<ConsolePanel state={state} dispatch={dispatch} />);
-      expect(html).toMatch(/aria-hidden="true">.*>first<\/div>.*>oops<\/div>/s);
-      expect(html).not.toContain('second');
-      expect(html).toContain(`aria-label="${getCounterLabel(state)}"`);
-      expect(html).toContain('&gt;_ 2 · 1 error');
-      expect(html).not.toContain('role="region"');
+    it("Renders the header bar's line: the newest line's first line, by its level, as a button opening the console panel", () => {
+      const state = _apply([_lines(['older', { level: 'error', text: 'first\nsecond' }])]);
+      const html = _render(<ConsoleHeaderLine state={state} dispatch={dispatch} />);
+      expect(html).toMatch(
+        /<button type="button" class="[^"]*" title="Open the console: first" aria-label="Open the console: first" data-console-header-line="error">first<\/button>/,
+      );
+      expect(html).not.toContain('older');
+      expect(_render(<ConsoleHeaderLine state={INITIAL_CONSOLE_STATE} dispatch={dispatch} />)).toBe(_render(null));
     });
 
     it('Renders the open console panel: its title, close button, dropped line and every line kept', () => {
@@ -277,12 +266,12 @@ describe('app/console', () => {
       expect(html).not.toContain('Open the console');
     });
 
-    it('Renders over a showcase frame shown inline, its box at least as high as the console panel needs', () => {
+    it('Renders over a showcase frame only while open, its box then as high as the console panel needs', () => {
       const showcase: LoadedShowcase = { ..._SHOWCASE, display: 'inline' };
       const empty = _render(<ShowcaseFrame showcase={showcase} />);
       expect(empty).toMatch(/<div class="[^"]*"><iframe [^>]*><\/iframe><\/div><\/div>$/);
       const logged = _render(<ShowcaseFrame showcase={showcase} initialConsole={_apply([_lines(['a'])])} />);
-      expect(logged).toMatch(new RegExp(`<div class="[^"]*" style="min-height:${CONSOLE_ROW_HEIGHT}px"><iframe [^>]*></iframe><div [^>]*>.*&gt;_ 1`, 's'));
+      expect(logged).toBe(empty);
       const open = _render(<ShowcaseFrame showcase={showcase} initialConsole={_apply([_lines(['a']), { type: 'open' }])} />);
       expect(open).toContain(`style="min-height:${CONSOLE_PANEL_HEIGHT}px"`);
     });
@@ -314,11 +303,11 @@ describe('app/console', () => {
       // The user's caveat on D498: no console over the demo when the console is a view of its own
       const state = _apply([_lines(['a'])]);
       const both = _render(<ShowcaseBlock showcase={{ ..._SHOWCASE, views: ['demo', 'console'] }} documentation={[]} initialConsole={state} />);
-      expect(both).not.toContain('Open the console');
+      expect(both).not.toContain('data-console-header-line');
       expect(both).toContain('role="log" aria-label="Console"');
       expect(both).toMatch(/data-showcase-view="console"><div [^>]*role="log"[^>]*><div [^>]*>a<\/div>/);
       const demo = _render(<ShowcaseBlock showcase={_SHOWCASE} documentation={[]} initialConsole={state} />);
-      expect(demo).toContain('Open the console');
+      expect(demo).toContain('data-console-header-line');
       expect(demo).not.toContain('role="log"');
     });
 
@@ -355,7 +344,7 @@ describe('app/console', () => {
       expect(getRecordingEndLine({ lines: [], dropped: 0, signal: 'SIGABRT' })).toEqual({ level: 'error', text: 'Ended by signal SIGABRT' });
     });
 
-    it('Holds its lines, loaded, closed, with its warnings and errors counted, none unseen and none fading', () => {
+    it('Holds its lines, loaded, closed, with its warnings and errors counted, none shown in the header bar', () => {
       const state = getRecordingConsole({ ...recording, cut: true });
       expect(state.lines.map(({ level, text }) => ({ level, text }))).toEqual([
         { level: 'log', text: 'hi' },
@@ -363,8 +352,8 @@ describe('app/console', () => {
         { level: 'info', text: RECORDING_CUT_TEXT },
         { level: 'info', text: 'Exited with code 0' },
       ]);
-      expect(state).toMatchObject({ dropped: 2, count: 6, errorCount: 2, warningCount: 0, errors: 0, ready: true, open: false, recorded: true });
-      expect(getFadingLines(state)).toEqual([]);
+      expect(state).toMatchObject({ dropped: 2, count: 6, errorCount: 2, warningCount: 0, ready: true, open: false, recorded: true });
+      expect(getHeaderLine(state)).toBeUndefined();
       // A non-zero exit with nothing on standard error still counts an error, for the runtime status mark (PLAN-P20 D790 C2)
       expect(getRecordingConsole({ lines: [], dropped: 0, exitCode: 1 }).errorCount).toBe(1);
       // The recording action replaces whatever the state held

@@ -4,6 +4,10 @@ All notable changes to `@ofzza/showroom`, by version as published to npm. This p
 
 ## Unreleased
 
+### Changed
+
+- **The console moved into the header bar**: the console panel's counter in the showcase frame's bottom-right corner is gone, and nothing of the console is drawn over the showcase until it is opened. The `runtime` status mark now reads `>_ runtime`, and counts the lines logged too (e.g. `>_ runtime ✓ · 12 lines`, `>_ runtime ✗ 1 · 12 lines`); the newest line shows briefly in the header bar, after the status marks, then fades; clicking it, or the mark, opens the console panel, and clicking the mark again closes it. The console panel no longer opens by itself on an uncaught error. A showcase's overlays cover its header bar, in the showcase sidebar too (see README.md › The console panel).
+
 ### Added
 
 - **Every heading links to itself**: hovering a heading in the showroom shows a link icon in front of it, and clicking the icon or the heading puts the heading's address in the URL (e.g. `#/docs/guide.md#install`), without adding to the browser's history, so it can be copied and survives a reload (see README.md › The showroom).
