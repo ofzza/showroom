@@ -1,7 +1,8 @@
 # _`S13`_ The navigation
 
-implemented 2026-11-16 (_`P17`_); approved 2026-11-16 (option chosen: "Approve and commit (Rec.)"); the Glossary term "Navigation" accepted ("Add as proposed (Rec.)"), added with the implementation; revised 2026-11-16 (_`R49`_), re-approved 2026-11-16 with _`P18`_ (option chosen: "Approve and commit (Rec.)"); revised 2026-11-17 (_`R56`_), re-approved 2026-11-17 with _`P19`_ (option chosen: "Approve and commit (Rec.)"); revised 2026-11-24 (_`R67`_); re-approved 2026-11-24, with _`P26`_
+implemented 2026-11-16 (_`P17`_); approved 2026-11-16 (option chosen: "Approve and commit (Rec.)"); the Glossary term "Navigation" accepted ("Add as proposed (Rec.)"), added with the implementation; revised 2026-11-16 (_`R49`_), re-approved 2026-11-16 with _`P18`_ (option chosen: "Approve and commit (Rec.)"); revised 2026-11-17 (_`R56`_), re-approved 2026-11-17 with _`P19`_ (option chosen: "Approve and commit (Rec.)"); revised 2026-11-24 (_`R67`_); re-approved 2026-11-24, with _`P26`_; revised 2026-11-25 (_`R68`_); re-approved 2026-11-25, with _`P27`_ (option chosen: "Approve and commit (Rec.)")
 
+- _`R68`_ 2026-11-25: a group with no `collapsed` of its own starts as its parent group does, and an explicit `collapsed` passes down to its descendants (_`D929`_ refined), caused by _`D934`_.
 - _`R67`_ 2026-11-24: a group may start collapsed (`"collapsed": true`), expanding when the current page is one of its items (_`D638`_ changed), caused by _`D929`_, _`D930`_.
 - _`R56`_ 2026-11-17: an absolute URL item's scheme must be `http:`, `https:` or `mailto:`, caused by _`D758`_ (PLAN-P19-trust.md).
 - _`R49`_ 2026-11-16: a documentation file listed again under another anchor is no longer warned about, and the item whose anchor the route names is the current one, caused by _`D668`_.
@@ -38,8 +39,12 @@ Customizing the showroom's navigation from `showroom.json`: titles, grouping, or
 
 The user, 2026-11-24: "For `showroom.json` `navigation` configuration items that are groups (ones with `items`), I would like to add an additional, optional "`collapsed: boolean`" property that will control the default collapsed/expanded state for that group in the menu."
 
-- _`D929`_ (`live`; changes _`D638`_; the user's words above; Q1, option chosen: "Expand on its page (Rec.)"; Q3, option chosen: "Allowed (Rec.)"): **A group may start collapsed**: an optional `collapsed` boolean on a group (`items`); with `true`, the group starts collapsed in the navigation (and in the narrow layout's overlay drawer), and expands, as a group the user collapsed does, once the current page is one of its items (on load, or by navigating), so the open page is never hidden; `false`, or no `collapsed`, starts it expanded, as before. Rejected: staying collapsed while one of its pages is open; refusing `false`.
+- _`D929`_ (`live`, refined by _`D934`_; changes _`D638`_; the user's words above; Q1, option chosen: "Expand on its page (Rec.)"; Q3, option chosen: "Allowed (Rec.)"): **A group may start collapsed**: an optional `collapsed` boolean on a group (`items`); with `true`, the group starts collapsed in the navigation (and in the narrow layout's overlay drawer), and expands, as a group the user collapsed does, once the current page is one of its items (on load, or by navigating), so the open page is never hidden; `false`, or no `collapsed`, starts it expanded, as before. Rejected: staying collapsed while one of its pages is open; refusing `false`.
 - _`D930`_ (`live`; refines _`D929`_; Q2, option chosen: "An error (Rec.)"): **`collapsed` misused is an error**, named by the item's position as the navigation's other errors: on an item that isn't a group (a page, or a URL), or with a value that isn't a boolean. Rejected: a warning.
+
+The user, 2026-11-25: "When a navigation group is marked as explicitly collapsed, all its children should aslo default to collapsed, unless they have explicitly been set as expanded. An then, if a child has explicitly been set as expanded all its children should default to expanded unless explicitly set to collapsed, and so on ..."
+
+- _`D934`_ (`live`; refines _`D929`_; the user's words above): **A group's `collapsed` passes down**: a group with no `collapsed` of its own starts as its parent group does (collapsed or expanded), and a group's explicit `collapsed` (`true` or `false`) decides it for the group and passes down to its descendants that set none, at any depth; a top-level group with no `collapsed` starts expanded, as before. Each group still expands, on its own, once the current page is one of its items (_`D929`_).
 
 ## Open points
 

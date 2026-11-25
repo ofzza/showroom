@@ -3,8 +3,8 @@
 ## Next session: start here
 
 - **Stage:** implementation: _`P26`_ navigation groups collapsed at first ([PLAN-P26-collapsed-groups.md](./PLAN-P26-collapsed-groups.md)) is implemented (2026-11-24); _`P25`_ is done; _`O145`_ (blox's checks) and _`K32`_ (Safari) wait.
-- **Next free:** _`D934`_, _`S20`_, _`P27`_, _`O146`_, _`L22`_, _`R68`_, _`H1`_, _`K33`_
-- **Working on:** nothing in progress.
+- **Next free:** _`D937`_, _`S20`_, _`P28`_, _`O146`_, _`L22`_, _`R69`_, _`H1`_, _`K33`_
+- **Working on:** _`P27`_ navigation groups' `collapsed` passed down ([PLAN-P27-collapsed-inherited.md](./PLAN-P27-collapsed-inherited.md)), approved 2026-11-25; implementing.
 - **Next step:** the user's choice; blox's _`P4.2`_ waits for a release carrying _`P24`_ and _`P25`_ (`PUBLISH.md`, on the user's word).
 
 ## Open questions
@@ -509,3 +509,5 @@
 - 2026-11-24: _`P26`_ implemented; `npm run ci` green (`./.workflow/.temp/ci-p26.log`); approved after the browser check (option chosen: "Approve and commit").
 - 2026-11-24: `0.1.0-alpha.4` published to npm under `alpha`, with `latest` pointed at it at the user's request; GitHub prerelease created.
 - 2026-11-24: Fast-path change: `PUBLISH.md` points `latest` at each new prerelease while no stable release exists, at the user's request ("Yes, please update PUBLISH.md").
+- 2026-11-25: _`P27`_ drafted from the user's request (a group's `collapsed` passed down); choices: "In resolveNavigation (Rec.)", "S13 decision + P27 (Rec.)" (_`D934`_–_`D936`_, _`R68`_ on _`S13`_).
+- 2026-11-25: _`P27`_ approved, and _`S13`_ re-approved for _`R68`_ (option chosen: "Approve and commit (Rec.)").
