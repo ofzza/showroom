@@ -1,6 +1,6 @@
 {
   "name": "@ofzza/showroom",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "description": "Build a showroom for a repository: its documentation, enriched by showcases.",
   "keywords": [
     "typescript",
