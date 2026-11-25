@@ -3,8 +3,8 @@
 ## Next session: start here
 
 - **Stage:** implementation: _`P26`_ navigation groups collapsed at first ([PLAN-P26-collapsed-groups.md](./PLAN-P26-collapsed-groups.md)) is implemented (2026-11-24); _`P25`_ is done; _`O145`_ (blox's checks) and _`K32`_ (Safari) wait.
-- **Next free:** _`D939`_, _`S20`_, _`P28`_, _`O146`_, _`L22`_, _`R69`_, _`H1`_, _`K33`_
-- **Working on:** _`P27`_ navigation groups' `collapsed` passed down ([PLAN-P27-collapsed-inherited.md](./PLAN-P27-collapsed-inherited.md)), implemented 2026-11-25, with _`D937`_ (the README overlays example) and _`D938`_ (heading links) folded in.
+- **Next free:** _`D946`_, _`S20`_, _`P29`_, _`O146`_, _`L22`_, _`R70`_, _`H1`_, _`K33`_
+- **Working on:** _`P28`_ the console in the header bar ([PLAN-P28-console-header.md](./PLAN-P28-console-header.md)), drafted with _`D939`_–_`D943`_ and _`R69`_ on _`S12`_; approved 2026-11-25; implementing.
 - **Next step:** the user's choice; blox's _`P4.2`_ waits for a release carrying _`P24`_ and _`P25`_ (`PUBLISH.md`, on the user's word).
 
 ## Open questions
@@ -513,3 +513,5 @@
 - 2026-11-25: _`P27`_ drafted from the user's request (a group's `collapsed` passed down); choices: "In resolveNavigation (Rec.)", "S13 decision + P27 (Rec.)" (_`D934`_–_`D936`_, _`R68`_ on _`S13`_).
 - 2026-11-25: _`P27`_ approved, and _`S13`_ re-approved for _`R68`_ (option chosen: "Approve and commit (Rec.)").
 - 2026-11-25: _`P27`_ implemented, with _`D937`_ (`README.md`'s overlays example: a second menu opening upwards, hover, console lines) and _`D938`_ (every heading linking to itself) folded in at the user's word; `npm run ci` green (`./.workflow/.temp/ci-p27.log`); approved after the browser check (option chosen: "Approve and commit").
+- 2026-11-25: _`S12`_ revised (_`R69`_, _`D939`_–_`D943`_) and _`P28`_ drafted from the user's console redesign; choices: "Separate line count (Rec.)", "Newest only (Rec.)", "Only without a console view (Rec.)", "No, header only (Rec.)", and the `>_` prefix at the user's word.
+- 2026-11-25: _`P28`_ approved, and _`S12`_ re-approved for _`R69`_ (option chosen: "Approve and commit (Rec.)").

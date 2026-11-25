@@ -327,6 +327,10 @@ None (_`D61`_).
 - _`P26`_ Navigation groups collapsed at first (approved 2026-11-24, implemented 2026-11-24): _`S13`_ (SPEC-S13-navigation.md) as revised by _`R67`_, a `navigation` group's optional `collapsed`; one segment. [See Navigation groups collapsed at first](./PLAN-P26-collapsed-groups.md)
 - _`P27`_ Navigation groups' `collapsed` passed down (approved 2026-11-25, implemented 2026-11-25): _`S13`_ (SPEC-S13-navigation.md) as revised by _`R68`_, _`D934`_; one segment. [See Navigation groups' collapsed passed down](./PLAN-P27-collapsed-inherited.md)
 
+## The console in the header bar
+
+- _`P28`_ The console in the header bar (approved 2026-11-25): _`S12`_ (SPEC-S12-showcase-views.md) as revised by _`R69`_, the console panel's counter dropped and its fading lines moved into the header bar; one segment. [See The console in the header bar](./PLAN-P28-console-header.md)
+
 ## Known open issues
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: _`P9`_. Status: picked up by _`P9`_; resolved by _`D323`_ (SPEC.md), implemented by _`P9`_ 2026-11-13.
