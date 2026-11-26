@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P26`_ navigation groups collapsed at first ([PLAN-P26-collapsed-groups.md](./PLAN-P26-collapsed-groups.md)) is implemented (2026-11-24); _`P25`_ is done; _`O145`_ (blox's checks) and _`K32`_ (Safari) wait.
-- **Next free:** _`D947`_, _`S20`_, _`P29`_, _`O146`_, _`L22`_, _`R70`_, _`H1`_, _`K33`_
-- **Working on:** _`P28`_ the console in the header bar ([PLAN-P28-console-header.md](./PLAN-P28-console-header.md)), drafted with _`D939`_–_`D943`_ and _`R69`_ on _`S12`_; implemented 2026-11-25.
-- **Next step:** the user's choice; blox's _`P4.2`_ waits for a release carrying _`P24`_ and _`P25`_ (`PUBLISH.md`, on the user's word).
+- **Stage:** implementation: _`P29`_ reloading a showcase frame ([PLAN-P29-reload.md](./PLAN-P29-reload.md)) is approved, with _`R70`_ on _`S12`_; _`O145`_ (blox's checks) and _`K32`_ (Safari) wait.
+- **Next free:** _`D950`_, _`S20`_, _`P30`_, _`O146`_, _`L22`_, _`R71`_, _`H1`_, _`K33`_
+- **Working on:** _`P29`_ reloading a showcase frame, drafted with _`D947`_ and _`R70`_ on _`S12`_ (SPEC-S12-showcase-views.md), and _`D948`_, _`D949`_.
+- **Next step:** implement _`P29`_ (its steps 1–4), then its checkpoint; blox's _`P4.2`_ waits for a release carrying _`P24`_ and _`P25`_ (`PUBLISH.md`, on the user's word).
 
 ## Open questions
 
@@ -13,6 +13,8 @@
 
 ## Waiting on me
 
+- The untracked .NET build output in fixtures (`test/fixtures/*/obj/`, written 2026-11-26 19:51, and the changed `test/fixtures/dotnet/src/Numbers/obj/project.assets.json`), from outside the 2026-11-27 session: left untouched until the user decides.
+- `./.workflow/.temp/p29-format/` (formatting backups); ask before deleting it.
 - `./.workflow/.temp/p28-format/` (formatting backups), `ci-p28.log`, `serve-dogfood-p28.log`; ask before deleting them.
 - `./.workflow/.temp/p27-format/` (formatting backups), `p27-check/` (the served nested-groups copy), `ci-p27.log`, `serve-dogfood-p27.log`, `serve-p27-check.log`; ask before deleting them.
 - `./.workflow/.temp/p26-format/` (formatting backups), `ci-p26.log`, `p26-build.log`, `serve-dogfood-p26.log`; ask before deleting them.
@@ -517,3 +519,6 @@
 - 2026-11-25: _`S12`_ revised (_`R69`_, _`D939`_–_`D943`_) and _`P28`_ drafted from the user's console redesign; choices: "Separate line count (Rec.)", "Newest only (Rec.)", "Only without a console view (Rec.)", "No, header only (Rec.)", and the `>_` prefix at the user's word.
 - 2026-11-25: _`P28`_ approved, and _`S12`_ re-approved for _`R69`_ (option chosen: "Approve and commit (Rec.)").
 - 2026-11-25: _`P28`_ implemented, with _`D946`_ (the `runtime` mark toggling the console panel) from the checkpoint; `npm run ci` green (`./.workflow/.temp/ci-p28.log`); approved after the browser check (option chosen: "Approve and commit").
+- 2026-11-25: `0.1.0-alpha.5` published to npm under `alpha`, with `latest` pointed at it (`PUBLISH.md`); GitHub prerelease created.
+- 2026-11-27: _`S12`_ revised (_`R70`_, _`D947`_) and _`P29`_ drafted from the user's reload proposal; choices: Q1 "Right end and just an icon without a label, but with a tooltip, same as the code pane cycling actions", Q2 "Loaded frames only (Rec.)", Q3 "Plan segment P29 (Rec.)".
+- 2026-11-27: _`P29`_ approved, and _`S12`_ re-approved for _`R70`_ (option chosen: "Approve and commit (Rec.)"); _`D948`_'s choices accepted (option chosen: "Accept all (Rec.)").

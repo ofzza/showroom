@@ -331,6 +331,10 @@ None (_`D61`_).
 
 - _`P28`_ The console in the header bar (approved 2026-11-25, implemented 2026-11-25): _`S12`_ (SPEC-S12-showcase-views.md) as revised by _`R69`_, the console panel's counter dropped and its fading lines moved into the header bar; one segment. [See The console in the header bar](./PLAN-P28-console-header.md)
 
+## Reloading a showcase frame
+
+- _`P29`_ Reloading a showcase frame (approved 2026-11-27): _`S12`_ (SPEC-S12-showcase-views.md) as revised by _`R70`_, the header bar's reload button; one segment. [See Reloading a showcase frame](./PLAN-P29-reload.md)
+
 ## Known open issues
 
 - _`L1`_ Relative images in Markdown aren't shown (_`P2`_, _`D39`_): _`P1`_ doesn't collect image files. Deferred to keep _`P2`_ small. Segment: _`P9`_. Status: picked up by _`P9`_; resolved by _`D323`_ (SPEC.md), implemented by _`P9`_ 2026-11-13.
