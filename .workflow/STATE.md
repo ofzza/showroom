@@ -13,6 +13,7 @@
 
 ## Waiting on me
 
+- `./.workflow/.temp/ci-copy-button.log`, `serve-dogfood-copy-button.log`, `copy-button-format/` (formatting backup); ask before deleting them.
 - `./.workflow/.temp/p29-format/` (formatting backups, and the fixtures' snapshot before CI), `ci-p29.log`, `ci-p29-serve.log`, `ci-p29-e2e.log`, `serve-dogfood-p29.log`; ask before deleting them.
 - `./.workflow/.temp/p28-format/` (formatting backups), `ci-p28.log`, `serve-dogfood-p28.log`; ask before deleting them.
 - `./.workflow/.temp/p27-format/` (formatting backups), `p27-check/` (the served nested-groups copy), `ci-p27.log`, `serve-dogfood-p27.log`, `serve-p27-check.log`; ask before deleting them.
@@ -65,6 +66,7 @@
 
 ## Running
 
+- `showroom serve` of this repository with the copy button fast path's code (http://localhost:5173/, PID 205723, `serve-dogfood-copy-button.log`), started 2026-11-27 for its checkpoint.
 - `showroom serve` of this repository with _`P29`_'s code (http://localhost:5177/, PID 1794602, `serve-dogfood-p29.log`), started 2026-11-27 for _`P29`_'s checkpoint.
 - `showroom serve` of this repository (http://localhost:5176/, `serve-dogfood-p28.log`) and of `p27-check/host` (http://localhost:5175/, `serve-p27-check.log`), started 2026-11-25 at the user's request, kept running across tasks until the user agrees to shut them down (stopped only while a CI run rebuilds `dist/`). Their PIDs: 976812 (5176) and 976814 (5175), started 2026-11-25 14:23. The port 5173 one (PID 1789672) had ended by 2026-11-27, with exit code 143 (SIGTERM).
 
@@ -523,3 +525,4 @@
 - 2026-11-27: _`P29`_ approved, and _`S12`_ re-approved for _`R70`_ (option chosen: "Approve and commit (Rec.)"); _`D948`_'s choices accepted (option chosen: "Accept all (Rec.)").
 - 2026-11-27: _`P29`_ implemented (uncommitted); `npm run ci` green but for _`O146`_ (the `showcase-cs` e2e test, failing on the fixtures' stray .NET build output).
 - 2026-11-27: _`O146`_ resolved at the user's word ("Remove and rerun (Rec.)"): the fixtures' stray .NET build output removed, `project.assets.json` restored, `npm run ci:test-e2e` green; _`P29`_ approved at its checkpoint (option chosen: "Approve and commit").
+- 2026-11-27: Fast path: a code block that scrolls vertically (filling its parent, or a showcase view) moves its copy button left by the scrollbar's room (16 px), always, CSS only (option chosen: "CSS offset (Recommended)").

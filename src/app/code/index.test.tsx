@@ -176,6 +176,22 @@ describe('app/code', () => {
       expect(html).not.toContain('Copy code');
     });
 
+    it('Moves its copy button left of a vertical scrollbar where it scrolls vertically', () => {
+      const element = (fill: boolean, view: boolean) => (
+        <CodeBlock text="a" fill={fill} view={view}>
+          <pre>
+            <code>a</code>
+          </pre>
+        </CodeBlock>
+      );
+      // Griffel's classes are atomic, and merging replaces the `right` one, so only the class names tell them apart
+      const classes = (html: string) => html.match(/<button [^>]*class="([^"]+)"/)![1];
+      const plain = classes(_renderElement(element(false, false)));
+      expect(classes(_renderElement(element(true, false)))).not.toBe(plain);
+      expect(classes(_renderElement(element(false, true)))).not.toBe(plain);
+      expect(classes(_renderElement(element(true, false)))).toBe(classes(_renderElement(element(false, true))));
+    });
+
     it('Takes extra classes when it fills its parent, keeping its copy button outside the scroll', () => {
       const element = (fill: boolean) => (
         <CodeBlock text="a" fill={fill}>

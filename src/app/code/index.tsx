@@ -69,7 +69,8 @@ export const TOKEN_STYLES: Record<string, GriffelStyle> = Object.fromEntries(
 export const MAX_CODE_LINES = 20;
 
 /**
- * Room for a horizontal scrollbar below the code, added to a height counted in lines, so long lines don't scroll the code vertically too
+ * Room for a scrollbar: a horizontal one below the code, added to a height counted in lines, so long lines don't scroll the code vertically too;
+ * and a vertical one beside the copy button of a code block that scrolls vertically, so the button never covers it
  */
 const _SCROLLBAR_ROOM = '16px';
 
@@ -129,6 +130,8 @@ const _useStyles = makeStyles({
   viewScroll: { maxHeight: `min(${getCodeHeight(MAX_CODE_LINES)}, 100vh)`, overflow: 'auto', alignItems: 'flex-start' },
   code: { position: 'relative', flexGrow: 1, minWidth: 0 },
   copy: { position: 'absolute', top: tokens.spacingVerticalXS, right: tokens.spacingHorizontalXS, zIndex: 2 },
+  // Left of a vertical scrollbar, where the code scrolls vertically (filling its parent, or a showcase view); always, as CSS can't tell whether one shows
+  scrollCopy: { right: `calc(${tokens.spacingHorizontalXS} + ${_SCROLLBAR_ROOM})` },
 });
 
 /**
@@ -276,7 +279,7 @@ export function CodeBlock({ text, children, fill = false, copy = true, view = fa
           {children}
         </div>
       </div>
-      {copy && <CopyButton text={text} className={styles.copy} />}
+      {copy && <CopyButton text={text} className={mergeClasses(styles.copy, (fill || view) && styles.scrollCopy)} />}
     </div>
   );
 }
