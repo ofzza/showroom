@@ -333,7 +333,7 @@ None (_`D61`_).
 
 ## Reloading a showcase frame
 
-- _`P29`_ Reloading a showcase frame (approved 2026-11-27): _`S12`_ (SPEC-S12-showcase-views.md) as revised by _`R70`_, the header bar's reload button; one segment. [See Reloading a showcase frame](./PLAN-P29-reload.md)
+- _`P29`_ Reloading a showcase frame (approved 2026-11-27, implemented 2026-11-27): _`S12`_ (SPEC-S12-showcase-views.md) as revised by _`R70`_, the header bar's reload button; one segment. [See Reloading a showcase frame](./PLAN-P29-reload.md)
 
 ## Known open issues
 

@@ -16,11 +16,13 @@ import {
   INITIAL_CODE_PANE_STATE,
   SIDEBAR_VIEWS_BUTTON_LABELS,
   NOT_BUILT_TEXT,
+  RELOAD_LABEL,
   SHOWCASE_BLOCK_FRAME_MIN_HEIGHT,
   ShowcaseBlock,
   TRUST_NOTICE_TEXT,
   TRUST_NOTICE_TOOLTIP,
   TrustedContext,
+  canReloadShowcase,
   getCodePaneMinLines,
   getFrameView,
   getInitialCodePaneState,
@@ -445,6 +447,74 @@ describe('app/code-pane', () => {
       expect(getInitialCodePaneState(['source'], true, false)).toBe('sidebar');
       expect(getInitialCodePaneState(['source'], false, false)).toBe(INITIAL_CODE_PANE_STATE);
       expect(render({ ...untrusted, display: 'inline' }, () => {})).toContain('data-code-pane-state="sidebar"');
+    });
+  });
+
+  describe('Reload button', () => {
+    // The header bar's reload button (D947 in .workflow/SPEC-S12-showcase-views.md): canReloadShowcase() as a pure function, and the block rendered on
+    // the server, on a page and in the showcase sidebar, with and without trust; the reload itself is an effect, checked by the user in a browser.
+
+    /**
+     * Renders a block, on a page or in the showcase sidebar, with or without trust
+     * @param showcase The showcase
+     * @param options The code pane's state, true for the showcase sidebar, and false without trust
+     * @returns The rendered HTML
+     */
+    const render = (
+      showcase: ShownShowcase,
+      { state, sidebar = false, trusted = true }: { state?: CodePaneState; sidebar?: boolean; trusted?: boolean } = {},
+    ) =>
+      renderToString(
+        <SSRProvider>
+          <FluentProvider theme={webLightTheme}>
+            <TrustedContext.Provider value={trusted}>
+              <ShowcaseBlock showcase={showcase} documentation={[]} initialState={state} onClose={sidebar ? () => {} : undefined} />
+            </TrustedContext.Provider>
+          </FluentProvider>
+        </SSRProvider>,
+      ).replaceAll('<!-- -->', '');
+    const reload = `aria-label="${RELOAD_LABEL}"`;
+    const recording = { lines: [], dropped: 0, exitCode: 0 };
+
+    it('Reloads a showcase whose showcase frame is loaded, by its demo view or hidden in its console view', () => {
+      expect(canReloadShowcase(_SHOWCASE)).toBe(true);
+      expect(canReloadShowcase({ ..._SHOWCASE, views: ['source', 'console'] })).toBe(true);
+      // One that doesn't build, a recorded one, and one whose views load no showcase frame have none to reload
+      expect(canReloadShowcase({ ..._SHOWCASE, url: undefined })).toBe(false);
+      expect(canReloadShowcase({ ..._SHOWCASE, views: ['source', 'console'], url: undefined, recording })).toBe(false);
+      expect(canReloadShowcase({ ..._SHOWCASE, views: ['source'] })).toBe(false);
+    });
+
+    it('Shows it first at the right end, an icon with its label as its tooltip and accessible name', () => {
+      expect(RELOAD_LABEL).toBe('Reload the showcase');
+      for (const state of ['hidden', 'half'] as const) {
+        const html = render(_SHOWCASE, { state });
+        const button = html.indexOf(reload);
+        const cycling = html.indexOf(`aria-label="${CODE_PANE_BUTTON_LABELS[state]}"`);
+        expect(button).toBeGreaterThan(html.indexOf('data-status-mark'));
+        expect(button).toBeLessThan(cycling);
+        expect(html).toMatch(new RegExp(`<button [^>]*(${reload}[^>]*title="${RELOAD_LABEL}"|title="${RELOAD_LABEL}"[^>]*${reload})`));
+      }
+      // With the showcase sidebar open, it is the only button there
+      expect(render(_SHOWCASE, { state: 'sidebar' })).toContain(reload);
+      // A showcase frame running hidden in a console view can be reloaded too
+      expect(render({ ..._SHOWCASE, views: ['source', 'console'] })).toContain(reload);
+    });
+
+    it('Shows it before the views toggle and close buttons in the showcase sidebar', () => {
+      const html = render({ ..._SHOWCASE, display: 'inline' }, { sidebar: true });
+      const button = html.indexOf(reload);
+      const toggle = html.indexOf(`aria-label="${SIDEBAR_VIEWS_BUTTON_LABELS.expanded}"`);
+      const close = html.indexOf(`aria-label="${CLOSE_LABEL}"`);
+      expect(button).toBeGreaterThan(-1);
+      expect([button < toggle, toggle < close]).toEqual([true, true]);
+    });
+
+    it("Shows none on a recorded showcase, one that doesn't build, or without trust", () => {
+      expect(render({ ..._SHOWCASE, views: ['source', 'console'], url: undefined, checks: ['runtime'], recording })).not.toContain(reload);
+      expect(render({ ..._SHOWCASE, url: undefined })).not.toContain(reload);
+      // Without trust, even a showcase that has its URL
+      expect(render(_SHOWCASE, { trusted: false })).not.toContain(reload);
     });
   });
 

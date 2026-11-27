@@ -223,14 +223,15 @@ describe('app/showcases', () => {
     /**
      * Renders a showcase frame
      * @param theme Name of the theme
+     * @param reload How many times it was asked to reload
      * @returns The rendered HTML
      */
-    const render = (theme: ThemeName) =>
+    const render = (theme: ThemeName, reload?: number) =>
       renderToString(
         <SSRProvider>
           <FluentProvider theme={webLightTheme}>
             <ThemeContext.Provider value={theme}>
-              <ShowcaseFrame showcase={showcase} />
+              <ShowcaseFrame showcase={showcase} reload={reload} />
             </ThemeContext.Provider>
           </FluentProvider>
         </SSRProvider>,
@@ -247,6 +248,11 @@ describe('app/showcases', () => {
       // The showcase is the host repository's own code, so it isn't sandboxed, and keeps its storage and cookies
       expect(html).not.toContain('sandbox');
       expect(render('light')).toContain('&amp;theme=light');
+    });
+
+    it('Loads the same URL whatever its reload count starts at', () => {
+      // A reload is the same URL loaded again by hand, never a URL of its own (D948 in .workflow/PLAN-P29-reload.md); the reload itself is an effect
+      expect(render('dark', 3)).toContain('src="showcases/docs/my%20notes.md/2/index.html?hash=0123abcd&amp;theme=dark"');
     });
 
     it('Titles a showcase frame by its position and documentation file', () => {

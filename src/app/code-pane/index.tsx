@@ -1,14 +1,15 @@
 /**
- * The code pane: a showcase shown as a block, its header bar (its status marks, and the code pane's cycling button) and its issue list above its
- * showcase views, stacked in their order, beside its code (a tab per file, marked with its issues); the code hidden, beside the views, or in the
- * showcase sidebar, switched by the cycling button; side by side, or stacked when the block is narrow, by a container query alone, around views that
- * are never moved, so a showcase frame never reloads. A showcase that doesn't build shows "Not built" in place of its showcase frame. Also a linked
+ * The code pane: a showcase shown as a block, its header bar (its status marks, its reload button and the code pane's cycling button) and its issue
+ * list above its showcase views, stacked in their order, beside its code (a tab per file, marked with its issues); the code hidden, beside the views,
+ * or in the showcase sidebar, switched by the cycling button; side by side, or stacked when the block is narrow, by a container query alone, around
+ * views that are never moved, so a showcase frame never reloads unless its reload button is pressed. A showcase that doesn't build shows "Not built" in place of its showcase frame. Also a linked
  * showcase shown inline, shown as a block in the showcase sidebar, its code pane always shown: below its views, or filling it while they are collapsed.
  */
 
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Button, makeStyles, mergeClasses, tokens } from '@fluentui/react-components';
 import {
+  ArrowClockwise16Regular,
   CheckmarkCircle16Filled,
   ChevronDown16Regular,
   ChevronUp16Regular,
@@ -86,6 +87,11 @@ export const CODE_PANE_BUTTON_LABELS: Record<Exclude<CodePaneState, 'sidebar'>, 
  * hiding the code pane needn't go through the showcase sidebar (D629)
  */
 export const CODE_PANE_HIDE_LABEL = 'Hide the code';
+
+/**
+ * Accessible name and tooltip of a block's reload button, loading its showcase frame again (D947)
+ */
+export const RELOAD_LABEL = 'Reload the showcase';
 
 /**
  * Represents the state of a block's views in the showcase sidebar (a linked showcase shown inline's), its code pane always shown: expanded (the
@@ -637,7 +643,7 @@ export function IssueList({ showcase, id }: { showcase: ShownShowcase; id?: stri
  * Styles of the header bar and the "Not built" placeholder
  */
 const _useBarStyles = makeStyles({
-  // The status marks on its left, then the console's line (D941), the cycling button (a block's) at its right end
+  // The status marks on its left, then the console's line (D941), the reload button and the cycling button (a block's) at its right end
   bar: {
     display: 'flex',
     alignItems: 'center',
@@ -678,7 +684,7 @@ export interface HeaderBarProps {
    */
   line?: ReactNode;
   /**
-   * What sits at its right end (a block's cycling button, and in the showcase sidebar its close button), if anything
+   * What sits at its right end (a block's reload button and cycling button, and in the showcase sidebar its close button), if anything
    */
   end?: ReactNode;
   /**
@@ -836,6 +842,16 @@ export function getFrameView(views: readonly ShowcaseView[]): 'demo' | 'console'
 }
 
 /**
+ * Checks if a block's showcase frame can be reloaded: it is loaded, by its `demo` view or hidden in its `console` view (never for a recorded showcase,
+ * which has no showcase frame, or one that doesn't build); without trust, no reload button shows either (D947)
+ * @param showcase The shown showcase
+ * @returns True if its reload button shows, with trust
+ */
+export function canReloadShowcase(showcase: ShownShowcase): boolean {
+  return isLoadedShowcase(showcase) && getFrameView(showcase.views) !== undefined;
+}
+
+/**
  * Represents the properties of a showcase block
  */
 export interface ShowcaseBlockProps {
@@ -867,11 +883,11 @@ export interface ShowcaseBlockProps {
 }
 
 /**
- * Renders a showcase shown as a block: its header bar with its status marks and the cycling button, and its issue list; its views, stacked in their
- * order (`markdown` and `source` with their issue lines marked, `demo` with the console panel over it unless a `console` view shows it, `console`
- * with the showcase frame running hidden at its top when there is no `demo` view; "Not built" in place of the showcase frame and the console when it
- * doesn't build); its code pane (the tab list and the copy button above the selected tab's code, its issue lines marked); in the sidebar state, the
- * views alone, and the showcase sidebar with its tabs, from the selected one
+ * Renders a showcase shown as a block: its header bar with its status marks, the reload button (where its showcase frame is loaded, with trust) and
+ * the cycling button, and its issue list; its views, stacked in their order (`markdown` and `source` with their issue lines marked, `demo` with the
+ * console panel over it unless a `console` view shows it, `console` with the showcase frame running hidden at its top when there is no `demo` view;
+ * "Not built" in place of the showcase frame and the console when it doesn't build); its code pane (the tab list and the copy button above the
+ * selected tab's code, its issue lines marked); in the sidebar state, the views alone, and the showcase sidebar with its tabs, from the selected one
  * @param props Properties of the component
  * @returns The block
  */
@@ -895,6 +911,8 @@ export function ShowcaseBlock({ showcase, documentation, initialState, initialCo
     dispatchConsole(recording ? { type: 'recording', recording } : { type: 'start' });
   }, [recording, dispatchConsole]);
   const [lastHeight, setLastHeight] = useState<number>();
+  // How many times its reload button was pressed, each loading its showcase frame again (D948)
+  const [reloads, setReloads] = useState(0);
   // Raised while its showcase frame's overlays are out over the page: at first, as its showcase frame starts out (the tests' rendering)
   const [level, setLevel] = useState(() =>
     initialOverhang && showcase.overlays && showcase.views.includes('demo') && !fill && getOverhangStyle(initialOverhang, SHOWCASE_BLOCK_FRAME_MIN_HEIGHT)
@@ -925,6 +943,7 @@ export function ShowcaseBlock({ showcase, documentation, initialState, initialCo
         overhang={!fill}
         initialOverhang={initialOverhang}
         onOverhang={setLevel}
+        reload={reloads}
       />
     );
   // The runtime status mark opens and closes the console panel over the demo view (D946), or shows the console view's first issue line
@@ -986,6 +1005,17 @@ export function ShowcaseBlock({ showcase, documentation, initialState, initialCo
       onClick={() => setState('hidden')}
     />
   );
+  // First at the right end, where a showcase frame is loaded, with trust (D947)
+  const reload = trusted && canReloadShowcase(showcase) && (
+    <Button
+      appearance="subtle"
+      size="small"
+      icon={<ArrowClockwise16Regular />}
+      aria-label={RELOAD_LABEL}
+      title={RELOAD_LABEL}
+      onClick={() => setReloads((count) => count + 1)}
+    />
+  );
   const close = sidebar && (
     <Button appearance="subtle" size="small" icon={<Dismiss16Regular />} aria-label={CLOSE_LABEL} title={CLOSE_LABEL} onClick={onClose} />
   );
@@ -1018,8 +1048,9 @@ export function ShowcaseBlock({ showcase, documentation, initialState, initialCo
             line={!showcase.views.includes('console') && <ConsoleHeaderLine state={shared[0]} dispatch={shared[1]} />}
             trusted={trusted}
             end={
-              (cycling || hide || close) && (
+              (reload || cycling || hide || close) && (
                 <>
+                  {reload}
                   {cycling}
                   {hide}
                   {close}

@@ -2,10 +2,10 @@
 
 ## Next session: start here
 
-- **Stage:** implementation: _`P29`_ reloading a showcase frame ([PLAN-P29-reload.md](./PLAN-P29-reload.md)) is approved, with _`R70`_ on _`S12`_; _`O145`_ (blox's checks) and _`K32`_ (Safari) wait.
-- **Next free:** _`D950`_, _`S20`_, _`P30`_, _`O146`_, _`L22`_, _`R71`_, _`H1`_, _`K33`_
+- **Stage:** implementation: _`P29`_ reloading a showcase frame ([PLAN-P29-reload.md](./PLAN-P29-reload.md)) is implemented (2026-11-27); _`O145`_ (blox's checks) and _`K32`_ (Safari) wait.
+- **Next free:** _`D950`_, _`S20`_, _`P30`_, _`O147`_, _`L22`_, _`R71`_, _`H1`_, _`K33`_
 - **Working on:** _`P29`_ reloading a showcase frame, drafted with _`D947`_ and _`R70`_ on _`S12`_ (SPEC-S12-showcase-views.md), and _`D948`_, _`D949`_.
-- **Next step:** implement _`P29`_ (its steps 1–4), then its checkpoint; blox's _`P4.2`_ waits for a release carrying _`P24`_ and _`P25`_ (`PUBLISH.md`, on the user's word).
+- **Next step:** the user's choice; blox's _`P4.2`_ waits for a release carrying _`P24`_ and _`P25`_ (`PUBLISH.md`, on the user's word).
 
 ## Open questions
 
@@ -13,8 +13,7 @@
 
 ## Waiting on me
 
-- The untracked .NET build output in fixtures (`test/fixtures/*/obj/`, written 2026-11-26 19:51, and the changed `test/fixtures/dotnet/src/Numbers/obj/project.assets.json`), from outside the 2026-11-27 session: left untouched until the user decides.
-- `./.workflow/.temp/p29-format/` (formatting backups); ask before deleting it.
+- `./.workflow/.temp/p29-format/` (formatting backups, and the fixtures' snapshot before CI), `ci-p29.log`, `ci-p29-serve.log`, `ci-p29-e2e.log`, `serve-dogfood-p29.log`; ask before deleting them.
 - `./.workflow/.temp/p28-format/` (formatting backups), `ci-p28.log`, `serve-dogfood-p28.log`; ask before deleting them.
 - `./.workflow/.temp/p27-format/` (formatting backups), `p27-check/` (the served nested-groups copy), `ci-p27.log`, `serve-dogfood-p27.log`, `serve-p27-check.log`; ask before deleting them.
 - `./.workflow/.temp/p26-format/` (formatting backups), `ci-p26.log`, `p26-build.log`, `serve-dogfood-p26.log`; ask before deleting them.
@@ -66,8 +65,8 @@
 
 ## Running
 
-- `showroom serve` of this repository (port 5173, PID 1789672, started 2026-11-24 before _`P27`_, so its process runs the code from before _`P27`_), at the user's request; stopped only when the user says so.
-- `showroom serve` of this repository (http://localhost:5176/, `serve-dogfood-p28.log`) and of `p27-check/host` (http://localhost:5175/, `serve-p27-check.log`), started 2026-11-25 at the user's request, kept running across tasks until the user agrees to shut them down (stopped only while a CI run rebuilds `dist/`).
+- `showroom serve` of this repository with _`P29`_'s code (http://localhost:5177/, PID 1794602, `serve-dogfood-p29.log`), started 2026-11-27 for _`P29`_'s checkpoint.
+- `showroom serve` of this repository (http://localhost:5176/, `serve-dogfood-p28.log`) and of `p27-check/host` (http://localhost:5175/, `serve-p27-check.log`), started 2026-11-25 at the user's request, kept running across tasks until the user agrees to shut them down (stopped only while a CI run rebuilds `dist/`). Their PIDs: 976812 (5176) and 976814 (5175), started 2026-11-25 14:23. The port 5173 one (PID 1789672) had ended by 2026-11-27, with exit code 143 (SIGTERM).
 
 ## History
 
@@ -522,3 +521,5 @@
 - 2026-11-25: `0.1.0-alpha.5` published to npm under `alpha`, with `latest` pointed at it (`PUBLISH.md`); GitHub prerelease created.
 - 2026-11-27: _`S12`_ revised (_`R70`_, _`D947`_) and _`P29`_ drafted from the user's reload proposal; choices: Q1 "Right end and just an icon without a label, but with a tooltip, same as the code pane cycling actions", Q2 "Loaded frames only (Rec.)", Q3 "Plan segment P29 (Rec.)".
 - 2026-11-27: _`P29`_ approved, and _`S12`_ re-approved for _`R70`_ (option chosen: "Approve and commit (Rec.)"); _`D948`_'s choices accepted (option chosen: "Accept all (Rec.)").
+- 2026-11-27: _`P29`_ implemented (uncommitted); `npm run ci` green but for _`O146`_ (the `showcase-cs` e2e test, failing on the fixtures' stray .NET build output).
+- 2026-11-27: _`O146`_ resolved at the user's word ("Remove and rerun (Rec.)"): the fixtures' stray .NET build output removed, `project.assets.json` restored, `npm run ci:test-e2e` green; _`P29`_ approved at its checkpoint (option chosen: "Approve and commit").

@@ -439,6 +439,11 @@ export interface ShowcaseFrameProps {
    * Called with the level its block is raised to while its overlays are out: 0 when none is, 1, or 2 for the one whose overlay opened last (D927)
    */
   onOverhang?: (level: number) => void;
+  /**
+   * How many times it has been asked to reload (its block's reload button): each increase loads it again, in the theme of the moment (D948); 0 by
+   * default
+   */
+  reload?: number;
 }
 
 /**
@@ -449,7 +454,8 @@ export interface ShowcaseFrameProps {
  * its `console` messages, and told when it is `ready`. Its real presses are relayed to the other showcase frames as presses outside them. Opted into
  * overlays over the page (the showcase's `overlays`, shown), its URL says so, and its overlays reaching out of its content are drawn over the page
  * around it (its iframe as high as its whole page, pulled back by negative margins, clipped to its content and its overlays, its box raised), and
- * presses outside it are relayed to it.
+ * presses outside it are relayed to it. Asked to reload (`reload` increased), it loads its URL again, in the theme of the moment, the same iframe
+ * keeping its height until the showcase frame reports its new one (D948).
  * @param props Properties of the component
  * @returns The showcase frame
  */
@@ -465,18 +471,27 @@ export function ShowcaseFrame({
   overhang: shown = true,
   initialOverhang,
   onOverhang,
+  reload = 0,
 }: ShowcaseFrameProps): ReactNode {
   const styles = _useStyles();
   const theme = useContext(ThemeContext);
   const frame = useRef<HTMLIFrameElement>(null);
   // A hidden showcase frame is never opted in (D912): nothing shows it
   const overlays = showcase.overlays === true && !hidden;
-  const [loaded, setLoaded] = useState(() => ({ url: showcase.url, overlays, src: getThemedFrameUrl(showcase.url, theme, overlays) }));
-  if (loaded.url !== showcase.url || loaded.overlays !== overlays) {
+  const [loaded, setLoaded] = useState(() => ({ url: showcase.url, overlays, reload, src: getThemedFrameUrl(showcase.url, theme, overlays) }));
+  if (loaded.url !== showcase.url || loaded.overlays !== overlays || loaded.reload !== reload) {
     // Adjusting state while rendering, as React recommends for state derived from a changed prop
-    setLoaded({ url: showcase.url, overlays, src: getThemedFrameUrl(showcase.url, theme, overlays) });
+    setLoaded({ url: showcase.url, overlays, reload, src: getThemedFrameUrl(showcase.url, theme, overlays) });
   }
   const src = loaded.src;
+  // Asked to reload with its URL unchanged (the theme too), React sets nothing, so the same URL is set again by hand, as setting `src` navigates
+  // even to the same URL; a changed one React sets itself, so it loads once (D948)
+  const committed = useRef(loaded);
+  useEffect(() => {
+    const previous = committed.current;
+    committed.current = loaded;
+    if (loaded.reload !== previous.reload && loaded.src === previous.src && frame.current) frame.current.src = loaded.src;
+  }, [loaded]);
   const [height, setHeight] = useState<number>();
   const [reported, setReported] = useState<ShownOverhang | undefined>(initialOverhang);
   const own = useConsole(initialConsole);

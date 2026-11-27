@@ -1,6 +1,6 @@
 # _`P29`_ Reloading a showcase frame
 
-approved 2026-11-27 (option chosen: "Approve and commit (Rec.)"), its choices (_`D948`_'s mechanism, icon and label) accepted (option chosen: "Accept all (Rec.)")
+approved 2026-11-27 (option chosen: "Approve and commit (Rec.)"); implemented 2026-11-27 (option chosen: "Approve and commit"); its choices (_`D948`_'s mechanism, icon and label) accepted (option chosen: "Accept all (Rec.)")
 
 _`S12`_ (SPEC-S12-showcase-views.md) as revised by _`R70`_: a block's header bar gets a reload button, at its right end, where a showcase frame is loaded (_`D947`_ (SPEC-S12-showcase-views.md)). One segment, with no child segments; its choices were settled 2026-11-27 (Q1 at the user's word, Q2 and Q3 as recommended).
 
@@ -18,4 +18,4 @@ _`S12`_ (SPEC-S12-showcase-views.md) as revised by _`R70`_: a block's header bar
 
 ## Open points
 
-- None yet.
+- [x] _`O146`_ (resolved 2026-11-27 at the user's word, "Remove and rerun (Rec.)": the untracked `bin/` and `obj/` files removed, `project.assets.json` restored, and `npm run ci:test-e2e` green, `./.workflow/.temp/ci-p29-e2e.log`) From _`P29`_'s `npm run ci`, 2026-11-27: `src/cli/build/index.e2e.test.ts` › "Builds cs showcases with the .NET SDK, their recordings in the shown host information" fails, as the `showcase-cs` fixture holds untracked `bin/` and `obj/` folders (a .NET build's output, written 2026-11-26 19:51 into five fixtures by something outside the test suite), which the test's copy carries; the change itself doesn't touch it, and the run added nothing to the fixtures.

@@ -4,6 +4,10 @@ All notable changes to `@ofzza/showroom`, by version as published to npm. This p
 
 ## Unreleased
 
+### Added
+
+- **A showcase can be reloaded**: a showcase block's header bar has a reload button (a circular arrow, at its right end) wherever its showcase frame runs, loading it again from its first state, for a showcase that does something when it starts or keeps state as it is used; its console starts afresh, and the block keeps its height (see README.md › Showcase views).
+
 ## 0.1.0-alpha.5 (2026-11-25)
 
 ### Changed
